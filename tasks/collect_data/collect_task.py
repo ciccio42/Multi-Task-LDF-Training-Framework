@@ -1,7 +1,7 @@
 from robosuite import load_controller_config
-from robosuite_env.controllers.new_controllers.expert_pick_place import \
+from robosuite_env.controllers.controllers.expert_pick_place import \
     get_expert_trajectory as place_expert
-from robosuite_env.controllers.new_controllers.expert_nut_assembly import \
+from robosuite_env.controllers.controllers.expert_nut_assembly import \
     get_expert_trajectory as nut_expert 
 import functools
 import os
