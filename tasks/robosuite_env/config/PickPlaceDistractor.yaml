@@ -1,0 +1,73 @@
+#---- Parameters related to env configuration ----#
+
+# Mount type
+mount_types: null
+
+# Gripper type
+gripper_types: "default"
+
+# Robot offset
+# -0.03-(mounting/2)-(table_full_size/2) 
+robot_offset: [-0.5305, 0, 0.800] 
+
+# Table dimension
+table_full_size: [0.85, 0.85, 0.05]
+
+# Table offset
+table_offset: [0, 0, 0.70]
+
+# Object y ranges
+y_ranges: [[0.25, 0.30], [0.05, 0.10], [-0.10, -0.15], [-0.30, -0.35]]
+x_ranges: [[-0.14, -0.20]]
+bin_position_x: [0.0, 0.0]
+bin_position_y: [0.025, 0.025]
+# Camera names
+camera_names: ['frontview' ,'camera_front', 'camera_lateral_left','camera_lateral_right', 'robot0_eye_in_hand']
+
+#---- CONF 1 ----#
+camera_poses:
+ # position (x,y,z) and quaternion (w,x,y,z)
+  { 
+    frontview:  [[0.735, 0, 1.085], [0.5336601734161377, 0.4639042615890503, 0.4639032483100891, 0.5336601734161377]],
+   
+    camera_front: [[0.735, 0, 1.085], [0.5336601734161377, 0.4639042615890503, 0.4639032483100891, 0.5336601734161377]], #8°
+    camera_lateral_left: [[-0.2275, 0.905, 0.93], [0.0, 0.0, 0.6560590863227844, 0.7547095417976379]], #8°
+    camera_lateral_right: [[-0.2275, -0.905, 0.93], [0.7547095417976379, 0.6560590863227844, -0.0, -0.0]], #8°
+  }
+
+#---- CONF 2 ----#
+#camera_poses:
+#  # position (x,y,z) and quaternion (w,x,y,z)
+#  { 
+#    frontview: [[-0.163, 0.814, 0.845], [0.0, 0.0, 0.7, 0.7]],
+#    
+#    camera_front: [[0.735, 0, 1.085], [0.5336601734161377, 0.4639042615890503, 0.4639032483100891, 0.5336601734161377]], #8°
+#    camera_lateral_left: [[-0.163, 0.814, 0.845], [0.0, 0.0, 0.7, 0.7]], #8°
+#    camera_lateral_right: [[-0.163, -0.814, 0.845], [0.7, 0.7, -0.0, -0.0]], #8°
+#  }
+
+# camerea gripper
+camera_gripper:
+  {
+    Robotiq85Gripper: {
+                        root: 'right_hand',
+                        pose: [[-0.0325, -0.170, -0.0215], [0, 0, 0.9396926205381703, -0.3420201440063237]]
+                      },
+  }
+
+# camera attributes
+camera_attribs:
+  {fovy: '41'}
+
+# Camera depth
+camera_depths: true
+
+# Camera height
+camera_heights: 360
+
+# Camera width
+camera_widths: 640
+
+# Horizon
+horizon: 1000
+ignore_done: True
