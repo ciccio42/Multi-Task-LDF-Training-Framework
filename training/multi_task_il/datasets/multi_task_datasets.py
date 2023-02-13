@@ -18,6 +18,10 @@ import matplotlib.pyplot as plt
 
 JITTER_FACTORS = {'brightness': 0.4, 'contrast': 0.4, 'saturation': 0.4, 'hue': 0.1} 
 
+import logging
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+dataset_logger = logging.getLogger(name="DatasetLogger")
+
 def collate_by_task(batch):
     """ Use this for validation: groups data by task names to compute per-task losses """
     per_task_data = defaultdict(list)
@@ -100,9 +104,9 @@ class MultiTaskPairedDataset(Dataset):
         for spec in tasks_spec:
             name, date      = spec.get('name', None), spec.get('date', None)
             assert name, 'need to specify the task name for data generated, for easier tracking'
-            print("---- Agent name {} ----\n---- Demo name {} ----".format(agent_name, demo_name))
+            dataset_logger.info("---- Agent name {} ----\n---- Demo name {} ----".format(agent_name, demo_name))
             if mode == 'train':
-                print("Loading task [{:<9}] saved on date {}".format(name, date))
+                dataset_logger.info("---- Loading task [{:<9}] saved on date {} ----".format(name, date))
             if date is None:
                 agent_dir       = join(root_dir, name, '{}_{}'.format(agent_name, name))
                 demo_dir        = join(root_dir, name, '{}_{}'.format(demo_name, name))
@@ -110,25 +114,32 @@ class MultiTaskPairedDataset(Dataset):
                 agent_dir       = join(root_dir, name, '{}_{}_{}'.format(agent_name, date, name))
                 demo_dir        = join(root_dir, name, '{}_{}_{}'.format(demo_name, date, name))
             self.subtask_to_idx[name] = defaultdict(list)
+            # for each sub-task indicated in the configuration file
             for _id in range(spec.get('n_tasks')):
                 if _id in spec.get('skip_ids', []):
                     if (allow_train_skip and mode == 'train') or (allow_val_skip and mode == 'val'):
-                        print('Warning! Excluding subtask id {} from loaded **{}** dataset for task {}'.format(_id, mode, name))
+                        dataset_logger.info('Warning! Excluding subtask id {} from loaded **{}** dataset for task {}'.format(_id, mode, name))
                         continue
+                # get the sub-task id
                 task_id     = 'task_{:02d}'.format(_id)
+                # define the pattern for finding the sample trajectories
                 task_dir    = expanduser(join(agent_dir,  task_id, '*.pkl'))
+                
+                # ---- Agent files ----
+                # agent_files is a list containing the path to the trajectories
                 agent_files = sorted(glob.glob(task_dir))
                 assert len(agent_files) != 0, "Can't find dataset for task {}, subtask {} in dir {}".format(name, _id, task_dir)
+                # take the first subtask_size trajectories
                 subtask_size = spec.get('traj_per_subtask', 100)
                 assert len(agent_files) >= subtask_size, "Doesn't have enough data "+str(len(agent_files))
+                # agent_files contains traj_per_subtask files path
                 agent_files = agent_files[:subtask_size]
-
-                ## prev. version does split randomly, here we strictly split each subtask in the same split ratio:
+                # among all the selected files, we need to split between training and validation trajectories
                 idxs        = split_files(len(agent_files), split, mode)
                 agent_files = [agent_files[i] for i in idxs]
 
+                # ---- Demo files ----
                 task_dir    = expanduser(join(demo_dir, task_id, '*.pkl'))
-
                 demo_files  = sorted(glob.glob(task_dir))
                 subtask_size = spec.get('demo_per_subtask', 100)
                 assert len(demo_files) >= subtask_size, "Doesn't have enough data "+str(len(demo_files))
@@ -138,13 +149,17 @@ class MultiTaskPairedDataset(Dataset):
                 # assert len(agent_files) == len(demo_files), \
                 #     'data for task {}, subtask #{} is not matched'.format(name, task_id)
 
+                # Once the files have been select, create:
+                # 1. A dictionary containing all the possible pairs demo-agent
+                # 2. The correspondence between the task and the corresponding indeces
+                # 3. The correspondence between the sub-tasks and the corresponding indeces
                 for demo in demo_files:
                     for agent in agent_files:
                         self.all_file_pairs[count] = (name, _id, demo, agent)
                         self.task_to_idx[name].append(count)
                         self.subtask_to_idx[name][task_id].append(count)
                         count += 1
-            #print('Done loading Task {}, agent/demo trajctores pairs reach a count of: {}'.format(name, count))
+            dataset_logger.debug('Done loading Task {}, agent/demo trajctores pairs reach a count of: {}'.format(name, count))
             self.task_crops[name] = spec.get('crop', [0,0,0,0])
         self.pairs_count = count
         self.task_count = len(tasks_spec)
@@ -157,11 +172,12 @@ class MultiTaskPairedDataset(Dataset):
         self._state_action_spec = (state_spec, action_spec)
         self.non_sequential = non_sequential
         if non_sequential:
-            print("Warning! The agent observations are not sampled in neighboring timesteps, make sure inverse dynamics loss is NOT used in training \n ")
+            dataset_logger.info("Warning! The agent observations are not sampled in neighboring timesteps, make sure inverse dynamics loss is NOT used in training \n ")
 
+        # ---- Data Augmentation ----
         assert data_augs, 'Must give some basic data-aug parameters'
         if mode == 'train':
-            print('Data aug parameters:', data_augs)
+            dataset_logger.info('Data aug parameters:', data_augs)
         #self.randAffine = RandomAffine(degrees=0, translate=(data_augs.get('rand_trans', 0.1), data_augs.get('rand_trans', 0.1)))
         self.toTensor = ToTensor()
         self.normalize = Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -182,7 +198,7 @@ class MultiTaskPairedDataset(Dataset):
 
 
         self.use_strong_augs = use_strong_augs
-        print("Using strong augmentations?", use_strong_augs)
+        dataset_logger.info("Using strong augmentations?", use_strong_augs)
         jitters = {k: v * data_augs.get('strong_jitter', 0) for k,v in JITTER_FACTORS.items()}
         strong_jitter = ColorJitter(**jitters)
         self.grayscale = RandomGrayscale(data_augs.get("grayscale", 0))
@@ -229,7 +245,7 @@ class MultiTaskPairedDataset(Dataset):
         """since the data is organized by task, use a mapping here to convert
         an index to a proper sub-task index """
         (task_name, sub_task_id, demo_file, agent_file) = self.all_file_pairs[idx]
-        # print("getting idx", idx, task_name, sub_task_id)
+        dataset_logger.debug("getting idx", idx, task_name, sub_task_id)
         demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
         #assert (len(demo_traj) > 10 and len(agent_traj) > 10), \
         #    "Might have loaded in broken datafiles {}, length {}, {}, length {} ".format(demo_file, agent_file, len(demo_traj), len(agent_traj)=
@@ -408,11 +424,14 @@ class DIYBatchSampler(Sampler):
         self.task_iterators = OrderedDict()
         self.task_info = OrderedDict()
 
+        # for each task
         for spec in tasks_spec:
             task_name = spec.name
+            # get all the indices for the given task
             idxs = task_to_idx.get(task_name)
+            # uniformly draw from union of all sub-tasks
             self.task_samplers[task_name] = OrderedDict(
-                {'all_sub_tasks': SubsetRandomSampler(idxs)}) # uniformly draw from union of all sub-tasks
+                {'all_sub_tasks': SubsetRandomSampler(idxs)}) 
             self.task_iterators[task_name] = OrderedDict(
                 {'all_sub_tasks': iter(SubsetRandomSampler(idxs))})
             assert task_name in subtask_to_idx.keys(), \
@@ -421,7 +440,7 @@ class DIYBatchSampler(Sampler):
             first_id = list(subtask_to_idx[task_name].keys())[0]
 
             sub_task_size = len(subtask_to_idx[task_name].get(first_id))
-            print("Task {} loaded {} subtasks, starting from {}, should all have sizes {}".format(\
+            dataset_logger.info("Task {} loaded {} subtasks, starting from {}, should all have sizes {}".format(\
                 task_name, num_loaded_sub_tasks, first_id, sub_task_size))
             for sub_task, sub_idxs in subtask_to_idx[task_name].items():
                 self.task_samplers[task_name][sub_task] = SubsetRandomSampler(sub_idxs)
@@ -429,7 +448,7 @@ class DIYBatchSampler(Sampler):
                     'Got uneven data sizes for sub-{} under the task {}!'.format(sub_task, task_name)
 
                 self.task_iterators[task_name][sub_task] = iter(SubsetRandomSampler(sub_idxs))
-                # print('subtask indexs:', sub_task, max(sub_idxs))
+                dataset_logger.debug('subtask indexs:', sub_task, max(sub_idxs))
             curr_task_info = {
                 'size':         len(idxs),
                 'n_tasks':      len(subtask_to_idx[task_name].keys()),
@@ -444,9 +463,12 @@ class DIYBatchSampler(Sampler):
 
         self.idx_map = OrderedDict()
         idx = 0
+        # for each task
         for spec in tasks_spec:
             name = spec.name
+            # get the ids of the subtasks to use
             _ids = spec.get('task_ids', None)
+            # get the number of trajectories to use for each subtask 
             n = spec.get('n_per_task', None)
             assert (_ids and n), 'Must specify which subtask ids to use and how many is contained in each batch'
             info = self.task_info[name]
@@ -458,10 +480,10 @@ class DIYBatchSampler(Sampler):
                     idx += 1
                 sub_length = int(info['traj_per_subtask'] / n)
                 self.task_info[name]['sampler_len'] = max(sub_length, self.task_info[name]['sampler_len'])
-        #print("Index map:", self.idx_map)
+        dataset_logger.debug("Index map:", self.idx_map)
 
         self.max_len = max([info['sampler_len'] for info in self.task_info.values()])
-        print('Max length for sampler iterator:', self.max_len)
+        dataset_logger.info('Max length for sampler iterator:', self.max_len)
         self.n_tasks = n_tasks
 
         assert idx == batch_size, "The constructed batch size {} doesn't match desired {}".format(
@@ -469,7 +491,7 @@ class DIYBatchSampler(Sampler):
         self.batch_size = idx
         self.drop_last = drop_last
 
-        print("Shuffling to break the task ordering in each batch? ", self.shuffle)
+        dataset_logger.info("Shuffling to break the task ordering in each batch? ", self.shuffle)
 
     def __iter__(self):
         """Given task families A,B,C, each has sub-tasks A00, A01,...
@@ -479,12 +501,13 @@ class DIYBatchSampler(Sampler):
         for i in range(self.max_len):
             for idx in range(self.batch_size):
                 (name, sub_task) = self.idx_map[idx]
-                # print(name, sub_task)
+                dataset_logger.debug(name, sub_task)
                 sampler = self.task_samplers[name][sub_task]
                 iterator = self.task_iterators[name][sub_task]
                 try:
                     batch.append(next(iterator))
-                except StopIteration:   #print('early sstop:', i, name)
+                except StopIteration:   
+                    dataset_logger.debug('early stop:', i, name)
                     iterator = iter(sampler) # re-start the smaller-sized tasks
                     batch.append(next(iterator))
                     self.task_iterators[name][sub_task] = iterator
