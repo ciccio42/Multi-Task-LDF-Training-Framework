@@ -5,23 +5,16 @@ from robosuite.utils.transform_utils import convert_quat
 from robosuite.utils.mjcf_utils import CustomMaterial
 
 from robosuite.environments.manipulation.single_arm_env import SingleArmEnv
-from robosuite.models.objects import (
-    MilkVisualObject,
-    BreadVisualObject,
-    CerealVisualObject,
-    CanVisualObject,
-)
+
 from robosuite.models.arenas import TableArena
-from robosuite_env.objects.custom_xml_objects import *
-from robosuite_env.sampler import BoundarySampler
+from robosuite.models.objects import BoxObject, PlateWithHoleObject, PotWithHandlesObject, HammerObject
+multi_task_robosuite_env.objects.custom_xml_objects import SpriteCan, CanObject2, CerealObject3, Banana, CerealObject2
 from robosuite.models.tasks import ManipulationTask
 from robosuite.utils.placement_samplers import UniformRandomSampler, SequentialCompositeSampler
-from robosuite_env.objects.meta_xml_objects import Bin
-from robosuite.utils.mjcf_utils import CustomMaterial, array_to_string, find_elements
-import robosuite.utils.transform_utils as T
+multi_task_robosuite_env.objects.meta_xml_objects import Shelf
 
 
-class PickPlace(SingleArmEnv):
+class PandaManipulation(SingleArmEnv):
     """
     This class corresponds to the stacking task for a single robot arm.
     Args:
@@ -103,13 +96,10 @@ class PickPlace(SingleArmEnv):
             robots,
             env_configuration="default",
             controller_configs=None,
-            mount_types="default",
             gripper_types="default",
-            robot_offset=None,
             initialization_noise="default",
             table_full_size=(0.8, 0.8, 0.05),
             table_friction=(1., 5e-3, 1e-4),
-            table_offset=(0, 0, 0.82),
             use_camera_obs=True,
             use_object_obs=True,
             reward_scale=1.0,
@@ -129,40 +119,12 @@ class PickPlace(SingleArmEnv):
             camera_heights=256,
             camera_widths=256,
             camera_depths=False,
-            camera_poses=None,
-            camera_attribs=None,
-            camera_gripper=None,
-            task_id = 0,
-            object_type=None,
-            y_ranges=[[0.16, 0.19], [0.05, 0.09], [-0.08, -0.03], [-0.19, -0.15]],
-            env_conf=None
     ):
         # settings for table top
         self.table_full_size = table_full_size
         self.table_friction = table_friction
-        self.table_offset = np.array(table_offset)
-        self.robot_offset = robot_offset
-        self.object_id = int(task_id//4)
-        self.bin_id = task_id % 4
-        self.bin_size = np.array((0.16, 0.16))
+        self.table_offset = np.array((0, 0, 0.8))
 
-        self.object_to_id = {"milk": 0, "bread": 1, "cereal": 2, "can": 3}
-        self.obj_names = ["Milk", "Bread", "Cereal", "Can"]
-        if object_type is not None:
-            assert (
-                    object_type in self.object_to_id.keys()
-            ), "invalid @object_type argument - choose one of {}".format(
-                list(self.object_to_id.keys())
-            )
-            self.object_id = self.object_to_id[
-                object_type
-            ]  # use for convenient indexing
-        self.y_ranges = y_ranges
-        print(env_conf.keys())
-        self.x_ranges = env_conf['x_ranges']
-        self.bin_position_x = env_conf['bin_position_x']
-        self.bin_position_y = env_conf['bin_position_y']
-        
         # reward configuration
         self.reward_scale = reward_scale
         self.reward_shaping = reward_shaping
@@ -173,16 +135,11 @@ class PickPlace(SingleArmEnv):
         # object placement initializer
         self.placement_initializer = placement_initializer
 
-        # camera poses and attributes
-        self.camera_poses = camera_poses
-        self.camera_attribs = camera_attribs
-        self.camera_gripper = camera_gripper
-
         super().__init__(
             robots=robots,
             env_configuration=env_configuration,
             controller_configs=controller_configs,
-            mount_types=mount_types,
+            mount_types="default",
             gripper_types=gripper_types,
             initialization_noise=initialization_noise,
             use_camera_obs=use_camera_obs,
@@ -194,7 +151,7 @@ class PickPlace(SingleArmEnv):
             render_gpu_device_id=render_gpu_device_id,
             control_freq=control_freq,
             horizon=horizon,
-            ignore_done=env_conf['ignore_done'],
+            ignore_done=ignore_done,
             hard_reset=hard_reset,
             camera_names=camera_names,
             camera_heights=camera_heights,
@@ -225,9 +182,58 @@ class PickPlace(SingleArmEnv):
         Returns:
             float: reward value
         """
-        reward = float(self._check_success())
+        r_reach, r_lift, r_stack = self.staged_rewards()
+        if self.reward_shaping:
+            reward = max(r_reach, r_lift, r_stack)
+        else:
+            reward = 2.0 if r_stack > 0 else 0.0
+
+        if self.reward_scale is not None:
+            reward *= self.reward_scale / 2.0
 
         return reward
+
+    def staged_rewards(self):
+        """
+        Helper function to calculate staged rewards based on current physical states.
+        Returns:
+            3-tuple:
+                - (float): reward for reaching and grasping
+                - (float): reward for lifting and aligning
+                - (float): reward for stacking
+        """
+        # reaching is successful when the gripper site is close to the center of the cube
+        target_obj_pos = self.sim.data.body_xpos[self.target_obj_body_id]
+        place_pos = self.sim.data.body_xpos[self.place_body_id]
+        gripper_site_pos = self.sim.data.site_xpos[self.robots[0].eef_site_id]
+        dist = np.linalg.norm(gripper_site_pos - target_obj_pos)
+        r_reach = (1 - np.tanh(10.0 * dist)) * 0.25
+
+        # grasping reward
+        grasping_target_obj = self._check_grasp(gripper=self.robots[0].gripper, object_geoms=self.target_obj)
+        if grasping_target_obj:
+            r_reach += 0.25
+
+        # lifting is successful when the cube is above the table top by a margin
+        target_obj_height = target_obj_pos[2]
+        table_height = self.table_offset[2]
+        target_obj_lifted = target_obj_height > table_height + 0.04
+        r_lift = 1.0 if target_obj_lifted else 0.0
+
+        # Aligning is successful when target_obj is right above place
+        if target_obj_lifted:
+            horiz_dist = np.linalg.norm(
+                np.array(target_obj_pos[:2]) - np.array(place_pos[:2])
+            )
+            r_lift += 0.5 * (1 - np.tanh(horiz_dist))
+
+        # stacking is successful when the block is lifted and the gripper is not holding the object
+        r_stack = 0
+        target_obj_touching_place = self.check_contact(self.target_obj, self.place)
+        if not grasping_target_obj and r_lift > 0 and target_obj_touching_place:
+            r_stack = 2.0
+
+        return r_reach, r_lift, r_stack
 
     def _load_model(self):
         """
@@ -236,10 +242,7 @@ class PickPlace(SingleArmEnv):
         super()._load_model()
 
         # Adjust base pose accordingly
-        if self.robot_offset is None:
-            xpos = self.robots[0].robot_model.base_xpos_offset["table"](self.table_full_size[0])
-        else:
-            xpos = self.robot_offset
+        xpos = self.robots[0].robot_model.base_xpos_offset["table"](self.table_full_size[0])
         self.robots[0].robot_model.set_base_xpos(xpos)
 
         # load model for table top workspace
@@ -249,58 +252,64 @@ class PickPlace(SingleArmEnv):
             table_offset=self.table_offset,
         )
 
-        # add desired cameras
-        if self.camera_poses is not None:
-            for camera_name in self.camera_names:
-                if camera_name != "robot0_eye_in_hand":
-                    mujoco_arena.set_camera(camera_name=camera_name, 
-                                            pos=self.camera_poses[camera_name][0],
-                                            quat=self.camera_poses[camera_name][1],
-                                            camera_attribs=self.camera_attribs)
-
-
-        # modify robot0_eye_in_hand
-        if self.robots[0].robot_model.default_gripper == "Robotiq85Gripper":
-            self.robots[0].robot_model.set_camera(camera_name="eye_in_hand",
-                                                  pos=self.camera_gripper["Robotiq85Gripper"]["pose"][0],
-                                                  quat=self.camera_gripper["Robotiq85Gripper"]["pose"][1],
-                                                  root=self.camera_gripper["Robotiq85Gripper"]["root"],
-                                                  camera_attribs=self.camera_attribs)
-
         # Arena always gets set to zero origin
         mujoco_arena.set_origin([0, 0, 0])
 
         # initialize objects of interest
-        self.bin = [Bin(name='bin')]
+        tex_attrib = {
+            "type": "cube",
+        }
+        mat_attrib = {
+            "texrepeat": "1 1",
+            "specular": "0.4",
+            "shininess": "0.1",
+        }
+        redwood = CustomMaterial(
+            texture="WoodRed",
+            tex_name="redwood",
+            mat_name="redwood_mat",
+            tex_attrib=tex_attrib,
+            mat_attrib=mat_attrib,
+        )
+        greenwood = CustomMaterial(
+            texture="WoodGreen",
+            tex_name="greenwood",
+            mat_name="greenwood_mat",
+            tex_attrib=tex_attrib,
+            mat_attrib=mat_attrib,
+        )
+        bluewood = CustomMaterial(
+            texture="WoodBlue",
+            tex_name="bluewood",
+            mat_name="bluewood_mat",
+            tex_attrib=tex_attrib,
+            mat_attrib=mat_attrib,
+        )
+        # self.target_obj = CerealObject2(name='target_obj')
+        self.target_obj = Banana(name='target_obj')
+        self.place = Shelf(name='place')
+        '''
+        self.place = PotWithHandlesObject(name='place', body_half_size=(0.05, 0.05, 0.03),
+                                          handle_radius=0.005,
+                                          handle_length=0.02,
+                                          handle_width=0.02,
+                                          )
+
+        self.distractor = HammerObject(name='distractor', handle_radius=(0.01, 0.01),
+        handle_length=(0.07, 0.07))
+        '''
+        self.distractor = CanObject2(name='distractor')
+        self.objects = [self.target_obj, self.distractor, self.place]
         # Create placement initializer
 
-        self.objects = []
-        self.visual_objects = []
-        for vis_obj_cls, obj_name in zip(
-                (MilkVisualObject, BreadVisualObject, CerealVisualObject, CanVisualObject),
-                self.obj_names,
-        ):
-            vis_name = "Visual" + obj_name
-            vis_obj = vis_obj_cls(name=vis_name)
-            self.visual_objects.append(vis_obj)
-
-        object_seq = (MilkObject, BreadObject, CerealObject, CanObject)
-        for obj_cls, obj_name in zip(
-                object_seq,
-                self.obj_names,
-        ):
-            obj = obj_cls(name=obj_name)
-            self.objects.append(obj)
+        self._get_placement_initializer()
 
         # task includes arena, robot, and objects of interest
         self.model = ManipulationTask(
             mujoco_arena=mujoco_arena,
             mujoco_robots=[robot.robot_model for robot in self.robots],
-            mujoco_objects=self.visual_objects + self.objects + self.bin,
+            mujoco_objects=self.objects,
         )
-
-        self._get_placement_initializer()
-
         compiler = self.model.root.find('compiler')
         compiler.set('inertiafromgeom', 'auto')
         if compiler.attrib['inertiagrouprange'] == "0 0":
@@ -311,93 +320,37 @@ class PickPlace(SingleArmEnv):
         Helper function for defining placement initializer and object sampling bounds.
         """
         self.placement_initializer = SequentialCompositeSampler(name="ObjectSampler")
-        arr = np.arange(4)
-        np.random.shuffle(arr)
 
-        for i in range(4):
-            self.placement_initializer.append_sampler(
-                sampler=UniformRandomSampler(
-                    name='obj'+str(i)+"Sampler",
-                    mujoco_objects=self.objects[i],
-                    x_range=self.x_ranges[0],
-                    y_range=self.y_ranges[arr[i]],
-                    rotation=[0, 0 + 1e-4],
-                    rotation_axis='z',
-                    ensure_object_boundary_in_range=False,
-                    ensure_valid_placement=True,
-                    reference_pos=self.table_offset,
-                    z_offset=0.0001,
-                )
+        # each object should just be sampled in the bounds of the bin (with some tolerance
+        self.placement_initializer.append_sampler(
+            UniformRandomSampler(
+                name="ObjectSampler",
+                mujoco_objects=self.objects[:2],
+                x_range=[-0.26, -0.07],
+                y_range=[-0.18, 0.0],
+                rotation=[0, np.pi / 2],
+                rotation_axis='z',
+                ensure_object_boundary_in_range=False,
+                ensure_valid_placement=True,
+                reference_pos=self.table_offset,
+                z_offset=0.01,
             )
+        )
 
         self.placement_initializer.append_sampler(
             UniformRandomSampler(
-                name="BinSampler",
-                mujoco_objects=self.bin,
-                x_range=[self.bin_position_x[0], self.bin_position_x[1]+ 1e-4],
-                y_range=[self.bin_position_y[0], self.bin_position_y[1]+ 1e-4],
-                rotation=[0, 0 + 1e-4],
+                name="TargetSampler",
+                mujoco_objects=self.objects[-1],
+                x_range=[0.12, 0.16],
+                y_range=[0.25, 0.28],
+                rotation=[0, 0+1e-4],
                 rotation_axis='z',
                 ensure_object_boundary_in_range=True,
                 ensure_valid_placement=False,
                 reference_pos=self.table_offset,
-                z_offset=0.0,
+                z_offset=-0.01,
             )
         )
-
-    def _get_observation(self):
-        """
-        Returns an OrderedDict containing observations [(name_string, np.array), ...].
-
-        Important keys:
-            robot-state: contains robot-centric information.
-            object-state: requires @self.use_object_obs to be True.
-                contains object-centric information.
-            image: requires @self.use_camera_obs to be True.
-                contains a rendered frame from the simulation.
-            depth: requires @self.use_camera_obs and @self.camera_depth to be True.
-                contains a rendered depth map from the simulation
-        """
-        di = super()._get_observation()
-
-        di['target-box-id'] = self.bin_id
-        di['target-object'] = self.object_id
-
-        # add observation for all objects
-        pr = self.robots[0].robot_model.naming_prefix
-
-        # remember the keys to collect into object info
-        object_state_keys = []
-
-        # for conversion to relative gripper frame
-        gripper_pose = T.pose2mat((di[pr + "eef_pos"], di[pr + "eef_quat"]))
-        world_pose_in_gripper = T.pose_inv(gripper_pose)
-
-        for i, obj in enumerate(self.objects):
-            obj_str = obj.name
-            obj_pos = np.array(self.sim.data.body_xpos[self.obj_body_id[obj_str]])
-            obj_quat = T.convert_quat(
-                self.sim.data.body_xquat[self.obj_body_id[obj_str]], to="xyzw"
-            )
-            di["{}_pos".format(obj_str)] = obj_pos
-            di["{}_quat".format(obj_str)] = obj_quat
-
-            # get relative pose of object in gripper frame
-            object_pose = T.pose2mat((obj_pos, obj_quat))
-            rel_pose = T.pose_in_A_to_pose_in_B(object_pose, world_pose_in_gripper)
-            rel_pos, rel_quat = T.mat2pose(rel_pose)
-            di["{}_to_{}eef_pos".format(obj_str, pr)] = rel_pos
-            di["{}_to_{}eef_quat".format(obj_str, pr)] = rel_quat
-
-            object_state_keys.append("{}_pos".format(obj_str))
-            object_state_keys.append("{}_quat".format(obj_str))
-            object_state_keys.append("{}_to_{}eef_pos".format(obj_str, pr))
-            object_state_keys.append("{}_to_{}eef_quat".format(obj_str, pr))
-
-        di["object-state"] = np.concatenate([di[k] for k in object_state_keys])
-
-        return di
-
 
     def _get_reference(self):
         """
@@ -406,44 +359,17 @@ class PickPlace(SingleArmEnv):
         in a flatten array, which is how MuJoCo stores physical simulation data.
         """
         super()._get_reference()
-        self.obj_body_id = {}
-        self.obj_geom_id = {}
 
-        # object-specific ids
-        for obj in (self.visual_objects + self.objects):
-            self.obj_body_id[obj.name] = self.sim.model.body_name2id(obj.root_body)
-            self.obj_geom_id[obj.name] = [self.sim.model.geom_name2id(g) for g in obj.contact_geoms]
-
-        # keep track of which objects are in their corresponding bins
-        self.objects_in_bins = np.zeros(len(self.objects))
-        names = ['bin_box_1', 'bin_box_2', 'bin_box_3', 'bin_box_4']
-        self.bin_bodyid = self.sim.model.body_name2id(names[self.bin_id])
-
-    def not_in_bin(self, obj_pos):
-        self.bin_pos = np.array(self.sim.data.body_xpos[self.bin_bodyid])
-        bin_x_low = self.bin_pos[0]
-        bin_y_low = self.bin_pos[1]
-        bin_x_low -= self.bin_size[0] / 2
-        bin_y_low -= self.bin_size[1] / 2
-
-        bin_x_high = bin_x_low + self.bin_size[0]
-        bin_y_high = bin_y_low + self.bin_size[1]
-        #print(self.bin_pos, obj_pos)
-        res = True
-        if (
-                bin_x_low < obj_pos[0] < bin_x_high
-                and bin_y_low < obj_pos[1] < bin_y_high
-                and self.bin_pos[2] < obj_pos[2] < self.bin_pos[2] + 0.1
-        ):
-            res = False
-        return res
-
+        # Additional object references from this env
+        self.target_obj_body_id = self.sim.model.body_name2id(self.target_obj.root_body)
+        self.place_body_id = self.sim.model.body_name2id(self.place.root_body)
 
     def _reset_internal(self):
         """
         Resets simulation internal configurations.
         """
         super()._reset_internal()
+
         # Reset all object positions using initializer sampler if we're not directly loading from an xml
         if not self.deterministic_reset:
 
@@ -452,15 +378,71 @@ class PickPlace(SingleArmEnv):
 
             # Loop through all objects and reset their positions
             for obj_pos, obj_quat, obj in object_placements.values():
-                self.sim.data.set_joint_qpos(obj.joints[-1], np.concatenate([np.array(obj_pos), np.array(obj_quat)]))
+                self.sim.data.set_joint_qpos(obj.joints[0], np.concatenate([np.array(obj_pos), np.array(obj_quat)]))
 
+    def _get_observation(self):
+        """
+        Returns an OrderedDict containing observations [(name_string, np.array), ...].
+        Important keys:
+            `'robot-state'`: contains robot-centric information.
+            `'object-state'`: requires @self.use_object_obs to be True. Contains object-centric information.
+            `'image'`: requires @self.use_camera_obs to be True. Contains a rendered frame from the simulation.
+            `'depth'`: requires @self.use_camera_obs and @self.camera_depth to be True.
+            Contains a rendered depth map from the simulation
+        Returns:
+            OrderedDict: Observations from the environment
+        """
+        di = super()._get_observation()
 
+        # low-level object information
+        if self.use_object_obs:
+            # Get robot prefix
+            pr = self.robots[0].robot_model.naming_prefix
 
+            # position and rotation of the first cube
+            target_obj_pos = np.array(self.sim.data.body_xpos[self.target_obj_body_id])
+            target_obj_quat = convert_quat(
+                np.array(self.sim.data.body_xquat[self.target_obj_body_id]), to="xyzw"
+            )
+            di["target_obj_pos"] = target_obj_pos
+            di["target_obj_quat"] = target_obj_quat
+
+            # position and rotation of the second cube
+            place_pos = np.array(self.sim.data.body_xpos[self.place_body_id])
+            place_quat = convert_quat(
+                np.array(self.sim.data.body_xquat[self.place_body_id]), to="xyzw"
+            )
+            di["place_pos"] = place_pos
+            di["place_quat"] = place_quat
+
+            # relative positions between gripper and objects
+            gripper_site_pos = np.array(self.sim.data.site_xpos[self.robots[0].eef_site_id])
+            di[pr + "gripper_to_target_obj"] = gripper_site_pos - target_obj_pos
+            di[pr + "gripper_to_place"] = gripper_site_pos - place_pos
+            di["target_obj_to_place"] = target_obj_pos - place_pos
+
+            di["object-state"] = np.concatenate(
+                [
+                    target_obj_pos,
+                    target_obj_quat,
+                    place_pos,
+                    place_quat,
+                    di[pr + "gripper_to_target_obj"],
+                    di[pr + "gripper_to_place"],
+                    di["target_obj_to_place"],
+                ]
+            )
+
+        return di
 
     def _check_success(self):
-        obj_str = self.objects[self.object_id].name
-        obj_pos = self.sim.data.body_xpos[self.obj_body_id[obj_str]]
-        return not self.not_in_bin(obj_pos)
+        """
+        Check if blocks are stacked correctly.
+        Returns:
+            bool: True if blocks are correctly stacked
+        """
+        _, _, r_stack = self.staged_rewards()
+        return r_stack > 0
 
     def visualize(self, vis_settings):
         """
@@ -475,40 +457,8 @@ class PickPlace(SingleArmEnv):
 
         # Color the gripper visualization site according to its distance to the cube
         if vis_settings["grippers"]:
-            self._visualize_gripper_to_target(gripper=self.robots[0].gripper, target=self.drawers[self.drawer_id])
+            self._visualize_gripper_to_target(gripper=self.robots[0].gripper, target=self.target_obj)
 
-class UR5ePickPlace(PickPlace):
-    """
-    Easier version of task - place one object into its bin.
-    A new object is sampled on every reset.
-    """
-
-    def __init__(self, task_id=None, **kwargs):
-        if task_id is None:
-            task_id = np.random.randint(0, 8)
-        super().__init__(robots=['UR5e'], task_id=task_id, **kwargs)
-
-class PandaPickPlace(PickPlace):
-    """
-    Easier version of task - place one object into its bin.
-    A new object is sampled on every reset.
-    """
-
-    def __init__(self, task_id=None, **kwargs):
-        if task_id is None:
-            task_id = np.random.randint(0, 8)
-        super().__init__(robots=['Panda'], task_id=task_id, **kwargs)
-
-class SawyerPickPlace(PickPlace):
-    """
-    Easier version of task - place one object into its bin.
-    A new object is sampled on every reset.
-    """
-
-    def __init__(self, task_id=None, **kwargs):
-        if task_id is None:
-            task_id = np.random.randint(0, 8)
-        super().__init__(robots=['Sawyer'], task_id=task_id, **kwargs)
 
 if __name__ == '__main__':
     from robosuite.environments.manipulation.pick_place import PickPlace
@@ -517,9 +467,9 @@ if __name__ == '__main__':
 
 
     controller = load_controller_config(default_controller="IK_POSE")
-    env = PandaPickPlace(task_id=0, has_renderer=True, controller_configs=controller,
+    env = PandaManipulation(robots=['Panda'], has_renderer=True, controller_configs=controller,
                             has_offscreen_renderer=False,
-                            reward_shaping=False, use_camera_obs=False, camera_heights=320, camera_widths=320, render_camera='frontview')
+                            reward_shaping=False, use_camera_obs=False, camera_heights=320, camera_widths=320)
     env.reset()
     for i in range(1000):
         if i % 200 == 0:

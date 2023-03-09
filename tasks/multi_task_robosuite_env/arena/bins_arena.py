@@ -1,6 +1,6 @@
 import numpy as np
-from robosuite_env.arena import Arena
-from robosuite_env.mjc_util import xml_path_completion
+multi_task_robosuite_env.arena import Arena
+multi_task_robosuite_env.mjc_util import xml_path_completion
 from robosuite.utils.mjcf_utils import array_to_string
 
 

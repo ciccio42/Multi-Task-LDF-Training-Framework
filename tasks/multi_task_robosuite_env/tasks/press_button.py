@@ -7,17 +7,14 @@ from robosuite.utils.mjcf_utils import CustomMaterial
 from robosuite.environments.manipulation.single_arm_env import SingleArmEnv
 
 from robosuite.models.arenas import TableArena
-from robosuite.models.objects import BoxObject, PotWithHandlesObject, HammerObject
-from robosuite_env.objects.custom_xml_objects import SpriteCan, CanObject2, CerealObject3, Banana, CerealObject2, PlateWithHoleObject
+from robosuite.models.objects import BoxObject, PlateWithHoleObject, PotWithHandlesObject, HammerObject
+multi_task_robosuite_env.objects.custom_xml_objects import SpriteCan, CanObject2, CerealObject3, Banana, CerealObject2
 from robosuite.models.tasks import ManipulationTask
 from robosuite.utils.placement_samplers import UniformRandomSampler, SequentialCompositeSampler
-from robosuite_env.sampler import BoundarySampler
-from robosuite_env.objects.meta_xml_objects import CoffeeMachine, Mug
-from robosuite.utils.mjcf_utils import CustomMaterial, array_to_string, find_elements
-from robosuite_env.tasks import greenwood, redwood, grayplaster
+multi_task_robosuite_env.objects.meta_xml_objects import ButtonMachine, Mug
 
 
-class Insert(SingleArmEnv):
+class PressButton(SingleArmEnv):
     """
     This class corresponds to the stacking task for a single robot arm.
     Args:
@@ -101,7 +98,7 @@ class Insert(SingleArmEnv):
             controller_configs=None,
             gripper_types="default",
             initialization_noise="default",
-            table_full_size=(0.8, 0.8, 0.05),
+            table_full_size=(0.8, 1, 0.05),
             table_friction=(1., 5e-3, 1e-4),
             use_camera_obs=True,
             use_object_obs=True,
@@ -122,15 +119,13 @@ class Insert(SingleArmEnv):
             camera_heights=256,
             camera_widths=256,
             camera_depths=False,
-            box_id=0,
-            hole_id=0,
+            task_id=0,
     ):
         # settings for table top
         self.table_full_size = table_full_size
         self.table_friction = table_friction
         self.table_offset = np.array((0, 0, 0.8))
-        self.box_id = box_id
-        self.hole_id = hole_id
+        self.task_id = task_id
 
         # reward configuration
         self.reward_scale = reward_scale
@@ -213,40 +208,7 @@ class Insert(SingleArmEnv):
         # Arena always gets set to zero origin
         mujoco_arena.set_origin([0, 0, 0])
 
-        mujoco_arena.set_camera('agentview', pos=[0.7268605956501819,-0.3035550833864632,1.2148465171366687],
-                                quat=[0.6418595314025879,0.49519452452659607,0.31503531336784363,0.4935091435909271])
-
-        # initialize objects of interest
-
-        self.target_obj1 = BoxObject(
-            name="target_object_1",
-            size_min=[0.02, 0.06, 0.02],
-            size_max=[0.02, 0.06, 0.02],
-            material=greenwood,
-            rgba=[0, 1, 0, 1],
-        )
-        self.target_obj2 = BoxObject(
-            name="target_object_2",
-            size_min=[0.02, 0.06, 0.02],
-            size_max=[0.02, 0.06, 0.02],
-            material=redwood,
-            rgba=[1, 0, 0, 1],
-        )
-        self.target_obj3 = BoxObject(
-            name="target_object_3",
-            size_min=[0.02, 0.06, 0.02],
-            size_max=[0.02, 0.06, 0.02],
-            material=grayplaster,
-            rgba=[0, 1, 0, 1],
-        )
-        self.hole = PlateWithHoleObject(name="hole")
-        hole_obj = self.hole.get_obj()
-        hole_obj.set("quat", "0 0 0.707 0.707")
-        hole_obj.set("pos", "0.25 0.25 0.17")
-        body = find_elements(root=mujoco_arena.worldbody, tags="body", attribs={"name": "table"}, return_first=True)
-        body.append(hole_obj)
-
-        self.objects = [self.target_obj1, self.target_obj2, self.target_obj3]
+        self.objects = [ButtonMachine(name='machine1'), ButtonMachine(name='machine2')]
         # Create placement initializer
 
         self._get_placement_initializer()
@@ -257,8 +219,6 @@ class Insert(SingleArmEnv):
             mujoco_robots=[robot.robot_model for robot in self.robots],
             mujoco_objects=self.objects,
         )
-
-        self.model.merge_assets(self.hole)
         compiler = self.model.root.find('compiler')
         compiler.set('inertiafromgeom', 'auto')
         if compiler.attrib['inertiagrouprange'] == "0 0":
@@ -270,21 +230,34 @@ class Insert(SingleArmEnv):
         """
         self.placement_initializer = SequentialCompositeSampler(name="ObjectSampler")
         self.placement_initializer.append_sampler(
-            BoundarySampler(
-                name="ObjectSampler",
-                mujoco_objects=self.objects,
-                x_range=[-0.3, 0.2],
-                y_range=[-0.35, 0.2],
-                rotation=[0, 0 + 1e-4],
+            UniformRandomSampler(
+                name="RightSampler",
+                mujoco_objects=self.objects[0],
+                x_range=[0.06, 0.10],
+                y_range=[0.28, 0.32],
+                rotation=[0, 0+1e-4],
                 rotation_axis='z',
                 ensure_object_boundary_in_range=True,
-                ensure_valid_placement=True,
+                ensure_valid_placement=False,
                 reference_pos=self.table_offset,
-                z_offset=0.02,
-                addtional_dist=0.06
+                z_offset=0.01,
             )
         )
 
+        self.placement_initializer.append_sampler(
+            UniformRandomSampler(
+                name="LeftSampler",
+                mujoco_objects=self.objects[1],
+                x_range=[0.06, 0.10],
+                y_range=[-0.32, -0.28],
+                rotation=[np.pi, np.pi + 1e-4],
+                rotation_axis='z',
+                ensure_object_boundary_in_range=True,
+                ensure_valid_placement=False,
+                reference_pos=self.table_offset,
+                z_offset=0.01,
+            )
+        )
 
     def _get_reference(self):
         """
@@ -295,10 +268,10 @@ class Insert(SingleArmEnv):
         super()._get_reference()
 
         # Additional object references from this env
-        self.target_obj_body_id = self.sim.model.body_name2id(self.objects[self.box_id].root_body)
+        names = ['machine1_goal1', 'machine1_goal2', 'machine1_goal3', 'machine2_goal1', 'machine2_goal2', 'machine2_goal3']
+        self.target_button_id = self.sim.model.site_name2id(names[self.task_id])
 
-        names = ['hole_goal1', 'hole_goal2', 'hole_goal3']
-        self.target_loc_id = self.sim.model.site_name2id(names[self.hole_id])
+
 
     def _reset_internal(self):
         """
@@ -330,40 +303,15 @@ class Insert(SingleArmEnv):
             OrderedDict: Observations from the environment
         """
         di = super()._get_observation()
+        if self.use_camera_obs:
+            cam_name = self.camera_names[0]
+            di['image'] = di[cam_name + '_image'].copy()
+            del di[cam_name + '_image']
+            if self.camera_depths[0]:
+                di['depth'] = di[cam_name + '_depth'].copy()
+                di['depth'] = ((di['depth'] - 0.95) / 0.05 * 255).astype(np.uint8)
 
         # low-level object information
-        if self.use_object_obs:
-            # Get robot prefix
-            pr = self.robots[0].robot_model.naming_prefix
-
-            # position and rotation of the first cube
-            target_obj_pos = np.array(self.sim.data.body_xpos[self.target_obj_body_id])
-            target_obj_quat = convert_quat(
-                np.array(self.sim.data.body_xquat[self.target_obj_body_id]), to="xyzw"
-            )
-            di["target_obj_pos"] = target_obj_pos
-            di["target_obj_quat"] = target_obj_quat
-
-            # position and rotation of the second cube
-            place_pos = np.array(self.sim.data.site_xpos[self.target_loc_id])
-            di["place_pos"] = place_pos
-
-            # relative positions between gripper and objects
-            gripper_site_pos = np.array(self.sim.data.site_xpos[self.robots[0].eef_site_id])
-            di[pr + "gripper_to_target_obj"] = gripper_site_pos - target_obj_pos
-            di[pr + "gripper_to_place"] = gripper_site_pos - place_pos
-            di["target_obj_to_place"] = target_obj_pos - place_pos
-
-            di["object-state"] = np.concatenate(
-                [
-                    target_obj_pos,
-                    target_obj_quat,
-                    place_pos,
-                    di[pr + "gripper_to_target_obj"],
-                    di[pr + "gripper_to_place"],
-                    di["target_obj_to_place"],
-                ]
-            )
         return di
 
     def _check_success(self):
@@ -372,10 +320,9 @@ class Insert(SingleArmEnv):
         Returns:
             bool: True if blocks are correctly stacked
         """
-        target_obj_pos = np.array(self.sim.data.body_xpos[self.target_obj_body_id])
-        target_loc_pos = np.array(self.sim.data.site_xpos[self.target_loc_id])
 
-        if np.linalg.norm(target_obj_pos - target_loc_pos) < 0.02:
+        qpos = self.sim.data.get_joint_qpos(self.objects[self.task_id // 3].joints[self.task_id % 3])
+        if qpos >= 0.04:
             return True
         else:
             return False
@@ -393,51 +340,40 @@ class Insert(SingleArmEnv):
 
         # Color the gripper visualization site according to its distance to the cube
         if vis_settings["grippers"]:
-            self._visualize_gripper_to_target(gripper=self.robots[0].gripper, target=self.objects[self.box_id])
+            self._visualize_gripper_to_target(gripper=self.robots[0].gripper, target=self.button_machine)
 
-
-class PandaInsert(Insert):
+class PandaButton(PressButton):
     """
     Easier version of task - place one object into its bin.
     A new object is sampled on every reset.
     """
 
-    def __init__(self, box_id=None, hole_id=None, **kwargs):
-        if box_id is None:
-            box_id = np.random.randint(0, 3)
-        if hole_id is None:
-            hole_id = np.random.randint(0, 3)
-        super().__init__(robots=['Panda'], box_id=box_id, hole_id=hole_id, **kwargs)
+    def __init__(self, task_id=None, **kwargs):
+        if task_id is None:
+            task_id = np.random.randint(0, 3)
+        super().__init__(robots=['Panda'], task_id=task_id, **kwargs)
 
-    def initialize_time(self, control_freq):
-        self.sim.model.vis.quality.offsamples = 8
-        super().initialize_time(control_freq)
-
-class SawyerInsert(Insert):
+class SawyerButton(PressButton):
     """
     Easier version of task - place one object into its bin.
     A new object is sampled on every reset.
     """
 
-    def __init__(self, box_id=None, hole_id=None, **kwargs):
-        if box_id is None:
-            box_id = np.random.randint(0, 3)
-        if hole_id is None:
-            hole_id = np.random.randint(0, 3)
-        super().__init__(robots=['Sawyer'], box_id=box_id, hole_id=hole_id, **kwargs)
-
-    def initialize_time(self, control_freq):
-        self.sim.model.vis.quality.offsamples = 8
-        super().initialize_time(control_freq)
+    def __init__(self, task_id=None, **kwargs):
+        if task_id is None:
+            task_id = np.random.randint(0, 3)
+        super().__init__(robots=['Sawyer'], task_id=task_id, **kwargs)
 
 if __name__ == '__main__':
+    from robosuite.environments.manipulation.pick_place import PickPlace
+    import robosuite
     from robosuite.controllers import load_controller_config
 
 
     controller = load_controller_config(default_controller="IK_POSE")
-    env = PandaInsert(has_renderer=True, controller_configs=controller,
+    env = PandaButton(has_renderer=True, controller_configs=controller,
                             has_offscreen_renderer=False,
-                            reward_shaping=False, use_camera_obs=False, camera_heights=320, camera_widths=320, render_camera='agentview')
+                            reward_shaping=False, use_camera_obs=False, camera_heights=320, camera_widths=320, render_camera='frontview')
     env.reset()
     for i in range(1000):
         if i % 200 == 0:

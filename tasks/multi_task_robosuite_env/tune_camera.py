@@ -10,12 +10,12 @@ import argparse
 import glfw
 import xml.etree.ElementTree as ET
 import numpy as np
-from robosuite_env.tasks.basketball import PandaBasketball
-from robosuite_env.tasks.insert import PandaInsert
+multi_task_robosuite_env.tasks.basketball import PandaBasketball
+multi_task_robosuite_env.tasks.insert import PandaInsert
 
 import robosuite
 import robosuite.utils.transform_utils as T
-from robosuite_env import get_env
+multi_task_robosuite_env import get_env
 
 # some settings
 DELTA_POS_KEY_PRESS = 0.05      # delta camera position per key press

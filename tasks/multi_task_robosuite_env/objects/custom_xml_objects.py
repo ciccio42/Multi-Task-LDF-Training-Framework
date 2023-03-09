@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from robosuite.models.objects import MujocoXMLObject
-from robosuite_env.objects.meta_xml_objects import MyMujocoXMLObject
+multi_task_robosuite_env.objects.meta_xml_objects import MyMujocoXMLObject
 from robosuite.utils.mjcf_utils import xml_path_completion, array_to_string, find_elements
 
 BASE_DIR = os.path.join(os.path.dirname(__file__), 'xml')

@@ -1,0 +1,24 @@
+{
+    "pick_place": {
+        "0": "Pick the green box and place into the first bin",
+        "1": "Pick the green box and place it into the second bin",
+        "2": "Pick the green box and place it into the third bin",
+        "3": "Pick the green box and place it into the fourth bin",
+        
+        "4": "Pick the brown box and place into the first bin",
+        "5": "Pick the brown box and place it into the second bin",
+        "6": "Pick the brown box and place it into the third bin",
+        "7": "Pick the brown box and place it into the fourth bin",
+
+        "8": "Pick the blue box and place into the first bin",
+        "9": "Pick the blue box and place it into the second bin",
+        "10": "Pick the blue box and place it into the third bin",
+        "11": "Pick the blue box and place it into the fourth bin",
+
+        "12": "Pick the red box and place into the first bin",
+        "13": "Pick the red box and place it into the second bin",
+        "14": "Pick the red box and place it into the third bin",
+        "15": "Pick the red box and place it into the fourth bin"
+    }
+
+}

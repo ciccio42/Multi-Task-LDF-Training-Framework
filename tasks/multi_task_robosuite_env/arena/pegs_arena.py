@@ -1,4 +1,4 @@
-from robosuite_env.arena import TableArena
+multi_task_robosuite_env.arena import TableArena
 from robosuite.utils.mjcf_utils import array_to_string
 
 class PegsArena(TableArena):

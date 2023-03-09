@@ -8,13 +8,13 @@ from robosuite.environments.manipulation.single_arm_env import SingleArmEnv
 
 from robosuite.models.arenas import TableArena
 from robosuite.models.objects import BoxObject, PlateWithHoleObject, PotWithHandlesObject, HammerObject
-from robosuite_env.objects.custom_xml_objects import SpriteCan, CanObject2, CerealObject3, Banana, CerealObject2
+multi_task_robosuite_env.objects.custom_xml_objects import SpriteCan, CanObject2, CerealObject3, Banana, CerealObject2
 from robosuite.models.tasks import ManipulationTask
 from robosuite.utils.placement_samplers import UniformRandomSampler, SequentialCompositeSampler
-from robosuite_env.objects.meta_xml_objects import Shelf
+multi_task_robosuite_env.objects.meta_xml_objects import Drawer
 
 
-class PandaManipulation(SingleArmEnv):
+class DrawerMoving(SingleArmEnv):
     """
     This class corresponds to the stacking task for a single robot arm.
     Args:
@@ -98,7 +98,7 @@ class PandaManipulation(SingleArmEnv):
             controller_configs=None,
             gripper_types="default",
             initialization_noise="default",
-            table_full_size=(0.8, 0.8, 0.05),
+            table_full_size=(1, 1, 0.05),
             table_friction=(1., 5e-3, 1e-4),
             use_camera_obs=True,
             use_object_obs=True,
@@ -119,11 +119,14 @@ class PandaManipulation(SingleArmEnv):
             camera_heights=256,
             camera_widths=256,
             camera_depths=False,
+            task_id = 0,
     ):
         # settings for table top
         self.table_full_size = table_full_size
         self.table_friction = table_friction
         self.table_offset = np.array((0, 0, 0.8))
+        self.drawer_id = int(task_id//2)
+        self.open = task_id % 2
 
         # reward configuration
         self.reward_scale = reward_scale
@@ -182,58 +185,9 @@ class PandaManipulation(SingleArmEnv):
         Returns:
             float: reward value
         """
-        r_reach, r_lift, r_stack = self.staged_rewards()
-        if self.reward_shaping:
-            reward = max(r_reach, r_lift, r_stack)
-        else:
-            reward = 2.0 if r_stack > 0 else 0.0
-
-        if self.reward_scale is not None:
-            reward *= self.reward_scale / 2.0
+        reward = float(self._check_success())
 
         return reward
-
-    def staged_rewards(self):
-        """
-        Helper function to calculate staged rewards based on current physical states.
-        Returns:
-            3-tuple:
-                - (float): reward for reaching and grasping
-                - (float): reward for lifting and aligning
-                - (float): reward for stacking
-        """
-        # reaching is successful when the gripper site is close to the center of the cube
-        target_obj_pos = self.sim.data.body_xpos[self.target_obj_body_id]
-        place_pos = self.sim.data.body_xpos[self.place_body_id]
-        gripper_site_pos = self.sim.data.site_xpos[self.robots[0].eef_site_id]
-        dist = np.linalg.norm(gripper_site_pos - target_obj_pos)
-        r_reach = (1 - np.tanh(10.0 * dist)) * 0.25
-
-        # grasping reward
-        grasping_target_obj = self._check_grasp(gripper=self.robots[0].gripper, object_geoms=self.target_obj)
-        if grasping_target_obj:
-            r_reach += 0.25
-
-        # lifting is successful when the cube is above the table top by a margin
-        target_obj_height = target_obj_pos[2]
-        table_height = self.table_offset[2]
-        target_obj_lifted = target_obj_height > table_height + 0.04
-        r_lift = 1.0 if target_obj_lifted else 0.0
-
-        # Aligning is successful when target_obj is right above place
-        if target_obj_lifted:
-            horiz_dist = np.linalg.norm(
-                np.array(target_obj_pos[:2]) - np.array(place_pos[:2])
-            )
-            r_lift += 0.5 * (1 - np.tanh(horiz_dist))
-
-        # stacking is successful when the block is lifted and the gripper is not holding the object
-        r_stack = 0
-        target_obj_touching_place = self.check_contact(self.target_obj, self.place)
-        if not grasping_target_obj and r_lift > 0 and target_obj_touching_place:
-            r_stack = 2.0
-
-        return r_reach, r_lift, r_stack
 
     def _load_model(self):
         """
@@ -256,50 +210,7 @@ class PandaManipulation(SingleArmEnv):
         mujoco_arena.set_origin([0, 0, 0])
 
         # initialize objects of interest
-        tex_attrib = {
-            "type": "cube",
-        }
-        mat_attrib = {
-            "texrepeat": "1 1",
-            "specular": "0.4",
-            "shininess": "0.1",
-        }
-        redwood = CustomMaterial(
-            texture="WoodRed",
-            tex_name="redwood",
-            mat_name="redwood_mat",
-            tex_attrib=tex_attrib,
-            mat_attrib=mat_attrib,
-        )
-        greenwood = CustomMaterial(
-            texture="WoodGreen",
-            tex_name="greenwood",
-            mat_name="greenwood_mat",
-            tex_attrib=tex_attrib,
-            mat_attrib=mat_attrib,
-        )
-        bluewood = CustomMaterial(
-            texture="WoodBlue",
-            tex_name="bluewood",
-            mat_name="bluewood_mat",
-            tex_attrib=tex_attrib,
-            mat_attrib=mat_attrib,
-        )
-        # self.target_obj = CerealObject2(name='target_obj')
-        self.target_obj = Banana(name='target_obj')
-        self.place = Shelf(name='place')
-        '''
-        self.place = PotWithHandlesObject(name='place', body_half_size=(0.05, 0.05, 0.03),
-                                          handle_radius=0.005,
-                                          handle_length=0.02,
-                                          handle_width=0.02,
-                                          )
-
-        self.distractor = HammerObject(name='distractor', handle_radius=(0.01, 0.01),
-        handle_length=(0.07, 0.07))
-        '''
-        self.distractor = CanObject2(name='distractor')
-        self.objects = [self.target_obj, self.distractor, self.place]
+        self.drawers = [Drawer(name='drawer1'), Drawer(name='drawer2')]
         # Create placement initializer
 
         self._get_placement_initializer()
@@ -308,7 +219,7 @@ class PandaManipulation(SingleArmEnv):
         self.model = ManipulationTask(
             mujoco_arena=mujoco_arena,
             mujoco_robots=[robot.robot_model for robot in self.robots],
-            mujoco_objects=self.objects,
+            mujoco_objects=self.drawers,
         )
         compiler = self.model.root.find('compiler')
         compiler.set('inertiafromgeom', 'auto')
@@ -321,34 +232,32 @@ class PandaManipulation(SingleArmEnv):
         """
         self.placement_initializer = SequentialCompositeSampler(name="ObjectSampler")
 
-        # each object should just be sampled in the bounds of the bin (with some tolerance
         self.placement_initializer.append_sampler(
             UniformRandomSampler(
-                name="ObjectSampler",
-                mujoco_objects=self.objects[:2],
-                x_range=[-0.26, -0.07],
-                y_range=[-0.18, 0.0],
-                rotation=[0, np.pi / 2],
-                rotation_axis='z',
-                ensure_object_boundary_in_range=False,
-                ensure_valid_placement=True,
-                reference_pos=self.table_offset,
-                z_offset=0.01,
-            )
-        )
-
-        self.placement_initializer.append_sampler(
-            UniformRandomSampler(
-                name="TargetSampler",
-                mujoco_objects=self.objects[-1],
-                x_range=[0.12, 0.16],
-                y_range=[0.25, 0.28],
+                name="RightSampler",
+                mujoco_objects=self.drawers[0],
+                x_range=[0.03, 0.05],
+                y_range=[0.35, 0.40],
                 rotation=[0, 0+1e-4],
                 rotation_axis='z',
                 ensure_object_boundary_in_range=True,
                 ensure_valid_placement=False,
                 reference_pos=self.table_offset,
-                z_offset=-0.01,
+                z_offset=0.01,
+            )
+        )
+        self.placement_initializer.append_sampler(
+            UniformRandomSampler(
+                name="LeftSampler",
+                mujoco_objects=self.drawers[1],
+                x_range=[0.03, 0.05],
+                y_range=[-0.40, -0.35],
+                rotation=[np.pi, np.pi + 1e-4],
+                rotation_axis='z',
+                ensure_object_boundary_in_range=True,
+                ensure_valid_placement=False,
+                reference_pos=self.table_offset,
+                z_offset=0.01,
             )
         )
 
@@ -361,15 +270,18 @@ class PandaManipulation(SingleArmEnv):
         super()._get_reference()
 
         # Additional object references from this env
-        self.target_obj_body_id = self.sim.model.body_name2id(self.target_obj.root_body)
-        self.place_body_id = self.sim.model.body_name2id(self.place.root_body)
+        names = ['drawer1_goal1', 'drawer1_goal2', 'drawer2_goal1', 'drawer2_goal2']
+        self.target_handle_id = self.sim.model.site_name2id(names[self.drawer_id])
+
+        names = ['drawer1_handle_pos_1', 'drawer1_handle_pos_2', 'drawer2_handle_pos_1', 'drawer2_handle_pos_2']
+        self.target_handle_body_id = self.sim.model.body_name2id(names[self.drawer_id])
+
 
     def _reset_internal(self):
         """
         Resets simulation internal configurations.
         """
         super()._reset_internal()
-
         # Reset all object positions using initializer sampler if we're not directly loading from an xml
         if not self.deterministic_reset:
 
@@ -378,7 +290,12 @@ class PandaManipulation(SingleArmEnv):
 
             # Loop through all objects and reset their positions
             for obj_pos, obj_quat, obj in object_placements.values():
-                self.sim.data.set_joint_qpos(obj.joints[0], np.concatenate([np.array(obj_pos), np.array(obj_quat)]))
+                self.sim.data.set_joint_qpos(obj.joints[-1], np.concatenate([np.array(obj_pos), np.array(obj_quat)]))
+
+            if self.open == 0:
+                for drawer_id in range(4):
+                    self.sim.data.set_joint_qpos(self.drawers[drawer_id // 2].joints[drawer_id % 2], -0.12)
+
 
     def _get_observation(self):
         """
@@ -393,56 +310,50 @@ class PandaManipulation(SingleArmEnv):
             OrderedDict: Observations from the environment
         """
         di = super()._get_observation()
+        if self.use_camera_obs:
+            cam_name = self.camera_names[0]
+            di['image'] = di[cam_name + '_image'].copy()
+            del di[cam_name + '_image']
+            if self.camera_depths[0]:
+                di['depth'] = di[cam_name + '_depth'].copy()
+                di['depth'] = ((di['depth'] - 0.95) / 0.05 * 255).astype(np.uint8)
 
-        # low-level object information
         if self.use_object_obs:
             # Get robot prefix
             pr = self.robots[0].robot_model.naming_prefix
 
-            # position and rotation of the first cube
-            target_obj_pos = np.array(self.sim.data.body_xpos[self.target_obj_body_id])
-            target_obj_quat = convert_quat(
-                np.array(self.sim.data.body_xquat[self.target_obj_body_id]), to="xyzw"
-            )
-            di["target_obj_pos"] = target_obj_pos
-            di["target_obj_quat"] = target_obj_quat
-
-            # position and rotation of the second cube
-            place_pos = np.array(self.sim.data.body_xpos[self.place_body_id])
-            place_quat = convert_quat(
-                np.array(self.sim.data.body_xquat[self.place_body_id]), to="xyzw"
-            )
-            di["place_pos"] = place_pos
-            di["place_quat"] = place_quat
+            # position of the handle
+            handle_pos = np.array(self.sim.data.site_xpos[self.target_handle_id])
+            di["handle_pos"] = handle_pos
+            di['handle_qpos'] = np.array([self.sim.data.get_joint_qpos(self.drawers[self.drawer_id // 2].joints[self.drawer_id % 2])])
+            di['handle_body_pos'] = np.array(self.sim.data.body_xpos[self.target_handle_body_id])
+            #print(di['handle_pos']-di['handle_body_pos'])
 
             # relative positions between gripper and objects
             gripper_site_pos = np.array(self.sim.data.site_xpos[self.robots[0].eef_site_id])
-            di[pr + "gripper_to_target_obj"] = gripper_site_pos - target_obj_pos
-            di[pr + "gripper_to_place"] = gripper_site_pos - place_pos
-            di["target_obj_to_place"] = target_obj_pos - place_pos
+            di[pr + "gripper_to_handle"] = gripper_site_pos - handle_pos
 
             di["object-state"] = np.concatenate(
                 [
-                    target_obj_pos,
-                    target_obj_quat,
-                    place_pos,
-                    place_quat,
-                    di[pr + "gripper_to_target_obj"],
-                    di[pr + "gripper_to_place"],
-                    di["target_obj_to_place"],
+                    di["handle_pos"],
+                    di["handle_qpos"],
+                    di[pr + "gripper_to_handle"],
                 ]
             )
 
         return di
 
     def _check_success(self):
-        """
-        Check if blocks are stacked correctly.
-        Returns:
-            bool: True if blocks are correctly stacked
-        """
-        _, _, r_stack = self.staged_rewards()
-        return r_stack > 0
+        qpos = self.sim.data.get_joint_qpos(self.drawers[self.drawer_id // 2].joints[self.drawer_id % 2])
+        if self.open == 1:
+            if qpos <= -0.12:
+                return True
+            else:
+                return False
+        else:
+            if qpos >= -0.005:
+                return True
+            return False
 
     def visualize(self, vis_settings):
         """
@@ -457,8 +368,30 @@ class PandaManipulation(SingleArmEnv):
 
         # Color the gripper visualization site according to its distance to the cube
         if vis_settings["grippers"]:
-            self._visualize_gripper_to_target(gripper=self.robots[0].gripper, target=self.target_obj)
+            self._visualize_gripper_to_target(gripper=self.robots[0].gripper, target=self.drawers[self.drawer_id])
 
+
+class PandaDrawer(DrawerMoving):
+    """
+    Easier version of task - place one object into its bin.
+    A new object is sampled on every reset.
+    """
+
+    def __init__(self, task_id=None, **kwargs):
+        if task_id is None:
+            task_id = np.random.randint(0, 8)
+        super().__init__(robots=['Panda'], task_id=task_id, **kwargs)
+
+class SawyerDrawer(DrawerMoving):
+    """
+    Easier version of task - place one object into its bin.
+    A new object is sampled on every reset.
+    """
+
+    def __init__(self, task_id=None, **kwargs):
+        if task_id is None:
+            task_id = np.random.randint(0, 8)
+        super().__init__(robots=['Sawyer'], task_id=task_id, **kwargs)
 
 if __name__ == '__main__':
     from robosuite.environments.manipulation.pick_place import PickPlace
@@ -467,9 +400,9 @@ if __name__ == '__main__':
 
 
     controller = load_controller_config(default_controller="IK_POSE")
-    env = PandaManipulation(robots=['Panda'], has_renderer=True, controller_configs=controller,
+    env = PandaDrawer(task_id=1, has_renderer=True, controller_configs=controller,
                             has_offscreen_renderer=False,
-                            reward_shaping=False, use_camera_obs=False, camera_heights=320, camera_widths=320)
+                            reward_shaping=False, use_camera_obs=False, camera_heights=320, camera_widths=320, render_camera='frontview')
     env.reset()
     for i in range(1000):
         if i % 200 == 0:

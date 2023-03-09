@@ -3,7 +3,7 @@ import numpy as np
 
 from robosuite.environments.manipulation.single_arm_env import SingleArmEnv
 
-from robosuite_env.arena import WipeArena
+multi_task_robosuite_env.arena import WipeArena
 from robosuite.models.tasks import ManipulationTask
 import multiprocessing
 

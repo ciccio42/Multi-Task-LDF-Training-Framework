@@ -6,8 +6,8 @@ from pathlib import Path
 if str(Path.cwd()) not in sys.path:
     sys.path.insert(0, str(Path.cwd()))
 import numpy as np
-from robosuite_env.objects.custom_xml_objects import *
-from robosuite_env.arena import TableArena, BinsArena
+multi_task_robosuite_env.objects.custom_xml_objects import *
+multi_task_robosuite_env.arena import TableArena, BinsArena
 from robosuite.models.objects import (
     MilkVisualObject,
     BreadVisualObject,

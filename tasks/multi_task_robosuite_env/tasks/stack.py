@@ -6,14 +6,14 @@ from pathlib import Path
 if str(Path.cwd()) not in sys.path:
     sys.path.insert(0, str(Path.cwd()))
 import numpy as np
-from robosuite_env.arena import TableArena
+multi_task_robosuite_env.arena import TableArena
 from robosuite.models.objects import BoxObject, CylinderObject
 from robosuite.utils.mjcf_utils import CustomMaterial
 from robosuite.models.tasks import ManipulationTask
 from robosuite.utils.placement_samplers import SequentialCompositeSampler, UniformRandomSampler
 import robosuite.utils.transform_utils as T
-from robosuite_env.sampler import BoundarySampler
-from robosuite_env.tasks import bluewood, greenwood, redwood, grayplaster, lemon, darkwood
+multi_task_robosuite_env.sampler import BoundarySampler
+multi_task_robosuite_env.tasks import bluewood, greenwood, redwood, grayplaster, lemon, darkwood
 
 NAMES = {'r': 'red block', 'g': 'green block', 'b': 'blue block'}
 

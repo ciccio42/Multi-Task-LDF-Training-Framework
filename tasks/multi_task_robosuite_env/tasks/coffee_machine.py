@@ -8,15 +8,13 @@ from robosuite.environments.manipulation.single_arm_env import SingleArmEnv
 
 from robosuite.models.arenas import TableArena
 from robosuite.models.objects import BoxObject, PlateWithHoleObject, PotWithHandlesObject, HammerObject, BottleObject
-from robosuite_env.objects.custom_xml_objects import SpriteCan, CanObject2, CerealObject3, Banana, CerealObject2
+multi_task_robosuite_env.objects.custom_xml_objects import SpriteCan, CanObject2, CerealObject3, Banana, CerealObject2
 from robosuite.models.tasks import ManipulationTask
 from robosuite.utils.placement_samplers import UniformRandomSampler, SequentialCompositeSampler
-from robosuite_env.sampler import BoundarySampler
-from robosuite_env.objects.meta_xml_objects import Hoop, Basketball, BasketballRed, BasketballWhite
-from robosuite.utils.mjcf_utils import CustomMaterial, array_to_string, find_elements
+multi_task_robosuite_env.objects.meta_xml_objects import CoffeeMachine, Mug
 
 
-class BasketBall(SingleArmEnv):
+class PandaManipulation(SingleArmEnv):
     """
     This class corresponds to the stacking task for a single robot arm.
     Args:
@@ -100,7 +98,7 @@ class BasketBall(SingleArmEnv):
             controller_configs=None,
             gripper_types="default",
             initialization_noise="default",
-            table_full_size=(1, 1, 0.05),
+            table_full_size=(0.8, 0.8, 0.05),
             table_friction=(1., 5e-3, 1e-4),
             use_camera_obs=True,
             use_object_obs=True,
@@ -121,15 +119,11 @@ class BasketBall(SingleArmEnv):
             camera_heights=256,
             camera_widths=256,
             camera_depths=False,
-            hoop_id=0,
-            ball_id=0,
     ):
         # settings for table top
         self.table_full_size = table_full_size
         self.table_friction = table_friction
         self.table_offset = np.array((0, 0, 0.8))
-        self.hoop_id = hoop_id
-        self.ball_id = ball_id
 
         # reward configuration
         self.reward_scale = reward_scale
@@ -188,10 +182,58 @@ class BasketBall(SingleArmEnv):
         Returns:
             float: reward value
         """
-        reward = float(self._check_success())
+        r_reach, r_lift, r_stack = self.staged_rewards()
+        if self.reward_shaping:
+            reward = max(r_reach, r_lift, r_stack)
+        else:
+            reward = 2.0 if r_stack > 0 else 0.0
+
+        if self.reward_scale is not None:
+            reward *= self.reward_scale / 2.0
 
         return reward
 
+    def staged_rewards(self):
+        """
+        Helper function to calculate staged rewards based on current physical states.
+        Returns:
+            3-tuple:
+                - (float): reward for reaching and grasping
+                - (float): reward for lifting and aligning
+                - (float): reward for stacking
+        """
+        # reaching is successful when the gripper site is close to the center of the cube
+        target_obj_pos = self.sim.data.body_xpos[self.target_obj_body_id]
+        place_pos = self.sim.data.body_xpos[self.place_body_id]
+        gripper_site_pos = self.sim.data.site_xpos[self.robots[0].eef_site_id]
+        dist = np.linalg.norm(gripper_site_pos - target_obj_pos)
+        r_reach = (1 - np.tanh(10.0 * dist)) * 0.25
+
+        # grasping reward
+        grasping_target_obj = self._check_grasp(gripper=self.robots[0].gripper, object_geoms=self.target_obj)
+        if grasping_target_obj:
+            r_reach += 0.25
+
+        # lifting is successful when the cube is above the table top by a margin
+        target_obj_height = target_obj_pos[2]
+        table_height = self.table_offset[2]
+        target_obj_lifted = target_obj_height > table_height + 0.04
+        r_lift = 1.0 if target_obj_lifted else 0.0
+
+        # Aligning is successful when target_obj is right above place
+        if target_obj_lifted:
+            horiz_dist = np.linalg.norm(
+                np.array(target_obj_pos[:2]) - np.array(place_pos[:2])
+            )
+            r_lift += 0.5 * (1 - np.tanh(horiz_dist))
+
+        # stacking is successful when the block is lifted and the gripper is not holding the object
+        r_stack = 0
+        target_obj_touching_place = self.check_contact(self.target_obj, self.place)
+        if not grasping_target_obj and r_lift > 0 and target_obj_touching_place:
+            r_stack = 2.0
+
+        return r_reach, r_lift, r_stack
 
     def _load_model(self):
         """
@@ -213,29 +255,53 @@ class BasketBall(SingleArmEnv):
         # Arena always gets set to zero origin
         mujoco_arena.set_origin([0, 0, 0])
 
-        # Modify default agentview camera
-        mujoco_arena.set_camera(
-            camera_name="agentview",
-            pos=[0.6347135597996754,6.407631808935752e-08,1.4049677782065237],
-            quat=[0.6298190951347351,0.3214462101459503,0.32144695520401,0.6298189759254456]
-        )
-
-
         # initialize objects of interest
+        tex_attrib = {
+            "type": "cube",
+        }
+        mat_attrib = {
+            "texrepeat": "1 1",
+            "specular": "0.4",
+            "shininess": "0.1",
+        }
+        redwood = CustomMaterial(
+            texture="WoodRed",
+            tex_name="redwood",
+            mat_name="redwood_mat",
+            tex_attrib=tex_attrib,
+            mat_attrib=mat_attrib,
+        )
+        greenwood = CustomMaterial(
+            texture="WoodGreen",
+            tex_name="greenwood",
+            mat_name="greenwood_mat",
+            tex_attrib=tex_attrib,
+            mat_attrib=mat_attrib,
+        )
+        bluewood = CustomMaterial(
 
-        self.balls = [Basketball(name='ball1'), BasketballRed(name='ball2'), BasketballWhite(name='ball3')]
-        pos_list = ["0.15 0.35 0.08", "-0.07 0.35 0.08", "0.15 -0.35 0.08", "-0.07 -0.35 0.08"]
-        name_list = ['place1', 'place2', 'place3', 'place4']
-        self.hoop_list = []
-        for i in range(4):
-            self.hoop_list.append(Hoop(name=name_list[i]))
-            hoop_obj = self.hoop_list[i].get_obj()
-            hoop_obj.set("pos", pos_list[i])
-            if i > 1:
-                hoop_obj.set("quat", "0 0 0 1")
-            body = find_elements(root=mujoco_arena.worldbody, tags="body", attribs={"name": "table"}, return_first=True)
-            body.append(hoop_obj)
 
+            texture="WoodBlue",
+            tex_name="bluewood",
+            mat_name="bluewood_mat",
+            tex_attrib=tex_attrib,
+            mat_attrib=mat_attrib,
+        )
+        # self.target_obj = CerealObject2(name='target_obj')
+        self.target_obj = BottleObject(name='target_obj')
+        self.place = CoffeeMachine(name='place')
+        '''
+        self.place = PotWithHandlesObject(name='place', body_half_size=(0.05, 0.05, 0.03),
+                                          handle_radius=0.005,
+                                          handle_length=0.02,
+                                          handle_width=0.02,
+                                          )
+
+        self.distractor = HammerObject(name='distractor', handle_radius=(0.01, 0.01),
+        handle_length=(0.07, 0.07))
+        '''
+        self.distractor = Mug(name='distractor')
+        self.objects = [self.target_obj, self.distractor, self.place]
         # Create placement initializer
 
         self._get_placement_initializer()
@@ -244,12 +310,8 @@ class BasketBall(SingleArmEnv):
         self.model = ManipulationTask(
             mujoco_arena=mujoco_arena,
             mujoco_robots=[robot.robot_model for robot in self.robots],
-            mujoco_objects=self.balls,
+            mujoco_objects=self.objects,
         )
-
-        for i in range(4):
-            self.model.merge_assets(self.hoop_list[i])
-
         compiler = self.model.root.find('compiler')
         compiler.set('inertiafromgeom', 'auto')
         if compiler.attrib['inertiagrouprange'] == "0 0":
@@ -261,21 +323,33 @@ class BasketBall(SingleArmEnv):
         """
         self.placement_initializer = SequentialCompositeSampler(name="ObjectSampler")
         self.placement_initializer.append_sampler(
-            BoundarySampler(
+            UniformRandomSampler(
                 name="ObjectSampler",
-                mujoco_objects=self.balls,
-                x_range=[-0.17, 0.12],
-                y_range=[-0.12, 0.12],
+                mujoco_objects=self.objects[:2],
+                x_range=[-0.12, 0.12],
+                y_range=[-0.28, 0.2],
                 rotation=[0, 0 + 1e-4],
                 rotation_axis='z',
                 ensure_object_boundary_in_range=True,
-                ensure_valid_placement=True,
+                ensure_valid_placement=False,
                 reference_pos=self.table_offset,
                 z_offset=0.03,
-                addtional_dist=0.03
             )
         )
-
+        self.placement_initializer.append_sampler(
+            UniformRandomSampler(
+                name="TargetSampler",
+                mujoco_objects=self.objects[-1],
+                x_range=[0.12, 0.16],
+                y_range=[0.25, 0.28],
+                rotation=[0, 0+1e-4],
+                rotation_axis='z',
+                ensure_object_boundary_in_range=True,
+                ensure_valid_placement=False,
+                reference_pos=self.table_offset,
+                z_offset=0.01,
+            )
+        )
 
     def _get_reference(self):
         """
@@ -286,10 +360,8 @@ class BasketBall(SingleArmEnv):
         super()._get_reference()
 
         # Additional object references from this env
-        self.target_obj_body_id = self.sim.model.body_name2id(self.balls[self.ball_id].root_body)
-        self.place_body_id = self.sim.model.body_name2id(self.hoop_list[self.hoop_id].root_body)
-        names = ['place1_goal', 'place2_goal', 'place3_goal', 'place4_goal']
-        self.target_loc = self.sim.data.site_xpos[self.sim.model.site_name2id(names[self.hoop_id])]
+        self.target_obj_body_id = self.sim.model.body_name2id(self.target_obj.root_body)
+        self.place_body_id = self.sim.model.body_name2id(self.place.root_body)
 
     def _reset_internal(self):
         """
@@ -321,13 +393,6 @@ class BasketBall(SingleArmEnv):
             OrderedDict: Observations from the environment
         """
         di = super()._get_observation()
-        if self.use_camera_obs:
-            cam_name = self.camera_names[0]
-            di['image'] = di[cam_name + '_image'].copy()
-            del di[cam_name + '_image']
-            if self.camera_depths[0]:
-                di['depth'] = di[cam_name + '_depth'].copy()
-                di['depth'] = ((di['depth'] - 0.95) / 0.05 * 255).astype(np.uint8)
 
         # low-level object information
         if self.use_object_obs:
@@ -367,6 +432,7 @@ class BasketBall(SingleArmEnv):
                     di["target_obj_to_place"],
                 ]
             )
+
         return di
 
     def _check_success(self):
@@ -375,12 +441,8 @@ class BasketBall(SingleArmEnv):
         Returns:
             bool: True if blocks are correctly stacked
         """
-        target_obj_pos = np.array(self.sim.data.body_xpos[self.target_obj_body_id])
-
-        if np.linalg.norm(target_obj_pos-self.target_loc) < 0.03:
-            return True
-        else:
-            return False
+        _, _, r_stack = self.staged_rewards()
+        return r_stack > 0
 
     def visualize(self, vis_settings):
         """
@@ -395,33 +457,8 @@ class BasketBall(SingleArmEnv):
 
         # Color the gripper visualization site according to its distance to the cube
         if vis_settings["grippers"]:
-            self._visualize_gripper_to_target(gripper=self.robots[0].gripper, target=self.hoop_list[self.hoop_id])
+            self._visualize_gripper_to_target(gripper=self.robots[0].gripper, target=self.target_obj)
 
-class PandaBasketball(BasketBall):
-    """
-    Easier version of task - place one object into its bin.
-    A new object is sampled on every reset.
-    """
-
-    def __init__(self, ball_id=None, hoop_id=None, **kwargs):
-        if ball_id is None:
-            ball_id = np.random.randint(0, 3)
-        if hoop_id is None:
-            hoop_id = np.random.randint(0, 4)
-        super().__init__(robots=['Panda'], ball_id=ball_id, hoop_id=hoop_id, **kwargs)
-
-class SawyerBasketball(BasketBall):
-    """
-    Easier version of task - place one object into its bin.
-    A new object is sampled on every reset.
-    """
-
-    def __init__(self, ball_id=None, hoop_id=None, **kwargs):
-        if ball_id is None:
-            ball_id = np.random.randint(0, 3)
-        if hoop_id is None:
-            hoop_id = np.random.randint(0, 4)
-        super().__init__(robots=['Sawyer'], ball_id=ball_id, hoop_id=hoop_id, **kwargs)
 
 if __name__ == '__main__':
     from robosuite.environments.manipulation.pick_place import PickPlace
@@ -429,9 +466,9 @@ if __name__ == '__main__':
     from robosuite.controllers import load_controller_config
 
     controller = load_controller_config(default_controller="IK_POSE")
-    env = PandaBasketball(has_renderer=True, controller_configs=controller,
+    env = PandaManipulation(robots=['Panda'], has_renderer=True, controller_configs=controller,
                             has_offscreen_renderer=False,
-                            reward_shaping=False, use_camera_obs=False,render_camera='frontview')
+                            reward_shaping=False, use_camera_obs=False, camera_heights=320, camera_widths=320)
     env.reset()
     for i in range(1000):
         if i % 200 == 0:

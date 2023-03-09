@@ -1,18 +1,22 @@
 from collections import OrderedDict
 import numpy as np
 
+from robosuite.utils.transform_utils import convert_quat
+from robosuite.utils.mjcf_utils import CustomMaterial
+
 from robosuite.environments.manipulation.single_arm_env import SingleArmEnv
 
 from robosuite.models.arenas import TableArena
-from robosuite_env.objects.custom_xml_objects import DoorObject, DoorObject2, SmallDoorObject, SmallDoorObject2
+from robosuite.models.objects import BoxObject, PlateWithHoleObject, PotWithHandlesObject, HammerObject
+multi_task_robosuite_env.objects.custom_xml_objects import SpriteCan, CanObject2, CerealObject3, Banana, CerealObject2
 from robosuite.models.tasks import ManipulationTask
 from robosuite.utils.placement_samplers import UniformRandomSampler, SequentialCompositeSampler
+multi_task_robosuite_env.objects.meta_xml_objects import HammerBlock
 
 
-
-class DoorEnv(SingleArmEnv):
+class Hammer(SingleArmEnv):
     """
-    This class corresponds to the door opening task for a single robot arm.
+    This class corresponds to the stacking task for a single robot arm.
     Args:
         robots (str or list of str): Specification for specific robot arm(s) to be instantiated within this env
             (e.g: "Sawyer" would generate one arm; ["Panda", "Panda", "Sawyer"] would generate three robot arms)
@@ -39,8 +43,9 @@ class DoorEnv(SingleArmEnv):
             list of the same length as "robots" param
             :Note: Specifying "default" will automatically use the default noise settings.
                 Specifying None will automatically create the required dict with "magnitude" set to 0.0.
-        use_latch (bool): if True, uses a spring-loaded handle and latch to "lock" the door closed initially
-            Otherwise, door is instantiated with a fixed handle
+        table_full_size (3-tuple): x, y, and z dimensions of the table.
+        table_friction (3-tuple): the three mujoco friction parameters for
+            the table.
         use_camera_obs (bool): if True, every observation includes rendered image(s)
         use_object_obs (bool): if True, include object (cube) information in
             the observation.
@@ -93,7 +98,8 @@ class DoorEnv(SingleArmEnv):
             controller_configs=None,
             gripper_types="default",
             initialization_noise="default",
-            use_latch=False,
+            table_full_size=(0.8, 0.8, 0.05),
+            table_friction=(1., 5e-3, 1e-4),
             use_camera_obs=True,
             use_object_obs=True,
             reward_scale=1.0,
@@ -113,14 +119,13 @@ class DoorEnv(SingleArmEnv):
             camera_heights=256,
             camera_widths=256,
             camera_depths=False,
-            task_id=0,
     ):
-        # settings for table top (hardcoded since it's not an essential part of the environment)
-        self.table_full_size = (0.9, 1, 0.05)
-        self.table_offset = (0, 0, 0.8)
+        # settings for table top
+        self.table_full_size = table_full_size
+        self.table_friction = table_friction
+        self.table_offset = np.array((0, 0, 0.8))
 
         # reward configuration
-        self.use_latch = use_latch
         self.reward_scale = reward_scale
         self.reward_shaping = reward_shaping
 
@@ -129,7 +134,6 @@ class DoorEnv(SingleArmEnv):
 
         # object placement initializer
         self.placement_initializer = placement_initializer
-        self.task_id = task_id
 
         super().__init__(
             robots=robots,
@@ -155,29 +159,37 @@ class DoorEnv(SingleArmEnv):
             camera_depths=camera_depths,
         )
 
-    def reward(self, action=None):
+    def reward(self, action):
         """
         Reward function for the task.
         Sparse un-normalized reward:
-            - a discrete reward of 1.0 is provided if the door is opened
-        Un-normalized summed components if using reward shaping:
-            - Reaching: in [0, 0.25], proportional to the distance between door handle and robot arm
-            - Rotating: in [0, 0.25], proportional to angle rotated by door handled
-              - Note that this component is only relevant if the environment is using the locked door version
-        Note that a successfully completed task (door opened) will return 1.0 irregardless of whether the environment
-        is using sparse or shaped rewards
-        Note that the final reward is normalized and scaled by reward_scale / 1.0 as
-        well so that the max score is equal to reward_scale
+            - a discrete reward of 2.0 is provided if the red block is stacked on the green block
+        Un-normalized components if using reward shaping:
+            - Reaching: in [0, 0.25], to encourage the arm to reach the cube
+            - Grasping: in {0, 0.25}, non-zero if arm is grasping the cube
+            - Lifting: in {0, 1}, non-zero if arm has lifted the cube
+            - Aligning: in [0, 0.5], encourages aligning one cube over the other
+            - Stacking: in {0, 2}, non-zero if cube is stacked on other cube
+        The reward is max over the following:
+            - Reaching + Grasping
+            - Lifting + Aligning
+            - Stacking
+        The sparse reward only consists of the stacking component.
+        Note that the final reward is normalized and scaled by
+        reward_scale / 2.0 as well so that the max score is equal to reward_scale
         Args:
-            action (np.array): [NOT USED]
+            action (np array): [NOT USED]
         Returns:
             float: reward value
         """
-        reward = 0.
+        r_reach, r_lift, r_stack = self.staged_rewards()
+        if self.reward_shaping:
+            reward = max(r_reach, r_lift, r_stack)
+        else:
+            reward = 2.0 if r_stack > 0 else 0.0
 
-        # sparse completion reward
-        if self._check_success():
-            reward = 1.0
+        if self.reward_scale is not None:
+            reward *= self.reward_scale / 2.0
 
         return reward
 
@@ -194,32 +206,51 @@ class DoorEnv(SingleArmEnv):
         # load model for table top workspace
         mujoco_arena = TableArena(
             table_full_size=self.table_full_size,
+            table_friction=self.table_friction,
             table_offset=self.table_offset,
         )
 
         # Arena always gets set to zero origin
         mujoco_arena.set_origin([0, 0, 0])
 
-        # Modify default agentview camera
-        mujoco_arena.set_camera(
-            camera_name="agentview",
-            pos=[0.5986131746834771, -4.392035683362857e-09, 1.5903500240372423],
-            quat=[0.6380177736282349, 0.3048497438430786, 0.30484986305236816, 0.6380177736282349]
-        )
-
         # initialize objects of interest
-        self.doors = [SmallDoorObject(
-            name="door1",
-            friction=0.0,
-            damping=0.1,
-            lock=self.use_latch,
-        ), SmallDoorObject2(
-            name="door2",
-            friction=0.0,
-            damping=0.1,
-            lock=self.use_latch,
+        tex_attrib = {
+            "type": "cube",
+        }
+        mat_attrib = {
+            "texrepeat": "1 1",
+            "specular": "0.4",
+            "shininess": "0.1",
+        }
+        redwood = CustomMaterial(
+            texture="WoodRed",
+            tex_name="redwood",
+            mat_name="redwood_mat",
+            tex_attrib=tex_attrib,
+            mat_attrib=mat_attrib,
         )
-        ]
+        greenwood = CustomMaterial(
+            texture="WoodGreen",
+            tex_name="greenwood",
+            mat_name="greenwood_mat",
+            tex_attrib=tex_attrib,
+            mat_attrib=mat_attrib,
+        )
+        bluewood = CustomMaterial(
+            texture="WoodBlue",
+            tex_name="bluewood",
+            mat_name="bluewood_mat",
+            tex_attrib=tex_attrib,
+            mat_attrib=mat_attrib,
+        )
+        # self.target_obj = CerealObject2(name='target_obj')
+        self.target_obj = HammerObject(name='distractor', handle_radius=(0.02, 0.01),
+        handle_length=(0.08, 0.08))
+        self.place = HammerBlock(name='place1')
+        self.distractor = HammerBlock(name='place2')
+
+        self.objects = [self.target_obj, self.place, self.distractor]
+        # Create placement initializer
 
         self._get_placement_initializer()
 
@@ -227,9 +258,8 @@ class DoorEnv(SingleArmEnv):
         self.model = ManipulationTask(
             mujoco_arena=mujoco_arena,
             mujoco_robots=[robot.robot_model for robot in self.robots],
-            mujoco_objects=self.doors,
+            mujoco_objects=self.objects,
         )
-
         compiler = self.model.root.find('compiler')
         compiler.set('inertiafromgeom', 'auto')
         if compiler.attrib['inertiagrouprange'] == "0 0":
@@ -242,24 +272,50 @@ class DoorEnv(SingleArmEnv):
         self.placement_initializer = SequentialCompositeSampler(name="ObjectSampler")
 
         # each object should just be sampled in the bounds of the bin (with some tolerance
-        x_range = [[0.0, 0.04], [-0.05, -0.01]]
-        y_range = [[-0.30, -0.26], [0.27, 0.32]]
-        rotation = [(-np.pi / 2. - 0.005, -np.pi / 2.+0.005), (np.pi / 2.-0.005, np.pi / 2. + 0.005)]
-        for i in range(2):
-            self.placement_initializer.append_sampler(
-                sampler=UniformRandomSampler(
-                    name=f"{i}Sampler",
-                    mujoco_objects=self.doors[i],
-                    x_range=x_range[i],
-                    y_range=y_range[i],
-                    rotation=rotation[i],
-                    rotation_axis='z',
-                    ensure_object_boundary_in_range=False,
-                    ensure_valid_placement=True,
-                    reference_pos=self.table_offset,
-                )
+        self.placement_initializer.append_sampler(
+            UniformRandomSampler(
+                name="ObjectSampler",
+                mujoco_objects=self.objects[0],
+                x_range=[-0.26, -0.07],
+                y_range=[-0.18, 0.0],
+                rotation=[0, np.pi / 2],
+                rotation_axis='z',
+                ensure_object_boundary_in_range=False,
+                ensure_valid_placement=True,
+                reference_pos=self.table_offset,
+                z_offset=0.01,
             )
+        )
 
+        self.placement_initializer.append_sampler(
+            UniformRandomSampler(
+                name="Target1Sampler",
+                mujoco_objects=self.objects[1],
+                x_range=[0.12, 0.16],
+                y_range=[0.25, 0.28],
+                rotation=[0, 0+1e-4],
+                rotation_axis='z',
+                ensure_object_boundary_in_range=True,
+                ensure_valid_placement=True,
+                reference_pos=self.table_offset,
+                z_offset=-0.01,
+            )
+        )
+
+        self.placement_initializer.append_sampler(
+            UniformRandomSampler(
+                name="Target2Sampler",
+                mujoco_objects=self.objects[2],
+                x_range=[-0.12, -0.16],
+                y_range=[0.25, 0.28],
+                rotation=[0, 0 + 1e-4],
+                rotation_axis='z',
+                ensure_object_boundary_in_range=True,
+                ensure_valid_placement=True,
+                reference_pos=self.table_offset,
+                z_offset=-0.01,
+            )
+        )
 
     def _get_reference(self):
         """
@@ -270,31 +326,24 @@ class DoorEnv(SingleArmEnv):
         super()._get_reference()
 
         # Additional object references from this env
-        self.object_body_ids = dict()
-        self.object_body_ids["door"] = self.sim.model.body_name2id(self.doors[self.task_id // 2].door_body)
-        self.object_body_ids["frame"] = self.sim.model.body_name2id(self.doors[self.task_id // 2].frame_body)
-        self.object_body_ids["latch"] = self.sim.model.body_name2id(self.doors[self.task_id // 2].latch_body)
-        self.door_handle_site_id = self.sim.model.site_name2id(self.doors[self.task_id // 2].important_sites["handle"])
-        self.door_handle_start_id = self.sim.model.site_name2id(self.doors[self.task_id // 2].important_sites["handle_start"])
-        self.door_handle_end_id = self.sim.model.site_name2id(self.doors[self.task_id // 2].important_sites['handle_end'])
-        self.hinge_qpos_addr = self.sim.model.get_joint_qpos_addr(self.doors[self.task_id // 2].joints[0])
-        if self.use_latch:
-            self.handle_qpos_addr = self.sim.model.get_joint_qpos_addr(self.doors[self.task_id // 2].joints[1])
+        self.target_obj_body_id = self.sim.model.body_name2id(self.target_obj.root_body)
+        self.place_body_id = self.sim.model.body_name2id(self.place.root_body)
 
     def _reset_internal(self):
         """
         Resets simulation internal configurations.
         """
         super()._reset_internal()
+
         # Reset all object positions using initializer sampler if we're not directly loading from an xml
         if not self.deterministic_reset:
+
+            # Sample from the placement initializer for all objects
             object_placements = self.placement_initializer.sample()
-                # We know we're only setting a single object (the door), so specifically set its pose
-            for i in range(2):
-                door_pos, door_quat, _ = object_placements[self.doors[i].name]
-                door_body_id = self.sim.model.body_name2id(self.doors[i].root_body)
-                self.sim.model.body_pos[door_body_id] = door_pos
-                self.sim.model.body_quat[door_body_id] = door_quat
+
+            # Loop through all objects and reset their positions
+            for obj_pos, obj_quat, obj in object_placements.values():
+                self.sim.data.set_joint_qpos(obj.joints[-1], np.concatenate([np.array(obj_pos), np.array(obj_quat)]))
 
     def _get_observation(self):
         """
@@ -309,61 +358,60 @@ class DoorEnv(SingleArmEnv):
             OrderedDict: Observations from the environment
         """
         di = super()._get_observation()
-        if self.use_camera_obs:
-            cam_name = self.camera_names[0]
-            di['image'] = di[cam_name + '_image'].copy()
-            del di[cam_name + '_image']
-            if self.camera_depths[0]:
-                di['depth'] = di[cam_name + '_depth'].copy()
-                di['depth'] = ((di['depth'] - 0.95) / 0.05 * 255).astype(np.uint8)
 
         # low-level object information
         if self.use_object_obs:
             # Get robot prefix
             pr = self.robots[0].robot_model.naming_prefix
 
-            eef_pos = self._eef_xpos
-            door_pos = np.array(self.sim.data.body_xpos[self.object_body_ids["door"]])
-            handle_pos = self._handle_xpos
-            hinge_qpos = np.array([self.sim.data.qpos[self.hinge_qpos_addr]])
+            # position and rotation of the first cube
+            target_obj_pos = np.array(self.sim.data.body_xpos[self.target_obj_body_id])
+            target_obj_quat = convert_quat(
+                np.array(self.sim.data.body_xquat[self.target_obj_body_id]), to="xyzw"
+            )
+            di["target_obj_pos"] = target_obj_pos
+            di["target_obj_quat"] = target_obj_quat
 
-            di["door_pos"] = door_pos
-            di["handle_pos"] = handle_pos
-            di[pr + "door_to_eef_pos"] = door_pos - eef_pos
-            di[pr + "handle_to_eef_pos"] = handle_pos - eef_pos
-            di["hinge_qpos"] = hinge_qpos
+            # position and rotation of the second cube
+            place_pos = np.array(self.sim.data.body_xpos[self.place_body_id])
+            place_quat = convert_quat(
+                np.array(self.sim.data.body_xquat[self.place_body_id]), to="xyzw"
+            )
+            di["place_pos"] = place_pos
+            di["place_quat"] = place_quat
 
-            di['object-state'] = np.concatenate([
-                di["door_pos"],
-                di["handle_pos"],
-                di[pr + "door_to_eef_pos"],
-                di[pr + "handle_to_eef_pos"],
-                di["hinge_qpos"]
-            ])
+            # relative positions between gripper and objects
+            gripper_site_pos = np.array(self.sim.data.site_xpos[self.robots[0].eef_site_id])
+            di[pr + "gripper_to_target_obj"] = gripper_site_pos - target_obj_pos
+            di[pr + "gripper_to_place"] = gripper_site_pos - place_pos
+            di["target_obj_to_place"] = target_obj_pos - place_pos
 
-            # Also append handle qpos if we're using a locked door version with rotatable handle
-            if self.use_latch:
-                handle_qpos = np.array([self.sim.data.qpos[self.handle_qpos_addr]])
-                di["handle_qpos"] = handle_qpos
-                di['object-state'] = np.concatenate([di["object-state"], di["handle_qpos"]])
+            di["object-state"] = np.concatenate(
+                [
+                    target_obj_pos,
+                    target_obj_quat,
+                    place_pos,
+                    place_quat,
+                    di[pr + "gripper_to_target_obj"],
+                    di[pr + "gripper_to_place"],
+                    di["target_obj_to_place"],
+                ]
+            )
 
         return di
 
     def _check_success(self):
         """
-        Check if door has been opened.
+        Check if blocks are stacked correctly.
         Returns:
-            bool: True if door has been opened
+            bool: True if blocks are correctly stacked
         """
-        hinge_qpos = self.sim.data.qpos[self.hinge_qpos_addr]
-        if self.task_id % 2 == self.task_id // 2:
-                return hinge_qpos > 0.4
-        else:
-            return hinge_qpos < -0.4
+        _, _, r_stack = self.staged_rewards()
+        return r_stack > 0
 
     def visualize(self, vis_settings):
         """
-        In addition to super call, visualize gripper site proportional to the distance to the door handle.
+        In addition to super call, visualize gripper site proportional to the distance to the cube.
         Args:
             vis_settings (dict): Visualization keywords mapped to T/F, determining whether that specific
                 component should be visualized. Should have "grippers" keyword as well as any other relevant
@@ -372,64 +420,24 @@ class DoorEnv(SingleArmEnv):
         # Run superclass method first
         super().visualize(vis_settings=vis_settings)
 
-        # Color the gripper visualization site according to its distance to the door handle
+        # Color the gripper visualization site according to its distance to the cube
         if vis_settings["grippers"]:
-            self._visualize_gripper_to_target(
-                gripper=self.robots[0].gripper,
-                target=self.doors[0].important_sites["handle"],
-                target_type="site"
-            )
+            self._visualize_gripper_to_target(gripper=self.robots[0].gripper, target=self.target_obj)
 
-    @property
-    def _handle_xpos(self):
-        """
-        Grabs the position of the door handle handle.
-        Returns:
-            np.array: Door handle (x,y,z)
-        """
-        return self.sim.data.site_xpos[self.door_handle_site_id]
-
-    @property
-    def _gripper_to_handle(self):
-        """
-        Calculates distance from the gripper to the door handle.
-        Returns:
-            np.array: (x,y,z) distance between handle and eef
-        """
-        return self._handle_xpos - self._eef_xpos
-
-
-class PandaDoor(DoorEnv):
-    """
-    Easier version of task - place one object into its bin.
-    A new object is sampled on every reset.
-    """
-
-    def __init__(self, task_id=None, **kwargs):
-        if task_id is None:
-            task_id = np.random.randint(0, 4)
-        super().__init__(robots=['Panda'], task_id=task_id, **kwargs)
-
-class SawyerDoor(DoorEnv):
-    """
-    Easier version of task - place one object into its bin.
-    A new object is sampled on every reset.
-    """
-
-    def __init__(self, task_id=None, **kwargs):
-        if task_id is None:
-            task_id = np.random.randint(0, 4)
-        super().__init__(robots=['Sawyer'], task_id=task_id, **kwargs)
 
 if __name__ == '__main__':
+    from robosuite.environments.manipulation.pick_place import PickPlace
+    import robosuite
     from robosuite.controllers import load_controller_config
 
     controller = load_controller_config(default_controller="IK_POSE")
-    env = SawyerDoor(has_renderer=True, controller_configs=controller, has_offscreen_renderer=False,
-                                    reward_shaping=False,
-                                    use_camera_obs=False, camera_heights=320, camera_widths=320, render_camera='frontview', task_id=1)
+    env = PandaManipulation(robots=['Panda'], has_renderer=True, controller_configs=controller,
+                            has_offscreen_renderer=False,
+                            reward_shaping=False, use_camera_obs=False, camera_heights=320, camera_widths=320)
     env.reset()
-    for i in range(10000):
+    for i in range(1000):
+        if i % 200 == 0:
+            env.reset()
         low, high = env.action_spec
         action = np.random.uniform(low=low, high=high)
         env.step(action)

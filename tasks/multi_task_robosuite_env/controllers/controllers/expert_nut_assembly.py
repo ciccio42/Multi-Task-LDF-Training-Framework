@@ -4,12 +4,12 @@ from pathlib import Path
 if str(Path.cwd()) not in sys.path:
     sys.path.insert(0, str(Path.cwd()))
 import numpy as np
-from robosuite_env import get_env
+multi_task_robosuite_env import get_env
 from multi_task_il.datasets import Trajectory
 import pybullet as p
 from pyquaternion import Quaternion
 import random
-from robosuite_env.custom_ik_wrapper import normalize_action
+multi_task_robosuite_env.custom_ik_wrapper import normalize_action
 from robosuite import load_controller_config
 from robosuite.utils.transform_utils import quat2axisangle
 from robosuite.utils import RandomizationError

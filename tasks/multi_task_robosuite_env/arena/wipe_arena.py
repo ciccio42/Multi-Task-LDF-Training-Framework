@@ -1,8 +1,8 @@
 import numpy as np
-from robosuite_env.arena import TableArena
+multi_task_robosuite_env.arena import TableArena
 from robosuite.utils.mjcf_utils import CustomMaterial, find_elements
 from robosuite.models.objects import CylinderObject
-from robosuite_env.tasks import grayplaster, redwood
+multi_task_robosuite_env.tasks import grayplaster, redwood
 
 
 class WipeArena(TableArena):

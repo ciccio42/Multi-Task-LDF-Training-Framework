@@ -4,7 +4,7 @@ from robosuite import load_controller_config
 import json
 import matplotlib.pyplot as plt
 import numpy as np
-from robosuite_env.controllers.expert_pick_place import \
+multi_task_robosuite_env.controllers.expert_pick_place import \
     get_expert_trajectory as place_expert 
 import random 
 create_seed = random.Random(None)

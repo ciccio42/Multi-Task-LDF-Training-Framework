@@ -1,7 +1,7 @@
 from robosuite import load_controller_config
-from robosuite_env.controllers.controllers.expert_pick_place import \
+from multi_task_robosuite_env.controllers.expert_pick_place import \
     get_expert_trajectory as place_expert
-from robosuite_env.controllers.controllers.expert_nut_assembly import \
+from multi_task_robosuite_env.controllers.expert_nut_assembly import \
     get_expert_trajectory as nut_expert 
 import functools
 import os
@@ -32,6 +32,10 @@ TASK_ENV_MAP = {
 }
     
 ROBOT_NAMES = ['panda', 'sawyer', 'ur5e']
+
+# open command json file
+import json
+TASK_COMMAND = json.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), "command.json"))
 
 def save_rollout(N, env_type, env_func, save_dir, n_tasks, env_seed=False, camera_obs=True, seeds=None, n_per_group=1, ctrl_config='IK_POSE', renderer=False, gpu_count=1, gpu_id_indx=-1, color=False, shape=False):
     if isinstance(N, int):
@@ -116,11 +120,9 @@ if __name__ == '__main__':
     elif args.n_env:
         envs, rng = [263237945 + i for i in range(args.n_env)], random.Random(385008283)
         seeds = [int(rng.choice(envs)) for _ in range(args.N)]
-        print(f"1---------- {seeds} ------")
     else:
         n_per_group = args.per_task_group
         seeds = [263237945 + int(n // (args.n_tasks * n_per_group)) * n_per_group + n % n_per_group for n in range(args.N)]
-        print(f"2---------- {seeds} ------")
     # select proper names and functions
     assert (args.task_name in args.save_dir and args.robot in args.save_dir), args.save_dir 
     
