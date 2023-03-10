@@ -1,7 +1,7 @@
 from robosuite import load_controller_config
-from multi_task_robosuite_env.controllers.expert_pick_place import \
+from multi_task_robosuite_env.controllers.controllers.expert_pick_place import \
     get_expert_trajectory as place_expert
-from multi_task_robosuite_env.controllers.expert_nut_assembly import \
+from multi_task_robosuite_env.controllers.controllers.expert_nut_assembly import \
     get_expert_trajectory as nut_expert 
 import functools
 import os
@@ -35,9 +35,10 @@ ROBOT_NAMES = ['panda', 'sawyer', 'ur5e']
 
 # open command json file
 import json
-TASK_COMMAND = json.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), "command.json"))
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "command.json")) as f:
+    TASK_COMMAND = json.load(f)
 
-def save_rollout(N, env_type, env_func, save_dir, n_tasks, env_seed=False, camera_obs=True, seeds=None, n_per_group=1, ctrl_config='IK_POSE', renderer=False, gpu_count=1, gpu_id_indx=-1, color=False, shape=False):
+def save_rollout(N, task_name, env_type, env_func, save_dir, n_tasks, env_seed=False, camera_obs=True, seeds=None, n_per_group=1, ctrl_config='IK_POSE', renderer=False, gpu_count=1, gpu_id_indx=-1, color=False, shape=False):
     if isinstance(N, int):
         N = [N]
     for n in N:
@@ -73,7 +74,8 @@ def save_rollout(N, env_type, env_func, save_dir, n_tasks, env_seed=False, camer
         pkl.dump({
             'traj': traj, 
             'len': len(traj),
-            'env_type': env_type, 
+            'env_type': env_type,
+            'command': TASK_COMMAND[task_name][str(task)], 
             'task_id': task}, open(file_name, 'wb'))
         del traj
 
@@ -163,6 +165,7 @@ if __name__ == '__main__':
     if args.num_workers == 1:
         save_rollout(
             N=list(range(args.N)),
+            task_name=args.task_name,
             env_type=env_name, env_func=env_fn, save_dir=args.save_dir, n_tasks=args.n_tasks, \
             env_seed=args.give_env_seed, camera_obs=args.collect_cam, seeds=seeds, n_per_group=args.per_task_group, \
             renderer=args.renderer, \
@@ -176,7 +179,8 @@ if __name__ == '__main__':
         with Pool(args.num_workers) as p:
             f = functools.partial(
                 save_rollout, 
-                env_type=env_name, env_func=env_fn, save_dir=args.save_dir, n_tasks=args.n_tasks, \
+                env_type=env_name, 
+                task_name=args.task_name, env_func=env_fn, save_dir=args.save_dir, n_tasks=args.n_tasks, \
                 env_seed=args.give_env_seed, camera_obs=args.collect_cam, seeds=seeds, n_per_group=args.per_task_group, \
                 renderer=args.renderer, \
                 gpu_count=count, \

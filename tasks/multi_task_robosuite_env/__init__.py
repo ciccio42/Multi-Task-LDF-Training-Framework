@@ -1,59 +1,59 @@
-import robosuite_env.utils.utils as utils
+import multi_task_robosuite_env.utils.utils as utils
 
 def get_env(env_name, ranges, **kwargs):
     if env_name == 'Sawyer_PickPlaceDistractor':
-        multi_task_robosuite_env.tasks.new_pp import SawyerPickPlace
+        from multi_task_robosuite_env.tasks.new_pp import SawyerPickPlace
         env = SawyerPickPlace
     elif env_name == 'Panda_PickPlaceDistractor':
-        multi_task_robosuite_env.tasks.new_pp import PandaPickPlace
+        from multi_task_robosuite_env.tasks.new_pp import PandaPickPlace
         env = PandaPickPlace
     elif env_name == 'UR5e_PickPlaceDistractor':
-        multi_task_robosuite_env.tasks.new_pp import UR5ePickPlace
+        from multi_task_robosuite_env.tasks.new_pp import UR5ePickPlace
         env = UR5ePickPlace
     elif env_name == 'Panda_NutAssemblyDistractor':
-        multi_task_robosuite_env.tasks.nut_assembly import PandaNutAssemblyDistractor
+        from multi_task_robosuite_env.tasks.nut_assembly import PandaNutAssemblyDistractor
         env = PandaNutAssemblyDistractor
     elif env_name == 'Sawyer_NutAssemblyDistractor':
-        multi_task_robosuite_env.tasks.nut_assembly import SawyerNutAssemblyDistractor
+        from multi_task_robosuite_env.tasks.nut_assembly import SawyerNutAssemblyDistractor
         env = SawyerNutAssemblyDistractor
     elif env_name == 'UR5e_NutAssemblyDistractor':
-        multi_task_robosuite_env.tasks.nut_assembly import UR5eNutAssemblyDistractor
+        from multi_task_robosuite_env.tasks.nut_assembly import UR5eNutAssemblyDistractor
         env = UR5eNutAssemblyDistractor
     elif env_name == 'Panda_BlockStacking':
-        multi_task_robosuite_env.tasks.stack import PandaBlockStacking
+        from multi_task_robosuite_env.tasks.stack import PandaBlockStacking
         env = PandaBlockStacking
     elif env_name == 'Sawyer_BlockStacking':
-        multi_task_robosuite_env.tasks.stack import SawyerBlockStacking
+        from multi_task_robosuite_env.tasks.stack import SawyerBlockStacking
         env = SawyerBlockStacking
     elif env_name == 'Panda_Basketball':
-        multi_task_robosuite_env.tasks.basketball import PandaBasketball
+        from multi_task_robosuite_env.tasks.basketball import PandaBasketball
         env = PandaBasketball
     elif env_name == 'Sawyer_Basketball':
-        multi_task_robosuite_env.tasks.basketball import SawyerBasketball
+        from multi_task_robosuite_env.tasks.basketball import SawyerBasketball
         env = SawyerBasketball
     elif env_name == 'Panda_Insert':
-        multi_task_robosuite_env.tasks.insert import PandaInsert
+        from multi_task_robosuite_env.tasks.insert import PandaInsert
         env = PandaInsert
     elif env_name == 'Sawyer_Insert':
-        multi_task_robosuite_env.tasks.insert import SawyerInsert
+        from multi_task_robosuite_env.tasks.insert import SawyerInsert
         env = SawyerInsert
     elif env_name == 'Panda_Drawer':
-        multi_task_robosuite_env.tasks.drawer import PandaDrawer
+        from multi_task_robosuite_env.tasks.drawer import PandaDrawer
         env = PandaDrawer
     elif env_name == 'Sawyer_Drawer':
-        multi_task_robosuite_env.tasks.drawer import SawyerDrawer
+        from multi_task_robosuite_env.tasks.drawer import SawyerDrawer
         env = SawyerDrawer
     elif env_name == 'Panda_Button':
-        multi_task_robosuite_env.tasks.press_button import PandaButton
+        from multi_task_robosuite_env.tasks.press_button import PandaButton
         env = PandaButton
     elif env_name == 'Sawyer_Button':
-        multi_task_robosuite_env.tasks.press_button import SawyerButton
+        from multi_task_robosuite_env.tasks.press_button import SawyerButton
         env = SawyerButton
     elif env_name == 'Panda_Door':
-        multi_task_robosuite_env.tasks.door import PandaDoor
+        from multi_task_robosuite_env.tasks.door import PandaDoor
         env = PandaDoor
     elif env_name == 'Sawyer_Door':
-        multi_task_robosuite_env.tasks.door import SawyerDoor
+        from multi_task_robosuite_env.tasks.door import SawyerDoor
         env = SawyerDoor
     else:
         raise NotImplementedError
@@ -82,8 +82,8 @@ def get_env(env_name, ranges, **kwargs):
               )
 
     if kwargs['controller_configs']['type'] == "IK_POSE":
-        multi_task_robosuite_env.custom_ik_wrapper import CustomIKWrapper
+        from multi_task_robosuite_env.custom_ik_wrapper import CustomIKWrapper
         return CustomIKWrapper(env, ranges=ranges)
     else:
-        multi_task_robosuite_env.custom_osc_pose_wrapper import CustomOSCPoseWrapper
+        from multi_task_robosuite_env.custom_osc_pose_wrapper import CustomOSCPoseWrapper
         return CustomOSCPoseWrapper(env, ranges=ranges)
