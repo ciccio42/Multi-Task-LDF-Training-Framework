@@ -38,7 +38,6 @@ def _clip_delta(delta, max_step=0.015):
 class PickPlaceController:
     def __init__(self, env, ranges, tries=0):
         self._env = env
-        self._g_tol = 5e-2 ** (tries + 1)
         self.ranges = ranges
         self.reset()
 
@@ -63,18 +62,21 @@ class PickPlaceController:
             self._final_thresh = 1e-2
             # define the target gripper orientation with respect to the object
             self._target_gripper_wrt_obj_rot = np.array([[1, 0, 0.], [0, -1, 0.], [0., 0., -1.]])
+            self._g_tol = 1e-2
         elif "Panda" in self._env.robot_names:
             self._obs_name = 'eef_pos'
             self._default_speed = 0.02
             self._final_thresh = 6e-2            
             # define the target gripper orientation with respect to the object
             self._target_gripper_wrt_obj_rot = np.array([[0, 1, 0.], [1, 0, 0.], [0., 0., -1.]])
+            self._g_tol = 5e-2
         elif "UR5e" in self._env.robot_names:
             self._obs_name = 'eef_pos'
             self._default_speed = 0.02
             self._final_thresh = 6e-2
             # define the target gripper orientation with respect to the object
             self._target_gripper_wrt_obj_rot = np.array([[1, 0, 0.], [0, -1, 0.], [0., 0., -1.]])
+            self._g_tol = 5e-2
         else:
             raise NotImplementedError
 
@@ -269,7 +271,7 @@ def get_expert_trajectory(env_type, controller_type, renderer=False, camera_obs=
         use_object = env.object_id
         traj.append(obs, raw_state=mj_state, info={'status': 'start'})
         print(f"Target object {controller._object_name}")
-        for t in range(int(env.horizon)):
+        for t in range(int(env.horizon/env.action_repeat)):
             action, status = controller.act(obs)
             obs, reward, done, info = env.step(action)
             assert 'status' not in info.keys(), "Don't overwrite information returned from environment. "

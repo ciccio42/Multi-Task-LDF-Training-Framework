@@ -18,45 +18,34 @@ table_offset: [0, 0, 0.70]
 
 # Object y ranges
 y_ranges: [[0.25, 0.30], [0.05, 0.10], [-0.10, -0.15], [-0.30, -0.35]]
-x_ranges: [[-0.14, -0.20]]
-bin_position_x: [0.0, 0.0]
+x_ranges: [[-0.15, 0.0]]
+bin_position_x: [0.125, 0.125]
 bin_position_y: [0.025, 0.025]
 # Camera names
-camera_names: ['camera_front','robot0_eye_in_hand' ] #,'camera_front', 'camera_lateral_left','camera_lateral_right', 'robot0_eye_in_hand']
+camera_names: ['camera_front','camera_lateral_left','camera_lateral_right','robot0_eye_in_hand'] #,'camera_front', 'camera_lateral_left','camera_lateral_right', 'robot0_eye_in_hand']
 
 #---- CONF 1 ----#
 camera_poses:
  # position (x,y,z) and quaternion (w,x,y,z)
   { 
     frontview:  [[0.735, 0, 1.085], [0.5336601734161377, 0.4639042615890503, 0.4639032483100891, 0.5336601734161377]],
-    camera_front: [[0.735, 0, 1.085], [0.5336601734161377, 0.4639042615890503, 0.4639032483100891, 0.5336601734161377]], #8°
-    camera_lateral_left: [[-0.2275, 0.905, 0.93], [0.0, 0.0, 0.6560590863227844, 0.7547095417976379]], #8°
-    camera_lateral_right: [[-0.2275, -0.905, 0.93], [0.7547095417976379, 0.6560590863227844, -0.0, -0.0]], #8°
+    camera_front: [[0.55, 0, 1.085], [0.5693713595118203, 0.4193044895629685, 0.4193044895629685, 0.5693713595118204]], 
+    camera_lateral_left: [[-0.33, -0.48, 1.20], [0.9017570913442929, 0.28432292048165225, -0.09790023363307411, -0.31049987013468117]],
+    camera_lateral_right: [[-0.33, 0.48, 1.20], [-0.31049987, -0.09790023, 0.28432292, 0.90175709]],
   }
 
-#---- CONF 2 ----#
-#camera_poses:
-#  # position (x,y,z) and quaternion (w,x,y,z)
-#  { 
-#    frontview: [[-0.163, 0.814, 0.845], [0.0, 0.0, 0.7, 0.7]],
-#    
-#    camera_front: [[0.735, 0, 1.085], [0.5336601734161377, 0.4639042615890503, 0.4639032483100891, 0.5336601734161377]], #8°
-#    camera_lateral_left: [[-0.163, 0.814, 0.845], [0.0, 0.0, 0.7, 0.7]], #8°
-#    camera_lateral_right: [[-0.163, -0.814, 0.845], [0.7, 0.7, -0.0, -0.0]], #8°
-#  }
-
-# camerea gripper
+# camera gripper
 camera_gripper:
   {
     Robotiq85Gripper: {
                         root: 'right_hand',
-                        pose: [[-0.0325, -0.170, -0.0215], [0, 0, 0.9396926205381703, -0.3420201440063237]]
+                        pose: [[0.0, -0.080, 0.0084], [0.,         0.,         0.97629601, -0.21643961]]
                       },
   }
 
 # camera attributes
 camera_attribs:
-  {fovy: '41'}
+  {fovy: '60'}
 
 # Camera depth
 camera_depths: true
@@ -69,4 +58,4 @@ camera_widths: 180
 
 # Horizon
 horizon: 1000
-ignore_done: True
+ignore_done: False

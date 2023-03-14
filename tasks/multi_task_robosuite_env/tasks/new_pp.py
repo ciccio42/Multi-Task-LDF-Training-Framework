@@ -12,11 +12,11 @@ from robosuite.models.objects import (
     CanVisualObject,
 )
 from robosuite.models.arenas import TableArena
-multi_task_robosuite_env.objects.custom_xml_objects import *
-multi_task_robosuite_env.sampler import BoundarySampler
+from multi_task_robosuite_env.objects.custom_xml_objects import *
+from multi_task_robosuite_env.sampler import BoundarySampler
 from robosuite.models.tasks import ManipulationTask
 from robosuite.utils.placement_samplers import UniformRandomSampler, SequentialCompositeSampler
-multi_task_robosuite_env.objects.meta_xml_objects import Bin
+from multi_task_robosuite_env.objects.meta_xml_objects import Bin
 from robosuite.utils.mjcf_utils import CustomMaterial, array_to_string, find_elements
 import robosuite.utils.transform_utils as T
 
@@ -158,7 +158,6 @@ class PickPlace(SingleArmEnv):
                 object_type
             ]  # use for convenient indexing
         self.y_ranges = y_ranges
-        print(env_conf.keys())
         self.x_ranges = env_conf['x_ranges']
         self.bin_position_x = env_conf['bin_position_x']
         self.bin_position_y = env_conf['bin_position_y']

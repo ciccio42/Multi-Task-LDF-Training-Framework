@@ -1,8 +1,8 @@
 import robosuite
-import robosuite_env
+import multi_task_robosuite_env
 import os
 import xml.etree.ElementTree as ET
-import robosuite_env
+import multi_task_robosuite_env
 
 
 def postprocess_model_xml(xml_str):
@@ -11,7 +11,7 @@ def postprocess_model_xml(xml_str):
     in order to make sure that the STL files can be found.
     """
     robosuite_path = os.path.split(robosuite.__file__)[0].split('/')
-    robosuite_env_path =  os.path.split(robosuite_env.__file__)[0].split('/')
+    robosuite_env_path =  os.path.split(multi_task_robosuite_env.__file__)[0].split('/')
 
     # replace mesh and texture file paths
     tree = ET.fromstring(xml_str)
@@ -54,5 +54,5 @@ def xml_path_completion(xml_path):
     if xml_path.startswith("/"):
         full_path = xml_path
     else:
-        full_path = os.path.join(robosuite_env.arena.assets_root, xml_path)
+        full_path = os.path.join(multi_task_robosuite_env.arena.assets_root, xml_path)
     return full_path

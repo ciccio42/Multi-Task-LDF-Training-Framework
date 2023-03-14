@@ -1,4 +1,4 @@
-multi_task_robosuite_env.arena import Arena
+from multi_task_robosuite_env.arena import Arena
 from robosuite.utils.mjcf_utils import xml_path_completion
 
 

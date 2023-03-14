@@ -6,13 +6,13 @@ if str(Path.cwd()) not in sys.path:
     sys.path.insert(0, str(Path.cwd()))
 import numpy as np
 from robosuite.models.tasks import ManipulationTask
-multi_task_robosuite_env.arena import PegsArena
-multi_task_robosuite_env.objects.custom_xml_objects import RoundNut3Object, RoundNut2Object, RoundNutObject
+from multi_task_robosuite_env.arena import PegsArena
+from multi_task_robosuite_env.objects.custom_xml_objects import RoundNut3Object, RoundNut2Object, RoundNutObject
 from robosuite.models.tasks import ManipulationTask
 from robosuite.utils.placement_samplers import SequentialCompositeSampler, UniformRandomSampler
 import robosuite.utils.transform_utils as T
 import random
-multi_task_robosuite_env.sampler import BoundarySampler
+from multi_task_robosuite_env.sampler import BoundarySampler
 
 class DefaultNutAssembly(SingleArmEnv):
     def __init__(

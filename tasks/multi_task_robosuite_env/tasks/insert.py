@@ -8,13 +8,13 @@ from robosuite.environments.manipulation.single_arm_env import SingleArmEnv
 
 from robosuite.models.arenas import TableArena
 from robosuite.models.objects import BoxObject, PotWithHandlesObject, HammerObject
-multi_task_robosuite_env.objects.custom_xml_objects import SpriteCan, CanObject2, CerealObject3, Banana, CerealObject2, PlateWithHoleObject
+from multi_task_robosuite_env.objects.custom_xml_objects import SpriteCan, CanObject2, CerealObject3, Banana, CerealObject2, PlateWithHoleObject
 from robosuite.models.tasks import ManipulationTask
 from robosuite.utils.placement_samplers import UniformRandomSampler, SequentialCompositeSampler
-multi_task_robosuite_env.sampler import BoundarySampler
-multi_task_robosuite_env.objects.meta_xml_objects import CoffeeMachine, Mug
+from multi_task_robosuite_env.sampler import BoundarySampler
+from multi_task_robosuite_env.objects.meta_xml_objects import CoffeeMachine, Mug
 from robosuite.utils.mjcf_utils import CustomMaterial, array_to_string, find_elements
-multi_task_robosuite_env.tasks import greenwood, redwood, grayplaster
+from multi_task_robosuite_env.tasks import greenwood, redwood, grayplaster
 
 
 class Insert(SingleArmEnv):

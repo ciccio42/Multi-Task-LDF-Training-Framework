@@ -287,7 +287,7 @@ def get_expert_trajectory(env_type, controller_type, renderer=False, camera_obs=
         env.sim.forward()
         traj.append(obs, raw_state=mj_state, info={'status': 'start'})
         status = "start"
-        for t in range(int(env.horizon)):
+        for t in range(int(env.horizon/env.action_repeat)):
             action, status = controller.act(obs, status)
             obs, reward, done, info = env.step(action)
             assert 'status' not in info.keys(), "Don't overwrite information returned from environment. "

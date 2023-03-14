@@ -8,11 +8,11 @@ from robosuite.environments.manipulation.single_arm_env import SingleArmEnv
 
 from robosuite.models.arenas import TableArena
 from robosuite.models.objects import BoxObject, PlateWithHoleObject, PotWithHandlesObject, HammerObject, BottleObject
-multi_task_robosuite_env.objects.custom_xml_objects import SpriteCan, CanObject2, CerealObject3, Banana, CerealObject2
+from multi_task_robosuite_env.objects.custom_xml_objects import SpriteCan, CanObject2, CerealObject3, Banana, CerealObject2
 from robosuite.models.tasks import ManipulationTask
 from robosuite.utils.placement_samplers import UniformRandomSampler, SequentialCompositeSampler
-multi_task_robosuite_env.sampler import BoundarySampler
-multi_task_robosuite_env.objects.meta_xml_objects import Hoop, Basketball, BasketballRed, BasketballWhite
+from multi_task_robosuite_env.sampler import BoundarySampler
+from multi_task_robosuite_env.objects.meta_xml_objects import Hoop, Basketball, BasketballRed, BasketballWhite
 from robosuite.utils.mjcf_utils import CustomMaterial, array_to_string, find_elements
 
 
