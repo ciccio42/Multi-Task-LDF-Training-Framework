@@ -9,10 +9,11 @@ import logging
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 osc_pose_logger = logging.getLogger(name="OSCPOSELogger")
 
+
 class CustomOSCPoseWrapper(Wrapper):
     def __init__(self, env, ranges):
         super().__init__(env)
-        self.action_repeat=5
+        self.action_repeat = 5
         self.ranges = ranges
 
     def _get_rel_action(self, action, base_pos, base_quat):
@@ -23,7 +24,8 @@ class CustomOSCPoseWrapper(Wrapper):
             return np.concatenate((action[:3] - base_pos, aa, action[6:]))
         else:
             cmd_quat = Quaternion(angle=action[3] * np.pi, axis=action[4:7])
-            cmd_quat = np.array([cmd_quat.x, cmd_quat.y, cmd_quat.z, cmd_quat.w])
+            cmd_quat = np.array(
+                [cmd_quat.x, cmd_quat.y, cmd_quat.z, cmd_quat.w])
             quat = T.quat_multiply(T.quat_inverse(base_quat), cmd_quat)
             aa = T.quat2axisangle(quat)
             return np.concatenate((action[:3] - base_pos, aa, action[7:]))
@@ -34,7 +36,8 @@ class CustomOSCPoseWrapper(Wrapper):
 
         fovy = sim.model.cam_fovy[sim.model.camera_name2id(camera)]
         f = 0.5 * frame_height / np.tan(fovy * np.pi / 360)
-        camera_matrix = np.array(((f, 0, frame_width / 2), (0, f, frame_height / 2), (0, 0, 1)))
+        camera_matrix = np.array(
+            ((f, 0, frame_width / 2), (0, f, frame_height / 2), (0, 0, 1)))
 
         MVP_matrix = camera_matrix.dot(model_matrix)
         cam_coord = np.ones((4, 1))
@@ -51,7 +54,7 @@ class CustomOSCPoseWrapper(Wrapper):
         extent = self.env.sim.model.stat.extent
         far = self.env.sim.model.vis.map.zfar * extent
         near = self.env.sim.model.vis.map.znear * extent
-        return near / (1.0 - depth_img * (1.0 - near / far))    
+        return near / (1.0 - depth_img * (1.0 - near / far))
 
     def post_proc_obs(self, obs, env):
         new_obs = {}
@@ -77,27 +80,31 @@ class CustomOSCPoseWrapper(Wrapper):
                 new_width = int(obs[f"{camera_name}_image"].shape[1] * 1)
                 new_height = int(obs[f"{camera_name}_image"].shape[0] * 1)
                 new_dim = (new_width, new_height)
-                new_obs[f"{camera_name}_image"] = cv2.resize(obs[f"{camera_name}_image"].copy()[::-1,], new_dim)
+                new_obs[f"{camera_name}_image"] = cv2.resize(
+                    obs[f"{camera_name}_image"].copy()[::-1,], new_dim)
                 if self.env.camera_depths:
-                    new_obs[f"{camera_name}_depth_norm"] = obs[f"{camera_name}_depth"].copy()[::-1]
-                    new_obs[f"{camera_name}_depth"] = self._get_real_depth(obs[f"{camera_name}_depth"]).copy()[::-1]
+                    new_obs[f"{camera_name}_depth_norm"] = np.array(
+                        obs[f"{camera_name}_depth"].copy()[::-1]*255, dtype=np.uint8)
+                    new_obs[f"{camera_name}_depth"] = self._get_real_depth(
+                        obs[f"{camera_name}_depth"]).copy()[::-1]
 
         aa = T.quat2axisangle(obs[robot_name+'eef_quat'])
-        flip_points = np.array(self._project_point(obs[robot_name+'eef_pos'], env.sim, \
-            camera="camera_front" , frame_width=frame_width, frame_height=frame_height))
+        flip_points = np.array(self._project_point(obs[robot_name+'eef_pos'], env.sim,
+                                                   camera="camera_front", frame_width=frame_width, frame_height=frame_height))
         flip_points[0] = frame_height - flip_points[0]
         flip_points[1] = frame_width - flip_points[1]
         new_obs['extent'] = self.env.sim.model.stat.extent
         new_obs['zfar'] = self.env.sim.model.vis.map.zfar
         new_obs['znear'] = self.env.sim.model.vis.map.znear
         new_obs['eef_point'] = flip_points
-        new_obs['ee_aa'] = np.concatenate((obs[robot_name+'eef_pos'], aa)).astype(np.float32)
+        new_obs['ee_aa'] = np.concatenate(
+            (obs[robot_name+'eef_pos'], aa)).astype(np.float32)
         return new_obs
 
     def convert_rotation_gripper_to_world(self, action, base_pos, base_quat):
         """
             Take the current delta defined with respect to the gripper frame and convert it with respect to the world frame
-            
+
             Args:
                 action (): .
                 base_pos (): .  
@@ -117,7 +124,8 @@ class CustomOSCPoseWrapper(Wrapper):
         else:
             # retrieve command quaternion
             cmd_quat = Quaternion(angle=action[3], axis=action[4:7])
-            cmd_quat = np.array([cmd_quat.x, cmd_quat.y, cmd_quat.z, cmd_quat.w])
+            cmd_quat = np.array(
+                [cmd_quat.x, cmd_quat.y, cmd_quat.z, cmd_quat.w])
             # Create rotation matrix R^{world}_{new_ee}
             R_w_new_ee = T.quat2mat(cmd_quat)
             # Create rotation matrix R^{ee}_{world}
@@ -136,12 +144,15 @@ class CustomOSCPoseWrapper(Wrapper):
             # take the current position and gripper orientation with respect to world
             osc_pose_logger.debug(f"Target position {action[:3]}")
             base_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
-            base_quat = T.mat2quat(np.reshape(self.env.sim.data.site_xmat[self.env.robots[0].eef_site_id], (3,3)))
-            global_action = self.convert_rotation_gripper_to_world(action, base_pos, base_quat)
+            base_quat = T.mat2quat(np.reshape(
+                self.env.sim.data.site_xmat[self.env.robots[0].eef_site_id], (3, 3)))
+            global_action = self.convert_rotation_gripper_to_world(
+                action, base_pos, base_quat)
             osc_pose_logger.debug(f"Global delta position {global_action[:3]}")
             obs, reward_t, done, info = self.env.step(global_action)
             reward = max(reward, reward_t)
-        osc_pose_logger.debug("----------------------------------------------\n\n")
+        osc_pose_logger.debug(
+            "----------------------------------------------\n\n")
         return self.post_proc_obs(obs, self.env), reward, done, info
 
     def reset(self):

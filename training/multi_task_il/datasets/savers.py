@@ -11,24 +11,28 @@ except:
 
 
 def _compress_obs(obs):
-    if 'image' in obs:
-        okay, im_string = cv2.imencode('.jpg', obs['image'])
-        assert okay, "image encoding failed!"
-        obs['image'] = im_string
-    if 'depth' in obs:
-        assert len(obs['depth'].shape) == 2 and obs['depth'].dtype == np.uint8, "assumes uint8 greyscale depth image!"
-        depth_im = np.tile(obs['depth'][:,:,None], (1, 1, 3))
-        okay, depth_string = cv2.imencode('.jpg', depth_im)
-        assert okay, "depth encoding failed!"
-        obs['depth'] = depth_string
+    for key in obs.keys():
+        if 'image' in key:
+            okay, im_string = cv2.imencode('.jpg', obs[key])
+            assert okay, "image encoding failed!"
+            obs[key] = im_string
+        if 'depth_norm' in key:
+            assert len(
+                obs[key].shape) == 2 and obs[key].dtype == np.uint8, "assumes uint8 greyscale depth image!"
+            depth_im = np.tile(obs[key][:, :, None], (1, 1, 3))
+            okay, depth_string = cv2.imencode('.jpg', depth_im)
+            assert okay, "depth encoding failed!"
+            obs[key] = depth_string
     return obs
 
 
 def _decompress_obs(obs):
-    if 'image' in obs:
-        obs['image'] = cv2.imdecode(obs['image'], cv2.IMREAD_COLOR)
-    if 'depth' in obs:
-        obs['depth'] = cv2.imdecode(obs['depth'], cv2.IMREAD_GRAYSCALE).astype(np.float32) / 255
+    for key in obs.keys():
+        if 'image' in key:
+            obs[key] = cv2.imdecode(obs[key], cv2.IMREAD_COLOR)
+        if 'depth_norm' in key:
+            obs[key] = cv2.imdecode(
+                obs[key], cv2.IMREAD_GRAYSCALE).astype(np.float32) / 255
     return obs
 
 
@@ -42,13 +46,14 @@ class Trajectory:
         """
         Logs observation and rewards taken by environment as well as action taken
         """
-        obs, reward, done, info, action, raw_state = [copy.deepcopy(x) for x in [obs, reward, done, info, action, raw_state]]
+        obs, reward, done, info, action, raw_state = [copy.deepcopy(
+            x) for x in [obs, reward, done, info, action, raw_state]]
 
         obs = _compress_obs(obs)
         self._data.append((obs, reward, done, info, action))
         self._raw_state.append(raw_state)
 
-    @property
+    @ property
     def T(self):
         """
         Returns number of states
@@ -59,12 +64,15 @@ class Trajectory:
         return self.get(t)
 
     def get(self, t, decompress=True):
-        assert 0 <= t < self.T or -self.T < t <= 0, "index should be in (-T, T)"
+        assert 0 <= t < self.T or - \
+            self.T < t <= 0, "index should be in (-T, T)"
 
-        obs_t, reward_t, done_t, info_t, action_t = copy.deepcopy(self._data[t])
+        obs_t, reward_t, done_t, info_t, action_t = copy.deepcopy(
+            self._data[t])
         if decompress:
             obs_t = _decompress_obs(obs_t)
-        ret_dict = dict(obs=obs_t, reward=reward_t, done=done_t, info=info_t, action=action_t)
+        ret_dict = dict(obs=obs_t, reward=reward_t,
+                        done=done_t, info=info_t, action=action_t)
 
         for k in list(ret_dict.keys()):
             if ret_dict[k] is None:
@@ -83,24 +91,26 @@ class Trajectory:
             yield self.get(d)
 
     def get_raw_state(self, t):
-        assert 0 <= t < self.T or -self.T < t <= 0, "index should be in (-T, T)"
+        assert 0 <= t < self.T or - \
+            self.T < t <= 0, "index should be in (-T, T)"
         return copy.deepcopy(self._raw_state[t])
 
     def set_config_str(self, config_str):
         self._config_str = config_str
 
-    @property
+    @ property
     def config_str(self):
         return self._config_str
+
 
 class _HDF5BackedData:
     def __init__(self, hf, length):
         self._hf = hf
         self._len = length
-    
+
     def __len__(self):
         return self._len
-    
+
     def __getitem__(self, index):
         group_t = self._hf[str(index)]
         obs_t = {}
@@ -111,7 +121,7 @@ class _HDF5BackedData:
         info_t = group_t.get('info', None)
         action_t = None
         if 'action' in group_t:
-            action_t=group_t.get('action')[:]
+            action_t = group_t.get('action')[:]
         return obs_t, reward_t, done_t, info_t, action_t
 
 
@@ -142,7 +152,7 @@ class HDF5Trajectory(Trajectory):
         self._data = _HDF5BackedData(hf, cntr)
         if self._raw_state is None:
             self._raw_state = [None for _ in range(cntr)]
-    
+
     def to_pkl_traj(self):
         traj = Trajectory()
         traj._config_str = copy.deepcopy(self._config_str)
@@ -174,6 +184,7 @@ class HDF5Trajectory(Trajectory):
                     group_t.create_dataset('action', data=action_t)
                 cntr += 1
 
+
 class ImageRenderWrapper:
     def __init__(self, traj, height=320, width=320, depth=False, no_render=False):
         self._height = height
@@ -190,18 +201,20 @@ class ImageRenderWrapper:
             sim.set_state_from_flattened(self._traj.get_raw_state(t))
             sim.forward()
             if self._depth:
-                image, depth = sim.render(camera_name='frontview', width=self._width, height=self._height, depth=True)
-                ret['obs']['image'] = image[:,::-1]
-                ret['obs']['depth'] = self._proc_depth(depth[:,::-1])
+                image, depth = sim.render(
+                    camera_name='frontview', width=self._width, height=self._height, depth=True)
+                ret['obs']['image'] = image[:, ::-1]
+                ret['obs']['depth'] = self._proc_depth(depth[:, ::-1])
             else:
-                ret['obs']['image'] = sim.render(camera_name='frontview', width=self._width, height=self._height, depth=False)[80:,::-1]
+                ret['obs']['image'] = sim.render(
+                    camera_name='frontview', width=self._width, height=self._height, depth=False)[80:, ::-1]
         return ret
 
     def _proc_depth(self, depth):
         if self._depth_norm == 'sawyer':
             return (depth - 0.992) / 0.0072
         return depth
-    
+
     def _get_sim(self):
         if self._sim is not None:
             return self._sim
@@ -224,7 +237,7 @@ class ImageRenderWrapper:
             sim = MjSim(load_model_from_xml(xml))
             render_context = MjRenderContextOffscreen(sim)
             render_context.vopt.geomgroup[0] = 0
-            render_context.vopt.geomgroup[1] = 1 
+            render_context.vopt.geomgroup[1] = 1
             sim.add_render_context(render_context)
             self._sim = sim
 
@@ -235,7 +248,7 @@ class ImageRenderWrapper:
 
     def __len__(self):
         return len(self._traj)
-    
+
     def __iter__(self):
         for d in range(len(self._traj)):
             yield self.get(d)

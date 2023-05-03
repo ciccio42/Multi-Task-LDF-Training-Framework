@@ -1,5 +1,6 @@
 import multi_task_robosuite_env.utils.utils as utils
 
+
 def get_env(env_name, ranges, **kwargs):
     if env_name == 'Sawyer_PickPlaceDistractor':
         from multi_task_robosuite_env.tasks.new_pp import SawyerPickPlace
@@ -57,29 +58,29 @@ def get_env(env_name, ranges, **kwargs):
         env = SawyerDoor
     else:
         raise NotImplementedError
-    
+
     # get env configuration file
     task_name = env_name.split('_')[1]
     env_conf = utils.read_conf_file(task_name=task_name)
 
-    env = env( 
-              mount_types=env_conf['mount_types'],
-              gripper_types=env_conf['gripper_types'],
-              table_full_size=env_conf['table_full_size'],
-              table_offset=env_conf['table_offset'],
-              robot_offset=env_conf['robot_offset'],
-              horizon=env_conf['horizon'],
-              camera_names=env_conf['camera_names'],
-              camera_heights=env_conf['camera_heights'],
-              camera_widths=env_conf['camera_widths'],
-              camera_depths=env_conf['camera_depths'],
-              camera_poses=env_conf['camera_poses'],
-              camera_attribs=env_conf['camera_attribs'],
-              camera_gripper=env_conf['camera_gripper'],
-              y_ranges=env_conf['y_ranges'],
-              env_conf=env_conf,
-              **kwargs
-              )
+    env = env(
+        mount_types=env_conf['mount_types'],
+        gripper_types=env_conf['gripper_types'],
+        table_full_size=env_conf['table_full_size'],
+        table_offset=env_conf['table_offset'],
+        robot_offset=env_conf['robot_offset'],
+        horizon=env_conf['horizon'],
+        camera_names=env_conf['camera_names'],
+        camera_heights=env_conf['camera_heights'],
+        camera_widths=env_conf['camera_widths'],
+        camera_depths=env_conf['camera_depths'],
+        camera_poses=env_conf['camera_poses'],
+        camera_attribs=env_conf['camera_attribs'],
+        camera_gripper=env_conf['camera_gripper'],
+        y_ranges=env_conf['y_ranges'],
+        env_conf=env_conf,
+        **kwargs
+    )
 
     if kwargs['controller_configs']['type'] == "IK_POSE":
         from multi_task_robosuite_env.custom_ik_wrapper import CustomIKWrapper

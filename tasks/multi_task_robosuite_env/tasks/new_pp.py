@@ -1,7 +1,7 @@
 from collections import OrderedDict
 import numpy as np
 
-from robosuite.utils.transform_utils import convert_quat
+from robosuite.utils.transform_utils import convert_quat, quat2mat
 from robosuite.utils.mjcf_utils import CustomMaterial
 
 from robosuite.environments.manipulation.single_arm_env import SingleArmEnv
@@ -11,7 +11,7 @@ from robosuite.models.objects import (
     CerealVisualObject,
     CanVisualObject,
 )
-from robosuite.models.arenas import TableArena
+from multi_task_robosuite_env.arena import TableArena
 from multi_task_robosuite_env.objects.custom_xml_objects import *
 from multi_task_robosuite_env.sampler import BoundarySampler
 from robosuite.models.tasks import ManipulationTask
@@ -132,9 +132,10 @@ class PickPlace(SingleArmEnv):
             camera_poses=None,
             camera_attribs=None,
             camera_gripper=None,
-            task_id = 0,
+            task_id=0,
             object_type=None,
-            y_ranges=[[0.16, 0.19], [0.05, 0.09], [-0.08, -0.03], [-0.19, -0.15]],
+            y_ranges=[[0.16, 0.19], [0.05, 0.09],
+                      [-0.08, -0.03], [-0.19, -0.15]],
             env_conf=None
     ):
         # settings for table top
@@ -145,23 +146,45 @@ class PickPlace(SingleArmEnv):
         self.object_id = int(task_id//4)
         self.bin_id = task_id % 4
         self.bin_size = np.array((0.16, 0.16))
+        self.object_set = env_conf['object_set']
+        print(f"Object set {self.object_set}")
 
-        self.object_to_id = {"milk": 0, "bread": 1, "cereal": 2, "can": 3}
-        self.obj_names = ["Milk", "Bread", "Cereal", "Can"]
+        if self.object_set == 1:
+            self.object_to_id = {"milk": 0, "bread": 1, "cereal": 2, "can": 3}
+            self.obj_names = ["Milk", "Bread", "Cereal", "Can"]
+            self._obj_dim = {'milk': [0.05, 0.12, 0.045],
+                             'bread': [0.045, 0.055, 0.045],
+                             'cereal': [0.045, 0.055, 0.045],
+                             'can': [0.045, 0.065, 0.045]}
+        else:
+            self.object_to_id = {"greenbox": 0,
+                                 "yellowbox": 1,
+                                 "bluebox": 2,
+                                 "redbox": 3}
+            self.obj_names = ["greenbox",
+                              "yellowbox",
+                              "bluebox",
+                              "redbox"]
+            self._obj_dim = {'greenbox': [0.05, 0.12, 0.045],
+                             'yellowbox': [0.045, 0.055, 0.045],
+                             'bluebox': [0.045, 0.055, 0.045],
+                             'redbox': [0.045, 0.065, 0.045]}
+
         if object_type is not None:
             assert (
-                    object_type in self.object_to_id.keys()
+                object_type in self.object_to_id.keys()
             ), "invalid @object_type argument - choose one of {}".format(
                 list(self.object_to_id.keys())
             )
             self.object_id = self.object_to_id[
                 object_type
             ]  # use for convenient indexing
+
         self.y_ranges = y_ranges
         self.x_ranges = env_conf['x_ranges']
         self.bin_position_x = env_conf['bin_position_x']
         self.bin_position_y = env_conf['bin_position_y']
-        
+
         # reward configuration
         self.reward_scale = reward_scale
         self.reward_shaping = reward_shaping
@@ -173,9 +196,12 @@ class PickPlace(SingleArmEnv):
         self.placement_initializer = placement_initializer
 
         # camera poses and attributes
+        self.camera_names = camera_names
         self.camera_poses = camera_poses
         self.camera_attribs = camera_attribs
         self.camera_gripper = camera_gripper
+        self.camera_height = camera_heights
+        self.camera_width = camera_widths
 
         super().__init__(
             robots=robots,
@@ -236,7 +262,8 @@ class PickPlace(SingleArmEnv):
 
         # Adjust base pose accordingly
         if self.robot_offset is None:
-            xpos = self.robots[0].robot_model.base_xpos_offset["table"](self.table_full_size[0])
+            xpos = self.robots[0].robot_model.base_xpos_offset["table"](
+                self.table_full_size[0])
         else:
             xpos = self.robot_offset
         self.robots[0].robot_model.set_base_xpos(xpos)
@@ -252,11 +279,10 @@ class PickPlace(SingleArmEnv):
         if self.camera_poses is not None:
             for camera_name in self.camera_names:
                 if camera_name != "robot0_eye_in_hand":
-                    mujoco_arena.set_camera(camera_name=camera_name, 
+                    mujoco_arena.set_camera(camera_name=camera_name,
                                             pos=self.camera_poses[camera_name][0],
                                             quat=self.camera_poses[camera_name][1],
                                             camera_attribs=self.camera_attribs)
-
 
         # modify robot0_eye_in_hand
         if self.robots[0].robot_model.default_gripper == "Robotiq85Gripper":
@@ -275,15 +301,22 @@ class PickPlace(SingleArmEnv):
 
         self.objects = []
         self.visual_objects = []
-        for vis_obj_cls, obj_name in zip(
-                (MilkVisualObject, BreadVisualObject, CerealVisualObject, CanVisualObject),
-                self.obj_names,
-        ):
-            vis_name = "Visual" + obj_name
-            vis_obj = vis_obj_cls(name=vis_name)
-            self.visual_objects.append(vis_obj)
 
-        object_seq = (MilkObject, BreadObject, CerealObject, CanObject)
+        if self.object_set == 1:
+            for vis_obj_cls, obj_name in zip(
+                    (MilkVisualObject, BreadVisualObject,
+                     CerealVisualObject, CanVisualObject),
+                    self.obj_names,
+            ):
+                vis_name = "Visual" + obj_name
+                vis_obj = vis_obj_cls(name=vis_name)
+                self.visual_objects.append(vis_obj)
+
+        if self.object_set == 1:
+            object_seq = (MilkObject, BreadObject, CerealObject, CanObject)
+        else:
+            object_seq = (BoxObject, BoxObject, BoxObject, BoxObject)
+
         for obj_cls, obj_name in zip(
                 object_seq,
                 self.obj_names,
@@ -309,7 +342,8 @@ class PickPlace(SingleArmEnv):
         """
         Helper function for defining placement initializer and object sampling bounds.
         """
-        self.placement_initializer = SequentialCompositeSampler(name="ObjectSampler")
+        self.placement_initializer = SequentialCompositeSampler(
+            name="ObjectSampler")
         arr = np.arange(4)
         np.random.shuffle(arr)
 
@@ -333,8 +367,10 @@ class PickPlace(SingleArmEnv):
             UniformRandomSampler(
                 name="BinSampler",
                 mujoco_objects=self.bin,
-                x_range=[self.bin_position_x[0], self.bin_position_x[1]+ 1e-4],
-                y_range=[self.bin_position_y[0], self.bin_position_y[1]+ 1e-4],
+                x_range=[self.bin_position_x[0],
+                         self.bin_position_x[1] + 1e-4],
+                y_range=[self.bin_position_y[0],
+                         self.bin_position_y[1] + 1e-4],
                 rotation=[0, 0 + 1e-4],
                 rotation_axis='z',
                 ensure_object_boundary_in_range=True,
@@ -343,6 +379,107 @@ class PickPlace(SingleArmEnv):
                 z_offset=0.0,
             )
         )
+
+    def _create_bb(self, di):
+        """
+            Create bb around each object in the scene for each camera of interest
+        """
+        import logging
+        logging.basicConfig(
+            format='%(levelname)s:%(message)s', level=logging.INFO)
+        logger = logging.getLogger("BB-Creator")
+
+        obj_bb = OrderedDict()
+        # 1. For each camera of interest get the pose
+        for camera_name in self.camera_names:
+            if "in_hand" not in camera_name:
+                obj_bb[camera_name] = OrderedDict()
+                r_camera_world = quat2mat(convert_quat(
+                    np.array(self.camera_poses[camera_name][1]), to="xyzw")).T
+                p_camera_world = - \
+                    r_camera_world @  np.reshape(np.expand_dims(
+                        np.array(self.camera_poses[camera_name][0]), axis=0), (3, 1))
+                # Transformation matrix
+                T_camera_world = np.concatenate(
+                    (r_camera_world, p_camera_world), axis=1)
+                T_camera_world = np.concatenate(
+                    (T_camera_world, np.array([[0, 0, 0, 1]])), axis=0)
+
+                # 2. For each object compute bb
+                for i, obj in enumerate(self.objects):
+                    obj_name = obj.name
+                    obj_bb[camera_name][obj_name] = OrderedDict()
+                    # 2. get object position and orientation
+                    obj_pos = np.array(
+                        self.sim.data.body_xpos[self.obj_body_id[obj_name]])
+                    obj_quat = T.convert_quat(
+                        self.sim.data.body_xquat[self.obj_body_id[obj_name]], to="xyzw"
+                    )
+                    p_world_object = np.expand_dims(
+                        np.insert(obj_pos, 3, 1), 0).T
+
+                    # Compute the position of the object center with respect to the camera
+                    p_camera_object = T_camera_world @ p_world_object
+                    logger.debug(
+                        f"\nP_world_object: \n{p_world_object} - \nP_camera_object: \n {p_camera_object}")
+
+                    # 2.1 Compute the position of the upper-left and bottom-right corner to compute width and height of bb
+                    p_world_object_upper_left_corner = obj_pos + \
+                        np.array(
+                            [[0.0],
+                                [-self._obj_dim[obj_name][0]/2],
+                                [self._obj_dim[obj_name][1]/2],
+                                [0]])
+                    p_camera_object_upper_left_corner = T_camera_world @               p_world_object_upper_left_corner
+                    logger.debug(
+                        f"\nP_world_object_upper_left:\n{p_world_object_upper_left_corner} -   \nP_camera_object_upper_left:\n {p_camera_object_upper_left_corner}")
+
+                    p_world_object_bottom_right_corner = p_world_object + \
+                        np.array(
+                            [[0.0],
+                                [self._obj_dim[obj_name][0]/2],
+                                [-self._obj_dim[obj_name][1]/2],
+                                [0]])
+                    p_camera_object_bottom_right_corner = T_camera_world @               p_world_object_bottom_right_corner
+                    logger.debug(
+                        f"\nP_world_object_bottom_right:\n{p_world_object_bottom_right_corner} -   \nP_camera_object_bottom_right:\n {p_camera_object_bottom_right_corner}")
+
+                    # 3. Cnversion into pixel coordinates
+                    f = 0.5 * self.camera_height / \
+                        np.tan(int(self.camera_attribs['fovy']) * np.pi / 360)
+                    p_x = int(
+                        (p_camera_object[0][0] / - p_camera_object[2][0]) * f + self.camera_width / 2)
+
+                    p_y = int(
+                        (- p_camera_object[1][0] / - p_camera_object[2][0]) * f + self.camera_height / 2)
+                    logger.debug(
+                        f"\nImage coordinate: px {p_x}, py {p_y}")
+
+                    # 3.1 Upper-left corner and bottom right corner in pixel coordinate
+                    p_x_upper_left = int(
+                        (p_camera_object_upper_left_corner[0][0] / - p_camera_object_upper_left_corner[2][0]) * f + self.camera_width / 2) - 3
+
+                    p_y_upper_left = int(
+                        (- p_camera_object_upper_left_corner[1][0] / - p_camera_object_upper_left_corner[2][0]) * f + self.camera_height / 2) - 3
+                    logger.debug(
+                        f"\nImage coordinate upper_left corner: px {p_x_upper_left}, py {p_y_upper_left}")
+
+                    p_x_bottom_right = int(
+                        (p_camera_object_bottom_right_corner[0][0] / - p_camera_object_bottom_right_corner[2][0]) * f + self.camera_width / 2) + 3
+
+                    p_y_bottom_right = int(
+                        (- p_camera_object_bottom_right_corner[1][0] / - p_camera_object_bottom_right_corner[2][0]) * f + self.camera_height / 2) + 3
+                    logger.debug(
+                        f"\nImage coordinate bottom_right corner: px {p_x_bottom_right}, py {p_y_bottom_right}")
+
+                    # save bb
+                    obj_bb[camera_name][obj_name]['center'] = [p_x, p_y]
+                    obj_bb[camera_name][obj_name]['upper_left_corner'] = [
+                        p_x_upper_left, p_y_upper_left]
+                    obj_bb[camera_name][obj_name]['bottom_right_corner'] = [
+                        p_x_bottom_right, p_y_bottom_right]
+
+        return obj_bb
 
     def _get_observation(self):
         """
@@ -369,12 +506,14 @@ class PickPlace(SingleArmEnv):
         object_state_keys = []
 
         # for conversion to relative gripper frame
-        gripper_pose = T.pose2mat((di[pr + "eef_pos"], di[pr + "eef_quat"]))
+        gripper_pose = T.pose2mat(
+            (di[pr + "eef_pos"], di[pr + "eef_quat"]))
         world_pose_in_gripper = T.pose_inv(gripper_pose)
 
         for i, obj in enumerate(self.objects):
             obj_str = obj.name
-            obj_pos = np.array(self.sim.data.body_xpos[self.obj_body_id[obj_str]])
+            obj_pos = np.array(
+                self.sim.data.body_xpos[self.obj_body_id[obj_str]])
             obj_quat = T.convert_quat(
                 self.sim.data.body_xquat[self.obj_body_id[obj_str]], to="xyzw"
             )
@@ -383,7 +522,8 @@ class PickPlace(SingleArmEnv):
 
             # get relative pose of object in gripper frame
             object_pose = T.pose2mat((obj_pos, obj_quat))
-            rel_pose = T.pose_in_A_to_pose_in_B(object_pose, world_pose_in_gripper)
+            rel_pose = T.pose_in_A_to_pose_in_B(
+                object_pose, world_pose_in_gripper)
             rel_pos, rel_quat = T.mat2pose(rel_pose)
             di["{}_to_{}eef_pos".format(obj_str, pr)] = rel_pos
             di["{}_to_{}eef_quat".format(obj_str, pr)] = rel_quat
@@ -391,12 +531,15 @@ class PickPlace(SingleArmEnv):
             object_state_keys.append("{}_pos".format(obj_str))
             object_state_keys.append("{}_quat".format(obj_str))
             object_state_keys.append("{}_to_{}eef_pos".format(obj_str, pr))
-            object_state_keys.append("{}_to_{}eef_quat".format(obj_str, pr))
+            object_state_keys.append(
+                "{}_to_{}eef_quat".format(obj_str, pr))
 
-        di["object-state"] = np.concatenate([di[k] for k in object_state_keys])
+        di["object-state"] = np.concatenate([di[k]
+                                            for k in object_state_keys])
+
+        di['obj_bb'] = self._create_bb(di)
 
         return di
-
 
     def _get_reference(self):
         """
@@ -410,8 +553,10 @@ class PickPlace(SingleArmEnv):
 
         # object-specific ids
         for obj in (self.visual_objects + self.objects):
-            self.obj_body_id[obj.name] = self.sim.model.body_name2id(obj.root_body)
-            self.obj_geom_id[obj.name] = [self.sim.model.geom_name2id(g) for g in obj.contact_geoms]
+            self.obj_body_id[obj.name] = self.sim.model.body_name2id(
+                obj.root_body)
+            self.obj_geom_id[obj.name] = [
+                self.sim.model.geom_name2id(g) for g in obj.contact_geoms]
 
         # keep track of which objects are in their corresponding bins
         self.objects_in_bins = np.zeros(len(self.objects))
@@ -427,7 +572,7 @@ class PickPlace(SingleArmEnv):
 
         bin_x_high = bin_x_low + self.bin_size[0]
         bin_y_high = bin_y_low + self.bin_size[1]
-        #print(self.bin_pos, obj_pos)
+        # print(self.bin_pos, obj_pos)
         res = True
         if (
                 bin_x_low < obj_pos[0] < bin_x_high
@@ -436,7 +581,6 @@ class PickPlace(SingleArmEnv):
         ):
             res = False
         return res
-
 
     def _reset_internal(self):
         """
@@ -451,10 +595,8 @@ class PickPlace(SingleArmEnv):
 
             # Loop through all objects and reset their positions
             for obj_pos, obj_quat, obj in object_placements.values():
-                self.sim.data.set_joint_qpos(obj.joints[-1], np.concatenate([np.array(obj_pos), np.array(obj_quat)]))
-
-
-
+                self.sim.data.set_joint_qpos(
+                    obj.joints[-1], np.concatenate([np.array(obj_pos), np.array(obj_quat)]))
 
     def _check_success(self):
         obj_str = self.objects[self.object_id].name
@@ -474,7 +616,9 @@ class PickPlace(SingleArmEnv):
 
         # Color the gripper visualization site according to its distance to the cube
         if vis_settings["grippers"]:
-            self._visualize_gripper_to_target(gripper=self.robots[0].gripper, target=self.drawers[self.drawer_id])
+            self._visualize_gripper_to_target(
+                gripper=self.robots[0].gripper, target=self.drawers[self.drawer_id])
+
 
 class UR5ePickPlace(PickPlace):
     """
@@ -487,6 +631,7 @@ class UR5ePickPlace(PickPlace):
             task_id = np.random.randint(0, 8)
         super().__init__(robots=['UR5e'], task_id=task_id, **kwargs)
 
+
 class PandaPickPlace(PickPlace):
     """
     Easier version of task - place one object into its bin.
@@ -497,6 +642,7 @@ class PandaPickPlace(PickPlace):
         if task_id is None:
             task_id = np.random.randint(0, 8)
         super().__init__(robots=['Panda'], task_id=task_id, **kwargs)
+
 
 class SawyerPickPlace(PickPlace):
     """
@@ -509,16 +655,16 @@ class SawyerPickPlace(PickPlace):
             task_id = np.random.randint(0, 8)
         super().__init__(robots=['Sawyer'], task_id=task_id, **kwargs)
 
+
 if __name__ == '__main__':
     from robosuite.environments.manipulation.pick_place import PickPlace
     import robosuite
     from robosuite.controllers import load_controller_config
 
-
     controller = load_controller_config(default_controller="IK_POSE")
     env = PandaPickPlace(task_id=0, has_renderer=True, controller_configs=controller,
-                            has_offscreen_renderer=False,
-                            reward_shaping=False, use_camera_obs=False, camera_heights=320, camera_widths=320, render_camera='frontview')
+                         has_offscreen_renderer=False,
+                         reward_shaping=False, use_camera_obs=False, camera_heights=320, camera_widths=320, render_camera='frontview')
     env.reset()
     for i in range(1000):
         if i % 200 == 0:
