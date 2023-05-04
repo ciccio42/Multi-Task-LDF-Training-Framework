@@ -18,11 +18,13 @@ import mujoco_py
 import robosuite.utils.transform_utils as T
 import multi_task_robosuite_env.utils as utils
 from multi_task_robosuite_env import get_env
-
+import cv2
 import copy
 import logging
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 pick_place_logger = logging.getLogger(name="PickPlaceLogger")
+
+object_to_id = {"greenbox": 0, "yellowbox": 1, "bluebox": 2, "redbox": 3}
 
 # in case rebuild is needed to use GPU render: sudo mkdir -p /usr/lib/nvidia-000
 # export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia-000
@@ -314,6 +316,26 @@ def get_expert_trajectory(env_type, controller_type, renderer=False, camera_obs=
             if renderer:
                 env.render()
             mj_state = env.sim.get_state().flatten()
+
+            # # plot bb
+            # target_obj_id = obs['target-object']
+            # target_obj_bb = None
+            # for object_names in object_to_id.keys():
+            #     if target_obj_id == object_to_id[object_names]:
+            #         target_obj_bb = obs['obj_bb']['camera_front'][object_names]
+            # image_rgb = np.array(obs['camera_front_image'][:, :, ::-1])
+            # center = target_obj_bb['center']
+            # upper_left_corner = target_obj_bb['upper_left_corner']
+            # bottom_right_corner = target_obj_bb['bottom_right_corner']
+            # image_rgb = cv2.circle(
+            #     image_rgb, center, radius=1, color=(0, 0, 255), thickness=-1)
+            # image_rgb = cv2.rectangle(
+            #     image_rgb, upper_left_corner,
+            #     bottom_right_corner, (255, 0, 0), 1)
+            # cv2.imshow('camera_front_image', image_rgb)
+            # cv2.waitKey(0)
+            # cv2.destroyAllWindows()
+
             traj.append(obs, reward, done, info, action, mj_state)
             if reward:
                 success = True
@@ -331,9 +353,9 @@ if __name__ == '__main__':
     import debugpy
     import os
     import sys
-    # debugpy.listen(('0.0.0.0', 5678))
-    # print("Waiting for debugger attach")
-    # debugpy.wait_for_client()
+    debugpy.listen(('0.0.0.0', 5678))
+    print("Waiting for debugger attach")
+    debugpy.wait_for_client()
     # Load configuration files
     current_dir = os.path.dirname(os.path.abspath(__file__))
     controller_config_path = os.path.join(
@@ -343,8 +365,8 @@ if __name__ == '__main__':
     for i in range(0, 16):
         traj = get_expert_trajectory('UR5e_PickPlaceDistractor',
                                      controller_type=controller_config,
-                                     renderer=True,
-                                     camera_obs=False,
+                                     renderer=False,
+                                     camera_obs=True,
                                      task=i,
                                      render_camera='camera_front',
                                      object_set=2)

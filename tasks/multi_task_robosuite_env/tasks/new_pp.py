@@ -165,10 +165,10 @@ class PickPlace(SingleArmEnv):
                               "yellowbox",
                               "bluebox",
                               "redbox"]
-            self._obj_dim = {'greenbox': [0.05, 0.12, 0.045],
-                             'yellowbox': [0.045, 0.055, 0.045],
-                             'bluebox': [0.045, 0.055, 0.045],
-                             'redbox': [0.045, 0.065, 0.045]}
+            self._obj_dim = {'greenbox': [0.05, 0.055, 0.045],
+                             'yellowbox': [0.05, 0.055, 0.045],
+                             'bluebox': [0.05, 0.055, 0.045],
+                             'redbox': [0.05, 0.065, 0.045]}
 
         if object_type is not None:
             assert (
@@ -424,7 +424,7 @@ class PickPlace(SingleArmEnv):
                         f"\nP_world_object: \n{p_world_object} - \nP_camera_object: \n {p_camera_object}")
 
                     # 2.1 Compute the position of the upper-left and bottom-right corner to compute width and height of bb
-                    p_world_object_upper_left_corner = obj_pos + \
+                    p_world_object_upper_left_corner = p_world_object + \
                         np.array(
                             [[0.0],
                                 [-self._obj_dim[obj_name][0]/2],

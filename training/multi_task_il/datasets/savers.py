@@ -32,7 +32,7 @@ def _decompress_obs(obs):
             obs[key] = cv2.imdecode(obs[key], cv2.IMREAD_COLOR)
         if 'depth_norm' in key:
             obs[key] = cv2.imdecode(
-                obs[key], cv2.IMREAD_GRAYSCALE).astype(np.float32) / 255
+                obs[key], cv2.IMREAD_GRAYSCALE).astype(np.uint8)
     return obs
 
 
