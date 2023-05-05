@@ -134,3 +134,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+/bashes/outputs/*
+/bashes/wandb/*
+/bashes/wandb/nohup.out

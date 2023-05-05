@@ -76,10 +76,10 @@ def overwrite_pkl_file(pkl_file_path, sample, traj_obj_bb):
         try:
             obs = traj.get(t)['obs']
         except:
-            _img = traj._data[t][0]['image']
+            _img = traj._data[t][0]['camera_front_image']
             okay, im_string = cv2.imencode(
                 '.jpg', _img)
-            traj._data[t][0]['image'] = im_string
+            traj._data[t][0]['camera_front_image'] = im_string
             obs = traj.get(t)['obs']
 
         obs['obj_bb'] = traj_obj_bb[t]
@@ -134,10 +134,10 @@ if __name__ == '__main__':
                         try:
                             obs = traj.get(t)['obs']
                         except:
-                            _img = traj._data[t][0]['image']
+                            _img = traj._data[t][0]['camera_front_image']
                             okay, im_string = cv2.imencode(
                                 '.jpg', _img)
-                            traj._data[t][0]['image'] = im_string
+                            traj._data[t][0]['camera_front_image'] = im_string
                             obs = traj.get(t)['obs']
 
                         logger.debug(obs.keys())

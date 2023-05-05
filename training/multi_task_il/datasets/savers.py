@@ -203,10 +203,10 @@ class ImageRenderWrapper:
             if self._depth:
                 image, depth = sim.render(
                     camera_name='frontview', width=self._width, height=self._height, depth=True)
-                ret['obs']['image'] = image[:, ::-1]
+                ret['obs']['camera_front_image'] = image[:, ::-1]
                 ret['obs']['depth'] = self._proc_depth(depth[:, ::-1])
             else:
-                ret['obs']['image'] = sim.render(
+                ret['obs']['camera_front_image'] = sim.render(
                     camera_name='frontview', width=self._width, height=self._height, depth=False)[80:, ::-1]
         return ret
 

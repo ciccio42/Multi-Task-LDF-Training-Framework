@@ -1,0 +1,87 @@
+/home/frosa_loc/miniconda3/envs/mosaic_baseline/lib/python3.7/site-packages/hydra/_internal/defaults_list.py:251: UserWarning: In 'config.yaml': Defaults list is missing `_self_`. See https://hydra.cc/docs/1.2/upgrades/1.0_to_1.1/default_composition_order for more information
+  warnings.warn(msg, UserWarning)
+wandb: Currently logged in as: francescorosa97. Use `wandb login --relogin` to force relogin
+wandb: wandb version 0.15.1 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.14.2
+wandb: Run data is saved locally in /home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes/wandb/run-20230505_122943-2unn4q7z
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run 1Task-Pick-Place-Mosaic-Ur5e-Batch128
+wandb: ⭐️ View project at https://wandb.ai/francescorosa97/ur_mosaic_baseline
+wandb: 🚀 View run at https://wandb.ai/francescorosa97/ur_mosaic_baseline/runs/2unn4q7z
+Finished initializing trainer
+pretrain True
+A total of 2 layers, cross demo-obs attention starts at layer idx 0
+Position embedding shape: torch.Size([1, 256, 3000]) 
+
+Linear embedder has input dim: 256x7x12=21504 
+Image feature dimensions: torch.Size([1, 11, 256, 7, 12])
+Contrastive MLP using hidden dim:  512
+Concat-ing embedded demo to action head? True, to distribution head? False
+Total params in Imitation module: 37009084
+Action model initialized to: multi_task_il.models.mt_rep.VideoImitation
+
+ Done initializing Workspace, saving config.yaml to directory: /home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Mosaic-Ur5e-Batch128
+Initializing multi_task_il.datasets.multi_task_datasets.MultiTaskPairedDataset with hydra config. 
+
+Loading task [pick_place] saved on date None
+wandb: Waiting for W&B process to finish... (failed 255). Press Control-C to abort syncing.
+Traceback (most recent call last):
+  File "../training/train_scripts/train_any.py", line 460, in <module>
+    main()
+  File "/home/frosa_loc/miniconda3/envs/mosaic_baseline/lib/python3.7/site-packages/hydra/main.py", line 99, in decorated_main
+    config_name=config_name,
+  File "/home/frosa_loc/miniconda3/envs/mosaic_baseline/lib/python3.7/site-packages/hydra/_internal/utils.py", line 401, in _run_hydra
+    overrides=overrides,
+  File "/home/frosa_loc/miniconda3/envs/mosaic_baseline/lib/python3.7/site-packages/hydra/_internal/utils.py", line 458, in _run_app
+    lambda: hydra.run(
+  File "/home/frosa_loc/miniconda3/envs/mosaic_baseline/lib/python3.7/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+    return func()
+  File "/home/frosa_loc/miniconda3/envs/mosaic_baseline/lib/python3.7/site-packages/hydra/_internal/utils.py", line 461, in <lambda>
+    overrides=overrides,
+  File "/home/frosa_loc/miniconda3/envs/mosaic_baseline/lib/python3.7/site-packages/hydra/_internal/hydra.py", line 127, in run
+    configure_logging=with_log_configuration,
+  File "/home/frosa_loc/miniconda3/envs/mosaic_baseline/lib/python3.7/site-packages/hydra/core/utils.py", line 186, in run_job
+    ret.return_value = task_function(task_cfg)
+  File "../training/train_scripts/train_any.py", line 456, in main
+    workspace.run()
+  File "/home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/train_any.py", line 400, in run
+    optimizer_state_dict=self.optimizer_state_dict)
+  File "/home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/train_any.py", line 91, in train
+    self.config, self.train_cfg.dataset)
+  File "/home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/train_utils.py", line 60, in make_data_loaders
+    dataset = instantiate(dataset_cfg)
+  File "/home/frosa_loc/miniconda3/envs/mosaic_baseline/lib/python3.7/site-packages/hydra/_internal/instantiate/_instantiate2.py", line 227, in instantiate
+    config, *args, recursive=_recursive_, convert=_convert_, partial=_partial_
+  File "/home/frosa_loc/miniconda3/envs/mosaic_baseline/lib/python3.7/site-packages/hydra/_internal/instantiate/_instantiate2.py", line 347, in instantiate_node
+    return _call_target(_target_, partial, args, kwargs, full_key)
+  File "/home/frosa_loc/miniconda3/envs/mosaic_baseline/lib/python3.7/site-packages/hydra/_internal/instantiate/_instantiate2.py", line 92, in _call_target
+    return _target_(*args, **kwargs)
+  File "/home/frosa_loc/miniconda3/envs/mosaic_baseline/lib/python3.7/site-packages/multi_task_il/datasets/multi_task_datasets.py", line 206, in __init__
+    agent_file_data = pkl.load(f)
+KeyboardInterrupt
+Error in atexit._run_exitfuncs:
+Traceback (most recent call last):
+  File "/home/frosa_loc/miniconda3/envs/mosaic_baseline/lib/python3.7/subprocess.py", line 1019, in wait
+    return self._wait(timeout=timeout)
+  File "/home/frosa_loc/miniconda3/envs/mosaic_baseline/lib/python3.7/subprocess.py", line 1653, in _wait
+    (pid, sts) = self._try_wait(0)
+  File "/home/frosa_loc/miniconda3/envs/mosaic_baseline/lib/python3.7/subprocess.py", line 1611, in _try_wait
+    (pid, sts) = os.waitpid(self.pid, wait_flags)
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/frosa_loc/miniconda3/envs/mosaic_baseline/lib/python3.7/site-packages/wandb/sdk/wandb_manager.py", line 186, in _teardown
+    result = self._service.join()
+  File "/home/frosa_loc/miniconda3/envs/mosaic_baseline/lib/python3.7/site-packages/wandb/sdk/service/service.py", line 216, in join
+    ret = self._internal_proc.wait()
+  File "/home/frosa_loc/miniconda3/envs/mosaic_baseline/lib/python3.7/subprocess.py", line 1032, in wait
+    self._wait(timeout=sigint_timeout)
+  File "/home/frosa_loc/miniconda3/envs/mosaic_baseline/lib/python3.7/subprocess.py", line 1647, in _wait
+    time.sleep(delay)
+KeyboardInterrupt
+wandb: 🚀 View run 1Task-Pick-Place-Mosaic-Ur5e-Batch128 at: https://wandb.ai/francescorosa97/ur_mosaic_baseline/runs/2unn4q7z
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20230505_122943-2unn4q7z/logs

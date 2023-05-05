@@ -1,7 +1,8 @@
 import wandb
 from train_utils import *
+from torchmetrics.classification import Accuracy
 from tqdm import tqdm
-from multi_task_il.utils.early_stopping import EarlyStopping
+from mosaic.utils.early_stopping import EarlyStopping
 from copy import deepcopy
 import learn2learn as l2l
 import os
@@ -12,11 +13,9 @@ import hydra
 import torch.nn as nn
 from os.path import join
 from omegaconf import OmegaConf
-from multi_task_il.utils.lr_scheduler import build_scheduler
+from mosaic.utils.lr_scheduler import build_scheduler
 from collections import defaultdict
 torch.autograd.set_detect_anomaly(True)
-# from torch.utils.tensorboard import SummaryWriter
-# writer = SummaryWriter()
 
 
 class Trainer:
@@ -40,14 +39,14 @@ class Trainer:
         self._best_validation_weights = None
 
         append = "-Batch{}".format(int(self.config.bsize))
-        if 'mosaic' in hydra_cfg.policy:
+        if 'target_obj_detector' in hydra_cfg.policy._target_:
             append = "-Batch{}-{}gpu-Attn{}ly{}-Act{}ly{}mix{}".format(
                 int(self.config.bsize), int(torch.cuda.device_count()),
                 int(self.config.policy.attn_cfg.n_attn_layers), int(
                     self.config.policy.attn_cfg.attn_ff),
-                int(self.config.policy.action_cfg.n_layers), int(
-                    self.config.policy.action_cfg.out_dim),
-                int(self.config.policy.action_cfg.n_mixtures))
+                int(self.config.policy.mlp_cfg.n_layers), int(
+                    self.config.policy.mlp_cfg.out_dim),
+                int(self.config.policy.mlp_cfg.n_mixtures))
 
             if self.config.policy.concat_demo_head:
                 append += "-headCat"
@@ -55,9 +54,6 @@ class Trainer:
                 append += "-actCat"
             else:
                 append += "-noCat"
-            if 'mosaic' in hydra_cfg.policy:
-                append += "-simclr{}x{}".format(int(self.config.policy.simclr_config.compressor_dim), int(
-                    self.config.policy.simclr_config.hidden_dim))
 
         self.config.exp_name += append
 
@@ -76,7 +72,7 @@ class Trainer:
             #     print('-'*20)
             wandb_config = {k: self.config.get(k) for k in config_keys}
             run = wandb.init(project=self.config.project_name,
-                             name=self.config.exp_name, config=wandb_config, sync_tensorboard=False)
+                             name=self.config.exp_name, config=wandb_config)
 
         # create early stopping object
         self._early_stopping = EarlyStopping(patience=self.train_cfg.early_stopping.patience,
@@ -96,11 +92,6 @@ class Trainer:
             print("Training stage \n Device list: {}".format(self.device_list))
             model = nn.DataParallel(model, device_ids=self.device_list)
 
-        # save model
-        # save the model's state dictionary to a file
-        if self.config.wandb_log:
-            wandb.watch(model)
-
         # initialize optimizer and lr scheduler
         optim_weights = optim_weights if optim_weights is not None else model.parameters()
         optimizer, scheduler = self._build_optimizer_and_scheduler(
@@ -111,23 +102,15 @@ class Trainer:
         if self.config.resume:
             epochs = self.config.epochs - \
                 int(self.config.resume_step/len(self._train_loader))
-            print(f"\n---- Remaining epochs {epochs} ----\n")
+            print(f"Remaining epochs {epochs}")
             self._step = int(self.config.resume_step)
-            print(f"\n----Starting step {self._step} ----\n")
+            print(f"Starting step {self._step}")
         else:
             epochs = self.train_cfg.get('epochs', 1)
             self._step = 0
 
         vlm_alpha = self.train_cfg.get('vlm_alpha', 0.6)
         log_freq = self.train_cfg.get('log_freq', 1000)
-
-        print("Loss multipliers: \n BC: {} inv: {} Point: {}".format(
-            self.train_cfg.bc_loss_mult, self.train_cfg.inv_loss_mult, self.train_cfg.pnt_loss_mult))
-        print(
-            {name: mul for name, mul in self.train_cfg.rep_loss_muls.items() if mul != 0})
-        if self.train_cfg.bc_loss_mult == 0 and self.train_cfg.inv_loss_mult == 0:
-            assert sum([v for k, v in self.train_cfg.rep_loss_muls.items()]
-                       ) != 0, self.train_cfg.rep_loss_muls
 
         self.tasks = self.config.tasks
         num_tasks = len(self.tasks)
@@ -143,11 +126,16 @@ class Trainer:
                 which sums to {epochs * len(self._train_loader)} total train steps, \
                 validation loader has length {len(self._val_loader)}")
 
+        train_loss = nn.CrossEntropyLoss(reduction="mean")
+        train_accuracy = Accuracy(
+            task="multiclass", num_classes=4).to(device=0)
+        val_loss = nn.CrossEntropyLoss(reduction="mean")
+        val_accuracy = Accuracy(task="multiclass", num_classes=4).to(device=0)
+        torch.autograd.set_detect_anomaly(True)
         for e in range(epochs):
             frac = e / epochs
 
             for i, inputs in tqdm(enumerate(self._train_loader), total=len(self._train_loader), leave=False):
-
                 tolog = {}
 
                 # Save stats
@@ -161,18 +149,18 @@ class Trainer:
                 # self.batch_distribution(inputs)
 
                 # calculate loss here:
-                task_losses = calculate_task_loss(
-                    self.config, self.train_cfg, self._device, model, inputs)
+                task_losses, task_accuracy = calculate_obj_pos_loss(
+                    self.config, self.train_cfg, self._device, model, inputs, train_loss, train_accuracy)
                 task_names = sorted(task_losses.keys())
-                weighted_task_loss = sum(
-                    [l["loss_sum"] * task_loss_muls.get(name) for name, l in task_losses.items()])
+                weighted_task_loss = sum([l["ce_loss"] * task_loss_muls.get(name) for name, l
+                                          in task_losses.items()])
+                weighted_accuracy = sum(
+                    [acc["accuracy"] * task_loss_muls.get(name) for name, acc in task_accuracy.items()])
                 weighted_task_loss.backward()
                 optimizer.step()
                 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
                 # calculate train iter stats
                 if self._step % log_freq == 0:
-                    train_print = collect_stats(
-                        self._step, task_losses, raw_stats, prefix='train')
                     if self.config.wandb_log:
                         tolog['Train Step'] = self._step
                         for task_name, losses in task_losses.items():
@@ -180,36 +168,50 @@ class Trainer:
                                 tolog[f'train/{loss_name}/{task_name}'] = loss_val
                                 tolog[f'train/{task_name}/{loss_name}'] = loss_val
 
+                        for task_name, acc in task_accuracy.items():
+                            for acc_name, acc_val in acc.items():
+                                tolog[f'train/{acc_name}/{task_name}'] = acc_val
+                                tolog[f'train/{task_name}/{acc_name}'] = acc_val
+
                     if (self._step % len(self._train_loader) == 0):
                         print(
                             'Training epoch {1}/{2}, step {0}: \t '.format(self._step, e, epochs))
-                        print(train_print)
+                        print(
+                            f"Train Weighted CE Loss {weighted_task_loss} - Train Accuracy {weighted_accuracy}")
 
                 #### ---- Validation step ----####
                 if (self._step % len(self._train_loader) == 0):
                     # exhaust all data in val loader and take avg loss
                     all_val_losses = {task: defaultdict(
                         list) for task in task_names}
+                    all_val_accuracy = {task: defaultdict(
+                        list) for task in task_names}
+
                     val_iter = iter(self._val_loader)
                     model = model.eval()
                     for val_inputs in val_iter:
-                        if self.config.use_daml:  # allow grad!
-                            val_task_losses = calculate_task_loss(
-                                self.confg, self.train_cfg,  self._device, model, val_inputs)
-                        else:
-                            with torch.no_grad():
-                                val_task_losses = calculate_task_loss(
-                                    self.config, self.train_cfg, self._device, model, val_inputs)
+                        with torch.no_grad():
+                            val_task_losses, val_task_accuracy = calculate_obj_pos_loss(
+                                self.config, self.train_cfg, self._device, model, val_inputs, val_loss, val_accuracy)
 
                         for task, losses in val_task_losses.items():
                             for k, v in losses.items():
                                 all_val_losses[task][k].append(v)
+
+                        for task, accuracy in val_task_accuracy.items():
+                            for k, v in accuracy.items():
+                                all_val_accuracy[task][k].append(v)
 
                     # take average across all batches in the val loader
                     avg_losses = dict()
                     for task, losses in all_val_losses.items():
                         avg_losses[task] = {
                             k: torch.mean(torch.stack(v)) for k, v in losses.items()}
+
+                    avg_accuracy = dict()
+                    for task, accuracy in all_val_accuracy.items():
+                        avg_accuracy[task] = {
+                            k: torch.mean(torch.stack(v)) for k, v in accuracy.items()}
 
                     if self.config.wandb_log:
                         tolog['Validation Step'] = self._step
@@ -218,16 +220,23 @@ class Trainer:
                                 tolog[f'val/{loss_name}/{task_name}'] = loss_val
                                 tolog[f'val/{task_name}/{loss_name}'] = loss_val
 
-                    val_print = collect_stats(
-                        self._step, avg_losses, raw_stats, prefix='val')
-                    if (self._step % len(self._train_loader) == 0):
-                        print('Validation step {}:'.format(self._step))
-                        print(val_print)
+                            for task_name, acc in avg_accuracy.items():
+                                for acc_name, acc_val in acc.items():
+                                    tolog[f'val/{acc_name}/{task_name}'] = acc_val
+                                    tolog[f'val/{task_name}/{acc_name}'] = acc_val
 
                     # compute the sum of validation losses
                     weighted_task_loss_val = sum(
-                        [l["loss_sum"] * task_loss_muls.get(name) for name, l in avg_losses.items()])
-                    if self.config.train_cfg.lr_schedule != 'None':
+                        [l["ce_loss"] * task_loss_muls.get(name) for name, l in avg_losses.items()])
+                    weighted_accuracy_val = sum(
+                        [acc["accuracy"] * task_loss_muls.get(name) for name, acc in avg_accuracy.items()])
+
+                    if (self._step % len(self._train_loader) == 0):
+                        print('Validation step {}:'.format(self._step))
+                        print(
+                            f"CE val loss {weighted_task_loss_val} - Validation accuracy {weighted_accuracy_val}")
+
+                    if self.config.train_cfg.lr_schedule['type'] is not None:
                         # perform lr-scheduling step
                         scheduler.step(val_loss=weighted_task_loss_val)
                         if self.config.wandb_log:
@@ -243,30 +252,26 @@ class Trainer:
                     if self._early_stopping.early_stop:
                         break
 
+                    self.save_checkpoint(
+                        model, optimizer, weights_fn, save_fn)
+
                 if self.config.wandb_log:
                     wandb.log(tolog)
 
                 self._step += 1
+                # update target params
+                # mod = model.module if isinstance(model, nn.DataParallel) else model
+                # if self.train_cfg.target_update_freq > -1:
+                #     mod.momentum_update(frac)
+                #     if self._step % self.train_cfg.target_update_freq == 0:
+                #         mod.soft_param_update()
 
-                try:
-                    if not model._load_target_obj_detector or not model._freeze_target_obj_detector:
-                        # update target params
-                        mod = model.module if isinstance(
-                            model, nn.DataParallel) else model
-                        if self.train_cfg.target_update_freq > -1:
-                            mod.momentum_update(frac)
-                            if self._step % self.train_cfg.target_update_freq == 0:
-                                mod.soft_param_update()
-                except:
-                    pass
             if self._early_stopping.early_stop:
                 print("----Stop training for early-stopping----")
                 break
 
         # when all epochs are done, save model one last time
         self.save_checkpoint(model, optimizer, weights_fn, save_fn)
-
-        print(self._train_loader.dataset._selected_target_frame_distribution_task_object_target_position)
 
     def save_checkpoint(self, model, optimizer, weights_fn=None, save_fn=None):
         if save_fn is not None:
@@ -305,32 +310,18 @@ class Trainer:
         assert self.device_list is not None, str(self.device_list)
         if optimizer == 'Adam':
             optimizer = torch.optim.Adam(
-                optim_weights,
-                cfg.lr,
-                weight_decay=cfg.get('weight_decay', 0))
+                optim_weights, cfg.lr, weight_decay=cfg.get('weight_decay', 0))
         elif optimizer == 'RMSProp':
             optimizer = torch.optim.RMSprop(
-                optim_weights,
-                cfg.lr,
-                weight_decay=cfg.get('weight_decay', 0))
-        elif optimizer == 'AdamW':
-            optimizer = torch.optim.AdamW(
-                optim_weights,
-                cfg.lr,
-                weight_decay=cfg.weight_decay)
+                optim_weights, cfg.lr, weight_decay=cfg.get('weight_decay', 0))
+
         if optimizer_state_dict:
             optimizer.load_state_dict(optimizer_state_dict)
 
         print(
             f"Creating {optimizer}, with lr {optimizer.param_groups[0]['lr']}")
 
-        lr_schedule = dict()
-        if cfg.lr_schedule == 'None':
-            lr_schedule['type'] = None
-        else:
-            lr_schedule['type'] = cfg.lr_schedule
-        print(f"Lr-scheduler {cfg.lr_schedule}")
-        return optimizer, build_scheduler(optimizer, lr_schedule)
+        return optimizer, build_scheduler(optimizer, cfg.get('lr_schedule', {}))
 
     def _loss_to_scalar(self, loss):
         """For more readable logging"""
@@ -409,17 +400,17 @@ class Workspace(object):
 
 @hydra.main(
     version_base=None,
-    config_path="../experiments",
+    config_path="experiments",
     config_name="config.yaml")
 def main(cfg):
-
+    print("---- Target Obj pos ----")
     if cfg.debug:
         import debugpy
         debugpy.listen(('0.0.0.0', 5678))
         print("Waiting for debugger attach")
         debugpy.wait_for_client()
 
-    from train_any import Workspace as W
+    from train_target_obj_pos import Workspace as W
     all_tasks_cfgs = [cfg.tasks_cfgs.nut_assembly, cfg.tasks_cfgs.door, cfg.tasks_cfgs.drawer,
                       cfg.tasks_cfgs.button, cfg.tasks_cfgs.pick_place, cfg.tasks_cfgs.stack_block, cfg.tasks_cfgs.basketball]
 
@@ -455,9 +446,10 @@ def main(cfg):
         for tsk in cfg.tasks:
             tsk.demo_per_subtask = cfg.limit_num_demo
 
-    if 'multi_task_il' not in cfg.policy._target_:
+    print(cfg.policy)
+    if 'target_obj_detector' not in cfg.policy._target_:
         print(f'Running baseline method: {cfg.policy._target_}')
-        cfg.train_cfg.target_update_freq = -1
+        cfg.target_update_freq = -1
     workspace = W(cfg)
     workspace.run()
 

@@ -22,8 +22,8 @@ from operator import concat
 
 ENV_OBJECTS = {
     'pick_place': {
-        'obj_names': ['greenbox', 'yellowbox', 'bluebox', 'redbox'],
-        'ranges': [[0.195, 0.255], [0.045, 0.105], [-0.105, -0.045], [-0.255, -0.195]],
+        'obj_names': ['milk', 'bread', 'cereal', 'can'],
+        'ranges':  [[0.16, 0.19], [0.05, 0.09], [-0.08, -0.03], [-0.19, -0.15]]
     },
     'nut_assembly': {
         'obj_names': ['nut0', 'nut1', 'nut2'],
@@ -48,32 +48,26 @@ def collate_by_task(batch):
     return per_task_data
 
 
-class MultiTaskPairedDataset(Dataset):
+class MultiTaskPairedTargetObjDataset(Dataset):
     def __init__(
             self,
             tasks_spec,
             root_dir='mosaic_multitask_dataset',
             mode='train',
             split=[0.9, 0.1],
-            demo_T=4,
-            obs_T=7,
-            take_first_frame=False,
             aug_twice=True,
             width=180,
             height=100,
+            demo_T=4,
+            obs_T=1,
             data_augs=None,
             non_sequential=False,
-            state_spec=('ee_aa', 'gripper_qpos'),
-            action_spec=('action',),
             allow_val_skip=False,
             allow_train_skip=False,
             use_strong_augs=False,
             aux_pose=False,
             select_random_frames=True,
-            balance_target_obj_pos=True,
             compute_obj_distribution=False,
-            agent_name='ur5e',
-            demo_name='panda',
             **params):
         """
         Args:
@@ -121,18 +115,14 @@ class MultiTaskPairedDataset(Dataset):
         self.agent_files = dict()
         self.demo_files = dict()
         self.mode = mode
+        self._demo_T = demo_T
+        self._obs_T = obs_T
 
         self.select_random_frames = select_random_frames
-        self.balance_target_obj_pos = balance_target_obj_pos
         self.compute_obj_distribution = compute_obj_distribution
         self.object_distribution = OrderedDict()
         self.object_distribution_to_indx = OrderedDict()
-
-        self._take_first_frame = take_first_frame
-
-        self._selected_target_frame_distribution_task_object_target_position = OrderedDict()
-
-        self._compute_frame_distribution = False
+        self.index_to_slot = OrderedDict()
 
         for spec in tasks_spec:
             name, date = spec.get('name', None), spec.get('date', None)
@@ -147,15 +137,13 @@ class MultiTaskPairedDataset(Dataset):
                 print(
                     "Loading task [{:<9}] saved on date {}".format(name, date))
             if date is None:
-                agent_dir = join(
-                    root_dir, name, '{}_{}'.format(agent_name, name))
-                demo_dir = join(
-                    root_dir, name, '{}_{}'.format(demo_name, name))
+                agent_dir = join(root_dir, name, 'panda_{}'.format(name))
+                demo_dir = join(root_dir, name, 'sawyer_{}'.format(name))
             else:
                 agent_dir = join(
-                    root_dir, name, '{}_{}_{}'.format(date, agent_name, name))
+                    root_dir, name, '{}_panda_{}'.format(date, name))
                 demo_dir = join(
-                    root_dir, name, '{}_{}_{}'.format(date, demo_name, name))
+                    root_dir, name, '{}_sawyer_{}'.format(date, name))
             self.subtask_to_idx[name] = defaultdict(list)
             for _id in range(spec.get('n_tasks')):
                 if _id in spec.get('skip_ids', []):
@@ -195,7 +183,7 @@ class MultiTaskPairedDataset(Dataset):
                 self.object_distribution[name][task_id] = OrderedDict()
                 self.object_distribution_to_indx[name][task_id] = [
                     [] for i in range(len(ENV_OBJECTS[name]['ranges']))]
-                if self.compute_obj_distribution and self.mode == 'train':
+                if self.compute_obj_distribution:
                     # for each subtask, create a dict with the object name
                     # assign the slot at each file
                     for agent in agent_files:
@@ -232,7 +220,7 @@ class MultiTaskPairedDataset(Dataset):
                         self.all_file_pairs[count] = (name, _id, demo, agent)
                         self.task_to_idx[name].append(count)
                         self.subtask_to_idx[name][task_id].append(count)
-                        if self.compute_obj_distribution and self.mode == 'train':
+                        if self.compute_obj_distribution:
                             # take objs for the current task_id
                             for obj in self.object_distribution[name][task_id].keys():
                                 # take the slot for the given agent file
@@ -241,6 +229,7 @@ class MultiTaskPairedDataset(Dataset):
                                     # assign the slot for the given agent file
                                     self.object_distribution_to_indx[name][task_id][slot_indx].append(
                                         count)
+                                    self.index_to_slot[count] = slot_indx
                         count += 1
 
             self.task_crops[name] = spec.get('crop', [0, 0, 0, 0])
@@ -249,12 +238,10 @@ class MultiTaskPairedDataset(Dataset):
         self.pairs_count = count
         self.task_count = len(tasks_spec)
 
-        self._demo_T, self._obs_T = demo_T, obs_T
         self.width, self.height = width, height
         self.aug_twice = aug_twice
         self.aux_pose = aux_pose
 
-        self._state_action_spec = (state_spec, action_spec)
         self.non_sequential = non_sequential
         if non_sequential:
             print("Warning! The agent observations are not sampled in neighboring timesteps, make sure inverse dynamics loss is NOT used in training \n ")
@@ -337,42 +324,10 @@ class MultiTaskPairedDataset(Dataset):
             pass
         (task_name, sub_task_id, demo_file,
          agent_file) = self.all_file_pairs[idx]
-        if not self._compute_frame_distribution:
-            demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
-            demo_data = self._make_demo(demo_traj, task_name)
-            traj = self._make_traj(agent_traj, task_name)
-            return {'demo_data': demo_data, 'traj': traj, 'task_name': task_name, 'task_id': sub_task_id}
-        else:
-            demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
-            self._compute_frames_distribution(agent_traj, task_name)
-            return {'demo_data': None, 'traj': None, 'task_name': task_name, 'task_id': sub_task_id}
-
-    def _compute_frames_distribution(self,  traj, task_name):
-
-        end = len(traj)
-        start = torch.randint(low=1, high=max(
-            1, end - self._obs_T + 1), size=(1,))
-
-        if self._take_first_frame:
-            first_frame = [torch.tensor(1)]
-            chosen_t = first_frame + [j + start for j in range(self._obs_T)]
-        else:
-            chosen_t = [j + start for j in range(self._obs_T)]
-
-        if self.non_sequential:
-            chosen_t = torch.randperm(end)
-            chosen_t = chosen_t[chosen_t != 0][:self._obs_T]
-
-        if self.mode == 'train':
-            if task_name not in self._selected_target_frame_distribution_task_object_target_position:
-                self._selected_target_frame_distribution_task_object_target_position[task_name] = [
-                    0 for i in range(100)]
-
-        for j, t in enumerate(chosen_t):
-            t = t.item()
-            if self.mode == 'train':
-                self._selected_target_frame_distribution_task_object_target_position[
-                    t] = self._selected_target_frame_distribution_task_object_target_position[task_name][t] + 1
+        demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
+        demo_data = self._make_demo(demo_traj, task_name)
+        traj = self._make_traj(agent_traj, task_name, idx)
+        return {'demo_data': demo_data, 'traj': traj, 'task_name': task_name, 'task_id': sub_task_id}
 
     def _make_demo(self, traj, task_name):
         """
@@ -448,106 +403,57 @@ class MultiTaskPairedDataset(Dataset):
         ret_dict['demo_cp'] = torch.stack(cp_frames)
         return ret_dict
 
-    def _make_traj(self, traj, task_name):
-        crop_params = self.task_crops.get(task_name, [0, 0, 0, 0])
-
-        def _adjust_points(points, frame_dims):
-            h = np.clip(points[0] - crop_params[0], 0,
-                        frame_dims[0] - crop_params[1])
-            w = np.clip(points[1] - crop_params[2], 0,
-                        frame_dims[1] - crop_params[3])
-            h = float(
-                h) / (frame_dims[0] - crop_params[0] - crop_params[1]) * self.height
-            w = float(
-                w) / (frame_dims[1] - crop_params[2] - crop_params[3]) * self.width
-            return tuple([int(min(x, d - 1)) for x, d in zip([h, w], (self.height, self.width))])
-
-        def _get_tensor(k, step_t):
-            if k == 'action':
-                return step_t['action']
-            elif k == 'grip_action':
-                return [step_t['action'][-1]]
-            o = step_t['obs']
-            if k == 'ee_aa' and 'ee_aa' not in o:
-                ee, axis_angle = o['ee_pos'][:3], o['axis_angle']
-                if axis_angle[0] < 0:
-                    axis_angle[0] += 2
-                o = np.concatenate((ee, axis_angle)).astype(np.float32)
-            else:
-                o = o[k]
-            return o
-
-        state_keys, action_keys = self._state_action_spec
-        ret_dict = {'states': [], 'actions': []}
-        has_eef_point = 'eef_point' in traj.get(0, False)['obs']
-        if has_eef_point:
-            ret_dict['points'] = []
-        end = len(traj)
-        start = torch.randint(low=1, high=max(
-            1, end - self._obs_T + 1), size=(1,))
-
-        if self._take_first_frame:
-            first_frame = [torch.tensor(1)]
-            chosen_t = first_frame + [j + start for j in range(self._obs_T)]
-        else:
-            chosen_t = [j + start for j in range(self._obs_T)]
-
-        if self.non_sequential:
-            chosen_t = torch.randperm(end)
-            chosen_t = chosen_t[chosen_t != 0][:self._obs_T]
+    def _make_traj(self, traj, task_name, indx):
+        # get the first frame from the trajectory
+        ret_dict = {}
         images = []
         images_cp = []
-        if self.mode == 'train':
-            if task_name not in self._selected_target_frame_distribution_task_object_target_position:
-                self._selected_target_frame_distribution_task_object_target_position[task_name] = [
-                    0 for i in range(100)]
+        target_obj_pos_one_hot = []
 
-        for j, t in enumerate(chosen_t):
-            t = t.item()
-            if self.mode == 'train':
-                self._selected_target_frame_distribution_task_object_target_position[
-                    t] = self._selected_target_frame_distribution_task_object_target_position[task_name][t] + 1
-
-            step_t = traj.get(t)
+        if self.non_sequential and self._obs_T > 1:
+            end = len(traj)
+            chosen_t = torch.randperm(end)
+            chosen_t = chosen_t[chosen_t != 0][:self._obs_T]
+            for j, t in enumerate(chosen_t):
+                t = t.item()
+                step_t = traj.get(t)
+                image = copy.copy(
+                    step_t['obs']['camera_front_image'][:, :, ::-1]/255)
+                processed = self.frame_aug(task_name, image)
+                images.append(processed)
+                if self.aug_twice:
+                    images_cp.append(self.frame_aug(task_name, image, True))
+        elif not self.non_sequential and self._obs_T > 1:
+            end = len(traj)
+            start = torch.randint(low=1, high=max(
+                1, end - self._obs_T + 1), size=(1,))
+            chosen_t = [j + start for j in range(self._obs_T)]
+            images = []
+            images_cp = []
+            for j, t in enumerate(chosen_t):
+                t = t.item()
+                step_t = traj.get(t)
+                image = copy.copy(
+                    step_t['obs']['camera_front_image'][:, :, ::-1]/255)
+                processed = self.frame_aug(task_name, image)
+                images.append(processed)
+                if self.aug_twice:
+                    images_cp.append(self.frame_aug(task_name, image, True))
+        else:
             image = copy.copy(
-                step_t['obs']['camera_front_image'][:, :, ::-1]/255)
-            processed = self.frame_aug(task_name, image)
-            images.append(processed)
-            if self.aug_twice:
-                images_cp.append(self.frame_aug(task_name, image, True))
-            if has_eef_point:
-                ret_dict['points'].append(np.array(
-                    _adjust_points(step_t['obs']['eef_point'], image.shape[:2]))[None])
-
-            state = []
-            for k in state_keys:
-                state.append(_get_tensor(k, step_t))
-            ret_dict['states'].append(
-                np.concatenate(state).astype(np.float32)[None])
-
-            if (j >= 1 and not self._take_first_frame) or (self._take_first_frame and j >= 2):
-                action = []
-                for k in action_keys:
-                    action.append(_get_tensor(k, step_t))
-                ret_dict['actions'].append(
-                    np.concatenate(action).astype(np.float32)[None])
-
-        for k, v in ret_dict.items():
-            ret_dict[k] = np.concatenate(v, 0).astype(np.float32)
+                traj.get(1)['obs']['camera_front_image'][:, :, ::-1]/255)
+            images.append(self.frame_aug(task_name, image))
+            images_cp.append(self.frame_aug(task_name, image, True))
 
         ret_dict['images'] = torch.stack(images)
         if self.aug_twice:
             ret_dict['images_cp'] = torch.stack(images_cp)
-
-        if self.aux_pose:
-            grip_close = np.array(
-                [traj.get(i, False)['action'][-1] > 0 for i in range(1, len(traj))])
-            grip_t = np.argmax(grip_close)
-            drop_t = len(traj) - 1 - \
-                np.argmax(np.logical_not(grip_close)[::-1])
-            aux_pose = [traj.get(t, False)['obs']['ee_aa'][:3]
-                        for t in (grip_t, drop_t)]
-            ret_dict['aux_pose'] = np.concatenate(aux_pose).astype(np.float32)
+        # get target object position
+        one_hot_encoding = np.zeros(4)
+        one_hot_encoding[self.index_to_slot[indx]] = 1
+        one_hot_encoding = torch.from_numpy(
+            one_hot_encoding).repeat(self._obs_T, 1)
+        ret_dict['target_position_one_hot'] = one_hot_encoding
         return ret_dict
 
 
