@@ -19,6 +19,7 @@ import copy
 from copy import deepcopy
 from functools import reduce
 from operator import concat
+from multi_task_il.utils import normalize_action
 
 ENV_OBJECTS = {
     'pick_place': {
@@ -74,7 +75,10 @@ class MultiTaskPairedDataset(Dataset):
             compute_obj_distribution=False,
             agent_name='ur5e',
             demo_name='panda',
-            **params):
+            normalize_action=True,
+            normalization_ranges=[],
+            n_action_bin=256,
+            ** params):
         """
         Args:
         -  root_dir:
@@ -133,6 +137,9 @@ class MultiTaskPairedDataset(Dataset):
         self._selected_target_frame_distribution_task_object_target_position = OrderedDict()
 
         self._compute_frame_distribution = False
+        self._normalize_action = normalize_action
+        self._normalization_ranges = np.array(normalization_ranges)
+        self._n_action_bin = n_action_bin
 
         for spec in tasks_spec:
             name, date = spec.get('name', None), spec.get('date', None)
@@ -529,6 +536,14 @@ class MultiTaskPairedDataset(Dataset):
                 action = []
                 for k in action_keys:
                     action.append(_get_tensor(k, step_t))
+
+                if self._normalize_action:
+                    action = normalize_action(
+                        action=action[0],
+                        n_action_bin=self._n_action_bin,
+                        action_ranges=self._normalization_ranges
+                    )[None]
+
                 ret_dict['actions'].append(
                     np.concatenate(action).astype(np.float32)[None])
 

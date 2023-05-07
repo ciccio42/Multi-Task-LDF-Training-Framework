@@ -7,12 +7,12 @@ EXPERT_DATA=/home/frosa_loc/multitask_dataset_ur/multitask_dataset_language_comm
 SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline
 POLICY='${mosaic}'
 
-EXP_NAME=1Task-Pick-Place-Mosaic-Ur5e
+EXP_NAME=1Task-Pick-Place-Mosaic-No-Obj-Detector-Ur5e
 TASK_str=pick_place
 EPOCH=250
 BSIZE=128 #64 #32
 CONFIG_PATH=../experiments/
-PROJECT_NAME="ur_mosaic_baseline"
+PROJECT_NAME="ur_mosaic_baseline_no_obj_detector"
 CONFIG_NAME=config.yaml
 LOADER_WORKERS=20
 

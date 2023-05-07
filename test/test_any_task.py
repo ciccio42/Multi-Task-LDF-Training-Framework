@@ -3,20 +3,21 @@ Evaluate each task for the same number of --eval_each_task times.
 """
 import warnings
 from robosuite import load_controller_config
-from multi_task_robosuite_env.controllers.controllers.expert_basketball import \
-    get_expert_trajectory as basketball_expert
+# [Decomment as you implement controllers]
+# from multi_task_robosuite_env.controllers.controllers.expert_basketball import \
+#     get_expert_trajectory as basketball_expert
 from multi_task_robosuite_env.controllers.controllers.expert_nut_assembly import \
     get_expert_trajectory as nut_expert
 from multi_task_robosuite_env.controllers.controllers.expert_pick_place import \
     get_expert_trajectory as place_expert
-from multi_task_robosuite_env.controllers.controllers.expert_block_stacking import \
-    get_expert_trajectory as stack_expert
-from multi_task_robosuite_env.controllers.controllers.expert_drawer import \
-    get_expert_trajectory as draw_expert
-from multi_task_robosuite_env.controllers.controllers.expert_button import \
-    get_expert_trajectory as press_expert
-from multi_task_robosuite_env.controllers.controllers.expert_door import \
-    get_expert_trajectory as door_expert
+# from multi_task_robosuite_env.controllers.controllers.expert_block_stacking import \
+#     get_expert_trajectory as stack_expert
+# from multi_task_robosuite_env.controllers.controllers.expert_drawer import \
+#     get_expert_trajectory as draw_expert
+# from multi_task_robosuite_env.controllers.controllers.expert_button import \
+#     get_expert_trajectory as press_expert
+# from multi_task_robosuite_env.controllers.controllers.expert_door import \
+#     get_expert_trajectory as door_expert
 from eval_functions import *
 
 import random
@@ -25,7 +26,7 @@ import os
 from os.path import join
 from collections import defaultdict
 import torch
-from mosaic.datasets import Trajectory
+from multi_task_il.datasets import Trajectory
 import numpy as np
 import pickle as pkl
 import imageio
@@ -49,55 +50,56 @@ LOG_PATH = None
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 
 TASK_MAP = {
-    'basketball': {
-        'num_variations':   12,
-        'env_fn':   basketball_expert,
-        'eval_fn':  basketball_eval,
-        'agent-teacher': ('PandaBasketball', 'SawyerBasketball'),
-        'render_hw': (100, 180),
-    },
     'nut_assembly':  {
         'num_variations':   9,
         'env_fn':   nut_expert,
         'eval_fn':  nut_assembly_eval,
-        'agent-teacher': ('PandaNutAssemblyDistractor', 'SawyerNutAssemblyDistractor'),
+        'agent-teacher': ('UR5e_NutAssemblyDistractor', 'Panda_NutAssemblyDistractor'),
         'render_hw': (100, 180),
     },
     'pick_place': {
         'num_variations':   16,
         'env_fn':   place_expert,
         'eval_fn':  pick_place_eval,
-        'agent-teacher': ('PandaPickPlaceDistractor', 'SawyerPickPlaceDistractor'),
+        'agent-teacher': ('UR5e_PickPlaceDistractor', 'Panda_PickPlaceDistractor'),
         'render_hw': (100, 180),  # (150, 270)
+        'object_set': 2,
     },
-    'stack_block': {
-        'num_variations':   6,
-        'env_fn':   stack_expert,
-        'eval_fn':  block_stack_eval,
-        'agent-teacher': ('PandaBlockStacking', 'SawyerBlockStacking'),
-        'render_hw': (100, 180),  # older models used 100x200!!
-    },
-    'drawer': {
-        'num_variations':   8,
-        'env_fn':   draw_expert,
-        'eval_fn':  draw_eval,
-        'agent-teacher': ('PandaDrawer', 'SawyerDrawer'),
-        'render_hw': (100, 180),
-    },
-    'button': {
-        'num_variations':   6,
-        'env_fn':   press_expert,
-        'eval_fn':  press_button_eval,
-        'agent-teacher': ('PandaButton', 'SawyerButton'),
-        'render_hw': (100, 180),
-    },
-    'door': {
-        'num_variations':   4,
-        'env_fn':   door_expert,
-        'eval_fn':  open_door_eval,
-        'agent-teacher': ('PandaDoor', 'SawyerDoor'),
-        'render_hw': (100, 180),
-    },
+    # 'stack_block': {
+    #     'num_variations':   6,
+    #     'env_fn':   stack_expert,
+    #     'eval_fn':  block_stack_eval,
+    #     'agent-teacher': ('PandaBlockStacking', 'SawyerBlockStacking'),
+    #     'render_hw': (100, 180),  # older models used 100x200!!
+    # },
+    # 'drawer': {
+    #     'num_variations':   8,
+    #     'env_fn':   draw_expert,
+    #     'eval_fn':  draw_eval,
+    #     'agent-teacher': ('PandaDrawer', 'SawyerDrawer'),
+    #     'render_hw': (100, 180),
+    # },
+    # 'button': {
+    #     'num_variations':   6,
+    #     'env_fn':   press_expert,
+    #     'eval_fn':  press_button_eval,
+    #     'agent-teacher': ('PandaButton', 'SawyerButton'),
+    #     'render_hw': (100, 180),
+    # },
+    # 'door': {
+    #     'num_variations':   4,
+    #     'env_fn':   door_expert,
+    #     'eval_fn':  open_door_eval,
+    #     'agent-teacher': ('PandaDoor', 'SawyerDoor'),
+    #     'render_hw': (100, 180),
+    # },
+    # 'basketball': {
+    #     'num_variations':   12,
+    #     'env_fn':   basketball_expert,
+    #     'eval_fn':  basketball_eval,
+    #     'agent-teacher': ('PandaBasketball', 'SawyerBasketball'),
+    #     'render_hw': (100, 180),
+    # },
 
 }
 
@@ -193,10 +195,15 @@ def build_tvf_formatter(config, env_name='stack'):
 
 
 def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut',
-                      heights=100, widths=200, size=False, shape=False, color=False, gpu_id=0, variation=None, random_frames=True):
+                      heights=100, widths=200, size=False, shape=False, color=False, gpu_id=0, variation=None, random_frames=True, controller_path=None):
     create_seed = random.Random(None)
     create_seed = create_seed.getrandbits(32)
-    controller = load_controller_config(default_controller='IK_POSE')
+    if controller_path == None:
+        controller = load_controller_config(default_controller='IK_POSE')
+    else:
+        # load custom controller
+        controller = load_controller_config(
+            custom_fpath=controller_path)
     assert gpu_id != -1
     build_task = TASK_MAP.get(env_name, None)
     assert build_task, 'Got unsupported task '+env_name
@@ -211,20 +218,39 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut',
 
     if 'Stack' in teacher_name:
         teacher_expert_rollout = env_fn(teacher_name,
-                                        controller_type=controller, task=variation, size=size, shape=shape, color=color,
-                                        seed=create_seed, heights=heights, widths=widths, gpu_id=gpu_id)
+                                        controller_type=controller,
+                                        task=variation,
+                                        size=size,
+                                        shape=shape,
+                                        color=color,
+                                        seed=create_seed,
+                                        gpu_id=gpu_id,
+                                        object_set=TASK_MAP[env_name]['object_set'])
         agent_env = env_fn(agent_name,
-                           size=size, shape=shape, color=color,
-                           controller_type=controller, task=variation, ret_env=True, seed=create_seed,
-                           heights=heights, widths=widths, gpu_id=gpu_id)
+                           size=size,
+                           shape=shape,
+                           color=color,
+                           controller_type=controller,
+                           task=variation,
+                           ret_env=True,
+                           seed=create_seed,
+                           gpu_id=gpu_id,
+                           object_set=TASK_MAP[env_name]['object_set'])
     else:
         teacher_expert_rollout = env_fn(teacher_name,
-                                        controller_type=controller, task=variation,
-                                        seed=create_seed, heights=heights, widths=widths, gpu_id=gpu_id)
+                                        controller_type=controller,
+                                        task=variation,
+                                        seed=create_seed,
+                                        gpu_id=gpu_id,
+                                        object_set=TASK_MAP[env_name]['object_set'])
 
         agent_env = env_fn(agent_name,
-                           controller_type=controller, task=variation, ret_env=True, seed=create_seed,
-                           heights=heights, widths=widths, gpu_id=gpu_id)
+                           controller_type=controller,
+                           task=variation,
+                           ret_env=True,
+                           seed=create_seed,
+                           gpu_id=gpu_id,
+                           object_set=TASK_MAP[env_name]['object_set'])
 
     assert isinstance(teacher_expert_rollout, Trajectory)
     context = select_random_frames(
@@ -241,11 +267,12 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut',
 
 
 def rollout_imitation(model, target_obj_dec, config, ctr,
-                      heights=100, widths=200, size=0, shape=0, color=0, max_T=60, env_name='place', gpu_id=-1, baseline=None, variation=None, seed=None):
+                      heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[]):
     if gpu_id == -1:
         gpu_id = int(ctr % torch.cuda.device_count())
     model = model.cuda(gpu_id)
-    target_obj_dec = target_obj_dec.cuda(gpu_id)
+    if target_obj_dec is not None:
+        target_obj_dec = target_obj_dec.cuda(gpu_id)
 
     img_formatter = build_tvf_formatter(config, env_name)
 
@@ -255,23 +282,39 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
         assert 'multi' in config.train_cfg.dataset._target_, config.train_cfg.dataset._target_
         T_context = config.train_cfg.dataset.demo_T
 
-    env, context, variation_id, expert_traj = build_env_context(
-        img_formatter,
-        T_context=T_context, ctr=ctr, env_name=env_name,
-        heights=heights, widths=widths, size=size, shape=shape, color=color, gpu_id=gpu_id, variation=variation, random_frames=random_frames)
+    env, context, variation_id, expert_traj = build_env_context(img_formatter,
+                                                                T_context=T_context,
+                                                                ctr=ctr,
+                                                                env_name=env_name,
+                                                                heights=heights,
+                                                                widths=widths,
+                                                                size=size,
+                                                                shape=shape,
+                                                                color=color,
+                                                                gpu_id=gpu_id,
+                                                                variation=variation, random_frames=random_frames,
+                                                                controller_path=controller_path)
 
     build_task = TASK_MAP.get(env_name, None)
     assert build_task, 'Got unsupported task '+env_name
     eval_fn = build_task['eval_fn']
-    traj, info = eval_fn(model, target_obj_dec, env, context,
-                         gpu_id, variation_id, img_formatter, baseline=baseline)
+    traj, info = eval_fn(model,
+                         target_obj_dec,
+                         env,
+                         context,
+                         gpu_id,
+                         variation_id,
+                         img_formatter,
+                         baseline=baseline,
+                         max_T=max_T,
+                         action_ranges=action_ranges)
     print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
         ctr, variation_id, info['reached'], info['picked'], info['success']))
     print(f"Avg prediction {info['avg_pred']}")
     return traj, info, expert_traj, context
 
 
-def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, seed, n):
+def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, seed, max_T, controller_path, n):
     json_name = results_dir + '/traj{}.json'.format(n)
     pkl_name = results_dir + '/traj{}.pkl'.format(n)
     if os.path.exists(json_name) and os.path.exists(pkl_name):
@@ -280,9 +323,19 @@ def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, sha
         print("Using previous results at {}. Loaded eval traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             json_name, n, task_success_flags['variation_id'], task_success_flags['reached'], task_success_flags['picked'], task_success_flags['success']))
     else:
-        rollout, task_success_flags, expert_traj, context = rollout_imitation(
-            model, target_obj_dec, config, n, heights, widths, size, shape, color,
-            max_T=60, env_name=env_name, baseline=baseline, variation=variation, seed=seed)
+        rollout, task_success_flags, expert_traj, context = rollout_imitation(model,
+                                                                              target_obj_dec,
+                                                                              config,
+                                                                              n,
+                                                                              heights,
+                                                                              widths,
+                                                                              size,
+                                                                              shape,
+                                                                              color,
+                                                                              max_T=max_T, env_name=env_name, baseline=baseline, variation=variation,
+                                                                              controller_path=controller_path,
+                                                                              seed=seed,
+                                                                              action_ranges=config.policy.get('normalization_ranges', []))
         pkl.dump(rollout, open(results_dir+'/traj{}.pkl'.format(n), 'wb'))
         pkl.dump(expert_traj, open(results_dir+'/demo{}.pkl'.format(n), 'wb'))
         pkl.dump(context, open(results_dir+'/context{}.pkl'.format(n), 'wb'))
@@ -322,6 +375,7 @@ if __name__ == '__main__':
     parser.add_argument('--results_name', default=None, type=str)
     parser.add_argument('--variation', default=None, type=int)
     parser.add_argument('--seed', default=None, type=int)
+    parser.add_argument('--controller_path', default=None, type=str)
 
     args = parser.parse_args()
 
@@ -434,11 +488,11 @@ if __name__ == '__main__':
     color = args.color
     variation = args.variation
     seed = args.seed
-
+    max_T = 150
     # load target object detector
     model_path = config.policy.get('target_obj_detector_path', None)
     target_obj_dec = None
-    if model_path is not None:
+    if model_path is not None and config.policy.load_target_obj_detector:
         # load config file
         conf_file = OmegaConf.load(os.path.join(model_path, "config.yaml"))
         target_obj_dec = hydra.utils.instantiate(conf_file.policy)
@@ -448,8 +502,22 @@ if __name__ == '__main__':
         target_obj_dec.eval()
 
     parallel = args.num_workers > 1
-    f = functools.partial(_proc, model, target_obj_dec, config, results_dir, heights,
-                          widths, size, shape, color, args.env, args.baseline, variation, seed)
+    f = functools.partial(_proc,
+                          model,
+                          target_obj_dec,
+                          config,
+                          results_dir,
+                          heights,
+                          widths,
+                          size,
+                          shape,
+                          color,
+                          args.env,
+                          args.baseline,
+                          variation,
+                          seed,
+                          max_T,
+                          args.controller_path)
 
     if parallel:
         with Pool(args.num_workers) as p:

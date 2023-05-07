@@ -13,10 +13,11 @@ import pickle as pkl
 import numpy as np
 from mosaic.datasets import Trajectory
 import cv2
+from multi_task_il.utils import denormalize_action
 # Frezzes at this line if torchvision is imported
-cv2.imshow("debug", np.zeros((128, 128, 3), dtype=np.uint8))
-cv2.waitKey(1)
-cv2.destroyAllWindows()
+# cv2.imshow("debug", np.zeros((128, 128, 3), dtype=np.uint8))
+# cv2.waitKey(1)
+# cv2.destroyAllWindows()
 
 ENV_OBJECTS = {
     'pick_place': {
@@ -30,7 +31,7 @@ ENV_OBJECTS = {
 }
 
 
-def get_action(model, target_obj_dec, states, images, context, gpu_id, n_steps, max_T=80, baseline=None):
+def get_action(model, target_obj_dec, states, images, context, gpu_id, n_steps, max_T=80, baseline=None, action_ranges=[]):
     s_t = torch.from_numpy(np.concatenate(states, 0).astype(np.float32))[None]
     if isinstance(images[-1], np.ndarray):
         i_t = torch.from_numpy(np.concatenate(
@@ -47,6 +48,7 @@ def get_action(model, target_obj_dec, states, images, context, gpu_id, n_steps, 
         action = out['action_dist'].sample()[-1].cpu().detach().numpy()
 
     else:
+        target_obj_embedding = None
         with torch.no_grad():
             out = model(states=s_t, images=i_t, context=context, eval=True,
                         target_obj_embedding=target_obj_embedding)  # to avoid computing ATC loss
@@ -63,6 +65,7 @@ def get_action(model, target_obj_dec, states, images, context, gpu_id, n_steps, 
             else:
                 predicted_prob = None
     # action[3:7] = [1.0, 1.0, 0.0, 0.0]
+    action = denormalize_action(action, action_ranges)
     action[-1] = 1 if action[-1] > 0 and n_steps < max_T - 1 else -1
     return action, predicted_prob
 
@@ -252,7 +255,8 @@ def press_button_eval(model, env, context, gpu_id, variation_id, img_formatter, 
     return traj, tasks
 
 
-def pick_place_eval(model, target_obj_dec, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False):
+def pick_place_eval(model, target_obj_dec, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[]):
+
     done, states, images, context, obs, traj, tasks = \
         startup_env(model, env, context, gpu_id,
                     variation_id, baseline=baseline)
@@ -278,7 +282,7 @@ def pick_place_eval(model, target_obj_dec, env, context, gpu_id, variation_id, i
                 break
     # compute the average prediction over the whole trajectory
     avg_prediction = 0
-
+    print(f"Max-t {max_T}")
     while not done:
         tasks['reached'] = tasks['reached'] or np.linalg.norm(
             obs[obj_delta_key][:2]) < 0.03
@@ -292,18 +296,33 @@ def pick_place_eval(model, target_obj_dec, env, context, gpu_id, variation_id, i
         images.append(img_formatter(
             obs['camera_front_image'][:, :, ::-1]/255)[None])
         action, target_pred = get_action(
-            model, target_obj_dec, states, images, context, gpu_id, n_steps, max_T, baseline)
-        obs, reward, env_done, info = env.step(action)
+            model,
+            target_obj_dec,
+            states,
+            images,
+            context,
+            gpu_id,
+            n_steps,
+            max_T,
+            baseline,
+            action_ranges)
+        action = denormalize_action(action, action_ranges)
+        try:
+            obs, reward, env_done, info = env.step(action)
+            cv2.imwrite(
+                f"/home/frosa_loc/Multi-Task-LFD-Framework/test/{n_steps}.png", obs['camera_front_image'][:, :, ::-1])
+        except:
+            print("Exception during step")
         if target_obj_dec is not None:
             info['target_pred'] = target_pred
             info['target_gt'] = agent_target_obj_position
             if np.argmax(target_pred) == agent_target_obj_position:
                 avg_prediction += 1
-            traj.append(obs, reward, done, info, action)
+        traj.append(obs, reward, done, info, action)
 
         tasks['success'] = reward or tasks['success']
         n_steps += 1
-        if env_done or reward or n_steps > 100:
+        if env_done or reward or n_steps > max_T:
             done = True
     env.close()
     tasks['avg_pred'] = avg_prediction/len(traj)

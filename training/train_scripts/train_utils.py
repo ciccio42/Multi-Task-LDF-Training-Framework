@@ -17,11 +17,11 @@ import matplotlib.pyplot as plt
 from multiprocessing import cpu_count
 from torch.utils.data import DataLoader
 from einops import rearrange, reduce, repeat, parse_shape
-from mosaic.models.discrete_logistic import DiscreteMixLogistic
+from multi_task_il.models.discrete_logistic import DiscreteMixLogistic
 from collections import defaultdict, OrderedDict
 from hydra.utils import instantiate
 # need for val. loader
-from mosaic.datasets.multi_task_datasets import DIYBatchSampler, collate_by_task
+from multi_task_il.datasets.multi_task_datasets import DIYBatchSampler, collate_by_task
 
 torch.autograd.set_detect_anomaly(True)
 # for visualization

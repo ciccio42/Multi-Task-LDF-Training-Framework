@@ -8,7 +8,7 @@ def build_scheduler(optimizer, config):
         return ReduceOnPlateau(optimizer)
     elif lr_schedule == 'ExponentialDecay':
         return ExponentialDecay(optimizer, **config)
-    elif lr_schedule is 'None':
+    elif lr_schedule is None:
         return BaseScheduler(optimizer)
     else:
         raise NotImplementedError
