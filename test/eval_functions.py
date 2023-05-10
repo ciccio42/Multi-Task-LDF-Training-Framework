@@ -306,11 +306,10 @@ def pick_place_eval(model, target_obj_dec, env, context, gpu_id, variation_id, i
             max_T,
             baseline,
             action_ranges)
-        action = denormalize_action(action, action_ranges)
         try:
             obs, reward, env_done, info = env.step(action)
-            cv2.imwrite(
-                f"/home/frosa_loc/Multi-Task-LFD-Framework/test/{n_steps}.png", obs['camera_front_image'][:, :, ::-1])
+            # cv2.imwrite(
+            #     f"/home/ciccio/Desktop/multi_task_lfd/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/rollout_img/{n_steps}.png", obs['camera_front_image'][:, :, ::-1])
         except:
             print("Exception during step")
         if target_obj_dec is not None:

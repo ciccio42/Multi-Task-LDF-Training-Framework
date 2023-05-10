@@ -112,7 +112,7 @@ if __name__ == '__main__':
     print(folder_path)
     for dir in os.listdir(folder_path):
         print(dir)
-        if "task" in dir:
+        if "task_1" in dir:
             task_path = os.path.join(folder_path, dir)
             print(task_path)
             i = 0

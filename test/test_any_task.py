@@ -335,7 +335,7 @@ def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, sha
                                                                               max_T=max_T, env_name=env_name, baseline=baseline, variation=variation,
                                                                               controller_path=controller_path,
                                                                               seed=seed,
-                                                                              action_ranges=config.policy.get('normalization_ranges', []))
+                                                                              action_ranges=np.array(config.dataset_cfg.get('normalization_ranges', [])))
         pkl.dump(rollout, open(results_dir+'/traj{}.pkl'.format(n), 'wb'))
         pkl.dump(expert_traj, open(results_dir+'/demo{}.pkl'.format(n), 'wb'))
         pkl.dump(context, open(results_dir+'/context{}.pkl'.format(n), 'wb'))
