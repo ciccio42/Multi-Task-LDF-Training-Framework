@@ -141,6 +141,9 @@ class MultiTaskPairedDataset(Dataset):
         self._normalization_ranges = np.array(normalization_ranges)
         self._n_action_bin = n_action_bin
 
+        # Frame distribution for each trajectory
+        self._frame_distribution = OrderedDict()
+
         for spec in tasks_spec:
             name, date = spec.get('name', None), spec.get('date', None)
             assert name, 'need to specify the task name for data generated, for easier tracking'
@@ -344,42 +347,14 @@ class MultiTaskPairedDataset(Dataset):
             pass
         (task_name, sub_task_id, demo_file,
          agent_file) = self.all_file_pairs[idx]
-        if not self._compute_frame_distribution:
-            demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
-            demo_data = self._make_demo(demo_traj, task_name)
-            traj = self._make_traj(agent_traj, task_name)
-            return {'demo_data': demo_data, 'traj': traj, 'task_name': task_name, 'task_id': sub_task_id}
-        else:
-            demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
-            self._compute_frames_distribution(agent_traj, task_name)
-            return {'demo_data': None, 'traj': None, 'task_name': task_name, 'task_id': sub_task_id}
 
-    def _compute_frames_distribution(self,  traj, task_name):
+        if agent_file not in self.all_file_pairs:
+            self._frame_distribution[agent_file] = np.zeros((1, 250))
 
-        end = len(traj)
-        start = torch.randint(low=1, high=max(
-            1, end - self._obs_T + 1), size=(1,))
-
-        if self._take_first_frame:
-            first_frame = [torch.tensor(1)]
-            chosen_t = first_frame + [j + start for j in range(self._obs_T)]
-        else:
-            chosen_t = [j + start for j in range(self._obs_T)]
-
-        if self.non_sequential:
-            chosen_t = torch.randperm(end)
-            chosen_t = chosen_t[chosen_t != 0][:self._obs_T]
-
-        if self.mode == 'train':
-            if task_name not in self._selected_target_frame_distribution_task_object_target_position:
-                self._selected_target_frame_distribution_task_object_target_position[task_name] = [
-                    0 for i in range(100)]
-
-        for j, t in enumerate(chosen_t):
-            t = t.item()
-            if self.mode == 'train':
-                self._selected_target_frame_distribution_task_object_target_position[
-                    t] = self._selected_target_frame_distribution_task_object_target_position[task_name][t] + 1
+        demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
+        demo_data = self._make_demo(demo_traj, task_name)
+        traj = self._make_traj(agent_traj, task_name, agent_file)
+        return {'demo_data': demo_data, 'traj': traj, 'task_name': task_name, 'task_id': sub_task_id}
 
     def _make_demo(self, traj, task_name):
         """
@@ -455,7 +430,7 @@ class MultiTaskPairedDataset(Dataset):
         ret_dict['demo_cp'] = torch.stack(cp_frames)
         return ret_dict
 
-    def _make_traj(self, traj, task_name):
+    def _make_traj(self, traj, task_name, agent_file):
         crop_params = self.task_crops.get(task_name, [0, 0, 0, 0])
 
         def _adjust_points(points, frame_dims):
@@ -504,16 +479,12 @@ class MultiTaskPairedDataset(Dataset):
             chosen_t = chosen_t[chosen_t != 0][:self._obs_T]
         images = []
         images_cp = []
-        if self.mode == 'train':
-            if task_name not in self._selected_target_frame_distribution_task_object_target_position:
-                self._selected_target_frame_distribution_task_object_target_position[task_name] = [
-                    0 for i in range(100)]
 
         for j, t in enumerate(chosen_t):
+
+            self._frame_distribution[agent_file][t] = self._frame_distribution[agent_file][t]
+
             t = t.item()
-            if self.mode == 'train':
-                self._selected_target_frame_distribution_task_object_target_position[
-                    t] = self._selected_target_frame_distribution_task_object_target_position[task_name][t] + 1
 
             step_t = traj.get(t)
             image = copy.copy(

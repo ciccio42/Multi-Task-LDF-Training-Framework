@@ -179,12 +179,12 @@ mosaic:
 
 actions:
   n_layers:         2    
-  out_dim:          256 #64
+  out_dim:          64
   hidden_dim:       128
   adim:             8
-  n_mixtures:       4   
+  n_mixtures:       2   
   const_var:        False
-  sep_var:          True 
+  sep_var:          False 
   concat_demo_head:   False
   concat_demo_act:    True
   demo_mean:        ${policy.demo_mean}

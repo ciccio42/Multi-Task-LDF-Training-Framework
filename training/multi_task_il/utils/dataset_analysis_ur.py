@@ -83,7 +83,7 @@ def run_inference(model, conf_file, task_name, task_indx, results_dir_path, trai
     demo_file_name = demo_file.split('/')[-1]
     agent_file = file_pair[0][3]
     agent_file_name = agent_file.split('/')[-1]
-
+    task_indx = task_indx if task_indx != -1 else int(file_pair[0][1])
     results_analysis = [task_name, task_indx, demo_file_name, agent_file_name]
 
     # print(f"----\nDemo file {demo_file}\nAgent file {agent_file}\n----")
@@ -107,7 +107,7 @@ def run_inference(model, conf_file, task_name, task_indx, results_dir_path, trai
     heights = conf_file.dataset_cfg.height
     widths = conf_file.dataset_cfg.width
     agent_env = create_env(env_fn=env_func, agent_name=agent_name,
-                           variation=variation, ret_env=ret_env, heights=heights, widths=widths)
+                           variation=variation, ret_env=ret_env)
 
     img_formatter = build_tvf_formatter(conf_file, task_name)
 

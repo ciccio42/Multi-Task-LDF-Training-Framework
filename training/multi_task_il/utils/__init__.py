@@ -12,6 +12,13 @@ from torchvision.transforms import ToTensor, Normalize
 from torchvision.transforms.functional import resized_crop
 from robosuite import load_controller_config
 
+NORMALIZATION_RANGES = np.array([[-0.35,  0.25],
+                                 [-0.30,  0.30],
+                                 [0.60,  1.20],
+                                 [-3.14,  3.14911766],
+                                 [-3.14911766, 3.14911766],
+                                 [-3.14911766,  3.14911766]])
+
 
 def normalize_action(action, n_action_bin, action_ranges):
     half_action_bin = int(n_action_bin/2)
@@ -86,7 +93,7 @@ def select_random_frames(frames, n_select, sample_sides=True, experiment_number=
     if isinstance(frames, (list, tuple)):
         return [frames[i] for i in selected_frames]
     elif isinstance(frames, Trajectory):
-        return [frames[i]['obs']['image'] for i in selected_frames]
+        return [frames[i]['obs']['camera_front_image'] for i in selected_frames]
         # return [frames[i]['obs']['image-state'] for i in selected_frames]
     return frames[selected_frames]
 
@@ -137,7 +144,7 @@ def create_env(env_fn, agent_name, variation, ret_env, seed=None, heights=100, w
     print(f"Controller path {controller_config_path}")
     controller = load_controller_config(
         custom_fpath=controller_config_path)
-    return env_fn(agent_name, controller_type=controller, task=variation, ret_env=True, seed=create_seed, heights=heights, widths=widths, gpu_id=gpu_id)
+    return env_fn(agent_name, controller_type=controller, task=variation, ret_env=True, seed=create_seed, gpu_id=gpu_id)
 
 
 def startup_env(model, env, context, gpu_id, variation_id, baseline=None, seed=None):
@@ -221,6 +228,8 @@ def get_action(model, states, images, context, gpu_id, n_steps, max_T=80, baseli
             out = model(states=s_t, images=i_t, context=context,
                         eval=True)  # to avoid computing ATC loss
             action = out['bc_distrib'].sample()[0, -1].cpu().numpy()
+            action = denormalize_action(
+                norm_action=action, action_ranges=NORMALIZATION_RANGES)
     # if TASK_NAME == 'nut_assembly':
     #     action[3:7] = [1.0, 1.0, 0.0, 0.0]
     action[-1] = 1 if action[-1] > 0 and n_steps < max_T - 1 else -1
@@ -270,7 +279,7 @@ def pick_place_eval(model, env, context, gpu_id, variation_id, img_formatter, ma
         states.append(np.concatenate(
             (obs['ee_aa'], obs['gripper_qpos'])).astype(np.float32)[None])
 
-        if show_img:
+        if True:
             # convert context from torch tensor to numpy
             context_frames = torch_to_numpy(context)
             number_of_context_frames = len(context_frames)
@@ -285,21 +294,24 @@ def pick_place_eval(model, env, context, gpu_id, variation_id, img_formatter, ma
                 for j in range(num_cols):
                     index = i * num_cols + j
                     if index < number_of_context_frames:
-                        frame = context_frames[index][:, :, ::-1]
+                        frame = context_frames[index]
                         row_frames.append(frame)
                 row = cv2.hconcat(row_frames)
                 frames.append(row)
             new_image = np.array(cv2.resize(cv2.vconcat(
                 frames), (demo_width, demo_height)), np.uint8)
-            output_frame = cv2.hconcat([new_image, obs['image'][:, :, ::-1]])
+            output_frame = cv2.hconcat(
+                [new_image, obs['camera_front_image'][:, :, ::-1]])
             # showing the image
-            cv2.imshow(f'Frame {t}', output_frame)
+            cv2.imwrite(
+                f'/home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/multi_task_il/utils/test_img/frame_{t}.png', output_frame)
             t += 1
             # waiting using waitKey method
-            cv2.waitKey(1000)
-            cv2.destroyAllWindows()
+            # cv2.waitKey(1000)
+            # cv2.destroyAllWindows()
 
-        images.append(img_formatter(obs['image'][:, :, ::-1]/255)[None])
+        images.append(img_formatter(
+            obs['camera_front_image'][:, :, ::-1]/255)[None])
         if model_act:
             action = get_action(model, states, images, context,
                                 gpu_id, n_steps, max_T, baseline)

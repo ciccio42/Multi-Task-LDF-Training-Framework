@@ -1,20 +1,20 @@
 #!/bin/sh
 export MUJOCO_PY_MUJOCO_PATH="/home/frosa_loc/.mujoco/mujoco210"
-export CUDA_VISIBLE_DEVICES=2
+export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/home/frosa_loc/multitask_dataset_ur/multitask_dataset_language_command
 SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline
 POLICY='${mosaic}'
 
-EXP_NAME=1Task-Pick-Place-Mosaic-No-Obj-Detector-Ur5e
+EXP_NAME=1Task-Pick-Place-Mosaic-No-Obj-Detector-Ur5e-Linear-Variance
 TASK_str=pick_place
 EPOCH=250
 BSIZE=128 #64 #32
 CONFIG_PATH=../experiments/
-PROJECT_NAME="ur_mosaic_baseline_no_obj_detector"
+PROJECT_NAME="ur_mosaic_baseline_no_obj_detector_linear_variance"
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=20
+LOADER_WORKERS=16
 
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=17204
