@@ -140,3 +140,5 @@ dmypy.json
 /bashes/wandb/nohup.out
 
 wandb/*
+*.pth
+*.pkl
