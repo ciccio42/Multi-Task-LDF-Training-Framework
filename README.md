@@ -15,3 +15,13 @@
     *) make_data_loaders: It creates the dataloaders for train and validation. 
 
 *) *MultiTaskPairedDataset*: 
+
+
+# Dependencies
+*) [MMDETECTION](https://mmdetection.readthedocs.io/en/stable/get_started.html)
+
+```bash
+pip install protobuf pyserial matplotlib psutil pyasn1-modules webencodings six==1.11.0 beautifulsoup4 defusedxml setproctitle mmengine 
+```
+
+*) [Swin](https://github.com/SwinTransformer/Swin-Transformer-Object-Detection)

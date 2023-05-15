@@ -138,3 +138,6 @@ dmypy.json
 /bashes/outputs/*
 /bashes/wandb/*
 /bashes/wandb/nohup.out
+
+*.pth
+*.pkl
