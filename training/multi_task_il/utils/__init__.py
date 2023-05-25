@@ -305,7 +305,6 @@ def pick_place_eval(model, env, context, gpu_id, variation_id, img_formatter, ma
             # showing the image
             cv2.imwrite(
                 f'/home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/multi_task_il/utils/test_img/frame_{t}.png', output_frame)
-            t += 1
             # waiting using waitKey method
             # cv2.waitKey(1000)
             # cv2.destroyAllWindows()
@@ -315,6 +314,9 @@ def pick_place_eval(model, env, context, gpu_id, variation_id, img_formatter, ma
         if model_act:
             action = get_action(model, states, images, context,
                                 gpu_id, n_steps, max_T, baseline)
+
+            if n_steps > 90:
+                print(action)
         else:
             action = agent_traj[t]['action']
 

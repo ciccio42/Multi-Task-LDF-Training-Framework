@@ -184,7 +184,7 @@ actions:
   adim:             8
   n_mixtures:       2   
   const_var:        False
-  sep_var:          False 
+  sep_var:          True 
   concat_demo_head:   False
   concat_demo_act:    True
   demo_mean:        ${policy.demo_mean}
@@ -219,12 +219,19 @@ tosil:
     n_st_attn:      2
     use_pe:         True
     attn_heads:     4
-  n_mixtures:       4
   const_var:        True
+  sdim: 9
+  adim: 8
+  n_mixtures:       2
   concat_state:     False
   pred_point:       True
   concat_target_obj_embedding: False
-
+  load_target_obj_detector: False
+  freeze_target_obj_detector: False
+  target_obj_detector_step: 0
+  target_obj_detector_path: null
+  transformer_feat: True
+  
 lstm:
   _target_:         multi_task_il.models.baselines.InverseImitation 
   latent_dim:       40

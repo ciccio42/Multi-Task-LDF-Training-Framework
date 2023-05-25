@@ -32,7 +32,13 @@ except:
 
 def load_traj(fname):
     if '.pkl' in fname:
-        traj = pkl.load(open(fname, 'rb'))['traj']
+        sample = pkl.load(open(fname, 'rb'))
+        traj = sample['traj']
+        if 'command' in sample:
+            command = sample['command']
+        else:
+            command = None
+
     elif '.hdf5' in fname:
         traj = HDF5Trajectory()
         traj.load(fname)
@@ -40,7 +46,7 @@ def load_traj(fname):
         raise NotImplementedError
 
     traj = traj if not import_render_wrapper else ImageRenderWrapper(traj)
-    return traj
+    return traj, command
 
 
 def split_files(file_len, splits, mode='train'):

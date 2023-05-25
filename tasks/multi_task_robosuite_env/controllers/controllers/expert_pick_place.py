@@ -353,9 +353,9 @@ if __name__ == '__main__':
     import debugpy
     import os
     import sys
-    # debugpy.listen(('0.0.0.0', 5678))
-    # print("Waiting for debugger attach")
-    # debugpy.wait_for_client()
+    debugpy.listen(('0.0.0.0', 5678))
+    print("Waiting for debugger attach")
+    debugpy.wait_for_client()
     # Load configuration files
     current_dir = os.path.dirname(os.path.abspath(__file__))
     controller_config_path = os.path.join(
@@ -365,8 +365,8 @@ if __name__ == '__main__':
     for i in range(0, 16):
         traj = get_expert_trajectory('UR5e_PickPlaceDistractor',
                                      controller_type=controller_config,
-                                     renderer=True,
-                                     camera_obs=False,
+                                     renderer=False,
+                                     camera_obs=True,
                                      task=i,
                                      render_camera='camera_front',
                                      object_set=2)

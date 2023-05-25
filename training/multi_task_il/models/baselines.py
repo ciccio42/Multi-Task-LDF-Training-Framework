@@ -161,12 +161,14 @@ class _DiscreteLogHead(nn.Module):
 
 
 class InverseImitation(nn.Module):
-    def __init__(self, latent_dim, lstm_config, sdim=9, adim=8, n_mixtures=3, concat_state=True, const_var=False, pred_point=False, vis=dict(), transformer_feat=True, concat_target_obj_embedding=False, load_target_obj_detector=False, freeze_target_obj_detector=False):
+    def __init__(self, latent_dim, lstm_config, sdim=9, adim=8, n_mixtures=3, concat_state=True, const_var=False, pred_point=False, vis=dict(), concat_target_obj_embedding=False, load_target_obj_detector=False, freeze_target_obj_detector=False, target_obj_detector_step=0, target_obj_detector_path=None, transformer_feat=True, ):
         super().__init__()
-
+        print(f"Action dim {adim}")
         self._concat_target_obj_embedding = concat_target_obj_embedding
         self._load_target_obj_detector = load_target_obj_detector
         self._freeze_target_obj_detector = freeze_target_obj_detector
+        self._target_obj_detector_step = target_obj_detector_step
+        self._target_obj_detector_step = target_obj_detector_path
 
         # initialize visual embeddings
         self._embed = _TransformerFeatures(

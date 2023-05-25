@@ -1,20 +1,22 @@
 #!/bin/sh
 export MUJOCO_PY_MUJOCO_PATH="/home/frosa_loc/.mujoco/mujoco210"
-export CUDA_VISIBLE_DEVICES=0
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
+export CUDA_VISIBLE_DEVICES=1
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/home/frosa_loc/multitask_dataset_ur/multitask_dataset_language_command
 SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline
-POLICY='${mosaic}'
+POLICY='${tosil}'
 
-EXP_NAME=1Task-Pick-Place-Mosaic-No-Obj-Detector-Ur5e-Linear-Variance
+EXP_NAME=1Task-Pick-Place-Tosil-No-Obj-Detector
 TASK_str=pick_place
 EPOCH=250
 BSIZE=128 #64 #32
 CONFIG_PATH=../experiments/
-PROJECT_NAME="ur_mosaic_baseline_no_obj_detector_linear_variance"
+PROJECT_NAME="ur_tosil_baseline_no_obj_detector"
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=16
+LOADER_WORKERS=8
 
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=17204
@@ -23,7 +25,7 @@ FREEZE_TARGET_OBJ_DETECTOR=false
 CONCAT_STATE=false
 
 ACTION_DIM=7
-EARLY_STOPPING_PATIECE=20
+EARLY_STOPPING_PATIECE=30
 OPTIMIZER='AdamW'
 LR=0.0001
 WEIGHT_DECAY=0.05
@@ -41,12 +43,12 @@ python ../training/train_scripts/train_any.py \
     bsize=${BSIZE} \
     vsize=${BSIZE} \
     epochs=${EPOCH} \
-    mosaic.load_target_obj_detector=${LOAD_TARGET_OBJ_DETECTOR} \
-    mosaic.target_obj_detector_step=${TARGET_OBJ_DETECTOR_STEP} \
-    mosaic.target_obj_detector_path=${TARGET_OBJ_DETECTOR_PATH} \
-    mosaic.freeze_target_obj_detector=${FREEZE_TARGET_OBJ_DETECTOR} \
-    actions.adim=${ACTION_DIM} \
-    mosaic.concat_state=${CONCAT_STATE} \
+    tosil.load_target_obj_detector=${LOAD_TARGET_OBJ_DETECTOR} \
+    tosil.target_obj_detector_step=${TARGET_OBJ_DETECTOR_STEP} \
+    tosil.target_obj_detector_path=${TARGET_OBJ_DETECTOR_PATH} \
+    tosil.freeze_target_obj_detector=${FREEZE_TARGET_OBJ_DETECTOR} \
+    tosil.adim=${ACTION_DIM} \
+    tosil.concat_state=${CONCAT_STATE} \
     early_stopping_cfg.patience=${EARLY_STOPPING_PATIECE} \
     project_name=${PROJECT_NAME} \
     EXPERT_DATA=${EXPERT_DATA} \

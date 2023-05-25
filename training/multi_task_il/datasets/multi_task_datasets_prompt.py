@@ -123,7 +123,6 @@ class MultiTaskPairedDataset(Dataset):
         self.task_to_idx = defaultdict(list)
         self.subtask_to_idx = OrderedDict()
         self.agent_files = dict()
-        self.demo_files = dict()
         self.mode = mode
 
         self.select_random_frames = select_random_frames
@@ -148,7 +147,6 @@ class MultiTaskPairedDataset(Dataset):
             name, date = spec.get('name', None), spec.get('date', None)
             assert name, 'need to specify the task name for data generated, for easier tracking'
             self.agent_files[name] = dict()
-            self.demo_files[name] = dict()
 
             self.object_distribution[name] = OrderedDict()
             self.object_distribution_to_indx[name] = OrderedDict()
@@ -159,13 +157,10 @@ class MultiTaskPairedDataset(Dataset):
             if date is None:
                 agent_dir = join(
                     root_dir, name, '{}_{}'.format(agent_name, name))
-                demo_dir = join(
-                    root_dir, name, '{}_{}'.format(demo_name, name))
             else:
                 agent_dir = join(
                     root_dir, name, '{}_{}_{}'.format(date, agent_name, name))
-                demo_dir = join(
-                    root_dir, name, '{}_{}_{}'.format(date, demo_name, name))
+
             self.subtask_to_idx[name] = defaultdict(list)
             for _id in range(spec.get('n_tasks')):
                 if _id in spec.get('skip_ids', []):
@@ -187,20 +182,7 @@ class MultiTaskPairedDataset(Dataset):
                 idxs = split_files(len(agent_files), split, mode)
                 agent_files = [agent_files[i] for i in idxs]
 
-                task_dir = expanduser(join(demo_dir, task_id, '*.pkl'))
-
-                demo_files = sorted(glob.glob(task_dir))
-                subtask_size = spec.get('demo_per_subtask', 100)
-                assert len(
-                    demo_files) >= subtask_size, "Doesn't have enough data "+str(len(demo_files))
-                demo_files = demo_files[:subtask_size]
-                idxs = split_files(len(demo_files), split, mode)
-                demo_files = [demo_files[i] for i in idxs]
-                # assert len(agent_files) == len(demo_files), \
-                #     'data for task {}, subtask #{} is not matched'.format(name, task_id)
-
                 self.agent_files[name][_id] = deepcopy(agent_files)
-                self.demo_files[name][_id] = deepcopy(demo_files)
 
                 self.object_distribution[name][task_id] = OrderedDict()
                 self.object_distribution_to_indx[name][task_id] = [
@@ -237,21 +219,20 @@ class MultiTaskPairedDataset(Dataset):
                                             break
                                     break
 
-                for demo in demo_files:
-                    for agent in agent_files:
-                        self.all_file_pairs[count] = (name, _id, demo, agent)
-                        self.task_to_idx[name].append(count)
-                        self.subtask_to_idx[name][task_id].append(count)
-                        if self.compute_obj_distribution and self.mode == 'train':
-                            # take objs for the current task_id
-                            for obj in self.object_distribution[name][task_id].keys():
-                                # take the slot for the given agent file
-                                if agent in self.object_distribution[name][task_id][obj]:
-                                    slot_indx = self.object_distribution[name][task_id][obj][agent]
-                                    # assign the slot for the given agent file
-                                    self.object_distribution_to_indx[name][task_id][slot_indx].append(
-                                        count)
-                        count += 1
+                for agent in agent_files:
+                    self.all_file_pairs[count] = (name, _id, agent)
+                    self.task_to_idx[name].append(count)
+                    self.subtask_to_idx[name][task_id].append(count)
+                    if self.compute_obj_distribution and self.mode == 'train':
+                        # take objs for the current task_id
+                        for obj in self.object_distribution[name][task_id].keys():
+                            # take the slot for the given agent file
+                            if agent in self.object_distribution[name][task_id][obj]:
+                                slot_indx = self.object_distribution[name][task_id][obj][agent]
+                                # assign the slot for the given agent file
+                                self.object_distribution_to_indx[name][task_id][slot_indx].append(
+                                    count)
+                    count += 1
 
             self.task_crops[name] = spec.get('crop', [0, 0, 0, 0])
 
@@ -259,7 +240,7 @@ class MultiTaskPairedDataset(Dataset):
         self.pairs_count = count
         self.task_count = len(tasks_spec)
 
-        self._demo_T, self._obs_T = demo_T, obs_T
+        self._obs_T = obs_T
         self.width, self.height = width, height
         self.aug_twice = aug_twice
         self.aux_pose = aux_pose
@@ -345,92 +326,24 @@ class MultiTaskPairedDataset(Dataset):
         an index to a proper sub-task index """
         if self.mode == 'train':
             pass
-        (task_name, sub_task_id, demo_file,
-         agent_file) = self.all_file_pairs[idx]
+        (task_name, sub_task_id, agent_file) = self.all_file_pairs[idx]
 
         if agent_file not in self.all_file_pairs:
             self._frame_distribution[agent_file] = np.zeros((1, 250))
 
-        demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
-        demo_data = self._make_demo(demo_traj, task_name)
-        traj = self._make_traj(agent_traj, task_name, agent_file)
-        return {'demo_data': demo_data, 'traj': traj, 'task_name': task_name, 'task_id': sub_task_id}
+        agent_traj, command = load_traj(agent_file)
+        prompt, traj = self._make_prompt(command, task_name, agent_traj)
 
-    def _make_demo(self, traj, task_name):
+        return {'prompt': prompt, 'traj': traj, 'task_name': task_name, 'task_id': sub_task_id}
+
+    def _make_prompt(self, command: str, task_name: str, agent_traj: object):
+        """Generate sample for VIMA model
+
+        Args:
+            command (str): _description_
+            task_name (str): _description_
+            agent_traj (object): _description_
         """
-        Do a near-uniform sampling of the demonstration trajectory
-        """
-        if self.select_random_frames:
-            def clip(x): return int(max(0, min(x, len(traj) - 1)))
-            per_bracket = max(len(traj) / self._demo_T, 1)
-            frames = []
-            cp_frames = []
-            for i in range(self._demo_T):
-                # fix to using uniform + 'sample_side' now
-                if i == self._demo_T - 1:
-                    n = len(traj) - 1
-                elif i == 0:
-                    n = 0
-                else:
-                    n = clip(np.random.randint(
-                        int(i * per_bracket), int((i + 1) * per_bracket)))
-                # frames.append(_make_frame(n))
-                # convert from BGR to RGB and scale to 0-1 range
-                obs = copy.copy(
-                    traj.get(n)['obs']['camera_front_image'][:, :, ::-1]/255)
-                processed = self.frame_aug(task_name, obs)
-                frames.append(processed)
-                if self.aug_twice:
-                    cp_frames.append(self.frame_aug(task_name, obs, True))
-        else:
-            frames = []
-            cp_frames = []
-            for i in range(self._demo_T):
-                # get first frame
-                if i == 0:
-                    n = 0
-                # get the last frame
-                elif i == self._demo_T - 1:
-                    n = len(traj) - 1
-                elif i == 1:
-                    obj_in_hand = 0
-                    # get the first frame with obj_in_hand and the gripper is closed
-                    for t in range(1, len(traj)):
-                        state = traj.get(t)['info']['status']
-                        trj_t = traj.get(t)
-                        gripper_act = trj_t['action'][-1]
-                        if state == 'obj_in_hand' and gripper_act == 1:
-                            obj_in_hand = t
-                            n = t
-                            break
-                elif i == 2:
-                    # get the middle moving frame
-                    start_moving = 0
-                    end_moving = 0
-                    for t in range(obj_in_hand, len(traj)):
-                        state = traj.get(t)['info']['status']
-                        if state == 'moving' and start_moving == 0:
-                            start_moving = t
-                        elif state != 'moving' and start_moving != 0 and end_moving == 0:
-                            end_moving = t
-                            break
-                    n = start_moving + int((end_moving-start_moving)/2)
-
-                # convert from BGR to RGB and scale to 0-1 range
-                obs = copy.copy(
-                    traj.get(n)['obs']['camera_front_image'][:, :, ::-1]/255)
-
-                processed = self.frame_aug(task_name, obs)
-                frames.append(processed)
-                if self.aug_twice:
-                    cp_frames.append(self.frame_aug(task_name, obs, True))
-
-        ret_dict = dict()
-        ret_dict['demo'] = torch.stack(frames)
-        ret_dict['demo_cp'] = torch.stack(cp_frames)
-        return ret_dict
-
-    def _make_traj(self, traj, task_name, agent_file):
         crop_params = self.task_crops.get(task_name, [0, 0, 0, 0])
 
         def _adjust_points(points, frame_dims):
@@ -459,15 +372,21 @@ class MultiTaskPairedDataset(Dataset):
                 o = o[k]
             return o
 
-        state_keys, action_keys = self._state_action_spec
-        ret_dict = {'states': [], 'actions': []}
-        has_eef_point = 'eef_point' in traj.get(0, False)['obs']
-        if has_eef_point:
-            ret_dict['points'] = []
-        end = len(traj)
-        start = torch.randint(low=1, high=max(
-            1, end - self._obs_T + 1), size=(1,))
+        ret_dict = {'states': [],
+                    'actions': [],
+                    'points': [],
+                    'images': None,
+                    'images_cp': None}
 
+        state_keys, action_keys = self._state_action_spec
+        has_eef_point = 'eef_point' in agent_traj.get(0, False)['obs']
+
+        if has_eef_point:
+            end = len(agent_traj)
+            start = torch.randint(low=1, high=max(
+                1, end - self._obs_T + 1), size=(1,))
+
+        # Select frames number
         if self._take_first_frame:
             first_frame = [torch.tensor(1)]
             chosen_t = first_frame + [j + start for j in range(self._obs_T)]
@@ -480,13 +399,10 @@ class MultiTaskPairedDataset(Dataset):
         images = []
         images_cp = []
 
+        # Get desired frames
         for j, t in enumerate(chosen_t):
-
-            # self._frame_distribution[agent_file][t] = self._frame_distribution[agent_file][t]
-
             t = t.item()
-
-            step_t = traj.get(t)
+            step_t = agent_traj.get(t)
             image = copy.copy(
                 step_t['obs']['camera_front_image'][:, :, ::-1]/255)
             processed = self.frame_aug(task_name, image)
@@ -527,13 +443,14 @@ class MultiTaskPairedDataset(Dataset):
 
         if self.aux_pose:
             grip_close = np.array(
-                [traj.get(i, False)['action'][-1] > 0 for i in range(1, len(traj))])
+                [agent_traj.get(i, False)['action'][-1] > 0 for i in range(1, len(agent_traj))])
             grip_t = np.argmax(grip_close)
-            drop_t = len(traj) - 1 - \
+            drop_t = len(agent_traj) - 1 - \
                 np.argmax(np.logical_not(grip_close)[::-1])
-            aux_pose = [traj.get(t, False)['obs']['ee_aa'][:3]
+            aux_pose = [agent_traj.get(t, False)['obs']['ee_aa'][:3]
                         for t in (grip_t, drop_t)]
             ret_dict['aux_pose'] = np.concatenate(aux_pose).astype(np.float32)
+
         return ret_dict
 
 
@@ -736,3 +653,7 @@ class DIYBatchSampler(Sampler):
         # define total length of sampler as number of iterations to
         # exhaust the last task
         return self.max_len
+
+
+if __name__ == '__main__':
+    pass

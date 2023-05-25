@@ -6,8 +6,8 @@ export CUDA_VISIBLE_DEVICES=0
 # export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libGLEW.so
 
 # path to folder where save trajectories
-BASEPATH=~/Desktop/multi_task_lfd/Multi-Task-LFD-Framework
-PATH_TO_DATA=~/Desktop/multi_task_lfd/
+BASEPATH=/home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework
+PATH_TO_DATA=dataset/
 SUITE=${PATH_TO_DATA}/multitask_dataset_language_command
 echo ${SUITE}
 WORKERS=1 # number of workers
@@ -22,16 +22,16 @@ N_tasks=16
 NUM=1600
 N_env=800
 per_task=100
-for ROBOT in panda ur5e; do
-        python3 ${SCRIPT} ${SUITE}/${TASK_name}/${ROBOT}_${TASK_name} \
+for ROBOT in panda; do
+        python ${SCRIPT} ${SUITE}/${TASK_name}/${ROBOT}_${TASK_name} \
                 -tsk ${TASK_name} -ro ${ROBOT} --n_tasks ${N_tasks} --n_env ${N_env} \
                 --N ${NUM} --per_task_group ${per_task} \
                 --num_workers ${WORKERS} \
                 --overwrite \
                 --ctrl_config ${PATH_TO_CONTROL_CONFIG} \
-                --collect_cam \
-                --debug
+                --collect_cam
         #--debug
-        #--renderer \
+        #--collect_cam \
+        #--debug \
 
 done

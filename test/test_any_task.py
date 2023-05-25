@@ -185,7 +185,7 @@ def build_tvf_formatter(config, env_name='stack'):
 
         obs = ToTensor()(img.copy())
         obs = resized_crop(obs, top=top, left=left, height=box_h, width=box_w,
-                           size=(height, width))
+                           size=(height, width), antialias=True)
 
         obs = Normalize(mean=[0.485, 0.456, 0.406],
                         std=[0.229, 0.224, 0.225])(obs)

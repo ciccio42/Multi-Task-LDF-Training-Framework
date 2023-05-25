@@ -11,7 +11,7 @@ from pyquaternion import Quaternion
 import torch
 import pickle as pkl
 import numpy as np
-from mosaic.datasets import Trajectory
+from multi_task_il.datasets import Trajectory
 import cv2
 from multi_task_il.utils import denormalize_action
 # Frezzes at this line if torchvision is imported
@@ -309,7 +309,7 @@ def pick_place_eval(model, target_obj_dec, env, context, gpu_id, variation_id, i
         try:
             obs, reward, env_done, info = env.step(action)
             # cv2.imwrite(
-            #     f"/home/ciccio/Desktop/multi_task_lfd/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/rollout_img/{n_steps}.png", obs['camera_front_image'][:, :, ::-1])
+            #     f"{n_steps}.png", obs['camera_front_image'][:, :, ::-1])
         except:
             print("Exception during step")
         if target_obj_dec is not None:

@@ -458,6 +458,7 @@ def main(cfg):
     if 'multi_task_il' not in cfg.policy._target_:
         print(f'Running baseline method: {cfg.policy._target_}')
         cfg.train_cfg.target_update_freq = -1
+
     workspace = W(cfg)
     workspace.run()
 

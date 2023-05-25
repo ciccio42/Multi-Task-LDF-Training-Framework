@@ -77,14 +77,14 @@ def single_run(model, agent_env, context, img_formatter, variation, show_image, 
 def run_inference(model, conf_file, task_name, task_indx, results_dir_path, training_trj, show_image, experiment_number, file_pair):
 
     model.cuda(0)
-    indx = file_pair[1]
-    print(f"Index {indx}")
+    variation_number = task_indx if task_indx != -1 else int(file_pair[0][1])
     demo_file = file_pair[0][2]
     demo_file_name = demo_file.split('/')[-1]
     agent_file = file_pair[0][3]
     agent_file_name = agent_file.split('/')[-1]
-    task_indx = task_indx if task_indx != -1 else int(file_pair[0][1])
-    results_analysis = [task_name, task_indx, demo_file_name, agent_file_name]
+    sample_number = file_pair[1]
+    results_analysis = [task_name, variation_number,
+                        sample_number, demo_file_name, agent_file_name]
 
     # print(f"----\nDemo file {demo_file}\nAgent file {agent_file}\n----")
     # open demo and agent data
@@ -97,12 +97,12 @@ def run_inference(model, conf_file, task_name, task_indx, results_dir_path, trai
     demo_target = demo_data['traj'].get(0)['obs']['target-object']
     agent_target = agent_data['traj'].get(0)['obs']['target-object']
     if demo_target != agent_target:
-        print(f"Sample indx {indx} different target objects")
+        print(f"Sample indx {sample_number} different target objects")
 
     # get env function
     env_func = TASK_ENV_MAP[task_name]['env_fn']
     agent_name = TASK_ENV_MAP[task_name]['ur5e']
-    variation = task_indx
+    variation = variation_number
     ret_env = True
     heights = conf_file.dataset_cfg.height
     widths = conf_file.dataset_cfg.width
@@ -140,15 +140,15 @@ def run_inference(model, conf_file, task_name, task_indx, results_dir_path, trai
                                 agent_env=agent_env,
                                 context=context,
                                 img_formatter=img_formatter,
-                                variation=variation, show_image=show_image, agent_trj=agent_trj, indx=indx)
+                                variation=variation, show_image=show_image, agent_trj=agent_trj, indx=variation_number)
         results_analysis.append(info)
         info['demo_file'] = demo_file_name
         info['agent_file'] = agent_file_name
         info['task_name'] = task_name
         pkl.dump(traj, open(results_dir_path +
-                 '/traj{}_{}.pkl'.format(indx, i), 'wb'))
+                 '/traj{}_{}_{}.pkl'.format(variation_number, sample_number, i), 'wb'))
         pkl.dump(context, open(results_dir_path +
-                 '/context{}_{}.pkl'.format(indx, i), 'wb'))
+                 '/context{}_{}_{}.pkl'.format(variation_number, sample_number, i), 'wb'))
         res = {}
         for k, v in info.items():
             if v == True or v == False:
@@ -156,7 +156,7 @@ def run_inference(model, conf_file, task_name, task_indx, results_dir_path, trai
             else:
                 res[k] = v
         json.dump(res, open(results_dir_path +
-                  '/traj{}_{}.json'.format(indx, i), 'w'))
+                  '/traj{}_{}_{}.json'.format(variation_number, sample_number, i), 'w'))
 
     del model
     return results_analysis
@@ -210,8 +210,12 @@ if __name__ == '__main__':
             run.name = model_name + f'-Test_{model_name}-Step_{args.step}'
             wandb.config.update(args)
 
-        results_dir_path = os.path.join(
-            args.results_dir, f"results_{task_name}", str(f"task-{args.task_indx}"))
+        if args.task_indx != -1:
+            results_dir_path = os.path.join(
+                args.results_dir, f"results_{task_name}", str(f"task-{args.task_indx}"), f"step_{args.step}")
+        else:
+            results_dir_path = os.path.join(
+                args.results_dir, f"results_training_{task_name}", f"step_{args.step}")
         try:
             os.makedirs(results_dir_path)
         except:
