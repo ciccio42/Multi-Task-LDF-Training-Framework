@@ -19,6 +19,8 @@ import numpy as np
 import random
 import glob
 from robosuite.utils import RandomizationError
+from torchvision.transforms import ToTensor, Normalize
+from torchvision.transforms.functional import resized_crop
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(name)s:%(message)s')
 logger = logging.getLogger("Log")
@@ -52,6 +54,37 @@ NORMALIZATION_RANGES = np.array([[-0.35,  0.25],
                                  [-3.14,  3.14911766],
                                  [-3.14911766, 3.14911766],
                                  [-3.14911766,  3.14911766]])
+
+
+def build_tvf_formatter():
+    """Use this for torchvision.transforms in multi-task dataset, 
+    note eval_fn always feeds in traj['obs']['images'], i.e. shape (h,w,3)
+    """
+    height = 100
+    width = 180
+
+    crop_params = [20, 25, 80, 75]
+    # print(crop_params)
+    top, left = crop_params[0], crop_params[2]
+
+    def resize_crop(img):
+        cv2.imwrite("obs.png", np.array(img))
+        if len(img.shape) == 4:
+            img = img[0]
+        img_h, img_w = img.shape[0], img.shape[1]
+        assert img_h != 3 and img_w != 3, img.shape
+        box_h, box_w = img_h - top - \
+            crop_params[1], img_w - left - crop_params[3]
+
+        obs = ToTensor()(img[:, :, ::-1].copy())
+        obs = resized_crop(obs, top=top, left=left, height=box_h, width=box_w,
+                           size=(height, width), antialias=True)
+        cv2.imwrite("cropped.png", np.moveaxis(obs.numpy()*255, 0, -1))
+        obs = Normalize(mean=[0.485, 0.456, 0.406],
+                        std=[0.229, 0.224, 0.225])(obs)
+
+        return obs
+    return resize_crop
 
 
 def normalize_action(action, n_action_bin, action_ranges):
@@ -115,6 +148,8 @@ if __name__ == "__main__":
     logger.info(f"Task path: {args.task_path}")
     task_paths = glob.glob(os.path.join(args.task_path, 'task_*'))
 
+    img_formatter = build_tvf_formatter()
+
     # Load custom controller
     current_dir = os.path.dirname(os.path.abspath(__file__))
     controller_config_path = os.path.join(
@@ -149,8 +184,8 @@ if __name__ == "__main__":
                     env_fn = TASK_ENV_MAP[args.task_name]['env_fn']
                     env = env_fn('UR5e_PickPlaceDistractor',
                                  controller_type=controller_config,
-                                 renderer=True,
-                                 camera_obs=False,
+                                 renderer=False,
+                                 camera_obs=True,
                                  task=i,
                                  render_camera='camera_front',
                                  object_set=2,
@@ -178,10 +213,11 @@ if __name__ == "__main__":
                         step = trajectory_obj.get(t)
                         if t != 0:
                             action = step['action']
-                            env.render()
+                            # env.render()
                             norm_action = normalize_action(
                                 action=action, n_action_bin=256, action_ranges=NORMALIZATION_RANGES)
                             action = denormalize_action(
                                 norm_action=norm_action, action_ranges=NORMALIZATION_RANGES)
-                            env.step(action)
+                            obs, reward, env_done, info = env.step(action)
+                            img_formatter(obs['camera_front_image'].copy())
                     del env

@@ -404,7 +404,7 @@ class MultiTaskPairedDataset(Dataset):
             t = t.item()
             step_t = agent_traj.get(t)
             image = copy.copy(
-                step_t['obs']['camera_front_image'][:, :, ::-1]/255)
+                step_t['obs']['camera_front_image'][:, :, ::-1])
             processed = self.frame_aug(task_name, image)
             images.append(processed)
             if self.aug_twice:

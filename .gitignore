@@ -144,3 +144,5 @@ wandb/*
 *.pkl
 *.ckpt
 datasets/*
+bashes/test/*
+bashes/out.txt

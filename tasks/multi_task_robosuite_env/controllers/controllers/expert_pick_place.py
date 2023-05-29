@@ -8,7 +8,6 @@ from multi_task_il.datasets import Trajectory
 import pybullet as p
 from pyquaternion import Quaternion
 import random
-from multi_task_robosuite_env.custom_ik_wrapper import normalize_action
 from robosuite import load_controller_config
 from robosuite.utils.transform_utils import quat2axisangle
 from robosuite.utils import RandomizationError
@@ -310,6 +309,12 @@ def get_expert_trajectory(env_type, controller_type, renderer=False, camera_obs=
         for t in range(int(env.horizon/env.action_repeat)):
             action, status = controller.act(obs)
             obs, reward, done, info = env.step(action)
+            try:
+                os.makedirs("test")
+            except:
+                pass
+            cv2.imwrite(f"test/prova.png",
+                        np.array(obs['camera_front_image'][:, :, ::-1]))
             assert 'status' not in info.keys(
             ), "Don't overwrite information returned from environment. "
             info['status'] = status

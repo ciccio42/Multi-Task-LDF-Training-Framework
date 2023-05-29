@@ -62,7 +62,7 @@ TASK_MAP = {
         'env_fn':   place_expert,
         'eval_fn':  pick_place_eval,
         'agent-teacher': ('UR5e_PickPlaceDistractor', 'Panda_PickPlaceDistractor'),
-        'render_hw': (100, 180),  # (150, 270)
+        'render_hw': (200, 360),  # (150, 270)
         'object_set': 2,
     },
     # 'stack_block': {
@@ -116,7 +116,7 @@ def select_random_frames(frames, n_select, sample_sides=True, random_frames=True
             if sample_sides and i == n_select - 1:
                 n = len(frames) - 1
             elif sample_sides and i == 0:
-                n = 0
+                n = 1
             selected_frames.append(n)
     else:
         for i in range(n_select):
@@ -166,7 +166,7 @@ def build_tvf_formatter(config, env_name='stack'):
     dataset_cfg = config.train_cfg.dataset
     height, width = dataset_cfg.get(
         'height', 100), dataset_cfg.get('width', 180)
-    task_spec = config.get(env_name, dict())
+    task_spec = config.tasks_cfgs.get(env_name, dict())
     # if 'baseline' in config.policy._target_: # yaml for the CMU baseline is messed up
     #     crop_params = [10, 50, 70, 70] if env_name == 'place' else [0,0,0,0]
 
@@ -182,14 +182,14 @@ def build_tvf_formatter(config, env_name='stack'):
         assert img_h != 3 and img_w != 3, img.shape
         box_h, box_w = img_h - top - \
             crop_params[1], img_w - left - crop_params[3]
-
+        cv2.imwrite("obs.png", np.array(img))
         obs = ToTensor()(img.copy())
         obs = resized_crop(obs, top=top, left=left, height=box_h, width=box_w,
                            size=(height, width), antialias=True)
-
+        cv2.imwrite("obs_cropped.png", np.moveaxis(obs.numpy(), 0, -1)*255)
         obs = Normalize(mean=[0.485, 0.456, 0.406],
                         std=[0.229, 0.224, 0.225])(obs)
-
+        cv2.imwrite("obs_normalized.png", np.moveaxis(obs.numpy(), 0, -1)*255)
         return obs
     return resize_crop
 
@@ -256,7 +256,9 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut',
     context = select_random_frames(
         teacher_expert_rollout, T_context, sample_sides=True, random_frames=random_frames)
     # convert BGR context image to RGB and scale to 0-1
-    context = [img_formatter(i[:, :, ::-1]/255)[None] for i in context]
+    for i, img in enumerate(context):
+        cv2.imwrite(f"context_{i}.png", np.array(img[:, :, ::-1]))
+    context = [img_formatter(i[:, :, ::-1])[None] for i in context]
     # assert len(context ) == 6
     if isinstance(context[0], np.ndarray):
         context = torch.from_numpy(np.concatenate(context, 0))[None]

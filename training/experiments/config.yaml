@@ -3,7 +3,10 @@ EXPERT_DATA:    null
 save_path:      null
 wandb_log: True 
 project_name: None
-log_freq:       1
+log_freq: 1
+val_freq: 1
+print_freq: 1
+save_freq: 1
 save_optim:     True
 resume:         False
 resume_path:    null

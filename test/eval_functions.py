@@ -294,7 +294,7 @@ def pick_place_eval(model, target_obj_dec, env, context, gpu_id, variation_id, i
             (obs['ee_aa'], obs['gripper_qpos'])).astype(np.float32)[None])
         # convert observation from BGR to RGB and scale to 0-1
         images.append(img_formatter(
-            obs['camera_front_image'][:, :, ::-1]/255)[None])
+            obs['camera_front_image'][:, :, ::-1])[None])
         action, target_pred = get_action(
             model,
             target_obj_dec,

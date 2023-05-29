@@ -12,8 +12,8 @@ from torchvision.transforms import ToTensor, Normalize
 from torchvision.transforms.functional import resized_crop
 from robosuite import load_controller_config
 
-NORMALIZATION_RANGES = np.array([[-0.35,  0.25],
-                                 [-0.30,  0.30],
+NORMALIZATION_RANGES = np.array([[-0.40,  0.40],
+                                 [-0.40,  0.40],
                                  [0.60,  1.20],
                                  [-3.14,  3.14911766],
                                  [-3.14911766, 3.14911766],
@@ -310,7 +310,7 @@ def pick_place_eval(model, env, context, gpu_id, variation_id, img_formatter, ma
             # cv2.destroyAllWindows()
 
         images.append(img_formatter(
-            obs['camera_front_image'][:, :, ::-1]/255)[None])
+            obs['camera_front_image'][:, :, ::-1])[None])
         if model_act:
             action = get_action(model, states, images, context,
                                 gpu_id, n_steps, max_T, baseline)

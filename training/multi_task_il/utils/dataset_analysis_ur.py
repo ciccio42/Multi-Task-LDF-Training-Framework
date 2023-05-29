@@ -129,7 +129,7 @@ def run_inference(model, conf_file, task_name, task_indx, results_dir_path, trai
         context = select_random_frames(
             demo_data['traj'], 4, sample_sides=True, experiment_number=experiment_number)
         # perform normalization on context frames
-        context = [img_formatter(i[:, :, ::-1]/255)[None] for i in context]
+        context = [img_formatter(i[:, :, ::-1])[None] for i in context]
         if isinstance(context[0], np.ndarray):
             context = torch.from_numpy(
                 np.concatenate(context, 0)).float()[None]

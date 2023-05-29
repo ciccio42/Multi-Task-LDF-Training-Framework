@@ -6,8 +6,8 @@ from pathlib import Path
 if str(Path.cwd()) not in sys.path:
     sys.path.insert(0, str(Path.cwd()))
 import numpy as np
-multi_task_robosuite_env.objects.custom_xml_objects import *
-multi_task_robosuite_env.arena import TableArena, BinsArena
+from multi_task_robosuite_env.objects.custom_xml_objects import *
+from multi_task_robosuite_env.arena import TableArena, BinsArena
 from robosuite.models.objects import (
     MilkVisualObject,
     BreadVisualObject,
@@ -59,7 +59,7 @@ class PickPlace(SingleArmEnv):
         self.obj_names = ["Milk", "Bread", "Cereal", "Can"]
         if object_type is not None:
             assert (
-                    object_type in self.object_to_id.keys()
+                object_type in self.object_to_id.keys()
             ), "invalid @object_type argument - choose one of {}".format(
                 list(self.object_to_id.keys())
             )
@@ -143,8 +143,10 @@ class PickPlace(SingleArmEnv):
 
         # object-specific ids
         for obj in (self.visual_objects + self.objects):
-            self.obj_body_id[obj.name] = self.sim.model.body_name2id(obj.root_body)
-            self.obj_geom_id[obj.name] = [self.sim.model.geom_name2id(g) for g in obj.contact_geoms]
+            self.obj_body_id[obj.name] = self.sim.model.body_name2id(
+                obj.root_body)
+            self.obj_geom_id[obj.name] = [
+                self.sim.model.geom_name2id(g) for g in obj.contact_geoms]
 
         # keep track of which objects are in their corresponding bins
         self.objects_in_bins = np.zeros(len(self.objects))
@@ -161,7 +163,8 @@ class PickPlace(SingleArmEnv):
                 bin_y_low -= self.bin_size[1] / 2.
             bin_x_low += self.bin_size[0] / 4.
             bin_y_low += self.bin_size[1] / 4.
-            self.target_bin_placements[i, :] = [bin_x_low, bin_y_low, self.bin2_pos[2]]
+            self.target_bin_placements[i, :] = [
+                bin_x_low, bin_y_low, self.bin2_pos[2]]
 
         if self.single_object_mode == 2:
             self.target_bin_placements = self.target_bin_placements[self._bin_mappings]
@@ -186,7 +189,8 @@ class PickPlace(SingleArmEnv):
                     self.sim.model.body_quat[self.obj_body_id[obj.name]] = obj_quat
                 else:
                     # Set the collision object joints
-                    self.sim.data.set_joint_qpos(obj.joints[0], np.concatenate([np.array(obj_pos), np.array(obj_quat)]))
+                    self.sim.data.set_joint_qpos(obj.joints[0], np.concatenate(
+                        [np.array(obj_pos), np.array(obj_quat)]))
 
         # Move objects out of the scene depending on the mode
         obj_names = {obj.name for obj in self.objects}
@@ -215,7 +219,8 @@ class PickPlace(SingleArmEnv):
             obj_pos = self.sim.data.body_xpos[self.obj_body_id[obj_str]]
             dist = np.linalg.norm(gripper_site_pos - obj_pos)
             r_reach = 1 - np.tanh(10.0 * dist)
-            self.objects_in_bins[i] = int((not self.not_in_bin(obj_pos, i)) and r_reach < 0.6)
+            self.objects_in_bins[i] = int(
+                (not self.not_in_bin(obj_pos, i)) and r_reach < 0.6)
 
         if self.single_object_mode == 2:
             obj_str = self.objects[self.object_id].name
@@ -233,7 +238,8 @@ class PickPlace(SingleArmEnv):
         """
         Helper function for defining placement initializer and object sampling bounds.
         """
-        self.placement_initializer = SequentialCompositeSampler(name="ObjectSampler")
+        self.placement_initializer = SequentialCompositeSampler(
+            name="ObjectSampler")
 
         self.placement_initializer.append_sampler(
             BoundarySampler(
@@ -258,7 +264,8 @@ class PickPlace(SingleArmEnv):
         super()._load_model()
 
         # Adjust base pose accordingly
-        xpos = self.robots[0].robot_model.base_xpos_offset["table"](self.table_full_size[0])
+        xpos = self.robots[0].robot_model.base_xpos_offset["table"](
+            self.table_full_size[0])
         self.robots[0].robot_model.set_base_xpos(xpos)
 
         # load model for table top workspace
@@ -275,13 +282,13 @@ class PickPlace(SingleArmEnv):
         self.objects = []
         self.visual_objects = []
         for vis_obj_cls, obj_name in zip(
-                (MilkVisualObject, BreadVisualObject, CerealVisualObject, CanVisualObject),
+                (MilkVisualObject, BreadVisualObject,
+                 CerealVisualObject, CanVisualObject),
                 self.obj_names,
         ):
             vis_name = "Visual" + obj_name
             vis_obj = vis_obj_cls(name=vis_name)
             self.visual_objects.append(vis_obj)
-
 
         object_seq = (MilkObject, BreadObject, CerealObject, CanObject)
 
@@ -307,7 +314,6 @@ class PickPlace(SingleArmEnv):
 
         # Generate placement initializer
         self._get_placement_initializer()
-
 
     def reward(self, action=None):
         return float(self._check_success())
@@ -335,7 +341,8 @@ class PickPlace(SingleArmEnv):
             # del di[in_hand_cam_name + '_image']
             if self.camera_depths[0]:
                 di['depth'] = di[cam_name + '_depth'].copy()
-                di['depth'] = ((di['depth'] - 0.95) / 0.05 * 255).astype(np.uint8)
+                di['depth'] = ((di['depth'] - 0.95) /
+                               0.05 * 255).astype(np.uint8)
         if self.single_object_mode == 2:
             di['target-box-id'] = self._bin_mappings[self.object_id]
             di['target-object'] = self.object_id
@@ -352,7 +359,8 @@ class PickPlace(SingleArmEnv):
 
         for i, obj in enumerate(self.objects):
             obj_str = obj.name
-            obj_pos = np.array(self.sim.data.body_xpos[self.obj_body_id[obj_str]])
+            obj_pos = np.array(
+                self.sim.data.body_xpos[self.obj_body_id[obj_str]])
             obj_quat = T.convert_quat(
                 self.sim.data.body_xquat[self.obj_body_id[obj_str]], to="xyzw"
             )
@@ -361,7 +369,8 @@ class PickPlace(SingleArmEnv):
 
             # get relative pose of object in gripper frame
             object_pose = T.pose2mat((obj_pos, obj_quat))
-            rel_pose = T.pose_in_A_to_pose_in_B(object_pose, world_pose_in_gripper)
+            rel_pose = T.pose_in_A_to_pose_in_B(
+                object_pose, world_pose_in_gripper)
             rel_pos, rel_quat = T.mat2pose(rel_pose)
             di["{}_to_{}eef_pos".format(obj_str, pr)] = rel_pos
             di["{}_to_{}eef_quat".format(obj_str, pr)] = rel_quat
@@ -391,7 +400,8 @@ class SawyerPickPlaceDistractor(PickPlace):
         items = ['milk', 'bread', 'cereal', 'can']
         obj = np.random.choice(items) if force_object is None else force_object
         obj = items[obj] if isinstance(obj, int) else obj
-        super().__init__(robots=['Sawyer'], single_object_mode=2, object_type=obj, no_clear=True, **kwargs)
+        super().__init__(robots=['Sawyer'], single_object_mode=2,
+                         object_type=obj, no_clear=True, **kwargs)
 
 
 class PandaPickPlaceDistractor(PickPlace):
@@ -405,8 +415,8 @@ class PandaPickPlaceDistractor(PickPlace):
         items = ['milk', 'bread', 'cereal', 'can']
         obj = np.random.choice(items) if force_object is None else force_object
         obj = items[obj] if isinstance(obj, int) else obj
-        super().__init__(robots=['Panda'], single_object_mode=2, object_type=obj, no_clear=True,  **kwargs)
-
+        super().__init__(robots=['Panda'], single_object_mode=2,
+                         object_type=obj, no_clear=True,  **kwargs)
 
 
 if __name__ == '__main__':

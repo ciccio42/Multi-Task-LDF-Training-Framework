@@ -292,7 +292,8 @@ class MultiTaskPairedDataset(Dataset):
             RandomApply(
                 [GaussianBlur(kernel_size=5, sigma=data_augs.get('blur', (0.1, 2.0)))], p=0.1),
             randcrop,
-            self.normalize])
+            # self.normalize
+        ])
 
         self.use_strong_augs = use_strong_augs
         print("Using strong augmentations?", use_strong_augs)
@@ -310,7 +311,7 @@ class MultiTaskPairedDataset(Dataset):
                 [GaussianBlur(kernel_size=5, sigma=data_augs.get('blur', (0.1, 2.0)))], p=0.01),
             RandomResizedCrop(
                 size=(height, width), scale=strong_scale, ratio=strong_ratio),
-            self.normalize,
+            # self.normalize,
         ])
 
         def frame_aug(task_name, obs, second=False):

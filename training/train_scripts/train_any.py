@@ -120,6 +120,9 @@ class Trainer:
 
         vlm_alpha = self.train_cfg.get('vlm_alpha', 0.6)
         log_freq = self.train_cfg.get('log_freq', 1000)
+        val_freq = self.train_cfg.get('val_freq', 1000)
+        print_freq = self.train_cfg.get('print_freq', 10000)
+        save_freq = self.train_cfg.get('save_freq', 10000)
 
         print("Loss multipliers: \n BC: {} inv: {} Point: {}".format(
             self.train_cfg.bc_loss_mult, self.train_cfg.inv_loss_mult, self.train_cfg.pnt_loss_mult))
@@ -151,7 +154,22 @@ class Trainer:
                 tolog = {}
 
                 # Save stats
-                if (self._step % len(self._train_loader) == 0):  # stats
+                if self._step % save_freq == 0:  # stats
+                    self.save_checkpoint(model, optimizer, weights_fn, save_fn)
+                    if save_fn is not None:
+                        save_fn(self._save_fname, self._step)
+                    else:
+                        save_module = model
+                        if weights_fn is not None:
+                            save_module = weights_fn()
+                        elif isinstance(model, nn.DataParallel):
+                            save_module = model.module
+                        torch.save(save_module.state_dict(),
+                                   self._save_fname + '-{}.pt'.format(self._step))
+                    if self.config.get('save_optim', False):
+                        torch.save(optimizer.state_dict(
+                        ), self._save_fname + '-optim-{}.pt'.format(self._step))
+
                     stats_save_name = join(
                         self.save_dir, 'stats', '{}.json'.format('train_val_stats'))
                     json.dump({k: str(v) for k, v in raw_stats.items()},
@@ -180,13 +198,13 @@ class Trainer:
                                 tolog[f'train/{loss_name}/{task_name}'] = loss_val
                                 tolog[f'train/{task_name}/{loss_name}'] = loss_val
 
-                    if (self._step % len(self._train_loader) == 0):
+                    if self._step % print_freq == 0:
                         print(
                             'Training epoch {1}/{2}, step {0}: \t '.format(self._step, e, epochs))
                         print(train_print)
 
                 #### ---- Validation step ----####
-                if (self._step % len(self._train_loader) == 0):
+                if self._step % val_freq == 0:
                     # exhaust all data in val loader and take avg loss
                     all_val_losses = {task: defaultdict(
                         list) for task in task_names}
@@ -236,8 +254,9 @@ class Trainer:
                             tolog['learning_rate'] = scheduler._schedule.optimizer.param_groups[0]['lr']
 
                     # check for early stopping
-                    self._early_stopping(
-                        weighted_task_loss_val, model, self._step, optimizer)
+                    if self.train_cfg.early_stopping.patience != -1:
+                        self._early_stopping(
+                            weighted_task_loss_val, model, self._step, optimizer)
 
                     model = model.train()
                     if self._early_stopping.early_stop:

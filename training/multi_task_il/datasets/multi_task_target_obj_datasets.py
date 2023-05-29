@@ -350,7 +350,7 @@ class MultiTaskPairedTargetObjDataset(Dataset):
                 # frames.append(_make_frame(n))
                 # convert from BGR to RGB and scale to 0-1 range
                 obs = copy.copy(
-                    traj.get(n)['obs']['camera_front_image'][:, :, ::-1]/255)
+                    traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
                 processed = self.frame_aug(task_name, obs)
                 frames.append(processed)
                 if self.aug_twice:
@@ -391,7 +391,7 @@ class MultiTaskPairedTargetObjDataset(Dataset):
 
                 # convert from BGR to RGB and scale to 0-1 range
                 obs = copy.copy(
-                    traj.get(n)['obs']['camera_front_image'][:, :, ::-1]/255)
+                    traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
 
                 processed = self.frame_aug(task_name, obs)
                 frames.append(processed)
@@ -418,7 +418,7 @@ class MultiTaskPairedTargetObjDataset(Dataset):
                 t = t.item()
                 step_t = traj.get(t)
                 image = copy.copy(
-                    step_t['obs']['camera_front_image'][:, :, ::-1]/255)
+                    step_t['obs']['camera_front_image'][:, :, ::-1])
                 processed = self.frame_aug(task_name, image)
                 images.append(processed)
                 if self.aug_twice:
@@ -434,14 +434,14 @@ class MultiTaskPairedTargetObjDataset(Dataset):
                 t = t.item()
                 step_t = traj.get(t)
                 image = copy.copy(
-                    step_t['obs']['camera_front_image'][:, :, ::-1]/255)
+                    step_t['obs']['camera_front_image'][:, :, ::-1])
                 processed = self.frame_aug(task_name, image)
                 images.append(processed)
                 if self.aug_twice:
                     images_cp.append(self.frame_aug(task_name, image, True))
         else:
             image = copy.copy(
-                traj.get(1)['obs']['camera_front_image'][:, :, ::-1]/255)
+                traj.get(1)['obs']['camera_front_image'][:, :, ::-1])
             images.append(self.frame_aug(task_name, image))
             images_cp.append(self.frame_aug(task_name, image, True))
 
