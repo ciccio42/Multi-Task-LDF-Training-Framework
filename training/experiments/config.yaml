@@ -18,6 +18,7 @@ bsize:          30
 vsize:          ${bsize} # optionally, set to a different batchsize for validation loader
 optimizer:      null #Adam # RMSProp
 task_names: null
+dataset_target: 'multi_task_il.datasets.multi_task_datasets.MultiTaskPairedDataset'
 # imitation loss multipliers
 inv_mul:        1
 bc_mul:         1
@@ -79,7 +80,7 @@ val_skip:             False # whether to let the samplers skip some **sub**tasks
 train_skip:           True
 
 dataset_cfg:
-  _target_:         'multi_task_il.datasets.multi_task_datasets.MultiTaskPairedDataset'
+  _target_:         ${dataset_target}
   root_dir:         ${EXPERT_DATA}/
   mode:             ???
   tasks_spec:       ${tasks}
@@ -107,7 +108,7 @@ dataset_cfg:
   allow_train_skip: ${train_skip}
   use_strong_augs:  True 
   select_random_frames: True
-  compute_obj_distribution: True
+  compute_obj_distribution: False
   agent_name: 'ur5e'
   demo_name: 'panda'
 
@@ -263,3 +264,11 @@ daml:
   n_mix: 2
   const_var: True
   inner_iters: 1
+
+vima:
+  _target_: multi_task_il.models.vima.policy.Policy
+  embed_dim: 640
+  xf_n_layers: 7
+  sattn_n_heads: 20
+  xattn_n_heads: 20
+  views: ['front']

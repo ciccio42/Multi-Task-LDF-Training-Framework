@@ -101,7 +101,7 @@ def make_data_loaders(config, dataset_cfg):
         collate_fn=collate_by_task
     )
 
-    check_train_val_overlap(train_dataset=dataset, val_dataset=val_dataset)
+    # check_train_val_overlap(train_dataset=dataset, val_dataset=val_dataset)
     return train_loader, val_loader
 
 
@@ -245,6 +245,68 @@ def calculate_obj_pos_loss(config, train_cfg, device, model, task_inputs, loss, 
     return all_losses, all_accuracy
 
 
+def calculate_task_loss_vima(config, train_cfg, device, model, task_inputs):
+    model_inputs = defaultdict()
+    task_to_idx = dict()
+    task_losses = OrderedDict()
+    start = 0
+    for idx, (task_name, inputs) in enumerate(task_inputs.items()):
+        traj = inputs['sample']
+        input_keys = ['states',
+                      'actions',
+                      'images',
+                      'images_cp',
+                      'prompt',
+                      'prompt_token_type',
+                      'word_batch',
+                      'image_batch',
+                      'obs']
+
+        for key in input_keys:
+            if key != 'prompt' and key != 'prompt_token_type':
+                if key == 'image_batch' or key == 'obs':
+                    model_inputs[key] = traj[key].to_torch_tensor(
+                        device=device)
+                else:
+                    model_inputs[key] = traj[key].to(device)
+            else:
+                model_inputs[key] = traj[key]
+
+        task_bsize = traj['actions'].shape[0]
+        task_to_idx[task_name] = [start + i for i in range(task_bsize)]
+        task_losses[task_name] = OrderedDict()
+        start += task_bsize
+
+    # for key in model_inputs.keys():
+    #     model_inputs[key] = torch.cat(model_inputs[key], dim=0)
+    all_losses = dict()
+
+    out = model(
+        input=model_inputs
+    )
+
+    # forward & backward action pred
+    actions = model_inputs['actions']
+    # mu_bc.shape: B, 7, 8, 4]) but actions.shape: B, 6, 8
+    mu_bc, scale_bc, logit_bc = out['bc_distrib']
+    action_distribution = DiscreteMixLogistic(
+        mu_bc[:, :-1], scale_bc[:, :-1], logit_bc[:, :-1])
+    act_prob = rearrange(- action_distribution.log_prob(actions),
+                         'B n_mix act_dim -> B (n_mix act_dim)')
+
+    all_losses["l_bc"] = train_cfg.bc_loss_mult * \
+        torch.mean(act_prob, dim=-1)
+
+    all_losses["loss_sum"] = all_losses["l_bc"]
+
+    # flatten here to avoid headache
+    for (task_name, idxs) in task_to_idx.items():
+        for (loss_name, loss_val) in all_losses.items():
+            if len(loss_val.shape) > 0:
+                task_losses[task_name][loss_name] = torch.mean(loss_val[idxs])
+    return task_losses
+
+
 def calculate_task_loss(config, train_cfg, device, model, task_inputs):
     """Assumes inputs are collated by task names already, organize things properly before feeding into the model s.t.
         for each batch input, the model does only one forward pass."""
@@ -273,6 +335,7 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
     for key in model_inputs.keys():
         model_inputs[key] = torch.cat(model_inputs[key], dim=0)
     all_losses = dict()
+
     if config.use_daml:
         bc_loss, aux_loss = calculate_maml_loss(model, model_inputs)
         all_losses["l_bc"] = bc_loss

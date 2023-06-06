@@ -2,20 +2,20 @@
 export MUJOCO_PY_MUJOCO_PATH="/home/frosa_loc/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
 SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline
 POLICY='${mosaic}'
 
-SAVE_FREQ=500
-LOG_FREQ=500
-VAL_FREQ=500
+SAVE_FREQ=1000
+LOG_FREQ=1000
+VAL_FREQ=1000
 
 EXP_NAME=1Task-Pick-Place-Mosaic-cropped-no-normalized
 TASK_str=pick_place
-EPOCH=20
+EPOCH=40
 BSIZE=32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
@@ -24,7 +24,8 @@ SET_SAME_N=2
 CONFIG_PATH=../experiments
 PROJECT_NAME="ur_baseline_cropped_no_normalized"
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=8
+LOADER_WORKERS=16
+NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=true
 CONTRASTIVE_PRE=1.0
@@ -53,8 +54,8 @@ WEIGHT_DECAY=0
 SCHEDULER=None
 
 RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Mosaic-cropped-no-normalized-Batch32
-RESUME_STEP=48500
-RESUME=true
+RESUME_STEP=84100
+RESUME=false
 
 python ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
@@ -69,6 +70,7 @@ python ../training/train_scripts/train_any.py \
     bsize=${BSIZE} \
     vsize=${BSIZE} \
     epochs=${EPOCH} \
+    dataset_cfg.normalize_action=${NORMALIZE_ACTION} \
     dataset_cfg.compute_obj_distribution=${COMPUTE_OBJ_DISTRIBUTION} \
     samplers.balancing_policy=${BALANCING_POLICY} \
     mosaic.load_target_obj_detector=${LOAD_TARGET_OBJ_DETECTOR} \

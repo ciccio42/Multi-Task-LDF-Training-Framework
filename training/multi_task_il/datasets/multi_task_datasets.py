@@ -353,8 +353,8 @@ class MultiTaskPairedDataset(Dataset):
             self._frame_distribution[agent_file] = np.zeros((1, 250))
 
         demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
-        demo_data = self._make_demo(demo_traj, task_name)
-        traj = self._make_traj(agent_traj, task_name, agent_file)
+        demo_data = self._make_demo(demo_traj[0], task_name)
+        traj = self._make_traj(agent_traj[0], task_name, agent_file)
         return {'demo_data': demo_data, 'traj': traj, 'task_name': task_name, 'task_id': sub_task_id}
 
     def _make_demo(self, traj, task_name):
@@ -378,7 +378,7 @@ class MultiTaskPairedDataset(Dataset):
                 # frames.append(_make_frame(n))
                 # convert from BGR to RGB and scale to 0-1 range
                 obs = copy.copy(
-                    traj.get(n)['obs']['camera_front_image'][:, :, ::-1]/255)
+                    traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
                 processed = self.frame_aug(task_name, obs)
                 frames.append(processed)
                 if self.aug_twice:
@@ -419,7 +419,7 @@ class MultiTaskPairedDataset(Dataset):
 
                 # convert from BGR to RGB and scale to 0-1 range
                 obs = copy.copy(
-                    traj.get(n)['obs']['camera_front_image'][:, :, ::-1]/255)
+                    traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
 
                 processed = self.frame_aug(task_name, obs)
                 frames.append(processed)
@@ -489,7 +489,7 @@ class MultiTaskPairedDataset(Dataset):
 
             step_t = traj.get(t)
             image = copy.copy(
-                step_t['obs']['camera_front_image'][:, :, ::-1]/255)
+                step_t['obs']['camera_front_image'][:, :, ::-1])
             processed = self.frame_aug(task_name, image)
             images.append(processed)
             if self.aug_twice:
@@ -685,7 +685,7 @@ class DIYBatchSampler(Sampler):
 
         assert idx == batch_size, "The constructed batch size {} doesn't match desired {}".format(
             idx, batch_size)
-        self.batch_size = idx
+        self.batch_size = batch_size
         self.drop_last = drop_last
 
         print("Shuffling to break the task ordering in each batch? ", self.shuffle)

@@ -26,6 +26,9 @@ def get_env(env_name, ranges, **kwargs):
     elif env_name == 'Sawyer_BlockStacking':
         from multi_task_robosuite_env.tasks.stack import SawyerBlockStacking
         env = SawyerBlockStacking
+    elif env_name == 'UR5e_BlockStacking':
+        from multi_task_robosuite_env.tasks.stack import UR5eBlockStacking
+        env = UR5eBlockStacking
     elif env_name == 'Panda_Basketball':
         from multi_task_robosuite_env.tasks.basketball import PandaBasketball
         env = PandaBasketball

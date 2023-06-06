@@ -296,9 +296,11 @@ class RoundNut2Object(MujocoXMLObject):
 
     def __init__(self, name):
         super().__init__(os.path.join(BASE_DIR, 'round_nut_2.xml'),
-                         name=name, joints=[
+                         name=name,
+                         joints=[
                              dict(type="free", damping="0.0005")],
-                         obj_type="all", duplicate_collision_geoms=True)
+                         obj_type="all",
+                         duplicate_collision_geoms=True)
 
     @property
     def important_sites(self):

@@ -34,7 +34,7 @@ def load_traj(fname):
     if '.pkl' in fname:
         sample = pkl.load(open(fname, 'rb'))
         traj = sample['traj']
-        if 'command' in sample:
+        if 'command' in sample.keys():
             command = sample['command']
         else:
             command = None

@@ -1,5 +1,6 @@
 import random
 import torch
+import os
 from os.path import join, expanduser
 from multi_task_il.datasets import load_traj, split_files
 import cv2
@@ -9,6 +10,8 @@ from torchvision import transforms
 from torchvision.transforms import RandomAffine, ToTensor, Normalize, \
     RandomGrayscale, ColorJitter, RandomApply, RandomHorizontalFlip, GaussianBlur, RandomResizedCrop
 from torchvision.transforms.functional import resized_crop
+from tokenizers import Tokenizer
+from tokenizers import AddedToken
 
 import pickle as pkl
 from collections import defaultdict, OrderedDict
@@ -20,10 +23,14 @@ from copy import deepcopy
 from functools import reduce
 from operator import concat
 from multi_task_il.utils import normalize_action
+from einops import rearrange
+
+from multi_task_il.models.vima.utils import *
 
 ENV_OBJECTS = {
     'pick_place': {
-        'obj_names': ['greenbox', 'yellowbox', 'bluebox', 'redbox'],
+        'obj_names': ['greenbox', 'yellowbox', 'bluebox', 'redbox', 'bin'],
+        'splitted_obj_names': ['green box', 'yellow box', 'blue box', 'red box'],
         'ranges': [[0.195, 0.255], [0.045, 0.105], [-0.105, -0.045], [-0.255, -0.195]],
     },
     'nut_assembly': {
@@ -34,6 +41,20 @@ ENV_OBJECTS = {
 
 JITTER_FACTORS = {'brightness': 0.4,
                   'contrast': 0.4, 'saturation': 0.4, 'hue': 0.1}
+
+os.environ["TOKENIZERS_PARALLELISM"] = "true"
+_kwargs = {
+    "single_word": True,
+    "lstrip": False,
+    "rstrip": False,
+    "normalized": True,
+}
+PLACEHOLDER_TOKENS = [
+    AddedToken("{pick_object}", **_kwargs),
+]
+PLACEHOLDERS = [token.content for token in PLACEHOLDER_TOKENS]
+tokenizer = Tokenizer.from_pretrained("t5-base")
+tokenizer.add_tokens(PLACEHOLDER_TOKENS)
 
 
 def collate_by_task(batch):
@@ -78,6 +99,8 @@ class MultiTaskPairedDataset(Dataset):
             normalize_action=True,
             normalization_ranges=[],
             n_action_bin=256,
+            views=['front'],
+            modality=['rgb'],
             ** params):
         """
         Args:
@@ -139,7 +162,8 @@ class MultiTaskPairedDataset(Dataset):
         self._normalize_action = normalize_action
         self._normalization_ranges = np.array(normalization_ranges)
         self._n_action_bin = n_action_bin
-
+        self._views = views
+        self._modality = modality
         # Frame distribution for each trajectory
         self._frame_distribution = OrderedDict()
 
@@ -273,7 +297,8 @@ class MultiTaskPairedDataset(Dataset):
             RandomApply(
                 [GaussianBlur(kernel_size=5, sigma=data_augs.get('blur', (0.1, 2.0)))], p=0.1),
             randcrop,
-            self.normalize])
+            # self.normalize
+        ])
 
         self.use_strong_augs = use_strong_augs
         print("Using strong augmentations?", use_strong_augs)
@@ -291,7 +316,7 @@ class MultiTaskPairedDataset(Dataset):
                 [GaussianBlur(kernel_size=5, sigma=data_augs.get('blur', (0.1, 2.0)))], p=0.01),
             RandomResizedCrop(
                 size=(height, width), scale=strong_scale, ratio=strong_ratio),
-            self.normalize,
+            # self.normalize,
         ])
 
         def frame_aug(task_name, obs, second=False):
@@ -332,12 +357,12 @@ class MultiTaskPairedDataset(Dataset):
             self._frame_distribution[agent_file] = np.zeros((1, 250))
 
         agent_traj, command = load_traj(agent_file)
-        prompt, traj = self._make_prompt(command, task_name, agent_traj)
+        sample = self._make_prompt(command, task_name, agent_traj)
 
-        return {'prompt': prompt, 'traj': traj, 'task_name': task_name, 'task_id': sub_task_id}
+        return {'sample': sample, 'task_name': task_name, 'task_id': sub_task_id}
 
-    def _make_prompt(self, command: str, task_name: str, agent_traj: object):
-        """Generate sample for VIMA model
+    def _make_prompt(self, command: str, task_name: str, agent_traj: object, add_special_token: bool = True):
+        """Generate sample for prompted model
 
         Args:
             command (str): _description_
@@ -376,7 +401,8 @@ class MultiTaskPairedDataset(Dataset):
                     'actions': [],
                     'points': [],
                     'images': None,
-                    'images_cp': None}
+                    'images_cp': None,
+                    'prompt': None}
 
         state_keys, action_keys = self._state_action_spec
         has_eef_point = 'eef_point' in agent_traj.get(0, False)['obs']
@@ -419,7 +445,7 @@ class MultiTaskPairedDataset(Dataset):
             ret_dict['states'].append(
                 np.concatenate(state).astype(np.float32)[None])
 
-            if (j >= 1 and not self._take_first_frame) or (self._take_first_frame and j >= 2):
+            if (j >= 1 and not self._take_first_frame) or (self._take_first_frame and j >= 2) or (j == 0 and len(chosen_t) == 1):
                 action = []
                 for k in action_keys:
                     action.append(_get_tensor(k, step_t))
@@ -435,7 +461,8 @@ class MultiTaskPairedDataset(Dataset):
                     np.concatenate(action).astype(np.float32)[None])
 
         for k, v in ret_dict.items():
-            ret_dict[k] = np.concatenate(v, 0).astype(np.float32)
+            if v is not None:
+                ret_dict[k] = np.concatenate(v, 0).astype(np.float32)
 
         ret_dict['images'] = torch.stack(images)
         if self.aug_twice:
@@ -451,7 +478,326 @@ class MultiTaskPairedDataset(Dataset):
                         for t in (grip_t, drop_t)]
             ret_dict['aux_pose'] = np.concatenate(aux_pose).astype(np.float32)
 
+        # [ToDo Add special tokens]
+        if add_special_token:
+            if task_name == 'pick_place':
+                # add special token
+                color = command.split(" ")[2]
+                object = command.split(" ")[3]
+                command = command.replace(
+                    f"{color} {object}", "{pick_object}")
+                ret_dict['prompt'] = command
+
+                prompt_assets = self._create_prompt_assets(
+                    obs=agent_traj.get(1)['obs'],
+                    task_name=task_name,
+                    views=self._views,
+                    modalities=self._modality
+                )
+                prompt_token_type, word_batch, image_batch = self._prepare_prompt(
+                    obs=agent_traj.get(1)['obs'],
+                    task_name=task_name,
+                    prompt=command,
+                    prompt_assets=prompt_assets,
+                    views=self._views
+                )
+                ret_dict['prompt_token_type'] = prompt_token_type
+                ret_dict['word_batch'] = word_batch
+                ret_dict['image_batch'] = image_batch
+
+                ret_dict['obs'] = self._prepare_obs(agent_traj=agent_traj,
+                                                    chosen_t=chosen_t,
+                                                    views=self._views,
+                                                    task_name=task_name)
+
+        else:
+            ret_dict['prompt'] = command
+
         return ret_dict
+
+    def _prepare_prompt(self, obs: object, task_name: str, prompt: str, prompt_assets: dict, views: list):
+        views = sorted(views)
+        encoding = tokenizer.encode(prompt, add_special_tokens=True)
+        prompt_ids, prompt_tokens = encoding.ids, encoding.tokens
+        assert set(prompt_assets.keys()) == set(
+            [token[1:-1] for token in prompt_tokens if token in PLACEHOLDERS]
+        )
+        filled_prompt = []
+        for id, token in zip(prompt_ids, prompt_tokens):
+            if token not in PLACEHOLDERS:
+                assert "{" not in token and "}" not in token
+                filled_prompt.append(id)
+            else:
+                assert token.startswith("{") and token.endswith("}")
+                asset_name = token[1:-1]
+                assert asset_name in prompt_assets, f"missing prompt asset {asset_name}"
+                asset = prompt_assets[asset_name]
+                obj_info = asset["segm"]["obj_info"]
+                placeholder_type = asset["placeholder_type"]
+                if placeholder_type == "object":
+                    objects = [obj_info["obj_id"]]
+                elif placeholder_type == "scene":
+                    objects = [each_info["obj_id"] for each_info in obj_info]
+                obj_repr = {
+                    "cropped_img": {view: [] for view in views},
+                    "bbox": {view: [] for view in views},
+                }
+
+                for view in views:
+                    modality_view = asset['rgb'][view]
+                    bboxes = []
+                    cropped_imgs = []
+                    # for each object, crop the image around the target object
+                    for i, obj_id in enumerate(objects):
+                        # Create bounding box for the target object
+                        if task_name == 'pick_place':
+                            if i == 0:
+                                # In pick-place the first object is the target object
+                                target_obj_id = obs['target-object']
+                                target_obj_name = ENV_OBJECTS[task_name]['obj_names'][target_obj_id]
+                                target_obj_bb = obs['obj_bb']['camera_front'][target_obj_name]
+                                upper_left_corner = target_obj_bb['upper_left_corner']
+                                bottom_right_corner = target_obj_bb['bottom_right_corner']
+                                object_center = target_obj_bb['center']
+                                # get prompt observation
+                                rgb_this_view = asset['rgb'][view]
+                                # prompt_img = cv2.rectangle(
+                                #     np.array(rgb_this_view), upper_left_corner, bottom_right_corner, (255, 0, 0), 1)
+                                # cv2.imwrite("rgb_this_view.png",
+                                #             np.array(prompt_img))
+
+                                # bounding box center, height and width
+                                x_center, y_center = object_center[0], object_center[1]
+                                h, w = upper_left_corner[1] - \
+                                    bottom_right_corner[1], upper_left_corner[0] - \
+                                    bottom_right_corner[0]
+                                bboxes.append(
+                                    [int(x_center), int(y_center), int(h), int(w)])
+                                # crop image
+                                cropped_img = np.array(rgb_this_view[
+                                    bottom_right_corner[1]:upper_left_corner[1] + 1, bottom_right_corner[0]:upper_left_corner[0] + 1, :])
+                                # cv2.imwrite("cropped_img.png",
+                                #             np.array(cropped_img))
+                                # pad if dimensions are different
+                                if cropped_img.shape[0] != cropped_img.shape[1]:
+                                    diff = abs(
+                                        cropped_img.shape[0] - cropped_img.shape[1])
+                                    pad_before, pad_after = int(
+                                        diff / 2), diff - int(diff / 2)
+                                    if cropped_img.shape[0] > cropped_img.shape[1]:
+                                        pad_width = (
+                                            (0, 0), (pad_before, pad_after), (0, 0))
+                                    else:
+                                        pad_width = (
+                                            (pad_before, pad_after), (0, 0), (0, 0))
+                                    cropped_img = np.pad(
+                                        cropped_img,
+                                        pad_width,
+                                        mode="constant",
+                                        constant_values=0,
+                                    )
+                                    assert cropped_img.shape[0] == cropped_img.shape[1], "INTERNAL"
+                                cropped_img = np.asarray(cropped_img)
+                                # cv2.imwrite("cropped_img.png", cropped_img)
+                                cropped_img = cv2.resize(
+                                    cropped_img,
+                                    (32, 32),
+                                    interpolation=cv2.INTER_AREA,
+                                )
+                                cropped_img = rearrange(
+                                    cropped_img, "h w c -> c h w")
+                                cropped_imgs.append(cropped_img)
+
+                    bboxes = np.asarray(bboxes)
+                    cropped_imgs = np.asarray(cropped_imgs)
+                    obj_repr["bbox"][view] = bboxes
+                    obj_repr["cropped_img"][view] = cropped_imgs
+                filled_prompt.append(obj_repr)
+        raw_prompt = [filled_prompt]
+        max_n_objs_prompt = {view: 0 for view in views}
+        for prompt in raw_prompt:
+            for token in prompt:
+                if isinstance(token, dict):
+                    for view in views:
+                        max_n_objs_prompt[view] = max(
+                            max_n_objs_prompt[view], len(
+                                token["cropped_img"][view])
+                        )
+        raw_prompt_token_type, word_batch, image_batch = [], [], []
+        for prompt in raw_prompt:
+            token_type = []
+            for token in prompt:
+                if isinstance(token, int):
+                    token_type.append(0)
+                    word_batch.append(token)
+                elif isinstance(token, dict):
+                    token_type.append(1)
+                    n_objs_prompt = {
+                        view: len(token["cropped_img"][view]) for view in views
+                    }
+                    # add mask
+                    token["mask"] = {
+                        view: np.ones((n_objs_prompt[view],), dtype=bool)
+                        for view in views
+                    }
+                    n_objs_to_pad = {
+                        view: max_n_objs_prompt[view] - n_objs_prompt[view]
+                        for view in views
+                    }
+                    objs_pad = {
+                        "bbox": {
+                            view: np.zeros(
+                                (n_objs_to_pad[view], 4), dtype=np.int64)
+                            for view in views
+                        },
+                        "cropped_img": {
+                            view: np.zeros(
+                                (n_objs_to_pad[view], 3, 32, 32),
+                                dtype=np.uint8,
+                            )
+                            for view in views
+                        },
+                        "mask": {
+                            view: np.zeros((n_objs_to_pad[view]), dtype=bool)
+                            for view in views
+                        },
+                    }
+                    token = any_concat([token, objs_pad], dim=0)
+                    image_batch.append(token)
+            raw_prompt_token_type.append(token_type)
+        assert sum([len(prompt) for prompt in raw_prompt_token_type]) == len(
+            word_batch) + len(image_batch)
+
+        raw_prompt_token_type = np.array(raw_prompt_token_type[0])
+        word_batch = any_stack(word_batch, dim=0)
+        image_batch = any_to_datadict(stack_sequence_fields(image_batch))
+
+        word_batch = any_to_torch_tensor(word_batch)
+        image_batch = image_batch.to_torch_tensor()
+        return raw_prompt_token_type, word_batch, image_batch
+
+    def _prepare_obs(self, agent_traj: object, chosen_t: list, views: list, task_name: str, rgb_dict: dict = None):
+
+        obs_list = {
+            "ee": None,
+            "objects": {
+                "cropped_img": {view: [] for view in views},
+                "bbox": {view: [] for view in views},
+                "mask": {view: [] for view in views},
+            },
+        }
+
+        for t in chosen_t:
+            obs_t = agent_traj.get(t)
+
+            obs_list['ee'] = torch.from_numpy(
+                np.array([0]))  # obs_t['obs']['gripper_qpos']
+            # for each view compute crop of the objects of interest
+            for view in views:
+                # get observation at timestamp t
+                obs_t = agent_traj.get(t)['obs']
+                rgb_this_view = obs_t['camera_front_image'][:, :, ::-1]
+                bboxes = []
+                cropped_imgs = []
+                n_pad = 0
+
+                # cut the image around each object in the scene
+                for obj_name in ENV_OBJECTS[task_name]['obj_names']:
+
+                    # get object bb
+                    obj_bb = obs_t['obj_bb']['camera_front'][obj_name]
+                    upper_left_corner = obj_bb['upper_left_corner']
+                    bottom_right_corner = obj_bb['bottom_right_corner']
+                    object_center = obj_bb['center']
+                    # bounding box center, height and width
+                    x_center, y_center = object_center[0], object_center[1]
+                    h, w = upper_left_corner[1] - \
+                        bottom_right_corner[1], upper_left_corner[0] - \
+                        bottom_right_corner[0]
+                    bboxes.append(
+                        [int(x_center), int(y_center), int(h), int(w)])
+                    # crop image
+                    cropped_img = np.array(rgb_this_view[
+                        bottom_right_corner[1]:upper_left_corner[1] + 1, bottom_right_corner[0]:upper_left_corner[0] + 1, :])
+                    # cv2.imwrite("cropped_img.png",
+                    #             np.array(cropped_img))
+
+                    # pad if dimensions are different
+                    if cropped_img.shape[0] != cropped_img.shape[1]:
+                        diff = abs(
+                            cropped_img.shape[0] - cropped_img.shape[1])
+                        pad_before, pad_after = int(
+                            diff / 2), diff - int(diff / 2)
+                        if cropped_img.shape[0] > cropped_img.shape[1]:
+                            pad_width = (
+                                (0, 0), (pad_before, pad_after), (0, 0))
+                        else:
+                            pad_width = (
+                                (pad_before, pad_after), (0, 0), (0, 0))
+                        cropped_img = np.pad(
+                            cropped_img,
+                            pad_width,
+                            mode="constant",
+                            constant_values=0,
+                        )
+                        assert cropped_img.shape[0] == cropped_img.shape[1], "INTERNAL"
+                    cropped_img = np.asarray(cropped_img)
+                    cropped_img = cv2.resize(
+                        cropped_img,
+                        (32, 32),
+                        interpolation=cv2.INTER_AREA,
+                    )
+                    cropped_img = rearrange(cropped_img, "h w c -> c h w")
+                    cropped_imgs.append(cropped_img)
+                bboxes = np.asarray(bboxes)
+                cropped_imgs = np.asarray(cropped_imgs)
+                mask = np.ones(len(bboxes), dtype=bool)
+
+                obs_list["objects"]["bbox"][view].append(bboxes)
+                obs_list["objects"]["cropped_img"][view].append(cropped_imgs)
+                obs_list["objects"]["mask"][view].append(mask)
+
+        for view in views:
+            obs_list["objects"]["bbox"][view] = np.stack(
+                obs_list["objects"]["bbox"][view], axis=0
+            )
+            obs_list["objects"]["cropped_img"][view] = np.stack(
+                obs_list["objects"]["cropped_img"][view], axis=0
+            )
+            obs_list["objects"]["mask"][view] = np.stack(
+                obs_list["objects"]["mask"][view], axis=0
+            )
+
+        obs = any_to_datadict(obs_list)
+        obs = obs.to_torch_tensor()
+        # obs = any_transpose_first_two_axes(obs)
+
+        return obs
+
+    def _create_prompt_assets(self, obs: dict, task_name: str, views: list, modalities: list):
+        prompt_assets = dict()
+        prompt_assets['pick_object'] = dict()
+
+        if task_name == 'pick_place':
+            prompt_assets['pick_object']['rgb'] = dict()
+            prompt_assets['pick_object']['segm'] = dict({'obj_info': dict()})
+            prompt_assets['pick_object']['placeholder_type'] = 'object'
+            # For each modality fill the prompt asset
+            for modality in modalities:
+                # For each modality and for each view fill the prompt asset
+                for view in views:
+                    if view not in prompt_assets['pick_object'][modality].keys():
+                        prompt_assets['pick_object'][modality][view] = dict()
+                    target_obj_id = obs['target-object']
+                    target_obj_name = ENV_OBJECTS[task_name]['obj_names'][target_obj_id]
+                    # assign prompt assets
+                    prompt_assets['pick_object'][modality][view] = obs['camera_front_image'][:, :, ::-1]
+                    prompt_assets['pick_object']['segm']['obj_info']['obj_id'] = target_obj_name
+                    prompt_assets['pick_object']['segm']['obj_info']['obj_id'] = ENV_OBJECTS[task_name]['splitted_obj_names'][target_obj_id]
+                    prompt_assets['pick_object']['segm']['obj_info']['obj_color'] = ENV_OBJECTS[task_name]['splitted_obj_names'][target_obj_id].split(" ")[
+                        0]
+
+        return prompt_assets
 
 
 class DIYBatchSampler(Sampler):

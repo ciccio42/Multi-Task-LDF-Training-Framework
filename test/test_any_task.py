@@ -187,8 +187,8 @@ def build_tvf_formatter(config, env_name='stack'):
         obs = resized_crop(obs, top=top, left=left, height=box_h, width=box_w,
                            size=(height, width), antialias=True)
         cv2.imwrite("obs_cropped.png", np.moveaxis(obs.numpy(), 0, -1)*255)
-        obs = Normalize(mean=[0.485, 0.456, 0.406],
-                        std=[0.229, 0.224, 0.225])(obs)
+        # obs = Normalize(mean=[0.485, 0.456, 0.406],
+        #                 std=[0.229, 0.224, 0.225])(obs)
         cv2.imwrite("obs_normalized.png", np.moveaxis(obs.numpy(), 0, -1)*255)
         return obs
     return resize_crop

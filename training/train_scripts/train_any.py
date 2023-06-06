@@ -284,7 +284,6 @@ class Trainer:
 
         # when all epochs are done, save model one last time
         self.save_checkpoint(model, optimizer, weights_fn, save_fn)
-
         print(self._train_loader.dataset._selected_target_frame_distribution_task_object_target_position)
 
     def save_checkpoint(self, model, optimizer, weights_fn=None, save_fn=None):

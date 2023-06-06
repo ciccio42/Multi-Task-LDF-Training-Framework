@@ -29,6 +29,7 @@ TASK_ENV_MAP = {
         'panda':    'Panda_NutAssemblyDistractor',
         'sawyer':   'Sawyer_NutAssemblyDistractor',
         'ur5e':     'UR5e_NutAssemblyDistractor',
+        'object_set': 1,
     },
 }
 

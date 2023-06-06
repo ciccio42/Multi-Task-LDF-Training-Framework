@@ -5,18 +5,27 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 export CUDA_VISIBLE_DEVICES=1
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/home/frosa_loc/multitask_dataset_ur/multitask_dataset_language_command
+EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
 SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline
 POLICY='${tosil}'
 
-EXP_NAME=1Task-Pick-Place-Tosil-No-Obj-Detector
+SAVE_FREQ=1000
+LOG_FREQ=1000
+VAL_FREQ=1000
+
+EXP_NAME=1Task-Pick-Place-Tosil-cropped-no-normalized
 TASK_str=pick_place
-EPOCH=250
-BSIZE=128 #64 #32
+EPOCH=40
+BSIZE=32 #128 #64 #32
+COMPUTE_OBJ_DISTRIBUTION=false
+# Policy 1: At each slot is assigned a RandomSampler
+BALANCING_POLICY=0
+SET_SAME_N=2
 CONFIG_PATH=../experiments/
-PROJECT_NAME="ur_tosil_baseline_no_obj_detector"
+PROJECT_NAME="ur_tosil_baseline_cropped-no-normalized"
 CONFIG_NAME=config.yaml
 LOADER_WORKERS=8
+NORMALIZE_ACTION=true
 
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=17204
@@ -25,24 +34,34 @@ FREEZE_TARGET_OBJ_DETECTOR=false
 CONCAT_STATE=false
 
 ACTION_DIM=7
-EARLY_STOPPING_PATIECE=30
-OPTIMIZER='AdamW'
-LR=0.0001
-WEIGHT_DECAY=0.05
+N_MIXTURES=6
+
+EARLY_STOPPING_PATIECE=-1
+OPTIMIZER='Adam'
+LR=0.0005
+WEIGHT_DECAY=0
 SCHEDULER=None
 
-RESUME_PATH=None
-RESUME_STEP=-1
+RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Mosaic-cropped-no-normalized-Batch32
+RESUME_STEP=84100
+RESUME=false
 
 python ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \
+    set_same_n=${SET_SAME_N} \
     task_names=${TASK_str} \
     exp_name=${EXP_NAME} \
     bsize=${BSIZE} \
     vsize=${BSIZE} \
     epochs=${EPOCH} \
+    save_freq=${SAVE_FREQ} \
+    log_freq=${LOG_FREQ} \
+    val_freq=${VAL_FREQ} \
+    dataset_cfg.normalize_action=${NORMALIZE_ACTION} \
+    dataset_cfg.compute_obj_distribution=${COMPUTE_OBJ_DISTRIBUTION} \
+    samplers.balancing_policy=${BALANCING_POLICY} \
     tosil.load_target_obj_detector=${LOAD_TARGET_OBJ_DETECTOR} \
     tosil.target_obj_detector_step=${TARGET_OBJ_DETECTOR_STEP} \
     tosil.target_obj_detector_path=${TARGET_OBJ_DETECTOR_PATH} \

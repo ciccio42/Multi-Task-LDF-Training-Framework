@@ -20,6 +20,8 @@ from multi_task_robosuite_env.objects.meta_xml_objects import Bin
 from robosuite.utils.mjcf_utils import CustomMaterial, array_to_string, find_elements
 import robosuite.utils.transform_utils as T
 
+OFFSET = 0.0
+
 
 class PickPlace(SingleArmEnv):
     """
@@ -168,7 +170,8 @@ class PickPlace(SingleArmEnv):
             self._obj_dim = {'greenbox': [0.05, 0.055, 0.045],
                              'yellowbox': [0.05, 0.055, 0.045],
                              'bluebox': [0.05, 0.055, 0.045],
-                             'redbox': [0.05, 0.065, 0.045]}
+                             'redbox': [0.05, 0.055, 0.045],
+                             'bin': [0.64, 0.07, 0.16]}
 
         if object_type is not None:
             assert (
@@ -301,6 +304,7 @@ class PickPlace(SingleArmEnv):
 
         self.objects = []
         self.visual_objects = []
+        self.object_bin = []
 
         if self.object_set == 1:
             for vis_obj_cls, obj_name in zip(
@@ -323,6 +327,9 @@ class PickPlace(SingleArmEnv):
         ):
             obj = obj_cls(name=obj_name)
             self.objects.append(obj)
+            self.object_bin.append(obj)
+
+        self.object_bin.append(self.bin[0])
 
         # task includes arena, robot, and objects of interest
         self.model = ManipulationTask(
@@ -406,78 +413,131 @@ class PickPlace(SingleArmEnv):
                     (T_camera_world, np.array([[0, 0, 0, 1]])), axis=0)
 
                 # 2. For each object compute bb
-                for i, obj in enumerate(self.objects):
+                for i, obj in enumerate(self.object_bin):
                     obj_name = obj.name
-                    obj_bb[camera_name][obj_name] = OrderedDict()
-                    # 2. get object position and orientation
+                    obj_bb[camera_name][obj_name] = dict()
+
+                    # convert obj pos in camera coordinate
                     obj_pos = np.array(
                         self.sim.data.body_xpos[self.obj_body_id[obj_name]])
+                    if obj_name == 'bin':
+                        obj_pos[2] = obj_pos[2] + 0.08
                     obj_quat = T.convert_quat(
                         self.sim.data.body_xquat[self.obj_body_id[obj_name]], to="xyzw"
                     )
+
+                    # 2. Create transformation matrix
+                    T_camera_world = np.concatenate(
+                        (r_camera_world, p_camera_world), axis=1)
+                    T_camera_world = np.concatenate(
+                        (T_camera_world, np.array([[0, 0, 0, 1]])), axis=0)
+                    # logger.debug(T_camera_world)
                     p_world_object = np.expand_dims(
                         np.insert(obj_pos, 3, 1), 0).T
-
-                    # Compute the position of the object center with respect to the camera
                     p_camera_object = T_camera_world @ p_world_object
                     logger.debug(
-                        f"\nP_world_object: \n{p_world_object} - \nP_camera_object: \n {p_camera_object}")
+                        f"\nP_world_object:\n{p_world_object} - \nP_camera_object:\n {p_camera_object}")
 
-                    # 2.1 Compute the position of the upper-left and bottom-right corner to compute width and height of bb
-                    p_world_object_upper_left_corner = p_world_object + \
-                        np.array(
-                            [[0.0],
-                                [-self._obj_dim[obj_name][0]/2],
-                                [self._obj_dim[obj_name][1]/2],
-                                [0]])
-                    p_camera_object_upper_left_corner = T_camera_world @               p_world_object_upper_left_corner
-                    logger.debug(
-                        f"\nP_world_object_upper_left:\n{p_world_object_upper_left_corner} -   \nP_camera_object_upper_left:\n {p_camera_object_upper_left_corner}")
-
-                    p_world_object_bottom_right_corner = p_world_object + \
-                        np.array(
-                            [[0.0],
-                                [self._obj_dim[obj_name][0]/2],
-                                [-self._obj_dim[obj_name][1]/2],
-                                [0]])
-                    p_camera_object_bottom_right_corner = T_camera_world @               p_world_object_bottom_right_corner
-                    logger.debug(
-                        f"\nP_world_object_bottom_right:\n{p_world_object_bottom_right_corner} -   \nP_camera_object_bottom_right:\n {p_camera_object_bottom_right_corner}")
-
-                    # 3. Cnversion into pixel coordinates
+                    # 3. Cnversion into pixel coordinates of object center
                     f = 0.5 * self.camera_height / \
                         np.tan(int(self.camera_attribs['fovy']) * np.pi / 360)
-                    p_x = int(
+
+                    p_x_center = int(
                         (p_camera_object[0][0] / - p_camera_object[2][0]) * f + self.camera_width / 2)
 
-                    p_y = int(
+                    p_y_center = int(
                         (- p_camera_object[1][0] / - p_camera_object[2][0]) * f + self.camera_height / 2)
                     logger.debug(
-                        f"\nImage coordinate: px {p_x}, py {p_y}")
+                        f"\nImage coordinate: px {p_x_center}, py {p_y_center}")
 
-                    # 3.1 Upper-left corner and bottom right corner in pixel coordinate
-                    p_x_upper_left = int(
-                        (p_camera_object_upper_left_corner[0][0] / - p_camera_object_upper_left_corner[2][0]) * f + self.camera_width / 2) - 3
+                    p_x_corner_list = []
+                    p_y_corner_list = []
+                    # 3.1 create a box around the object
+                    for i in range(8):
+                        if i == 0:  # upper-left front corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[self._obj_dim[obj_name][2]/2],
+                                        [-self._obj_dim[obj_name][0]/2-OFFSET],
+                                        [self._obj_dim[obj_name][1]/2+OFFSET],
+                                        [0]])
+                        elif i == 1:  # upper-right front corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[self._obj_dim[obj_name][2]/2],
+                                        [self._obj_dim[obj_name][0]/2+OFFSET],
+                                        [self._obj_dim[obj_name][1]/2+OFFSET],
+                                        [0]])
+                        elif i == 2:  # bottom-left front corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[self._obj_dim[obj_name][2]/2],
+                                        [-self._obj_dim[obj_name][0]/2-OFFSET],
+                                        [-self._obj_dim[obj_name][1]/2-OFFSET],
+                                        [0]])
+                        elif i == 3:  # bottom-right front corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[self._obj_dim[obj_name][2]/2],
+                                        [self._obj_dim[obj_name][0]/2+OFFSET],
+                                        [-self._obj_dim[obj_name][1]/2-OFFSET],
+                                        [0]])
+                        elif i == 4:  # upper-left back corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[-self._obj_dim[obj_name][2]/2],
+                                        [-self._obj_dim[obj_name][0]/2-OFFSET],
+                                        [self._obj_dim[obj_name][1]/2+OFFSET],
+                                        [0]])
+                        elif i == 5:  # upper-right back corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[-self._obj_dim[obj_name][2]/2],
+                                        [self._obj_dim[obj_name][0]/2+OFFSET],
+                                        [self._obj_dim[obj_name][1]/2+OFFSET],
+                                        [0]])
+                        elif i == 6:  # bottom-left back corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[-self._obj_dim[obj_name][2]/2],
+                                        [-self._obj_dim[obj_name][0]/2-OFFSET],
+                                        [-self._obj_dim[obj_name][1]/2-OFFSET],
+                                        [0]])
+                        elif i == 7:  # bottom-right back corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[-self._obj_dim[obj_name][2]/2],
+                                        [self._obj_dim[obj_name][0]/2+OFFSET],
+                                        [-self._obj_dim[obj_name][1]/2-OFFSET],
+                                        [0]])
 
-                    p_y_upper_left = int(
-                        (- p_camera_object_upper_left_corner[1][0] / - p_camera_object_upper_left_corner[2][0]) * f + self.camera_height / 2) - 3
-                    logger.debug(
-                        f"\nImage coordinate upper_left corner: px {p_x_upper_left}, py {p_y_upper_left}")
+                        p_camera_object_corner = T_camera_world @ p_world_object_corner
+                        logger.debug(
+                            f"\nP_world_object_upper_left:\n{p_world_object_corner} -   \nP_camera_object_upper_left:\n {p_camera_object_corner}")
 
-                    p_x_bottom_right = int(
-                        (p_camera_object_bottom_right_corner[0][0] / - p_camera_object_bottom_right_corner[2][0]) * f + self.camera_width / 2) + 3
+                        # 3.1 Upper-left corner and bottom right corner in pixel coordinate
+                        p_x_corner = int(
+                            (p_camera_object_corner[0][0] / - p_camera_object_corner[2][0]) * f + self.camera_width / 2)
 
-                    p_y_bottom_right = int(
-                        (- p_camera_object_bottom_right_corner[1][0] / - p_camera_object_bottom_right_corner[2][0]) * f + self.camera_height / 2) + 3
-                    logger.debug(
-                        f"\nImage coordinate bottom_right corner: px {p_x_bottom_right}, py {p_y_bottom_right}")
+                        p_y_corner = int(
+                            (- p_camera_object_corner[1][0] / - p_camera_object_corner[2][0]) * f + self.camera_height / 2)
+                        logger.debug(
+                            f"\nImage coordinate upper_left corner: px {p_x_corner}, py {p_y_corner}")
 
+                        p_x_corner_list.append(p_x_corner)
+                        p_y_corner_list.append(p_y_corner)
+
+                    x_min = min(p_x_corner_list)
+                    y_min = min(p_y_corner_list)
+                    x_max = max(p_x_corner_list)
+                    y_max = max(p_y_corner_list)
                     # save bb
-                    obj_bb[camera_name][obj_name]['center'] = [p_x, p_y]
+                    obj_bb[camera_name][obj_name]['center'] = [
+                        p_x_center, p_y_center]
                     obj_bb[camera_name][obj_name]['upper_left_corner'] = [
-                        p_x_upper_left, p_y_upper_left]
+                        x_max, y_max]
                     obj_bb[camera_name][obj_name]['bottom_right_corner'] = [
-                        p_x_bottom_right, p_y_bottom_right]
+                        x_min, y_min]
 
         return obj_bb
 
@@ -552,7 +612,7 @@ class PickPlace(SingleArmEnv):
         self.obj_geom_id = {}
 
         # object-specific ids
-        for obj in (self.visual_objects + self.objects):
+        for obj in (self.visual_objects + self.objects + self.bin):
             self.obj_body_id[obj.name] = self.sim.model.body_name2id(
                 obj.root_body)
             self.obj_geom_id[obj.name] = [

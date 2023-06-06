@@ -17,9 +17,9 @@ table_full_size: [1.0, 1.0, 0.04]
 table_offset: [0, 0, 0.74]
 
 # Object y ranges
-y_ranges: [[-0.30, 0.30]]
+y_ranges: [[-0.25, 0.25]]
 x_range: [[-0.10, -0.20]]
-
+object_set: 1
 # Pegs position
 peg_positions:
   {
@@ -58,10 +58,10 @@ camera_attribs:
 camera_depths: true
 
 # Camera height
-camera_heights: 100
+camera_heights: 200
 
 # Camera width
-camera_widths: 180
+camera_widths: 360
 
 # Horizon
 horizon: 1000
