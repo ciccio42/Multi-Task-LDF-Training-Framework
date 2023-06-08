@@ -1,13 +1,17 @@
 wandb: Currently logged in as: francescorosa97. Use `wandb login --relogin` to force relogin
+wandb: wandb version 0.15.4 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
 wandb: Tracking run with wandb version 0.15.3
-wandb: Run data is saved locally in /home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes/wandb/run-20230528_163728-97b5al1c
+wandb: Run data is saved locally in /home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes/wandb/run-20230606_233931-v4mtxsvo
 wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run vivid-sky-11
-wandb: ⭐️ View project at https://wandb.ai/francescorosa97/ur_baseline_cropped
-wandb: 🚀 View run at https://wandb.ai/francescorosa97/ur_baseline_cropped/runs/97b5al1c
-Appending saved step 118000
-loading model from saved training step 118000
-Made new path for results at: /home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Mosaic-cropped-Batch32/results_pick_place/step-118000
+wandb: Syncing run cosmic-music-19
+wandb: ⭐️ View project at https://wandb.ai/francescorosa97/ur_baseline_cropped_no_normalized
+wandb: 🚀 View run at https://wandb.ai/francescorosa97/ur_baseline_cropped_no_normalized/runs/v4mtxsvo
+pybullet build time: May 16 2023 22:52:33
+Found 5 GPUs for rendering. Using device 0.
+Appending saved step 160000
+loading model from saved training step 160000
+Made new path for results at: /home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Mosaic-cropped-no-normalized-Batch32/results_pick_place/step-160000
 Multi-task dataset, tasks used:  [{'name': 'pick_place', 'n_tasks': 16, 'crop': [20, 25, 80, 75], 'n_per_task': 2, 'task_ids': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 'loss_mul': 1, 'task_per_batch': 16, 'traj_per_subtask': 100, 'demo_per_subtask': 100}]
 pretrain False
 A total of 2 layers, cross demo-obs attention starts at layer idx 0
@@ -18,24 +22,144 @@ Image feature dimensions: torch.Size([1, 11, 256, 7, 12])
 Contrastive MLP using hidden dim:  512
 Concat-ing embedded demo to action head? False, to distribution head? True
 Total params in Imitation module: 37829638
-Found 1 GPU devices, using 4 parallel workers for evaluating 160 total trajectories
+Found 1 GPU devices, using 1 parallel workers for evaluating 160 total trajectories
 
 Renderer is using size (200, 360) 
 
-pybullet build time: May 16 2023 22:52:33
-Found 5 GPUs for rendering. Using device 1.
-pybullet build time: May 16 2023 22:52:33
-Found 5 GPUs for rendering. Using device 1.
-pybullet build time: May 16 2023 22:52:33
-Found 5 GPUs for rendering. Using device 1.
-pybullet build time: May 16 2023 22:52:33
-Found 5 GPUs for rendering. Using device 1.
-Using previous results at /home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Mosaic-cropped-Batch32/results_pick_place/step-118000/traj20.json. Loaded eval traj #20, task#4, reached? 0 picked? 0 success? 0 
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #0, task#0, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #1, task#1, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #2, task#2, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #3, task#3, reached? True picked? True success? 1.0 
+Avg prediction 0.0
 Object set 2
 Target object yellowbox
 Object set 2
 Max-t 150
-Evaluated traj #21, task#5, reached? False picked? False success? False 
+Evaluated traj #4, task#4, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #5, task#5, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #6, task#6, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #7, task#7, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #8, task#8, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #9, task#9, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #10, task#10, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #11, task#11, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #12, task#12, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #13, task#13, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #14, task#14, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #15, task#15, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #16, task#0, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #17, task#1, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #18, task#2, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #19, task#3, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #20, task#4, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #21, task#5, reached? True picked? True success? 1.0 
 Avg prediction 0.0
 Object set 2
 Target object yellowbox
@@ -53,7 +177,7 @@ Object set 2
 Target object bluebox
 Object set 2
 Max-t 150
-Evaluated traj #24, task#8, reached? True picked? False success? False 
+Evaluated traj #24, task#8, reached? False picked? False success? False 
 Avg prediction 0.0
 Object set 2
 Target object bluebox
@@ -77,13 +201,253 @@ Object set 2
 Target object redbox
 Object set 2
 Max-t 150
-Evaluated traj #28, task#12, reached? False picked? False success? False 
+Evaluated traj #28, task#12, reached? True picked? True success? 1.0 
 Avg prediction 0.0
 Object set 2
 Target object redbox
 Object set 2
 Max-t 150
 Evaluated traj #29, task#13, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #30, task#14, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #31, task#15, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #32, task#0, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #33, task#1, reached? True picked? True success? False 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #34, task#2, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #35, task#3, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #36, task#4, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #37, task#5, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #38, task#6, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #39, task#7, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #40, task#8, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #41, task#9, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #42, task#10, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #43, task#11, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #44, task#12, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #45, task#13, reached? True picked? True success? False 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #46, task#14, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #47, task#15, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #48, task#0, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #49, task#1, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #50, task#2, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #51, task#3, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #52, task#4, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #53, task#5, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #54, task#6, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #55, task#7, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #56, task#8, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #57, task#9, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #58, task#10, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #59, task#11, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #60, task#12, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #61, task#13, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #62, task#14, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #63, task#15, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #64, task#0, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #65, task#1, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #66, task#2, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #67, task#3, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #68, task#4, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #69, task#5, reached? True picked? True success? 1.0 
 Avg prediction 0.0
 Object set 2
 Target object yellowbox
@@ -95,7 +459,7 @@ Object set 2
 Target object yellowbox
 Object set 2
 Max-t 150
-Evaluated traj #71, task#7, reached? False picked? False success? False 
+Evaluated traj #71, task#7, reached? True picked? True success? 1.0 
 Avg prediction 0.0
 Object set 2
 Target object bluebox
@@ -137,16 +501,75 @@ Object set 2
 Target object redbox
 Object set 2
 Max-t 150
-Evaluated traj #78, task#14, reached? True picked? True success? 1.0 
+Evaluated traj #78, task#14, reached? False picked? False success? False 
 Avg prediction 0.0
 Object set 2
 Target object redbox
 Object set 2
 Max-t 150
-Evaluated traj #79, task#15, reached? True picked? False success? False 
+Evaluated traj #79, task#15, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #80, task#0, reached? True picked? True success? False 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #81, task#1, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #82, task#2, reached? True picked? True success? False 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #83, task#3, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #84, task#4, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #85, task#5, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #86, task#6, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #87, task#7, reached? False picked? False success? False 
 Avg prediction 0.0
 Object set 2
 Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #88, task#8, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #89, task#9, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
 Target object bluebox
 Object set 2
 Max-t 150
@@ -156,7 +579,7 @@ Object set 2
 Target object bluebox
 Object set 2
 Max-t 150
-Evaluated traj #91, task#11, reached? True picked? True success? 1.0 
+Evaluated traj #91, task#11, reached? False picked? False success? False 
 Avg prediction 0.0
 Object set 2
 Target object redbox
@@ -180,19 +603,19 @@ Object set 2
 Target object redbox
 Object set 2
 Max-t 150
-Evaluated traj #95, task#15, reached? False picked? False success? False 
+Evaluated traj #95, task#15, reached? True picked? False success? False 
 Avg prediction 0.0
 Object set 2
 Target object greenbox
 Object set 2
 Max-t 150
-Evaluated traj #96, task#0, reached? True picked? False success? False 
+Evaluated traj #96, task#0, reached? False picked? False success? False 
 Avg prediction 0.0
 Object set 2
 Target object greenbox
 Object set 2
 Max-t 150
-Evaluated traj #97, task#1, reached? True picked? True success? 1.0 
+Evaluated traj #97, task#1, reached? False picked? False success? False 
 Avg prediction 0.0
 Object set 2
 Target object greenbox
@@ -204,505 +627,67 @@ Object set 2
 Target object greenbox
 Object set 2
 Max-t 150
-Evaluated traj #99, task#3, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #140, task#12, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #141, task#13, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #142, task#14, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #143, task#15, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #144, task#0, reached? True picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #145, task#1, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #146, task#2, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #147, task#3, reached? True picked? True success? 1.0 
+Evaluated traj #99, task#3, reached? True picked? True success? False 
 Avg prediction 0.0
 Object set 2
 Target object yellowbox
 Object set 2
 Max-t 150
-Evaluated traj #148, task#4, reached? True picked? False success? False 
+Evaluated traj #100, task#4, reached? True picked? True success? 1.0 
 Avg prediction 0.0
 Object set 2
 Target object yellowbox
 Object set 2
 Max-t 150
-Evaluated traj #149, task#5, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Using previous results at /home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Mosaic-cropped-Batch32/results_pick_place/step-118000/traj10.json. Loaded eval traj #10, task#10, reached? 0 picked? 0 success? 0 
-Object set 2
-Target object bluebox
-Object set 2
-Max-t 150
-Evaluated traj #11, task#11, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #12, task#12, reached? True picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #13, task#13, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #14, task#14, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #15, task#15, reached? True picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #16, task#0, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #17, task#1, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #18, task#2, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #19, task#3, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #50, task#2, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #51, task#3, reached? True picked? True success? 1.0 
+Evaluated traj #101, task#5, reached? True picked? True success? 1.0 
 Avg prediction 0.0
 Object set 2
 Target object yellowbox
 Object set 2
 Max-t 150
-Evaluated traj #52, task#4, reached? False picked? False success? False 
+Evaluated traj #102, task#6, reached? True picked? True success? 1.0 
 Avg prediction 0.0
 Object set 2
 Target object yellowbox
 Object set 2
 Max-t 150
-Evaluated traj #53, task#5, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #54, task#6, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #55, task#7, reached? False picked? False success? False 
+Evaluated traj #103, task#7, reached? True picked? True success? 1.0 
 Avg prediction 0.0
 Object set 2
 Target object bluebox
 Object set 2
 Max-t 150
-Evaluated traj #56, task#8, reached? False picked? False success? False 
+Evaluated traj #104, task#8, reached? False picked? False success? False 
 Avg prediction 0.0
 Object set 2
 Target object bluebox
 Object set 2
 Max-t 150
-Evaluated traj #57, task#9, reached? True picked? True success? 1.0 
+Evaluated traj #105, task#9, reached? True picked? True success? 1.0 
 Avg prediction 0.0
 Object set 2
 Target object bluebox
 Object set 2
 Max-t 150
-Evaluated traj #58, task#10, reached? False picked? False success? False 
+Evaluated traj #106, task#10, reached? True picked? True success? 1.0 
 Avg prediction 0.0
 Object set 2
 Target object bluebox
 Object set 2
 Max-t 150
-Evaluated traj #59, task#11, reached? True picked? True success? 1.0 
+Evaluated traj #107, task#11, reached? True picked? True success? 1.0 
 Avg prediction 0.0
 Object set 2
 Target object redbox
 Object set 2
 Max-t 150
-Evaluated traj #110, task#14, reached? True picked? True success? 1.0 
+Evaluated traj #108, task#12, reached? True picked? True success? 1.0 
 Avg prediction 0.0
 Object set 2
 Target object redbox
 Object set 2
 Max-t 150
-Evaluated traj #111, task#15, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #112, task#0, reached? True picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #113, task#1, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #114, task#2, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #115, task#3, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #116, task#4, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #117, task#5, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #118, task#6, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #119, task#7, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #130, task#2, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #131, task#3, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #132, task#4, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #133, task#5, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #134, task#6, reached? True picked? True success? False 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #135, task#7, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object bluebox
-Object set 2
-Max-t 150
-Evaluated traj #136, task#8, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object bluebox
-Object set 2
-Max-t 150
-Evaluated traj #137, task#9, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object bluebox
-Object set 2
-Max-t 150
-Evaluated traj #138, task#10, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object bluebox
-Object set 2
-Max-t 150
-Evaluated traj #139, task#11, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Task reached, rate 0.58125
-Task picked, rate 0.50625
-Task success, rate 0.4875
-Success rate on task#0 0.2
-Success rate on task#1 0.6
-Success rate on task#2 0.6
-Success rate on task#3 0.8
-Success rate on task#4 0.2
-Success rate on task#5 0.7
-Success rate on task#6 0.5
-Success rate on task#7 0.3
-Success rate on task#8 0.7
-Success rate on task#9 0.8
-Success rate on task#10 0.6
-Success rate on task#11 0.8
-Success rate on task#12 0.2
-Success rate on task#13 0.3
-Success rate on task#14 0.3
-Success rate on task#15 0.2
-wandb: Waiting for W&B process to finish... (success).
-wandb: 
-wandb: Run history:
-wandb:     avg_picked ▁
-wandb: avg_prediction ▁
-wandb:    avg_reached ▁
-wandb:    avg_success ▁
-wandb:        episode ▁▁▁▂▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇▇███
-wandb:         picked █████▁█▁███▁█▁█▁████▁██▁█▁▁▁███▁▁█▁▁▁██▁
-wandb:        reached █████▁█▁███▁█▁█▁████▁██▁█▁█▁███▁▁█▁▁▁██▁
-wandb:        success ▁████▁█▁███▁█▁█▁████▁██▁█▁▁▁███▁▁█▁▁▁██▁
-wandb:    success_err ▁
-wandb:      variation ▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅█
-wandb: 
-wandb: Run summary:
-wandb:     avg_picked 0.50625
-wandb: avg_prediction 0.0
-wandb:    avg_reached 0.58125
-wandb:    avg_success 0.4875
-wandb:        episode 159
-wandb:         picked 0.0
-wandb:        reached 0.0
-wandb:        success 0.0
-wandb:    success_err 0.03854
-wandb:      variation 15
-wandb: 
-wandb: 🚀 View run vivid-sky-11 at: https://wandb.ai/francescorosa97/ur_baseline_cropped/runs/97b5al1c
-wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
-wandb: Find logs at: ./wandb/run-20230528_163728-97b5al1c/logs
-pybullet build time: May 16 2023 22:52:33
-wandb: Currently logged in as: francescorosa97. Use `wandb login --relogin` to force relogin
-wandb: Tracking run with wandb version 0.15.3
-wandb: Run data is saved locally in /home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes/wandb/run-20230528_170612-1s10oie3
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run good-gorge-12
-wandb: ⭐️ View project at https://wandb.ai/francescorosa97/ur_baseline_cropped
-wandb: 🚀 View run at https://wandb.ai/francescorosa97/ur_baseline_cropped/runs/1s10oie3
-Appending saved step 121500
-loading model from saved training step 121500
-Made new path for results at: /home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Mosaic-cropped-Batch32/results_pick_place/step-121500
-Multi-task dataset, tasks used:  [{'name': 'pick_place', 'n_tasks': 16, 'crop': [20, 25, 80, 75], 'n_per_task': 2, 'task_ids': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 'loss_mul': 1, 'task_per_batch': 16, 'traj_per_subtask': 100, 'demo_per_subtask': 100}]
-pretrain False
-A total of 2 layers, cross demo-obs attention starts at layer idx 0
-Position embedding shape: torch.Size([1, 256, 3000]) 
-
-Linear embedder has input dim: 256x7x12=21504 
-Image feature dimensions: torch.Size([1, 11, 256, 7, 12])
-Contrastive MLP using hidden dim:  512
-Concat-ing embedded demo to action head? False, to distribution head? True
-Total params in Imitation module: 37829638
-Found 1 GPU devices, using 4 parallel workers for evaluating 160 total trajectories
-
-Renderer is using size (200, 360) 
-
-pybullet build time: May 16 2023 22:52:33
-Found 5 GPUs for rendering. Using device 1.
-pybullet build time: May 16 2023 22:52:33
-Found 5 GPUs for rendering. Using device 1.
-pybullet build time: May 16 2023 22:52:33
-Found 5 GPUs for rendering. Using device 1.
-pybullet build time: May 16 2023 22:52:33
-Found 5 GPUs for rendering. Using device 1.
-Object set 2
-Target object bluebox
-Object set 2
-Max-t 150
-Evaluated traj #10, task#10, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object bluebox
-Object set 2
-Max-t 150
-Evaluated traj #11, task#11, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #12, task#12, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #13, task#13, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #14, task#14, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #15, task#15, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #16, task#0, reached? True picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #17, task#1, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #18, task#2, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #19, task#3, reached? True picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #70, task#6, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #71, task#7, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object bluebox
-Object set 2
-Max-t 150
-Evaluated traj #72, task#8, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object bluebox
-Object set 2
-Max-t 150
-Evaluated traj #73, task#9, reached? True picked? True success? False 
-Avg prediction 0.0
-Object set 2
-Target object bluebox
-Object set 2
-Max-t 150
-Evaluated traj #74, task#10, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object bluebox
-Object set 2
-Max-t 150
-Evaluated traj #75, task#11, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #76, task#12, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #77, task#13, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #78, task#14, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #79, task#15, reached? True picked? True success? 1.0 
+Evaluated traj #109, task#13, reached? True picked? True success? 1.0 
 Avg prediction 0.0
 Object set 2
 Target object redbox
@@ -720,33 +705,31 @@ Object set 2
 Target object greenbox
 Object set 2
 Max-t 150
-Evaluated traj #112, task#0, reached? True picked? True success? 1.0 
+Evaluated traj #112, task#0, reached? True picked? True success? False 
 Avg prediction 0.0
 Object set 2
 Target object greenbox
 Object set 2
 Max-t 150
-Evaluated traj #113, task#1, reached? True picked? True success? 1.0 
+Evaluated traj #113, task#1, reached? True picked? False success? False 
 Avg prediction 0.0
 Object set 2
 Target object greenbox
-Target object greenbox
 Object set 2
 Max-t 150
-Evaluated traj #114, task#2, reached? False picked? False success? False 
+Evaluated traj #114, task#2, reached? True picked? False success? False 
 Avg prediction 0.0
 Object set 2
 Target object greenbox
-Target object greenbox
 Object set 2
 Max-t 150
-Evaluated traj #115, task#3, reached? True picked? False success? False 
+Evaluated traj #115, task#3, reached? True picked? True success? 1.0 
 Avg prediction 0.0
 Object set 2
 Target object yellowbox
 Object set 2
 Max-t 150
-Evaluated traj #116, task#4, reached? False picked? False success? False 
+Evaluated traj #116, task#4, reached? True picked? True success? 1.0 
 Avg prediction 0.0
 Object set 2
 Target object yellowbox
@@ -764,13 +747,197 @@ Object set 2
 Target object yellowbox
 Object set 2
 Max-t 150
-Evaluated traj #119, task#7, reached? True picked? False success? False 
+Evaluated traj #119, task#7, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #120, task#8, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #121, task#9, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #122, task#10, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #123, task#11, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #124, task#12, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #125, task#13, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #126, task#14, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #127, task#15, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #128, task#0, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #129, task#1, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #130, task#2, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #131, task#3, reached? True picked? True success? 1.0 
 Avg prediction 0.0
 Object set 2
 Target object yellowbox
 Object set 2
 Max-t 150
-Evaluated traj #150, task#6, reached? False picked? False success? False 
+Evaluated traj #132, task#4, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #133, task#5, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #134, task#6, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #135, task#7, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #136, task#8, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #137, task#9, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #138, task#10, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object bluebox
+Object set 2
+Max-t 150
+Evaluated traj #139, task#11, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #140, task#12, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #141, task#13, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #142, task#14, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object redbox
+Object set 2
+Max-t 150
+Evaluated traj #143, task#15, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Target object greenbox
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #144, task#0, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #145, task#1, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #146, task#2, reached? True picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object greenbox
+Object set 2
+Max-t 150
+Evaluated traj #147, task#3, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #148, task#4, reached? True picked? True success? 1.0 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #149, task#5, reached? False picked? False success? False 
+Avg prediction 0.0
+Object set 2
+Target object yellowbox
+Object set 2
+Max-t 150
+Evaluated traj #150, task#6, reached? True picked? True success? 1.0 
 Avg prediction 0.0
 Object set 2
 Target object yellowbox
@@ -782,13 +949,13 @@ Object set 2
 Target object bluebox
 Object set 2
 Max-t 150
-Evaluated traj #152, task#8, reached? False picked? False success? False 
+Evaluated traj #152, task#8, reached? True picked? True success? 1.0 
 Avg prediction 0.0
 Object set 2
 Target object bluebox
 Object set 2
 Max-t 150
-Evaluated traj #153, task#9, reached? True picked? True success? False 
+Evaluated traj #153, task#9, reached? True picked? True success? 1.0 
 Avg prediction 0.0
 Object set 2
 Target object bluebox
@@ -826,233 +993,51 @@ Object set 2
 Max-t 150
 Evaluated traj #159, task#15, reached? False picked? False success? False 
 Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #30, task#14, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #31, task#15, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #32, task#0, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #33, task#1, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #34, task#2, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #35, task#3, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #36, task#4, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #37, task#5, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #38, task#6, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #39, task#7, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #50, task#2, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #51, task#3, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #52, task#4, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #53, task#5, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #54, task#6, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object yellowbox
-Object set 2
-Max-t 150
-Evaluated traj #55, task#7, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object bluebox
-Object set 2
-Max-t 150
-Evaluated traj #56, task#8, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object bluebox
-Object set 2
-Max-t 150
-Evaluated traj #57, task#9, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object bluebox
-Object set 2
-Max-t 150
-Evaluated traj #58, task#10, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object bluebox
-Object set 2
-Max-t 150
-Evaluated traj #59, task#11, reached? True picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object bluebox
-Object set 2
-Max-t 150
-Evaluated traj #90, task#10, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object bluebox
-Object set 2
-Max-t 150
-Evaluated traj #91, task#11, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #92, task#12, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #93, task#13, reached? True picked? True success? 1.0 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #94, task#14, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object redbox
-Object set 2
-Max-t 150
-Evaluated traj #95, task#15, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Target object greenbox
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #96, task#0, reached? True picked? True success? False 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #97, task#1, reached? False picked? False success? False 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #98, task#2, reached? True picked? True success? False 
-Avg prediction 0.0
-Object set 2
-Target object greenbox
-Object set 2
-Max-t 150
-Evaluated traj #99, task#3, reTask reached, rate 0.5
-Task picked, rate 0.44375
-Task success, rate 0.39375
-Success rate on task#0 0.5
-Success rate on task#1 0.3
-Success rate on task#2 0.5
-Success rate on task#3 0.2
-Success rate on task#4 0.5
-Success rate on task#5 0.2
-Success rate on task#6 0.3
-Success rate on task#7 0.3
-Success rate on task#8 0.6
-Success rate on task#9 0.4
-Success rate on task#10 0.6
-Success rate on task#11 0.6
-Success rate on task#12 0.3
-Success rate on task#13 0.4
-Success rate on task#14 0.2
+Task reached, rate 0.65
+Task picked, rate 0.625
+Task success, rate 0.5875
+Success rate on task#0 0.6
+Success rate on task#1 0.5
+Success rate on task#2 0.7
+Success rate on task#3 0.8
+Success rate on task#4 0.8
+Success rate on task#5 0.5
+Success rate on task#6 0.5
+Success rate on task#7 0.4
+Success rate on task#8 0.7
+Success rate on task#9 0.8
+Success rate on task#10 0.7
+Success rate on task#11 0.7
+Success rate on task#12 0.7
+Success rate on task#13 0.5
+Success rate on task#14 0.1
 Success rate on task#15 0.4
 wandb: Waiting for W&B process to finish... (success).
-wandb: 
+wandb: - 0.015 MB of 0.015 MB uploaded (0.000 MB deduped)wandb: \ 0.015 MB of 0.015 MB uploaded (0.000 MB deduped)wandb: | 0.015 MB of 0.015 MB uploaded (0.000 MB deduped)wandb: / 0.015 MB of 0.015 MB uploaded (0.000 MB deduped)wandb: - 0.015 MB of 0.015 MB uploaded (0.000 MB deduped)wandb: \ 0.015 MB of 0.015 MB uploaded (0.000 MB deduped)wandb: 
 wandb: Run history:
 wandb:     avg_picked ▁
 wandb: avg_prediction ▁
 wandb:    avg_reached ▁
 wandb:    avg_success ▁
 wandb:        episode ▁▁▁▂▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇▇███
-wandb:         picked █▁█▁▁▁▁▁███▁██▁█▁▁█▁▁▁██▁▁█▁█▁▁▁▁▁██▁▁█▁
-wandb:        reached █▁█▁▁▁▁▁███▁██▁█▁▁█▁▁▁██▁▁█▁█▁▁▁▁▁██▁▁█▁
-wandb:        success █▁█▁▁▁▁▁███▁▁█▁█▁▁▁▁▁▁██▁▁▁▁█▁▁▁▁▁██▁▁▁▁
+wandb:         picked █▁▁▁███▁█▁█████▁██████▁▁▁███▁▁██▁▁██▁▁█▁
+wandb:        reached █▁▁▁███▁█▁█████▁██████▁▁▁████▁██▁▁██▁▁█▁
+wandb:        success █▁▁▁███▁▁▁█▁███▁██████▁▁▁███▁▁██▁▁██▁▁█▁
 wandb:    success_err ▁
 wandb:      variation ▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅█
 wandb: 
 wandb: Run summary:
-wandb:     avg_picked 0.44375
+wandb:     avg_picked 0.625
 wandb: avg_prediction 0.0
-wandb:    avg_reached 0.5
-wandb:    avg_success 0.39375
+wandb:    avg_reached 0.65
+wandb:    avg_success 0.5875
 wandb:        episode 159
 wandb:         picked 0.0
 wandb:        reached 0.0
 wandb:        success 0.0
-wandb:    success_err 0.03113
+wandb:    success_err 0.04645
 wandb:      variation 15
 wandb: 
-wandb: 🚀 View run good-gorge-12 at: https://wandb.ai/francescorosa97/ur_baseline_cropped/runs/1s10oie3
-wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
-wandb: Find logs at: ./wandb/run-20230528_170612-1s10oie3/logs
-pybullet build time: May 16 2023 22:52:33
+wandb: 🚀 View run cosmic-music-19 at: https://wandb.ai/francescorosa97/ur_baseline_cropped_no_normalized/runs/v4mtxsvo
+wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20230606_233931-v4mtxsvo/logs

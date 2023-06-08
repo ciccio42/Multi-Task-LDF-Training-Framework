@@ -24,7 +24,7 @@ SET_SAME_N=2
 CONFIG_PATH=../experiments/
 PROJECT_NAME="ur_tosil_baseline_cropped-no-normalized"
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=8
+LOADER_WORKERS=16
 NORMALIZE_ACTION=true
 
 LOAD_TARGET_OBJ_DETECTOR=false

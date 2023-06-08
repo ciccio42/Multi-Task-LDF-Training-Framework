@@ -21,19 +21,17 @@ class _TransformerFeatures(nn.Module):
     def __init__(self, latent_dim, conv_drop_dim=2, context_T=3, embed_hidden=256, dropout=0.2, n_st_attn=0, use_ss=True, st_goal_attn=False, use_pe=False, attn_heads=1, attn_ff=128, just_conv=False):
         super().__init__()
         self._resnet18 = get_model('resnet')(
-            output_raw=True, drop_dim=conv_drop_dim, use_resnet18=True, pretrained=True)
-        conv_out_dim = 256 if conv_drop_dim == 3 else 512
+            output_raw=True, drop_dim=2, use_resnet18=True, pretrained=False)
         ProcLayer = TempConvLayer if just_conv else NonLocalLayer
-        self._temporal_process = nn.Sequential(ProcLayer(conv_out_dim, conv_out_dim, attn_ff, dropout=dropout, n_heads=attn_heads), nn.Conv3d(
-            conv_out_dim, conv_out_dim, (context_T, 1, 1), 1))
-        in_dim, self._use_ss = conv_out_dim * 2 if use_ss else conv_out_dim, use_ss
+        self._temporal_process = nn.Sequential(ProcLayer(
+            512, 512, attn_ff, dropout=dropout, n_heads=attn_heads), nn.Conv3d(512, 512, (context_T, 1, 1), 1))
+        in_dim, self._use_ss = 1024 if use_ss else 512, use_ss
         self._to_embed = nn.Sequential(nn.Linear(in_dim, embed_hidden), nn.Dropout(
             dropout), nn.ReLU(), nn.Linear(embed_hidden, latent_dim))
         self._st_goal_attn = st_goal_attn
-        self._st_attn = nn.Sequential(*[ProcLayer(conv_out_dim, conv_out_dim, 128,
-                                      dropout=dropout, causal=True, n_heads=attn_heads) for _ in range(n_st_attn)])
-        self._pe = TemporalPositionalEncoding(
-            conv_out_dim, dropout) if use_pe else None
+        self._st_attn = nn.Sequential(
+            *[ProcLayer(512, 512, 128, dropout=dropout, causal=True, n_heads=attn_heads) for _ in range(n_st_attn)])
+        self._pe = TemporalPositionalEncoding(512, dropout) if use_pe else None
 
     def forward(self, images, context, forward_predict):
         assert len(images.shape) == 5, "expects [B, T, C, H, W] tensor!"

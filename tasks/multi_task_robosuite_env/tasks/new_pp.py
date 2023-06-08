@@ -140,6 +140,7 @@ class PickPlace(SingleArmEnv):
                       [-0.08, -0.03], [-0.19, -0.15]],
             env_conf=None
     ):
+        print(f"Render GPU id {render_gpu_device_id}")
         # settings for table top
         self.table_full_size = table_full_size
         self.table_friction = table_friction

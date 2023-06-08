@@ -332,7 +332,8 @@ class MultiTaskPairedDataset(Dataset):
             else:
                 augmented = self.transforms(obs)
             assert augmented.shape == obs.shape
-
+            # cv2.imwrite("augment.png", np.moveaxis(
+            #     augmented.numpy()*255, 0, -1))
             return augmented
         self.frame_aug = frame_aug
 
@@ -371,7 +372,7 @@ class MultiTaskPairedDataset(Dataset):
                 if i == self._demo_T - 1:
                     n = len(traj) - 1
                 elif i == 0:
-                    n = 0
+                    n = 1
                 else:
                     n = clip(np.random.randint(
                         int(i * per_bracket), int((i + 1) * per_bracket)))

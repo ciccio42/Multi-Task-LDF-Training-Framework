@@ -55,7 +55,7 @@ TASK_MAP = {
         'env_fn':   nut_expert,
         'eval_fn':  nut_assembly_eval,
         'agent-teacher': ('UR5e_NutAssemblyDistractor', 'Panda_NutAssemblyDistractor'),
-        'render_hw': (100, 180),
+        'render_hw': (200, 360),
     },
     'pick_place': {
         'num_variations':   16,
@@ -122,7 +122,7 @@ def select_random_frames(frames, n_select, sample_sides=True, random_frames=True
         for i in range(n_select):
             # get first frame
             if i == 0:
-                n = 0
+                n = 1
             # get the last frame
             elif i == n_select - 1:
                 n = len(frames) - 1
@@ -182,14 +182,14 @@ def build_tvf_formatter(config, env_name='stack'):
         assert img_h != 3 and img_w != 3, img.shape
         box_h, box_w = img_h - top - \
             crop_params[1], img_w - left - crop_params[3]
-        cv2.imwrite("obs.png", np.array(img))
+        # cv2.imwrite("obs.png", np.array(img))
         obs = ToTensor()(img.copy())
         obs = resized_crop(obs, top=top, left=left, height=box_h, width=box_w,
                            size=(height, width), antialias=True)
-        cv2.imwrite("obs_cropped.png", np.moveaxis(obs.numpy(), 0, -1)*255)
+        # cv2.imwrite("obs_cropped.png", np.moveaxis(obs.numpy(), 0, -1)*255)
         # obs = Normalize(mean=[0.485, 0.456, 0.406],
         #                 std=[0.229, 0.224, 0.225])(obs)
-        cv2.imwrite("obs_normalized.png", np.moveaxis(obs.numpy(), 0, -1)*255)
+        # cv2.imwrite("obs_normalized.png", np.moveaxis(obs.numpy(), 0, -1)*255)
         return obs
     return resize_crop
 
@@ -272,6 +272,7 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
                       heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[]):
     if gpu_id == -1:
         gpu_id = int(ctr % torch.cuda.device_count())
+    print(f"Model GPU id {gpu_id}")
     model = model.cuda(gpu_id)
     if target_obj_dec is not None:
         target_obj_dec = target_obj_dec.cuda(gpu_id)

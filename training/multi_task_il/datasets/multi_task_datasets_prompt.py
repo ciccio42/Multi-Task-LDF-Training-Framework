@@ -22,7 +22,7 @@ import copy
 from copy import deepcopy
 from functools import reduce
 from operator import concat
-from multi_task_il.utils import normalize_action
+from multi_task_il.utils import normalize_action, discretize_action
 from einops import rearrange
 
 from multi_task_il.models.vima.utils import *
@@ -98,7 +98,7 @@ class MultiTaskPairedDataset(Dataset):
             demo_name='panda',
             normalize_action=True,
             normalization_ranges=[],
-            n_action_bin=256,
+            n_action_bin=[256],
             views=['front'],
             modality=['rgb'],
             ** params):
@@ -451,7 +451,7 @@ class MultiTaskPairedDataset(Dataset):
                     action.append(_get_tensor(k, step_t))
 
                 if self._normalize_action:
-                    action = normalize_action(
+                    action = discretize_action(
                         action=action[0],
                         n_action_bin=self._n_action_bin,
                         action_ranges=self._normalization_ranges

@@ -38,6 +38,19 @@ def denormalize_action(norm_action, action_ranges):
     return action
 
 
+def discretize_action(action, n_action_bin, action_ranges):
+    disc_action = action.copy()
+    # normalize between [0 , 1]
+    disc_action[:-1] = ((disc_action[:-1] - action_ranges[:, 0]) /
+                        (action_ranges[:, 1] - action_ranges[:, 0]))
+    if disc_action[-1] == -1:
+        disc_action[-1] = 0
+    else:
+        disc_action[-1] = 1
+
+    return (disc_action * n_action_bin).astype(np.int32)
+
+
 def load_trajectories(conf_file, mode='train'):
     conf_file.dataset_cfg.mode = 'train'
     return hydra.utils.instantiate(conf_file.dataset_cfg)

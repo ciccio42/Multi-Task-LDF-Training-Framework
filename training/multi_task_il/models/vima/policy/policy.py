@@ -146,67 +146,50 @@ class Policy(nn.Module):
         self._return_dist = return_dist
         self._concat_state = concat_state
 
-        # Action module
-        # self._action_module = nn.Sequential(
-        #     nn.Linear(, ), nn.ReLU(),
-        #     nn.Linear(), nn.ReLU()
-        # )
-        # self._action_dist = _DiscreteLogHead(
-        #     in_dim=,
-        #     out_dim=,
-        #     n_mixtures=,
-        #     const_var=,
-        #     sep_var=
-        # )
+        # Action decoder
+        self.action_decoder = vnn.ActionDecoder(
+            input_dim=embed_dim,
+            action_dims={
+                "pose_position": [256, 256, 256],
+                "pose_rotation": [360, 360, 360],
+                "gripper_action": [1],
+            },
+            hidden_dim=512,
+            hidden_depth=2,
+            activation="relu",
+            norm_type=None,
+            last_layer_gain=0.01,
+        )
 
         # Action encoder-decoder
-        # self.action_encoder = vnn.ActionEmbedding(
-        #     output_dim=embed_dim,
-        #     embed_dict={
-        #         "pose0_position": vnn.ContinuousActionEmbedding(
-        #             output_dim=256,
-        #             input_dim=2,
-        #             hidden_dim=256,
-        #             hidden_depth=1,
-        #         ),
-        #         "pose0_rotation": vnn.ContinuousActionEmbedding(
-        #             output_dim=256,
-        #             input_dim=4,
-        #             hidden_dim=256,
-        #             hidden_depth=1,
-        #         ),
-        #         "pose1_position": vnn.ContinuousActionEmbedding(
-        #             output_dim=256,
-        #             input_dim=2,
-        #             hidden_dim=256,
-        #             hidden_depth=1,
-        #         ),
-        #         "pose1_rotation": vnn.ContinuousActionEmbedding(
-        #             output_dim=256,
-        #             input_dim=4,
-        #             hidden_dim=256,
-        #             hidden_depth=1,
-        #         ),
-        #     },
-        # )
-        # self.action_decoder = vnn.ActionDecoder(
-        #     input_dim=embed_dim,
-        #     action_dims={
-        #         "pose0_position": [50, 100],
-        #         "pose0_rotation": [50] * 4,
-        #         "pose1_position": [50, 100],
-        #         "pose1_rotation": [50] * 4,
-        #     },
-        #     hidden_dim=512,
-        #     hidden_depth=2,
-        #     activation="relu",
-        #     norm_type=None,
-        #     last_layer_gain=0.01,
-        # )
-        # self._n_discrete_x_bins = 50
-        # self._n_discrete_y_bins = 100
-        # self._n_discrete_z_bins = 50
-        # self._n_discrete_rot_bins = 50
+        self.action_encoder = vnn.ActionEmbedding(
+            output_dim=embed_dim,
+            embed_dict={
+                "pose_position": vnn.ContinuousActionEmbedding(
+                    output_dim=256,
+                    input_dim=3,
+                    hidden_dim=256,
+                    hidden_depth=1,
+                ),
+                "pose_rotation": vnn.ContinuousActionEmbedding(
+                    output_dim=256,
+                    input_dim=3,
+                    hidden_dim=256,
+                    hidden_depth=1,
+                ),
+                "gripper_action": vnn.ContinuousActionEmbedding(
+                    output_dim=256,
+                    input_dim=1,
+                    hidden_dim=256,
+                    hidden_depth=1,
+                )
+            },
+        )
+
+        self._n_discrete_x_bins = 256
+        self._n_discrete_y_bins = 256
+        self._n_discrete_z_bins = 256
+        self._n_discrete_rot_bins = 256
 
     def forward(
         self,
@@ -224,28 +207,37 @@ class Policy(nn.Module):
         out['prompt_token_masks'] = prompt_token_masks
 
         # 2. Forward obs token
-        obs_token, obs_mask = self.forward_obs_token(
+        obs_token_batch, obs_mask_batch = self.forward_obs_token(
             input['obs'])
 
         inference_cache = {}
-        predicted_action_batch = None
+        action_logits_batch = None
+        position_logits_batch = None
+        rotation_logits_batch = None
+        gripper_logits_batch = None
         for sample in range(B):
-            predicted_action_token_trj = None
-            obs_token_trajectory = torch.index_select(
-                obs_token, 0, torch.tensor(sample).to(obs_token.device))
-            obs_mask_trajectory = torch.index_select(
-                obs_mask, 0, torch.tensor(sample).to(obs_token.device))
-            for t in range(T):
+            position_logits_trajectory = None
+            rotation_logits_trajectory = None
+            gripper_logits_trajectory = None
 
+            obs_token_trajectory = torch.index_select(
+                obs_token_batch, 0, torch.tensor(sample).to(obs_token_batch.device))
+            obs_mask_trajectory = torch.index_select(
+                obs_mask_batch, 0, torch.tensor(sample).to(obs_token_batch.device))
+            for t in range(T):
+                # print(t)
                 if t == 0:
                     inference_cache["obs_tokens"] = []
                     inference_cache["obs_masks"] = []
                     inference_cache["action_tokens"] = []
+                    position_logits_t = None
+                    rotation_logits_t = None
+                    gripper_logits_t = None
 
                 obs_token_this_step = torch.index_select(
-                    obs_token_trajectory, 1, torch.tensor(t).to(obs_token.device))
+                    obs_token_trajectory, 1, torch.tensor(t).to(obs_token_batch.device))
                 obs_mask_this_step = torch.index_select(
-                    obs_mask_trajectory, 1, torch.tensor(t).to(obs_token.device))
+                    obs_mask_trajectory, 1, torch.tensor(t).to(obs_token_batch.device))
 
                 # prepare history
                 obs_token_this_step = obs_token_this_step.squeeze(0)
@@ -267,7 +259,7 @@ class Policy(nn.Module):
                                 torch.zeros(
                                     required_pad,
                                     obs_this_env_this_step.shape[1],
-                                    device=obs_token.device,
+                                    device=obs_token_batch.device,
                                     dtype=obs_this_env_this_step.dtype,
                                 ),
                             ],
@@ -280,7 +272,7 @@ class Policy(nn.Module):
                                 obs_mask_this_env_this_step,
                                 torch.zeros(
                                     required_pad,
-                                    device=obs_token.device,
+                                    device=obs_token_batch.device,
                                     dtype=obs_mask_this_env_this_step.dtype,
                                 ),
                             ],
@@ -310,9 +302,9 @@ class Policy(nn.Module):
                 obs_mask = obs_masks_to_forward
                 action_token = action_tokens_to_forward
                 prompt_token = torch.index_select(
-                    prompt_tokens, 1, torch.tensor(sample).to(obs_token.device))
+                    prompt_tokens, 1, torch.tensor(sample).to(obs_token_batch.device))
                 prompt_token_mask = torch.index_select(
-                    prompt_token_masks, 0, torch.tensor(sample).to(obs_token.device))
+                    prompt_token_masks, 0, torch.tensor(sample).to(obs_token_batch.device))
                 # 3. Action Token Prediction
                 L_obs, B = obs_token.shape[:2]
                 L_action = 0 if action_token is None else action_token.shape[0]
@@ -320,10 +312,10 @@ class Policy(nn.Module):
                 L = L_obs * n_max_objs + L_action
 
                 tokens = torch.empty(
-                    L, B, self.embed_dim, dtype=torch.float32, device=obs_token.device
+                    L, B, self.embed_dim, dtype=torch.float32, device=obs_token_batch.device
                 )
                 masks = torch.ones(L, B, dtype=torch.bool,
-                                   device=obs_token.device)
+                                   device=obs_token_batch.device)
                 obs_token = rearrange(obs_token, "L B Q E -> B L Q E")
                 obs_token = rearrange(obs_token, "B L Q E -> B (L Q) E")
                 obs_token = rearrange(obs_token, "B L E -> L B E")
@@ -355,32 +347,109 @@ class Policy(nn.Module):
 
                 predicted_action_token_t = predicted_action_token_t[-1].unsqueeze(
                     0)
-                inference_cache["action_tokens"].append(
-                    predicted_action_token_t[0])
+
+                dist_dict = self.forward_action_decoder(
+                    predicted_action_token_t)
+
+                for k, v in dist_dict.items():
+                    # create a tensor containing the logits for each action component along the last dimension
+                    if k == "pose_position":
+                        for i, dist in enumerate(v._dists):
+                            if i == 0:
+                                position_logits_x_t = dist.probs
+                            elif i == 1:
+                                position_logits_y_t = dist.probs
+                            else:
+                                position_logits_z_t = dist.probs
+
+                    elif k == "pose_rotation":
+                        for i, dist in enumerate(v._dists):
+                            if i == 0:
+                                rotation_logits_r_t = dist.probs
+                            elif i == 1:
+                                rotation_logits_p_t = dist.probs
+                            else:
+                                rotation_logits_y_t = dist.probs
+                    elif k == "gripper_action":
+                        for i, dist in enumerate(v._dists):
+                            gripper_logits_t = dist.probs
 
                 if t == 0:
-                    predicted_action_token_trj = predicted_action_token_t
+                    position_logits_x_trajectory = position_logits_x_t
+                    position_logits_y_trajectory = position_logits_y_t
+                    position_logits_z_trajectory = position_logits_z_t
+
+                    rotation_logits_r_trajectory = rotation_logits_r_t
+                    rotation_logits_p_trajectory = rotation_logits_p_t
+                    rotation_logits_y_trajectory = rotation_logits_y_t
+
+                    gripper_logits_trajectory = gripper_logits_t
+
                 else:
-                    predicted_action_token_trj = torch.cat(
-                        (predicted_action_token_trj, predicted_action_token_t), 1)
+                    position_logits_x_trajectory = torch.cat(
+                        (position_logits_x_trajectory, position_logits_x_t), 1)
+                    position_logits_y_trajectory = torch.cat(
+                        (position_logits_y_trajectory, position_logits_y_t), 1)
+                    position_logits_z_trajectory = torch.cat(
+                        (position_logits_z_trajectory, position_logits_z_t), 1)
 
+                    rotation_logits_r_trajectory = torch.cat(
+                        (rotation_logits_r_trajectory, rotation_logits_r_t), 1)
+                    rotation_logits_p_trajectory = torch.cat(
+                        (rotation_logits_p_trajectory, rotation_logits_p_t), 1)
+                    rotation_logits_y_trajectory = torch.cat(
+                        (rotation_logits_y_trajectory, rotation_logits_y_t), 1)
+
+                    gripper_logits_trajectory = torch.cat(
+                        (gripper_logits_trajectory, gripper_logits_t), 1)
+
+                actions = {k: v.mode() for k, v in dist_dict.items()}
+
+                action_tokens = self.forward_action_token(
+                    actions)  # (1, B, E)
+                action_tokens = action_tokens.squeeze(0)  # (B, E)
+                inference_cache["action_tokens"].append(action_tokens[0])
+                actions = self._de_discretize_actions(actions)
+
+            # aggregate action distribution over batch
             if sample == 0:
-                predicted_action_batch = predicted_action_token_trj
+                position_logits_x_batch = position_logits_x_trajectory
+                position_logits_y_batch = position_logits_y_trajectory
+                position_logits_z_batch = position_logits_z_trajectory
+
+                rotation_logits_r_batch = rotation_logits_r_trajectory
+                rotation_logits_p_batch = rotation_logits_p_trajectory
+                rotation_logits_y_batch = rotation_logits_y_trajectory
+
+                gripper_logits_batch = gripper_logits_trajectory
             else:
-                predicted_action_batch = torch.cat(
-                    (predicted_action_batch, predicted_action_token_trj), 0)
+                position_logits_x_batch = torch.cat(
+                    (position_logits_x_batch, position_logits_x_trajectory), 0)
+                position_logits_y_batch = torch.cat(
+                    (position_logits_y_batch, position_logits_y_trajectory), 0)
+                position_logits_z_batch = torch.cat(
+                    (position_logits_z_batch, position_logits_z_trajectory), 0)
 
-        out['predicted_action_tokens'] = predicted_action_batch
+                rotation_logits_r_batch = torch.cat(
+                    (rotation_logits_r_batch, rotation_logits_r_trajectory), 0)
+                rotation_logits_p_batch = torch.cat(
+                    (rotation_logits_p_batch, rotation_logits_p_trajectory), 0)
+                rotation_logits_y_batch = torch.cat(
+                    (rotation_logits_y_batch, rotation_logits_y_trajectory), 0)
 
-        if self._return_dist:
-            if self._concat_state:
-                ac_in = torch.cat((ac_in, input['states']), 2)
-            else:
-                ac_in = predicted_action_batch
+                gripper_logits_batch = torch.cat(
+                    (gripper_logits_batch, gripper_logits_trajectory), 0)
 
-            ac_pred = self._action_module(ac_in)
-            mu_bc, scale_bc, logit_bc = self._action_dist(ac_pred)
-            out['bc_distrib'] = DiscreteMixLogistic(mu_bc, scale_bc, logit_bc)
+            out['position_x_logits'] = position_logits_x_batch
+            out['position_y_logits'] = position_logits_y_batch
+            out['position_z_logits'] = position_logits_z_batch
+
+            out['rotation_r_logits'] = rotation_logits_r_batch
+            out['rotation_p_logits'] = rotation_logits_p_batch
+            out['rotation_y_logits'] = rotation_logits_y_batch
+
+            out['gripper_logits'] = gripper_logits_batch
+
         return out
 
     def forward_prompt_assembly(self, prompts):
@@ -496,7 +565,7 @@ class Policy(nn.Module):
         return self.action_decoder(predicted_action_tokens)
 
     def discretize_action(self, action):
-        device = action["pose0_position"].device
+        device = action["pose_position"].device
         boundary_x = torch.linspace(
             start=0, end=1, steps=self._n_discrete_x_bins, device=device
         )
@@ -507,14 +576,14 @@ class Policy(nn.Module):
             start=0, end=1, steps=self._n_discrete_rot_bins, device=device
         )
 
-        action["pose0_position"][..., 0] = torch.bucketize(
-            action["pose0_position"][..., 0].contiguous(), boundary_x
+        action["pose_position"][..., 0] = torch.bucketize(
+            action["pose_position"][..., 0].contiguous(), boundary_x
         )
-        action["pose0_position"][..., 1] = torch.bucketize(
-            action["pose0_position"][..., 1].contiguous(), boundary_y
+        action["pose_position"][..., 1] = torch.bucketize(
+            action["pose_position"][..., 1].contiguous(), boundary_y
         )
-        action["pose0_rotation"] = torch.bucketize(
-            action["pose0_rotation"].contiguous(), boundary_rot
+        action["pose_rotation"] = torch.bucketize(
+            action["pose_rotation"].contiguous(), boundary_rot
         )
 
         action["pose1_position"][..., 0] = torch.bucketize(
@@ -531,25 +600,19 @@ class Policy(nn.Module):
 
     def _de_discretize_actions(self, actions):
         actions = {k: v.float() for k, v in actions.items()}
-        actions["pose0_position"][..., 0] = (
-            actions["pose0_position"][..., 0] / self._n_discrete_x_bins
+        actions["pose_position"][..., 0] = (
+            actions["pose_position"][..., 0] / self._n_discrete_x_bins
         )
-        actions["pose0_position"][..., 1] = (
-            actions["pose0_position"][..., 1] / self._n_discrete_y_bins
+        actions["pose_position"][..., 1] = (
+            actions["pose_position"][..., 1] / self._n_discrete_y_bins
         )
-        actions["pose0_rotation"] = (
-            actions["pose0_rotation"] / self._n_discrete_rot_bins
+        actions["pose_position"][..., 2] = (
+            actions["pose_position"][..., 2] / self._n_discrete_z_bins
+        )
+        actions["pose_rotation"] = (
+            actions["pose_rotation"] / self._n_discrete_rot_bins
         )
 
-        actions["pose1_position"][..., 0] = (
-            actions["pose1_position"][..., 0] / self._n_discrete_x_bins
-        )
-        actions["pose1_position"][..., 1] = (
-            actions["pose1_position"][..., 1] / self._n_discrete_y_bins
-        )
-        actions["pose1_rotation"] = (
-            actions["pose1_rotation"] / self._n_discrete_rot_bins
-        )
         return actions
 
 

@@ -22,6 +22,7 @@ from collections import defaultdict, OrderedDict
 from hydra.utils import instantiate
 # need for val. loader
 from multi_task_il.datasets.multi_task_datasets import DIYBatchSampler, collate_by_task
+from torch.nn import CrossEntropyLoss
 
 torch.autograd.set_detect_anomaly(True)
 # for visualization
@@ -285,19 +286,25 @@ def calculate_task_loss_vima(config, train_cfg, device, model, task_inputs):
         input=model_inputs
     )
 
-    # forward & backward action pred
-    actions = model_inputs['actions']
-    # mu_bc.shape: B, 7, 8, 4]) but actions.shape: B, 6, 8
-    mu_bc, scale_bc, logit_bc = out['bc_distrib']
-    action_distribution = DiscreteMixLogistic(
-        mu_bc[:, :-1], scale_bc[:, :-1], logit_bc[:, :-1])
-    act_prob = rearrange(- action_distribution.log_prob(actions),
-                         'B n_mix act_dim -> B (n_mix act_dim)')
+    # Compute Categorical-Cross-Entropy for each command component
+    loss = CrossEntropyLoss(reduction=True)
 
-    all_losses["l_bc"] = train_cfg.bc_loss_mult * \
-        torch.mean(act_prob, dim=-1)
-
-    all_losses["loss_sum"] = all_losses["l_bc"]
+    for key in out.keys():
+        if "position_x_logits" == key:
+            pass
+            # loss =
+        elif "position_y_logits" == key:
+            pass
+        elif "position_z_logits" == key:
+            pass
+        elif "rotation_r_logits" == key:
+            pass
+        elif "rotation_p_logits" == key:
+            pass
+        elif "rotation_y_logits" == key:
+            pass
+        elif "gripper_logits" == key:
+            pass
 
     # flatten here to avoid headache
     for (task_name, idxs) in task_to_idx.items():

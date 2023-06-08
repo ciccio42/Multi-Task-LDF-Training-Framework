@@ -145,4 +145,5 @@ wandb/*
 *.ckpt
 datasets/*
 bashes/test/*
-bashes/out.txt
+bashes/*.txt
+bashes/*.png
