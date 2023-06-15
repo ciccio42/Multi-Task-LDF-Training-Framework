@@ -22,7 +22,9 @@ from collections import defaultdict, OrderedDict
 from hydra.utils import instantiate
 # need for val. loader
 from multi_task_il.datasets.multi_task_datasets import DIYBatchSampler, collate_by_task
-from torch.nn import CrossEntropyLoss
+from torch.nn import CrossEntropyLoss, BCELoss
+from torchmetrics.classification import Accuracy
+import torch.nn.functional as F
 
 torch.autograd.set_detect_anomaly(True)
 # for visualization
@@ -205,10 +207,10 @@ def calculate_obj_pos_loss(config, train_cfg, device, model, task_inputs, loss, 
         for key in ['demo', 'demo_cp']:
             model_inputs[key].append(inputs['demo_data'][key].to(device))
 
-        task_inputs[task_name]['traj']['target_position_one_hot'].require_grad = True
+        task_inputs[task_name]['traj']['target_position_one_hot'].requires_grad = True
         obj_position = task_inputs[task_name]['traj']['target_position_one_hot'].to(
             device)
-        obj_position.require_grad = True
+        obj_position.requires_grad = True
         target_obj_pos_one_hot[task_name] = obj_position
         task_bsize = inputs['traj']['images'].shape[0]
         task_to_idx[task_name] = [start + i for i in range(task_bsize)]
@@ -230,7 +232,7 @@ def calculate_obj_pos_loss(config, train_cfg, device, model, task_inputs, loss, 
         # for each task compute the cross-entropy loss
         # B - T - Number Classes
         gt = target_obj_pos_one_hot[task_name].permute(0, 2, 1)
-        gt.require_grad = True
+        gt.requires_grad = True
         prediction = out['target_obj_pred'].permute(0, 2, 1)
         all_losses[task_name]['ce_loss'] = loss(prediction, gt)
 
@@ -246,7 +248,7 @@ def calculate_obj_pos_loss(config, train_cfg, device, model, task_inputs, loss, 
     return all_losses, all_accuracy
 
 
-def calculate_task_loss_vima(config, train_cfg, device, model, task_inputs):
+def calculate_task_loss_vima(config, train_cfg, device, model, task_inputs, mode='train'):
     model_inputs = defaultdict()
     task_to_idx = dict()
     task_losses = OrderedDict()
@@ -255,8 +257,6 @@ def calculate_task_loss_vima(config, train_cfg, device, model, task_inputs):
         traj = inputs['sample']
         input_keys = ['states',
                       'actions',
-                      'images',
-                      'images_cp',
                       'prompt',
                       'prompt_token_type',
                       'word_batch',
@@ -283,34 +283,86 @@ def calculate_task_loss_vima(config, train_cfg, device, model, task_inputs):
     all_losses = dict()
 
     out = model(
-        input=model_inputs
+        input=model_inputs,
+        mode=mode
     )
 
     # Compute Categorical-Cross-Entropy for each command component
-    loss = CrossEntropyLoss(reduction=True)
-
+    loss = CrossEntropyLoss(reduction="mean")
+    position_accuracy_x = Accuracy(
+        task="multiclass", num_classes=256).to(device=0)
     for key in out.keys():
         if "position_x_logits" == key:
-            pass
-            # loss =
-        elif "position_y_logits" == key:
-            pass
-        elif "position_z_logits" == key:
-            pass
-        elif "rotation_r_logits" == key:
-            pass
-        elif "rotation_p_logits" == key:
-            pass
-        elif "rotation_y_logits" == key:
-            pass
-        elif "gripper_logits" == key:
-            pass
+            prediction_x = rearrange(
+                out['position_x_logits'][:, :, :], 'T B C -> (T B) C').to(torch.float32)
+            x_true = rearrange(rearrange(F.one_hot(
+                model_inputs['actions'][:, :, 0].to(torch.int64), out['position_x_logits'][:, :, :].shape[-1]), 'B T C -> T B C'), 'T B C -> (T B) C').to(torch.float32)
+            if mode == 'train':
+                x_true.requires_grad = True
+            loss_x = loss(prediction_x, x_true.to(torch.float32))
 
+            # gt_action_class_x = torch.argmax(x_true, dim=1)
+            # predicted_action_class_x = torch.argmax(prediction_x, dim=1)
+            # accuracy_x = position_accuracy_x(
+            #     predicted_action_class_x, gt_action_class_x)
+
+        elif "position_y_logits" == key:
+            y_true = rearrange(rearrange(F.one_hot(
+                model_inputs['actions'][:, :, 1].to(torch.int64), out['position_y_logits'][:, :, :].shape[-1]), 'B T C -> T B C'), 'T B C -> (T B) C').to(torch.float32)
+            if mode == 'train':
+                y_true.requires_grad = True
+            loss_y = loss(rearrange(
+                out['position_y_logits'][:, :, :], 'T B C -> (T B) C').to(torch.float32), y_true.to(torch.float32))
+
+        elif "position_z_logits" == key:
+            z_true = rearrange(rearrange(F.one_hot(
+                model_inputs['actions'][:, :, 2].to(torch.int64), out['position_z_logits'][:, :, :].shape[-1]), 'B T C -> T B C'), 'T B C -> (T B) C').to(torch.float32)
+            if mode == 'train':
+                z_true.requires_grad = True
+            loss_z = loss(rearrange(
+                out['position_z_logits'][:, :, :], 'T B C -> (T B) C').to(torch.float32), z_true.to(torch.float32))
+
+        elif "rotation_r_logits" == key:
+            r_true = rearrange(rearrange(F.one_hot(
+                model_inputs['actions'][:, :, 3].to(torch.int64), out['rotation_r_logits'][:, :, :].shape[-1]), 'B T C -> T B C'), 'T B C -> (T B) C').to(torch.float32)
+            if mode == 'train':
+                r_true.requires_grad = True
+            loss_r = loss(rearrange(
+                out['rotation_r_logits'][:, :, :], 'T B C -> (T B) C').to(torch.float32), r_true.to(torch.float32))
+
+        elif "rotation_p_logits" == key:
+            p_true = rearrange(rearrange(F.one_hot(
+                model_inputs['actions'][:, :, 4].to(torch.int64), out['rotation_p_logits'][:, :, :].shape[-1]), 'B T C -> T B C'), 'T B C -> (T B) C').to(torch.float32)
+            if mode == 'train':
+                p_true.requires_grad = True
+            loss_p = loss(rearrange(
+                out['rotation_p_logits'][:, :, :], 'T B C -> (T B) C').to(torch.float32), p_true.to(torch.float32))
+
+        elif "rotation_y_logits" == key:
+            yaw_true = rearrange(rearrange(F.one_hot(
+                model_inputs['actions'][:, :, 5].to(torch.int64), out['rotation_y_logits'][:, :, :].shape[-1]), 'B T C -> T B C'), 'T B C -> (T B) C').to(torch.float32)
+            if mode == 'train':
+                yaw_true.requires_grad = True
+            loss_yaw = loss(rearrange(
+                out['rotation_y_logits'][:, :, :], 'T B C -> (T B) C').to(torch.float32), yaw_true.to(torch.float32))
+
+        elif "gripper_logits" == key:
+            gripper_true = rearrange(rearrange(F.one_hot(
+                model_inputs['actions'][:, :, 6].to(torch.int64), out['gripper_logits'][:, :, :].shape[-1]), 'B T C -> T B C'), 'T B C -> (T B) C').to(torch.float32)
+            if mode == 'train':
+                gripper_true.requires_grad = True
+            loss_gripper = loss(rearrange(
+                out['gripper_logits'][:, :, :], 'T B C -> (T B) C').to(torch.float32), gripper_true.to(torch.float32))
+
+    all_losses['l_bc'] = loss_x + loss_y + \
+        loss_z + loss_r + loss_p + loss_yaw + loss_gripper
+
+    all_losses["loss_sum"] = all_losses["l_bc"]
     # flatten here to avoid headache
     for (task_name, idxs) in task_to_idx.items():
         for (loss_name, loss_val) in all_losses.items():
-            if len(loss_val.shape) > 0:
-                task_losses[task_name][loss_name] = torch.mean(loss_val[idxs])
+            task_losses[task_name][loss_name] = torch.mean(loss_val)
+
     return task_losses
 
 

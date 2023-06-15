@@ -307,8 +307,11 @@ def get_expert_trajectory(env_type, controller_type, renderer=False, camera_obs=
         traj.append(obs, raw_state=mj_state, info={'status': 'start'})
         print(f"Target object {controller._object_name}")
         for t in range(int(env.horizon/env.action_repeat)):
+            # compute the action for the current state
             action, status = controller.act(obs)
+
             obs, reward, done, info = env.step(action)
+
             try:
                 os.makedirs("test")
             except:
@@ -317,11 +320,12 @@ def get_expert_trajectory(env_type, controller_type, renderer=False, camera_obs=
                         np.array(obs['camera_front_image'][:, :, ::-1]))
             assert 'status' not in info.keys(
             ), "Don't overwrite information returned from environment. "
-            info['status'] = status
+
             if renderer:
                 env.render()
-            mj_state = env.sim.get_state().flatten()
 
+            mj_state = env.sim.get_state().flatten()
+            traj.append(obs, reward, done, info, action, mj_state)
             # # plot bb
             # target_obj_id = obs['target-object']
             # target_obj_bb = None
@@ -340,8 +344,6 @@ def get_expert_trajectory(env_type, controller_type, renderer=False, camera_obs=
             # cv2.imshow('camera_front_image', image_rgb)
             # cv2.waitKey(0)
             # cv2.destroyAllWindows()
-
-            traj.append(obs, reward, done, info, action, mj_state)
             if reward:
                 success = True
                 break

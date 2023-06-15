@@ -24,8 +24,10 @@ from functools import reduce
 from operator import concat
 from multi_task_il.utils import normalize_action, discretize_action
 from einops import rearrange
+from torchmetrics.classification import Accuracy
 
 from multi_task_il.models.vima.utils import *
+
 
 ENV_OBJECTS = {
     'pick_place': {
@@ -161,7 +163,7 @@ class MultiTaskPairedDataset(Dataset):
         self._compute_frame_distribution = False
         self._normalize_action = normalize_action
         self._normalization_ranges = np.array(normalization_ranges)
-        self._n_action_bin = n_action_bin
+        self._n_action_bin = [100-1, 100-1, 100-1, 50-1, 50-1, 50-1, 2-1]
         self._views = views
         self._modality = modality
         # Frame distribution for each trajectory
@@ -399,9 +401,6 @@ class MultiTaskPairedDataset(Dataset):
 
         ret_dict = {'states': [],
                     'actions': [],
-                    'points': [],
-                    'images': None,
-                    'images_cp': None,
                     'prompt': None}
 
         state_keys, action_keys = self._state_action_spec
@@ -413,31 +412,42 @@ class MultiTaskPairedDataset(Dataset):
                 1, end - self._obs_T + 1), size=(1,))
 
         # Select frames number
-        if self._take_first_frame:
+        if self._take_first_frame and self.select_random_frames:
             first_frame = [torch.tensor(1)]
-            chosen_t = first_frame + [j + start for j in range(self._obs_T)]
-        else:
+            chosen_t = first_frame + \
+                [j + start for j in range(self._obs_T)]
+
+        elif (not self._take_first_frame) and self.select_random_frames:
             chosen_t = [j + start for j in range(self._obs_T)]
+
+        elif not self.select_random_frames:
+            chosen_t = []
+            previous_status = None
+            for t in range(len(agent_traj)):
+                status = agent_traj.get(t)['info']['status']
+                if t == 1:
+                    # take the first valid frame
+                    chosen_t.append(t)
+                    previous_status = status
+                elif status == 'moving' and previous_status == 'prepare_grasp':
+                    # take the last obj_in_hand frame
+                    chosen_t.append(t-1)
+                    previous_status = "obj_in_hand"
+                elif t == len(agent_traj)-1:
+                    # the the last placing frame
+                    chosen_t.append(t-1)
+                    previous_status = status
+            chosen_t = torch.from_numpy(np.array(chosen_t))
 
         if self.non_sequential:
             chosen_t = torch.randperm(end)
             chosen_t = chosen_t[chosen_t != 0][:self._obs_T]
-        images = []
-        images_cp = []
 
         # Get desired frames
         for j, t in enumerate(chosen_t):
+
             t = t.item()
             step_t = agent_traj.get(t)
-            image = copy.copy(
-                step_t['obs']['camera_front_image'][:, :, ::-1])
-            processed = self.frame_aug(task_name, image)
-            images.append(processed)
-            if self.aug_twice:
-                images_cp.append(self.frame_aug(task_name, image, True))
-            if has_eef_point:
-                ret_dict['points'].append(np.array(
-                    _adjust_points(step_t['obs']['eef_point'], image.shape[:2]))[None])
 
             state = []
             for k in state_keys:
@@ -445,7 +455,7 @@ class MultiTaskPairedDataset(Dataset):
             ret_dict['states'].append(
                 np.concatenate(state).astype(np.float32)[None])
 
-            if (j >= 1 and not self._take_first_frame) or (self._take_first_frame and j >= 2) or (j == 0 and len(chosen_t) == 1):
+            if j >= 1:
                 action = []
                 for k in action_keys:
                     action.append(_get_tensor(k, step_t))
@@ -458,25 +468,11 @@ class MultiTaskPairedDataset(Dataset):
                     )[None]
 
                 ret_dict['actions'].append(
-                    np.concatenate(action).astype(np.float32)[None])
+                    np.concatenate(action)[None])
 
         for k, v in ret_dict.items():
             if v is not None:
                 ret_dict[k] = np.concatenate(v, 0).astype(np.float32)
-
-        ret_dict['images'] = torch.stack(images)
-        if self.aug_twice:
-            ret_dict['images_cp'] = torch.stack(images_cp)
-
-        if self.aux_pose:
-            grip_close = np.array(
-                [agent_traj.get(i, False)['action'][-1] > 0 for i in range(1, len(agent_traj))])
-            grip_t = np.argmax(grip_close)
-            drop_t = len(agent_traj) - 1 - \
-                np.argmax(np.logical_not(grip_close)[::-1])
-            aux_pose = [agent_traj.get(t, False)['obs']['ee_aa'][:3]
-                        for t in (grip_t, drop_t)]
-            ret_dict['aux_pose'] = np.concatenate(aux_pose).astype(np.float32)
 
         # [ToDo Add special tokens]
         if add_special_token:
@@ -697,6 +693,7 @@ class MultiTaskPairedDataset(Dataset):
                 # get observation at timestamp t
                 obs_t = agent_traj.get(t)['obs']
                 rgb_this_view = obs_t['camera_front_image'][:, :, ::-1]
+                # cv2.imwrite("rgb_this_view.png", np.array(rgb_this_view))
                 bboxes = []
                 cropped_imgs = []
                 n_pad = 0

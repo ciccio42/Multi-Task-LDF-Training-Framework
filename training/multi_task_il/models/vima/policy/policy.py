@@ -2,7 +2,6 @@ from __future__ import annotations
 import os
 import torch
 import torch.nn as nn
-from tokenizers import Tokenizer
 from tokenizers import AddedToken
 from einops import rearrange, repeat
 
@@ -11,6 +10,7 @@ from vima.utils import *
 import numpy as np
 import cv2
 from multi_task_il.models.discrete_logistic import DiscreteMixLogistic
+from collections import defaultdict, deque
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
@@ -20,13 +20,6 @@ _kwargs = {
     "rstrip": False,
     "normalized": True,
 }
-
-PLACEHOLDER_TOKENS = [
-    AddedToken("{pick_object}", **_kwargs),
-]
-PLACEHOLDERS = [token.content for token in PLACEHOLDER_TOKENS]
-tokenizer = Tokenizer.from_pretrained("t5-base")
-tokenizer.add_tokens(PLACEHOLDER_TOKENS)
 
 ENV_OBJECTS = {
     'pick_place': {
@@ -40,48 +33,6 @@ ENV_OBJECTS = {
 }
 
 
-class _DiscreteLogHead(nn.Module):
-    def __init__(self, in_dim, out_dim, n_mixtures, const_var=True, sep_var=False):
-        super().__init__()
-        assert n_mixtures >= 1, "must predict at least one mixture!"
-        self._n_mixtures = n_mixtures
-        self._dist_size = torch.Size((out_dim, n_mixtures))
-        self._mu = nn.Linear(in_dim, out_dim * n_mixtures)
-        self._logit_prob = nn.Linear(
-            in_dim, out_dim * n_mixtures) if n_mixtures > 1 else None
-        if const_var:
-            ln_scale = torch.randn(
-                out_dim, dtype=torch.float32) / np.sqrt(out_dim)
-            self.register_parameter(
-                '_ln_scale', nn.Parameter(ln_scale, requires_grad=True))
-        if sep_var:
-            ln_scale = torch.randn((out_dim, n_mixtures),
-                                   dtype=torch.float32) / np.sqrt(out_dim)
-            self.register_parameter(
-                '_ln_scale', nn.Parameter(ln_scale, requires_grad=True))
-        if not (const_var or sep_var):
-            self._ln_scale = nn.Linear(in_dim, out_dim * n_mixtures)
-
-    def forward(self, x):  #  x has shape B T d
-        mu = self._mu(x).reshape((x.shape[:-1] + self._dist_size))
-
-        if isinstance(self._ln_scale, nn.Linear):
-            ln_scale = self._ln_scale(x).reshape(
-                (x.shape[:-1] + self._dist_size))
-        else:
-            ln_scale = self._ln_scale if self.training else self._ln_scale.detach()
-            if len(ln_scale.shape) == 1:
-                ln_scale = ln_scale.reshape((1, 1, -1, 1)).expand_as(mu)
-                # (1, 1, 8, 1) -> (B T, dist_size[0], dist_size[1]) i.e. each mixture has the **same** constant variance
-            else:  # the sep_val case:
-                ln_scale = repeat(
-                    ln_scale, 'out_d n_mix -> B T out_d n_mix', B=x.shape[0], T=x.shape[1])
-
-        logit_prob = self._logit_prob(x).reshape(
-            mu.shape) if self._n_mixtures > 1 else torch.ones_like(mu)
-        return (mu, ln_scale, logit_prob)
-
-
 class Policy(nn.Module):
     def __init__(
         self,
@@ -92,9 +43,18 @@ class Policy(nn.Module):
         xattn_n_heads: int,
         views: list,
         return_dist: bool = True,
-        concat_state: bool = False
+        concat_state: bool = False,
+        ckpt_path: str = None
     ):
         super().__init__()
+
+        if ckpt_path is not None:
+            ckpt = torch.load(ckpt_path, map_location='cpu')
+            # overwrite default parameters
+            embed_dim = ckpt['cfg']['embed_dim']
+            xf_n_layers = ckpt['cfg']['xf_n_layers']
+            sattn_n_heads = ckpt['cfg']['sattn_n_heads']
+            xattn_n_heads = ckpt['cfg']['xattn_n_heads']
 
         self.embed_dim = embed_dim
         self.xattn_gpt = vnn.XAttnGPT(
@@ -146,13 +106,21 @@ class Policy(nn.Module):
         self._return_dist = return_dist
         self._concat_state = concat_state
 
+        # Load pre-trained weights for xattn
+        if ckpt_path != None:
+            state_dict = dict()
+            for k, v in ckpt["state_dict"].items():
+                if "xattn_gpt" in k or 'obj_encoder' in k or 'end_effector_encoder' in k or 't5_prompt_encoder' in k or 'prompt_obj_post_layer' in k or 'obs_fusion_layer' in k or 'prompt_embedding' in k:
+                    state_dict[k.replace("policy.", "")] = v
+            self.load_state_dict(state_dict, strict=False)
+
         # Action decoder
         self.action_decoder = vnn.ActionDecoder(
             input_dim=embed_dim,
             action_dims={
-                "pose_position": [256, 256, 256],
-                "pose_rotation": [360, 360, 360],
-                "gripper_action": [1],
+                "pose_position": [100, 100, 100],
+                "pose_rotation": [50, 50, 50],
+                "gripper_action": 2,
             },
             hidden_dim=512,
             hidden_depth=2,
@@ -186,19 +154,121 @@ class Policy(nn.Module):
             },
         )
 
-        self._n_discrete_x_bins = 256
-        self._n_discrete_y_bins = 256
-        self._n_discrete_z_bins = 256
-        self._n_discrete_rot_bins = 256
+        self._n_discrete_x_bins = 100
+        self._n_discrete_y_bins = 100
+        self._n_discrete_z_bins = 100
+        self._n_discrete_rot_bins = 50
+
+        model_parameters = filter(lambda p: p.requires_grad, self.parameters())
+        params = sum([np.prod(p.size()) for p in model_parameters])
+        print('Total params module:', params)
+
+    def forward_single_step(self, obs_token: torch.Tensor, obs_mask: torch.Tensor, action_token: torch.Tensor | None, prompt_token: torch.Tensor, prompt_token_mask: torch.Tensor):
+        out = dict()
+
+        # 3. Action Token Prediction
+        L_obs, B = obs_token.shape[:2]
+        L_action = 0 if action_token is None else action_token.shape[0]
+        n_max_objs = obs_token.shape[-2]
+        L = L_obs * n_max_objs + L_action
+
+        tokens = torch.empty(
+            L, B, self.embed_dim, dtype=torch.float32, device=obs_token.device
+        )
+        masks = torch.ones(L, B, dtype=torch.bool,
+                           device=obs_token.device)
+        obs_token = rearrange(obs_token, "L B Q E -> B L Q E")
+        obs_token = rearrange(obs_token, "B L Q E -> B (L Q) E")
+        obs_token = rearrange(obs_token, "B L E -> L B E")
+        obs_mask = rearrange(obs_mask, "L B Q -> B L Q")
+        obs_mask = rearrange(obs_mask, "B L Q -> B (L Q)")
+        obs_mask = rearrange(obs_mask, "B L -> L B")
+        for q in range(n_max_objs):
+            tokens[q:: n_max_objs + 1] = obs_token[q::n_max_objs]
+            masks[q:: n_max_objs + 1] = obs_mask[q::n_max_objs]
+        if action_token is not None:
+            tokens[n_max_objs:: n_max_objs + 1] = action_token
+
+        position_ids = torch.cumsum(masks, dim=0) - 1
+        position_ids = position_ids.long()
+        prompt_position_ids = torch.cumsum(
+            prompt_token_mask, dim=1) - 1
+
+        tokens_out = self.xattn_gpt(
+            obs_action_tokens=tokens,
+            prompt_tokens=prompt_token,
+            prompt_mask=prompt_token_mask,
+            obs_action_masks=masks.transpose(0, 1),
+            obs_action_position_ids=position_ids.transpose(0, 1),
+            prompt_position_ids=prompt_position_ids,
+        )
+
+        predicted_action_token_t = tokens_out[n_max_objs -
+                                              1:: n_max_objs + 1]
+
+        predicted_action_token_t = predicted_action_token_t[-1].unsqueeze(
+            0)
+
+        # Action distribution
+        dist_dict = self.forward_action_decoder(
+            predicted_action_token_t)
+        out['dist_dict'] = dist_dict
+
+        # Create tensors with logits
+        for k, v in dist_dict.items():
+            # create a tensor containing the logits for each action component along the last dimension
+            if k == "pose_position":
+                for i, dist in enumerate(v._dists):
+                    if i == 0:
+                        position_logits_x_t = dist.logits
+                    elif i == 1:
+                        position_logits_y_t = dist.logits
+                    else:
+                        position_logits_z_t = dist.logits
+
+            elif k == "pose_rotation":
+                for i, dist in enumerate(v._dists):
+                    if i == 0:
+                        rotation_logits_r_t = dist.logits
+                    elif i == 1:
+                        rotation_logits_p_t = dist.logits
+                    else:
+                        rotation_logits_y_t = dist.logits
+            elif k == "gripper_action":
+                gripper_logits_t = v.logits
+
+        position_logits_x_trajectory = position_logits_x_t
+        position_logits_y_trajectory = position_logits_y_t
+        position_logits_z_trajectory = position_logits_z_t
+
+        rotation_logits_r_trajectory = rotation_logits_r_t
+        rotation_logits_p_trajectory = rotation_logits_p_t
+        rotation_logits_y_trajectory = rotation_logits_y_t
+
+        gripper_logits_trajectory = gripper_logits_t
+
+        out['position_x_logits'] = position_logits_x_trajectory
+        out['position_y_logits'] = position_logits_y_trajectory
+        out['position_z_logits'] = position_logits_z_trajectory
+
+        out['rotation_r_logits'] = rotation_logits_r_trajectory
+        out['rotation_p_logits'] = rotation_logits_p_trajectory
+        out['rotation_y_logits'] = rotation_logits_y_trajectory
+
+        out['gripper_logits'] = gripper_logits_trajectory
+
+        return out
 
     def forward(
         self,
         input: object,
+        mode: str = 'train'
     ):
         B, T, OBJ_NUM, C, W, H = input['obs']['objects']['cropped_img']['front'].shape
 
         out = dict()
         # 1. Forward prompt assembly
+        # Dim: L_seq B Emb_size
         prompt_tokens, prompt_token_masks = self.forward_prompt_assembly(
             prompts=(input['prompt_token_type'],
                      input['word_batch'],
@@ -207,250 +277,221 @@ class Policy(nn.Module):
         out['prompt_token_masks'] = prompt_token_masks
 
         # 2. Forward obs token
+        # Dim: B T Num_obj Obj_Emb_size
         obs_token_batch, obs_mask_batch = self.forward_obs_token(
             input['obs'])
 
         inference_cache = {}
-        action_logits_batch = None
-        position_logits_batch = None
-        rotation_logits_batch = None
-        gripper_logits_batch = None
-        for sample in range(B):
-            position_logits_trajectory = None
-            rotation_logits_trajectory = None
-            gripper_logits_trajectory = None
+        position_logits_x_trajectory = None
+        position_logits_y_trajectory = None
+        position_logits_z_trajectory = None
+        rotation_logits_r_trajectory = None
+        rotation_logits_p_trajectory = None
+        rotation_logits_y_trajectory = None
+        gripper_logits_trajectory = None
 
-            obs_token_trajectory = torch.index_select(
-                obs_token_batch, 0, torch.tensor(sample).to(obs_token_batch.device))
-            obs_mask_trajectory = torch.index_select(
-                obs_mask_batch, 0, torch.tensor(sample).to(obs_token_batch.device))
-            for t in range(T):
-                # print(t)
-                if t == 0:
-                    inference_cache["obs_tokens"] = []
-                    inference_cache["obs_masks"] = []
-                    inference_cache["action_tokens"] = []
-                    position_logits_t = None
-                    rotation_logits_t = None
-                    gripper_logits_t = None
+        # Compute action for step t
+        for t in range(T-1):
+            if t == 0:
+                inference_cache["obs_tokens"] = deque([], maxlen=T)
+                inference_cache["obs_masks"] = deque([], maxlen=T)
+                inference_cache["action_tokens"] = deque([], maxlen=T)
+                position_logits_x_t = None
+                position_logits_y_t = None
+                position_logits_z_t = None
+                rotation_logits_r_t = None
+                rotation_logits_p_t = None
+                rotation_logits_y_t = None
+                gripper_logits_t = None
 
-                obs_token_this_step = torch.index_select(
-                    obs_token_trajectory, 1, torch.tensor(t).to(obs_token_batch.device))
-                obs_mask_this_step = torch.index_select(
-                    obs_mask_trajectory, 1, torch.tensor(t).to(obs_token_batch.device))
+            # Dim: 1 B Num_obj Obj_Emb_size
+            obs_token_this_step = rearrange(torch.index_select(
+                obs_token_batch, 1, torch.tensor(t).to(obs_token_batch.device)), 'B T O E -> T B O E')
+            obs_mask_this_step = rearrange(torch.index_select(
+                obs_mask_batch, 1, torch.tensor(t).to(obs_token_batch.device)), 'B T O -> T B O')
 
-                # prepare history
-                obs_token_this_step = obs_token_this_step.squeeze(0)
-                obs_mask_this_step = obs_mask_this_step.squeeze(0)
-                inference_cache["obs_tokens"].append(obs_token_this_step[0])
-                inference_cache["obs_masks"].append(obs_mask_this_step[0])
-                max_objs = max(x.shape[0]
-                               for x in inference_cache["obs_tokens"])
-                obs_tokens_to_forward, obs_masks_to_forward = [], []
-                obs_tokens_this_env, obs_masks_this_env = [], []
-                for idx in range(len(inference_cache["obs_tokens"])):
-                    obs_this_env_this_step = inference_cache["obs_tokens"][idx]
-                    obs_mask_this_env_this_step = inference_cache["obs_masks"][idx]
-                    required_pad = max_objs - obs_this_env_this_step.shape[0]
-                    obs_tokens_this_env.append(
-                        any_concat(
-                            [
-                                obs_this_env_this_step,
-                                torch.zeros(
-                                    required_pad,
-                                    obs_this_env_this_step.shape[1],
-                                    device=obs_token_batch.device,
-                                    dtype=obs_this_env_this_step.dtype,
-                                ),
-                            ],
-                            dim=0,
-                        )
-                    )
-                    obs_masks_this_env.append(
-                        any_concat(
-                            [
-                                obs_mask_this_env_this_step,
-                                torch.zeros(
-                                    required_pad,
-                                    device=obs_token_batch.device,
-                                    dtype=obs_mask_this_env_this_step.dtype,
-                                ),
-                            ],
-                            dim=0,
-                        )
-                    )
-                obs_tokens_to_forward.append(
-                    any_stack(obs_tokens_this_env, dim=0))
-                obs_masks_to_forward.append(
-                    any_stack(obs_masks_this_env, dim=0))
-                obs_tokens_to_forward = any_stack(obs_tokens_to_forward, dim=0)
-                obs_masks_to_forward = any_stack(obs_masks_to_forward, dim=0)
-                obs_tokens_to_forward = obs_tokens_to_forward.transpose(0, 1)
-                obs_masks_to_forward = obs_masks_to_forward.transpose(0, 1)
-
-                if t == 0:
-                    action_tokens_to_forward = None
-                else:
-                    action_tokens_to_forward = any_stack(
-                        [any_stack(inference_cache["action_tokens"], dim=0)],
-                        dim=0,
-                    )
-                    action_tokens_to_forward = action_tokens_to_forward.transpose(
-                        0, 1)
-
-                obs_token = obs_tokens_to_forward
-                obs_mask = obs_masks_to_forward
-                action_token = action_tokens_to_forward
-                prompt_token = torch.index_select(
-                    prompt_tokens, 1, torch.tensor(sample).to(obs_token_batch.device))
-                prompt_token_mask = torch.index_select(
-                    prompt_token_masks, 0, torch.tensor(sample).to(obs_token_batch.device))
-                # 3. Action Token Prediction
-                L_obs, B = obs_token.shape[:2]
-                L_action = 0 if action_token is None else action_token.shape[0]
-                n_max_objs = obs_token.shape[-2]
-                L = L_obs * n_max_objs + L_action
-
-                tokens = torch.empty(
-                    L, B, self.embed_dim, dtype=torch.float32, device=obs_token_batch.device
+            # prepare history
+            inference_cache["obs_tokens"].append(
+                obs_token_this_step[0])  # B O E
+            inference_cache["obs_masks"].append(obs_mask_this_step[0])
+            max_objs = max(x.shape[1] for x in inference_cache["obs_tokens"])
+            obs_tokens_to_forward, obs_masks_to_forward = [], []
+            obs_tokens_this_env, obs_masks_this_env = [], []
+            for idx in range(len(inference_cache["obs_tokens"])):
+                obs_this_env_this_step = inference_cache["obs_tokens"][idx]
+                obs_mask_this_env_this_step = inference_cache["obs_masks"][idx]
+                required_pad = max_objs - obs_this_env_this_step.shape[1]
+                obs_tokens_this_env.append(
+                    obs_this_env_this_step
                 )
-                masks = torch.ones(L, B, dtype=torch.bool,
-                                   device=obs_token_batch.device)
-                obs_token = rearrange(obs_token, "L B Q E -> B L Q E")
-                obs_token = rearrange(obs_token, "B L Q E -> B (L Q) E")
-                obs_token = rearrange(obs_token, "B L E -> L B E")
-                obs_mask = rearrange(obs_mask, "L B Q -> B L Q")
-                obs_mask = rearrange(obs_mask, "B L Q -> B (L Q)")
-                obs_mask = rearrange(obs_mask, "B L -> L B")
-                for q in range(n_max_objs):
-                    tokens[q:: n_max_objs + 1] = obs_token[q::n_max_objs]
-                    masks[q:: n_max_objs + 1] = obs_mask[q::n_max_objs]
-                if action_token is not None:
-                    tokens[n_max_objs:: n_max_objs + 1] = action_token
-
-                position_ids = torch.cumsum(masks, dim=0) - 1
-                position_ids = position_ids.long()
-                prompt_position_ids = torch.cumsum(
-                    prompt_token_mask, dim=1) - 1
-
-                tokens_out = self.xattn_gpt(
-                    obs_action_tokens=tokens,
-                    prompt_tokens=prompt_token,
-                    prompt_mask=prompt_token_mask,
-                    obs_action_masks=masks.transpose(0, 1),
-                    obs_action_position_ids=position_ids.transpose(0, 1),
-                    prompt_position_ids=prompt_position_ids,
+                obs_masks_this_env.append(
+                    obs_mask_this_env_this_step
                 )
 
-                predicted_action_token_t = tokens_out[n_max_objs -
-                                                      1:: n_max_objs + 1]
+            obs_tokens_to_forward = any_stack(obs_tokens_this_env, dim=0)
+            obs_masks_to_forward = any_stack(obs_masks_this_env, dim=0)
 
-                predicted_action_token_t = predicted_action_token_t[-1].unsqueeze(
-                    0)
-
-                dist_dict = self.forward_action_decoder(
-                    predicted_action_token_t)
-
-                for k, v in dist_dict.items():
-                    # create a tensor containing the logits for each action component along the last dimension
-                    if k == "pose_position":
-                        for i, dist in enumerate(v._dists):
-                            if i == 0:
-                                position_logits_x_t = dist.probs
-                            elif i == 1:
-                                position_logits_y_t = dist.probs
-                            else:
-                                position_logits_z_t = dist.probs
-
-                    elif k == "pose_rotation":
-                        for i, dist in enumerate(v._dists):
-                            if i == 0:
-                                rotation_logits_r_t = dist.probs
-                            elif i == 1:
-                                rotation_logits_p_t = dist.probs
-                            else:
-                                rotation_logits_y_t = dist.probs
-                    elif k == "gripper_action":
-                        for i, dist in enumerate(v._dists):
-                            gripper_logits_t = dist.probs
-
-                if t == 0:
-                    position_logits_x_trajectory = position_logits_x_t
-                    position_logits_y_trajectory = position_logits_y_t
-                    position_logits_z_trajectory = position_logits_z_t
-
-                    rotation_logits_r_trajectory = rotation_logits_r_t
-                    rotation_logits_p_trajectory = rotation_logits_p_t
-                    rotation_logits_y_trajectory = rotation_logits_y_t
-
-                    gripper_logits_trajectory = gripper_logits_t
-
-                else:
-                    position_logits_x_trajectory = torch.cat(
-                        (position_logits_x_trajectory, position_logits_x_t), 1)
-                    position_logits_y_trajectory = torch.cat(
-                        (position_logits_y_trajectory, position_logits_y_t), 1)
-                    position_logits_z_trajectory = torch.cat(
-                        (position_logits_z_trajectory, position_logits_z_t), 1)
-
-                    rotation_logits_r_trajectory = torch.cat(
-                        (rotation_logits_r_trajectory, rotation_logits_r_t), 1)
-                    rotation_logits_p_trajectory = torch.cat(
-                        (rotation_logits_p_trajectory, rotation_logits_p_t), 1)
-                    rotation_logits_y_trajectory = torch.cat(
-                        (rotation_logits_y_trajectory, rotation_logits_y_t), 1)
-
-                    gripper_logits_trajectory = torch.cat(
-                        (gripper_logits_trajectory, gripper_logits_t), 1)
-
-                actions = {k: v.mode() for k, v in dist_dict.items()}
-
-                action_tokens = self.forward_action_token(
-                    actions)  # (1, B, E)
-                action_tokens = action_tokens.squeeze(0)  # (B, E)
-                inference_cache["action_tokens"].append(action_tokens[0])
-                actions = self._de_discretize_actions(actions)
-
-            # aggregate action distribution over batch
-            if sample == 0:
-                position_logits_x_batch = position_logits_x_trajectory
-                position_logits_y_batch = position_logits_y_trajectory
-                position_logits_z_batch = position_logits_z_trajectory
-
-                rotation_logits_r_batch = rotation_logits_r_trajectory
-                rotation_logits_p_batch = rotation_logits_p_trajectory
-                rotation_logits_y_batch = rotation_logits_y_trajectory
-
-                gripper_logits_batch = gripper_logits_trajectory
+            if t == 0:
+                action_tokens_to_forward = None
             else:
-                position_logits_x_batch = torch.cat(
-                    (position_logits_x_batch, position_logits_x_trajectory), 0)
-                position_logits_y_batch = torch.cat(
-                    (position_logits_y_batch, position_logits_y_trajectory), 0)
-                position_logits_z_batch = torch.cat(
-                    (position_logits_z_batch, position_logits_z_trajectory), 0)
+                action_tokens_to_forward = any_stack(
+                    inference_cache["action_tokens"], dim=0)
 
-                rotation_logits_r_batch = torch.cat(
-                    (rotation_logits_r_batch, rotation_logits_r_trajectory), 0)
-                rotation_logits_p_batch = torch.cat(
-                    (rotation_logits_p_batch, rotation_logits_p_trajectory), 0)
-                rotation_logits_y_batch = torch.cat(
-                    (rotation_logits_y_batch, rotation_logits_y_trajectory), 0)
+            obs_token = obs_tokens_to_forward
+            obs_mask = obs_masks_to_forward
+            action_token = action_tokens_to_forward
+            prompt_token = prompt_tokens
+            prompt_token_mask = prompt_token_masks
 
-                gripper_logits_batch = torch.cat(
-                    (gripper_logits_batch, gripper_logits_trajectory), 0)
+            # 3. Action Token Prediction
+            L_obs, B = obs_token.shape[:2]
+            L_action = 0 if action_token is None else action_token.shape[0]
+            n_max_objs = obs_token.shape[-2]
+            L = L_obs * n_max_objs + L_action
 
-            out['position_x_logits'] = position_logits_x_batch
-            out['position_y_logits'] = position_logits_y_batch
-            out['position_z_logits'] = position_logits_z_batch
+            tokens = torch.empty(
+                L, B, self.embed_dim, dtype=torch.float32, device=obs_token_batch.device
+            )
+            masks = torch.ones(L, B, dtype=torch.bool,
+                               device=obs_token_batch.device)
+            obs_token = rearrange(obs_token, "L B Q E -> B L Q E")
+            obs_token = rearrange(obs_token, "B L Q E -> B (L Q) E")
+            obs_token = rearrange(obs_token, "B L E -> L B E")
+            obs_mask = rearrange(obs_mask, "L B Q -> B L Q")
+            obs_mask = rearrange(obs_mask, "B L Q -> B (L Q)")
+            obs_mask = rearrange(obs_mask, "B L -> L B")
+            for q in range(n_max_objs):
+                tokens[q:: n_max_objs + 1] = obs_token[q::n_max_objs]
+                masks[q:: n_max_objs + 1] = obs_mask[q::n_max_objs]
+            if action_token is not None:
+                tokens[n_max_objs:: n_max_objs + 1] = action_token
 
-            out['rotation_r_logits'] = rotation_logits_r_batch
-            out['rotation_p_logits'] = rotation_logits_p_batch
-            out['rotation_y_logits'] = rotation_logits_y_batch
+            position_ids = torch.cumsum(masks, dim=0) - 1
+            position_ids = position_ids.long()
+            prompt_position_ids = torch.cumsum(
+                prompt_token_mask, dim=1) - 1
 
-            out['gripper_logits'] = gripper_logits_batch
+            tokens_out = self.xattn_gpt(
+                obs_action_tokens=tokens,
+                prompt_tokens=prompt_token,
+                prompt_mask=prompt_token_mask,
+                obs_action_masks=masks.transpose(0, 1),
+                obs_action_position_ids=position_ids.transpose(0, 1),
+                prompt_position_ids=prompt_position_ids,
+            )
+
+            predicted_action_token_t = tokens_out[n_max_objs -
+                                                  1:: n_max_objs + 1]
+
+            predicted_action_token_t = predicted_action_token_t[-1].unsqueeze(
+                0)
+
+            # Action distribution
+            dist_dict = self.forward_action_decoder(
+                predicted_action_token_t)
+            # Compute the action component class
+            predicted_actions = dict()
+            for k, v in dist_dict.items():
+                predicted_actions[k] = torch.reshape(
+                    v.mode(), (1, B, 1)) if k == 'gripper_action' else v.mode()
+            # Compute the predicted action
+            actions = self._de_discretize_actions(predicted_actions)
+            out['predicted_actions'] = actions
+            # During training forward the GT action to compute the action embedding
+            actions_to_embed = None
+            if mode == 'train':
+                actions_to_embed = dict()
+                # for each component create a tensor 1, B, E
+                action_this_step = rearrange(torch.index_select(
+                    input['actions'], 1, torch.tensor(t).to(obs_token_batch.device)), 'B T A -> T B A')
+                actions_to_embed['pose_position'] = action_this_step[:, :, :3]
+                actions_to_embed['pose_rotation'] = action_this_step[:, :, 3:6]
+                actions_to_embed['gripper_action'] = torch.reshape(
+                    action_this_step[:, :, 6], (1, B, 1))
+            else:
+                actions_to_embed = predicted_actions
+
+            action_tokens = self.forward_action_token(
+                actions_to_embed)  # (1, B, E)
+            action_tokens = action_tokens.squeeze(0)  # (B, E)
+            inference_cache["action_tokens"].append(action_tokens)
+
+            # Create tensors with logits
+            for k, v in dist_dict.items():
+                # create a tensor containing the logits for each action component along the last dimension
+                if k == "pose_position":
+                    for i, dist in enumerate(v._dists):
+                        if i == 0:
+                            position_logits_x_t = dist.logits
+                        elif i == 1:
+                            position_logits_y_t = dist.logits
+                        else:
+                            position_logits_z_t = dist.logits
+
+                elif k == "pose_rotation":
+                    for i, dist in enumerate(v._dists):
+                        if i == 0:
+                            rotation_logits_r_t = dist.logits
+                        elif i == 1:
+                            rotation_logits_p_t = dist.logits
+                        else:
+                            rotation_logits_y_t = dist.logits
+                elif k == "gripper_action":
+                    gripper_logits_t = v.logits
+
+            if t == 0:
+                position_logits_x_trajectory = position_logits_x_t
+                position_logits_y_trajectory = position_logits_y_t
+                position_logits_z_trajectory = position_logits_z_t
+
+                rotation_logits_r_trajectory = rotation_logits_r_t
+                rotation_logits_p_trajectory = rotation_logits_p_t
+                rotation_logits_y_trajectory = rotation_logits_y_t
+
+                gripper_logits_trajectory = gripper_logits_t
+
+            else:
+                position_logits_x_trajectory = torch.cat(
+                    (position_logits_x_trajectory, position_logits_x_t), 0)
+                position_logits_y_trajectory = torch.cat(
+                    (position_logits_y_trajectory, position_logits_y_t), 0)
+                position_logits_z_trajectory = torch.cat(
+                    (position_logits_z_trajectory, position_logits_z_t), 0)
+
+                rotation_logits_r_trajectory = torch.cat(
+                    (rotation_logits_r_trajectory, rotation_logits_r_t), 0)
+                rotation_logits_p_trajectory = torch.cat(
+                    (rotation_logits_p_trajectory, rotation_logits_p_t), 0)
+                rotation_logits_y_trajectory = torch.cat(
+                    (rotation_logits_y_trajectory, rotation_logits_y_t), 0)
+
+                gripper_logits_trajectory = torch.cat(
+                    (gripper_logits_trajectory, gripper_logits_t), 0)
+
+        out['position_x_logits'] = position_logits_x_trajectory
+        out['position_y_logits'] = position_logits_y_trajectory
+        out['position_z_logits'] = position_logits_z_trajectory
+
+        out['rotation_r_logits'] = rotation_logits_r_trajectory
+        out['rotation_p_logits'] = rotation_logits_p_trajectory
+        out['rotation_y_logits'] = rotation_logits_y_trajectory
+
+        out['gripper_logits'] = gripper_logits_trajectory
 
         return out
+
+    def train(self, mode: bool = True):
+
+        if not isinstance(mode, bool):
+            raise ValueError("training mode is expected to be boolean")
+
+        self.training = mode
+
+        for module in self.children():
+            if isinstance(module, vnn.WordEmbedding) or isinstance(module, vnn.T5PromptEncoder):
+                module.train(False)
+
+        return self
 
     def forward_prompt_assembly(self, prompts):
         raw_prompts_token_type, word_batch, image_batch = prompts
@@ -563,40 +604,6 @@ class Policy(nn.Module):
 
     def forward_action_decoder(self, predicted_action_tokens: torch.Tensor):
         return self.action_decoder(predicted_action_tokens)
-
-    def discretize_action(self, action):
-        device = action["pose_position"].device
-        boundary_x = torch.linspace(
-            start=0, end=1, steps=self._n_discrete_x_bins, device=device
-        )
-        boundary_y = torch.linspace(
-            start=0, end=1, steps=self._n_discrete_y_bins, device=device
-        )
-        boundary_rot = torch.linspace(
-            start=0, end=1, steps=self._n_discrete_rot_bins, device=device
-        )
-
-        action["pose_position"][..., 0] = torch.bucketize(
-            action["pose_position"][..., 0].contiguous(), boundary_x
-        )
-        action["pose_position"][..., 1] = torch.bucketize(
-            action["pose_position"][..., 1].contiguous(), boundary_y
-        )
-        action["pose_rotation"] = torch.bucketize(
-            action["pose_rotation"].contiguous(), boundary_rot
-        )
-
-        action["pose1_position"][..., 0] = torch.bucketize(
-            action["pose1_position"][..., 0].contiguous(), boundary_x
-        )
-        action["pose1_position"][..., 1] = torch.bucketize(
-            action["pose1_position"][..., 1].contiguous(), boundary_y
-        )
-        action["pose1_rotation"] = torch.bucketize(
-            action["pose1_rotation"].contiguous(), boundary_rot
-        )
-        action = {k: v.long() for k, v in action.items()}
-        return action
 
     def _de_discretize_actions(self, actions):
         actions = {k: v.float() for k, v in actions.items()}

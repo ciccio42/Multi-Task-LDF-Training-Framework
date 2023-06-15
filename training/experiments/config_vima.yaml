@@ -154,4 +154,5 @@ vima:
   xattn_n_heads: 20
   views: ['front']
   return_dist: True
-  concat_state: True
+  concat_state: True  
+  ckpt_path: "/home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/multi_task_il/models/vima/ckpt/92M.ckpt"

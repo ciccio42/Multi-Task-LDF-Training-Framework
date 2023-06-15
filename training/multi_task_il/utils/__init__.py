@@ -12,8 +12,8 @@ from torchvision.transforms import ToTensor, Normalize
 from torchvision.transforms.functional import resized_crop
 from robosuite import load_controller_config
 
-NORMALIZATION_RANGES = np.array([[-0.40,  0.40],
-                                 [-0.40,  0.40],
+NORMALIZATION_RANGES = np.array([[-0.35,  0.35],
+                                 [-0.35,  0.35],
                                  [0.60,  1.20],
                                  [-3.14,  3.14911766],
                                  [-3.14911766, 3.14911766],

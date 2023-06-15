@@ -13,16 +13,16 @@ SAVE_FREQ=1000
 LOG_FREQ=1000
 VAL_FREQ=1000
 
-EXP_NAME=1Task-Pick-Place-Mosaic-cropped-no-normalized-drop-2
-TASK_str=pick_place
+EXP_NAME=1Task-Nut-Assembly-Mosaic-200-360
+TASK_str=nut_assembly
 EPOCH=40
-BSIZE=32 #128 #64 #32
+BSIZE=27 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=2
+SET_SAME_N=3
 CONFIG_PATH=../experiments
-PROJECT_NAME="ur_baseline_cropped_no_normalized_drop_2"
+PROJECT_NAME="ur_nut_assembly_200_360"
 CONFIG_NAME=config.yaml
 LOADER_WORKERS=16
 NORMALIZE_ACTION=true
@@ -30,6 +30,7 @@ NORMALIZE_ACTION=true
 LOAD_CONTRASTIVE=true
 CONTRASTIVE_PRE=1.0
 CONTRASTIVE_POS=1.0
+MUL_INTM=0
 
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=17204
@@ -38,11 +39,11 @@ FREEZE_TARGET_OBJ_DETECTOR=false
 CONCAT_STATE=false
 
 ACTION_DIM=7
-N_MIXTURES=6
-OUT_DIM=128
-ATTN_FF=256
-COMPRESSOR_DIM=256
-HIDDEN_DIM=512
+N_MIXTURES=2       # Pick-place 6
+OUT_DIM=64         # 128
+ATTN_FF=128        # 256
+COMPRESSOR_DIM=128 # 256
+HIDDEN_DIM=256     # 512
 CONCAT_DEMO_HEAD=true
 CONCAT_DEMO_ACT=false
 PRETRAINED=false
@@ -53,12 +54,13 @@ LR=0.0005
 WEIGHT_DECAY=0
 SCHEDULER=None
 
-DROP_DIM=2      # 2    # 3
-OUT_FEATURE=512 # 512 # 256
-DIM_H=7         #8         # 4         # 7
-DIM_W=7         #8         # 6         # 12
-RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Mosaic-cropped-no-normalized-Batch32
-RESUME_STEP=84100
+DROP_DIM=3      # 2    # 3
+OUT_FEATURE=256 # 512 # 256
+DIM_H=13        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
+DIM_W=23        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
+
+RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Mosaic-cropped-no-normalized-drop-2-Batch32
+RESUME_STEP=95000
 RESUME=false
 
 python ../training/train_scripts/train_any.py \
@@ -108,6 +110,7 @@ python ../training/train_scripts/train_any.py \
     train_cfg.lr_schedule=${SCHEDULER} \
     simclr.mul_pre=${CONTRASTIVE_PRE} \
     simclr.mul_pos=${CONTRASTIVE_POS} \
+    simclr.mul_intm=${MUL_INTM} \
     debug=false \
     wandb_log=true \
     resume=${RESUME} \

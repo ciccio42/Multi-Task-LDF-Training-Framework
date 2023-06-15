@@ -44,6 +44,8 @@ from torchvision.transforms import ToTensor, Normalize
 from torchvision.transforms import functional as TvF
 from torchvision.transforms.functional import resized_crop
 import learn2learn as l2l
+from torchvision.transforms import RandomAffine, ToTensor, Normalize, \
+    RandomGrayscale, ColorJitter, RandomApply, RandomHorizontalFlip, GaussianBlur, RandomResizedCrop
 
 set_start_method('forkserver', force=True)
 LOG_PATH = None
@@ -56,6 +58,7 @@ TASK_MAP = {
         'eval_fn':  nut_assembly_eval,
         'agent-teacher': ('UR5e_NutAssemblyDistractor', 'Panda_NutAssemblyDistractor'),
         'render_hw': (200, 360),
+        'object_set': 1,
     },
     'pick_place': {
         'num_variations':   16,
@@ -185,13 +188,68 @@ def build_tvf_formatter(config, env_name='stack'):
         # cv2.imwrite("obs.png", np.array(img))
         obs = ToTensor()(img.copy())
         obs = resized_crop(obs, top=top, left=left, height=box_h, width=box_w,
-                           size=(height, width), antialias=True)
+                           size=(height, width))
+        cv2.imwrite("resized_test.png",
+                    np.moveaxis(obs.numpy(), 0, -1)*255)
+        # weak_scale = config.augs.get('weak_crop_scale', (0.8, 1.0))
+        # weak_ratio = config.augs.get('weak_crop_ratio', (1.6, 1.8))
+        # randcrop = RandomResizedCrop(
+        #     size=(height, width), scale=weak_scale, ratio=weak_ratio)
         # cv2.imwrite("obs_cropped.png", np.moveaxis(obs.numpy(), 0, -1)*255)
         # obs = Normalize(mean=[0.485, 0.456, 0.406],
         #                 std=[0.229, 0.224, 0.225])(obs)
-        # cv2.imwrite("obs_normalized.png", np.moveaxis(obs.numpy(), 0, -1)*255)
+        # obs = randcrop(obs)
+        cv2.imwrite("random_resized_crop_test.png",
+                    np.moveaxis(obs.numpy(), 0, -1)*255)
         return obs
     return resize_crop
+
+
+def build_env(ctr=0, env_name='nut', heights=100, widths=200, size=False, shape=False, color=False, gpu_id=0, variation=None, controller_path=None):
+
+    create_seed = random.Random(None)
+    create_seed = create_seed.getrandbits(32)
+    if controller_path == None:
+        controller = load_controller_config(default_controller='IK_POSE')
+    else:
+        # load custom controller
+        controller = load_controller_config(
+            custom_fpath=controller_path)
+    assert gpu_id != -1
+    build_task = TASK_MAP.get(env_name, None)
+    assert build_task, 'Got unsupported task '+env_name
+    div = int(build_task['num_variations'])
+    env_fn = build_task['env_fn']
+    agent_name, teacher_name = build_task['agent-teacher']
+
+    if variation == None:
+        variation = ctr % div
+    else:
+        variation = variation
+
+    if 'Stack' in teacher_name:
+
+        agent_env = env_fn(agent_name,
+                           size=size,
+                           shape=shape,
+                           color=color,
+                           controller_type=controller,
+                           task=variation,
+                           ret_env=True,
+                           seed=create_seed,
+                           gpu_id=gpu_id,
+                           object_set=TASK_MAP[env_name]['object_set'])
+    else:
+
+        agent_env = env_fn(agent_name,
+                           controller_type=controller,
+                           task=variation,
+                           ret_env=True,
+                           seed=create_seed,
+                           gpu_id=gpu_id,
+                           object_set=TASK_MAP[env_name]['object_set'])
+
+    return agent_env, variation
 
 
 def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut',
@@ -269,7 +327,7 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut',
 
 
 def rollout_imitation(model, target_obj_dec, config, ctr,
-                      heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[]):
+                      heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None):
     if gpu_id == -1:
         gpu_id = int(ctr % torch.cuda.device_count())
     print(f"Model GPU id {gpu_id}")
@@ -277,47 +335,80 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
     if target_obj_dec is not None:
         target_obj_dec = target_obj_dec.cuda(gpu_id)
 
-    img_formatter = build_tvf_formatter(config, env_name)
+    if "vima" not in model_name:
+        img_formatter = build_tvf_formatter(config, env_name)
 
-    T_context = config.train_cfg.dataset.get('T_context', None)
-    random_frames = config.dataset_cfg.get('select_random_frames', False)
-    if not T_context:
-        assert 'multi' in config.train_cfg.dataset._target_, config.train_cfg.dataset._target_
-        T_context = config.train_cfg.dataset.demo_T
+        T_context = config.train_cfg.dataset.get('T_context', None)
+        random_frames = config.dataset_cfg.get('select_random_frames', False)
+        if not T_context:
+            assert 'multi' in config.train_cfg.dataset._target_, config.train_cfg.dataset._target_
+            T_context = config.train_cfg.dataset.demo_T
 
-    env, context, variation_id, expert_traj = build_env_context(img_formatter,
-                                                                T_context=T_context,
-                                                                ctr=ctr,
-                                                                env_name=env_name,
-                                                                heights=heights,
-                                                                widths=widths,
-                                                                size=size,
-                                                                shape=shape,
-                                                                color=color,
-                                                                gpu_id=gpu_id,
-                                                                variation=variation, random_frames=random_frames,
-                                                                controller_path=controller_path)
+        env, context, variation_id, expert_traj = build_env_context(img_formatter,
+                                                                    T_context=T_context,
+                                                                    ctr=ctr,
+                                                                    env_name=env_name,
+                                                                    heights=heights,
+                                                                    widths=widths,
+                                                                    size=size,
+                                                                    shape=shape,
+                                                                    color=color,
+                                                                    gpu_id=gpu_id,
+                                                                    variation=variation, random_frames=random_frames,
+                                                                    controller_path=controller_path)
 
-    build_task = TASK_MAP.get(env_name, None)
-    assert build_task, 'Got unsupported task '+env_name
-    eval_fn = build_task['eval_fn']
-    traj, info = eval_fn(model,
-                         target_obj_dec,
-                         env,
-                         context,
-                         gpu_id,
-                         variation_id,
-                         img_formatter,
-                         baseline=baseline,
-                         max_T=max_T,
-                         action_ranges=action_ranges)
-    print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
-        ctr, variation_id, info['reached'], info['picked'], info['success']))
-    print(f"Avg prediction {info['avg_pred']}")
-    return traj, info, expert_traj, context
+        build_task = TASK_MAP.get(env_name, None)
+        assert build_task, 'Got unsupported task '+env_name
+        eval_fn = build_task['eval_fn']
+        traj, info = eval_fn(model,
+                             target_obj_dec,
+                             env,
+                             context,
+                             gpu_id,
+                             variation_id,
+                             img_formatter,
+                             baseline=baseline,
+                             max_T=max_T,
+                             action_ranges=action_ranges)
+        print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
+            ctr, variation_id, info['reached'], info['picked'], info['success']))
+        print(f"Avg prediction {info['avg_pred']}")
+        return traj, info, expert_traj, context
+
+    else:
+        env, variation_id = build_env(ctr=ctr,
+                                      env_name=env_name,
+                                      heights=heights,
+                                      widths=widths,
+                                      size=size,
+                                      shape=shape,
+                                      color=color,
+                                      gpu_id=gpu_id,
+                                      variation=variation,
+                                      controller_path=controller_path)
+
+        build_task = TASK_MAP.get(env_name, None)
+        assert build_task, 'Got unsupported task '+env_name
+        eval_fn = build_task['eval_fn']
+        traj, info = eval_fn(model,
+                             target_obj_dec,
+                             env,
+                             None,
+                             gpu_id,
+                             variation_id,
+                             None,
+                             baseline=baseline,
+                             max_T=max_T,
+                             action_ranges=action_ranges,
+                             model_name=model_name)
+
+        print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
+            ctr, variation_id, info['reached'], info['picked'], info['success']))
+        print(f"Avg prediction {info['avg_pred']}")
+        return traj, info, expert_traj, context
 
 
-def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, seed, max_T, controller_path, n):
+def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, seed, max_T, controller_path, model_name, n):
     json_name = results_dir + '/traj{}.json'.format(n)
     pkl_name = results_dir + '/traj{}.pkl'.format(n)
     if os.path.exists(json_name) and os.path.exists(pkl_name):
@@ -338,7 +429,9 @@ def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, sha
                                                                               max_T=max_T, env_name=env_name, baseline=baseline, variation=variation,
                                                                               controller_path=controller_path,
                                                                               seed=seed,
-                                                                              action_ranges=np.array(config.dataset_cfg.get('normalization_ranges', [])))
+                                                                              action_ranges=np.array(
+                                                                                  config.dataset_cfg.get('normalization_ranges', [])),
+                                                                              model_name=model_name)
         pkl.dump(rollout, open(results_dir+'/traj{}.pkl'.format(n), 'wb'))
         pkl.dump(expert_traj, open(results_dir+'/demo{}.pkl'.format(n), 'wb'))
         pkl.dump(context, open(results_dir+'/context{}.pkl'.format(n), 'wb'))
@@ -505,6 +598,10 @@ if __name__ == '__main__':
         target_obj_dec.eval()
 
     parallel = args.num_workers > 1
+
+    model_name = config.policy._target_
+    print(f"---- Testing model {model_name} ----")
+
     f = functools.partial(_proc,
                           model,
                           target_obj_dec,
@@ -520,7 +617,8 @@ if __name__ == '__main__':
                           variation,
                           seed,
                           max_T,
-                          args.controller_path)
+                          args.controller_path,
+                          model_name)
 
     if parallel:
         with Pool(args.num_workers) as p:

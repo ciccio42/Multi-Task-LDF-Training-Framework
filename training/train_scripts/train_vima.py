@@ -1,3 +1,4 @@
+from torch.optim.lr_scheduler import ExponentialLR, CosineAnnealingLR
 import wandb
 from train_utils import *
 from tqdm import tqdm
@@ -14,6 +15,8 @@ from os.path import join
 from omegaconf import OmegaConf
 from multi_task_il.utils.lr_scheduler import build_scheduler
 from collections import defaultdict
+from torchsummary import summary
+from ignite.handlers.param_scheduler import create_lr_scheduler_with_warmup
 torch.autograd.set_detect_anomaly(True)
 # from torch.utils.tensorboard import SummaryWriter
 # writer = SummaryWriter()
@@ -103,8 +106,20 @@ class Trainer:
 
         # initialize optimizer and lr scheduler
         optim_weights = optim_weights if optim_weights is not None else model.parameters()
-        optimizer, scheduler = self._build_optimizer_and_scheduler(
+        optimizer, _ = self._build_optimizer_and_scheduler(
             self.config.train_cfg.optimizer, optim_weights, optimizer_state_dict, self.train_cfg)
+
+        # Add cosine annealing with warmup
+        cosine_annealing = CosineAnnealingLR(
+            optimizer=optimizer,
+            T_max=9000,
+            eta_min=0,
+            last_epoch=-1,
+            verbose=False)
+        scheduler = create_lr_scheduler_with_warmup(cosine_annealing,
+                                                    warmup_start_value=0.0,
+                                                    warmup_end_value=self.train_cfg.lr,
+                                                    warmup_duration=2250)
 
         # initialize constants:
         # compute epochs
@@ -119,10 +134,10 @@ class Trainer:
             self._step = 0
 
         vlm_alpha = self.train_cfg.get('vlm_alpha', 0.6)
-        log_freq = self.train_cfg.get('log_freq', 1000)
-        val_freq = self.train_cfg.get('val_freq', 1000)
-        print_freq = self.train_cfg.get('print_freq', 10000)
-        save_freq = self.train_cfg.get('save_freq', 10000)
+        log_freq = self.config.get('log_freq', 1000)
+        val_freq = self.config.get('val_freq', 1000)
+        print_freq = self.config.get('print_freq', 10000)
+        save_freq = self.config.get('save_freq', 10000)
 
         print("Loss multipliers: \n BC: {} ".format(
             self.train_cfg.bc_loss_mult))
@@ -140,6 +155,9 @@ class Trainer:
         print(f"Training for {epochs} epochs train dataloader has length {len(self._train_loader)}, \
                 which sums to {epochs * len(self._train_loader)} total train steps, \
                 validation loader has length {len(self._val_loader)}")
+
+        summary(model)
+        model = model.train()
 
         for e in range(epochs):
             frac = e / epochs
@@ -175,11 +193,12 @@ class Trainer:
 
                 # calculate loss here:
                 task_losses = calculate_task_loss_vima(
-                    self.config, self.train_cfg, self._device, model, inputs)
+                    self.config, self.train_cfg, self._device, model, inputs, 'train')
                 task_names = sorted(task_losses.keys())
                 weighted_task_loss = sum(
                     [l["loss_sum"] * task_loss_muls.get(name) for name, l in task_losses.items()])
                 weighted_task_loss.backward()
+                torch.nn.utils.clip_grad_norm(model.parameters(), 1.0)
                 optimizer.step()
                 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
                 # calculate train iter stats
@@ -199,7 +218,10 @@ class Trainer:
                         print(train_print)
 
                 #### ---- Validation step ----####
+
+                print(self._step, val_freq)
                 if self._step % val_freq == 0:
+                    print("---- Validation ----")
                     # exhaust all data in val loader and take avg loss
                     all_val_losses = {task: defaultdict(
                         list) for task in task_names}
@@ -207,8 +229,8 @@ class Trainer:
                     model = model.eval()
                     for val_inputs in val_iter:
                         with torch.no_grad():
-                            val_task_losses = calculate_task_loss(
-                                self.config, self.train_cfg, self._device, model, val_inputs)
+                            val_task_losses = calculate_task_loss_vima(
+                                self.config, self.train_cfg, self._device, model, val_inputs, 'val')
 
                         for task, losses in val_task_losses.items():
                             for k, v in losses.items():
@@ -236,13 +258,6 @@ class Trainer:
                     # compute the sum of validation losses
                     weighted_task_loss_val = sum(
                         [l["loss_sum"] * task_loss_muls.get(name) for name, l in avg_losses.items()])
-                    if self.config.train_cfg.lr_schedule != 'None':
-                        # perform lr-scheduling step
-                        scheduler.step(val_loss=weighted_task_loss_val)
-                        if self.config.wandb_log:
-                            # log learning-rate
-                            tolog['Validation Step'] = self._step
-                            tolog['learning_rate'] = scheduler._schedule.optimizer.param_groups[0]['lr']
 
                     # check for early stopping
                     if self.train_cfg.early_stopping.patience != -1:
@@ -253,22 +268,18 @@ class Trainer:
                     if self._early_stopping.early_stop:
                         break
 
+                if scheduler != 'None':
+                    scheduler(None)
+                    if self.config.wandb_log:
+                        # log learning-rate
+                        tolog['Train Step'] = self._step
+                        tolog['learning_rate'] = scheduler.optimizer.param_groups[0]['lr']
+
                 if self.config.wandb_log:
                     wandb.log(tolog)
 
                 self._step += 1
 
-                try:
-                    if not model._load_target_obj_detector or not model._freeze_target_obj_detector:
-                        # update target params
-                        mod = model.module if isinstance(
-                            model, nn.DataParallel) else model
-                        if self.train_cfg.target_update_freq > -1:
-                            mod.momentum_update(frac)
-                            if self._step % self.train_cfg.target_update_freq == 0:
-                                mod.soft_param_update()
-                except:
-                    pass
             if self._early_stopping.early_stop:
                 print("----Stop training for early-stopping----")
                 break
