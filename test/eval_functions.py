@@ -13,10 +13,11 @@ import pickle as pkl
 import numpy as np
 from multi_task_il.datasets import Trajectory
 import cv2
-from multi_task_il.utils import denormalize_action
+from multi_task_il.utils import denormalize_action, denormalize_action_vima
 from __init__ import make_prompt, prepare_obs
 from einops import rearrange, repeat
 from vima.utils import *
+import robosuite.utils.transform_utils as T
 
 
 # Frezzes at this line if torchvision is imported
@@ -26,7 +27,7 @@ from vima.utils import *
 
 # open command json file
 import json
-with open("/home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/tasks/collect_data/command.json") as f:
+with open("/home/ciccio/Desktop/multi_task_lfd/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/tasks/collect_data/command.json") as f:
     TASK_COMMAND = json.load(f)
 
 ENV_OBJECTS = {
@@ -266,7 +267,7 @@ def press_button_eval(model, env, context, gpu_id, variation_id, img_formatter, 
     n_steps = 0
 
     button_loc = np.array(env.sim.data.site_xpos[env.target_button_id])
-    dist = 0.015
+    dist = 0.025
     while not done:
         tasks['reached'] = tasks['reached'] or \
             np.linalg.norm(obs['eef_pos'] - button_loc) < dist
@@ -309,7 +310,7 @@ def draw_eval(model, env, context, gpu_id, variation_id, img_formatter, max_T=85
 
     while not done:
         tasks['reached'] = tasks['reached'] or np.linalg.norm(
-            handle_loc - obs['eef_pos']) < 0.0175
+            handle_loc - obs['eef_pos']) < 0.0275
         # no 'pick'
         if baseline and len(states) >= 5:
             states, images = [], []
@@ -342,7 +343,7 @@ def open_door_eval(model, env, context, gpu_id, variation_id, img_formatter, max
                     variation_id, baseline=baseline)
     n_steps = 0
     handle_loc = np.array(env.sim.data.site_xpos[env.door_handle_site_id])
-    dist = 0.016
+    dist = 0.026
     while not done:
         tasks['reached'] = tasks['reached'] or np.linalg.norm(
             handle_loc - obs['eef_pos']) < dist
@@ -372,7 +373,7 @@ def open_door_eval(model, env, context, gpu_id, variation_id, img_formatter, max
     return traj, tasks
 
 
-def pick_place_eval_vima(model, env, gpu_id, variation_id, img_formatter=None, max_T=85, baseline=False, action_ranges=[]):
+def pick_place_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None, img_formatter=None, max_T=85, baseline=False, action_ranges=[]):
     print(f"Max-t {max_T}")
 
     done, states, images = False, [], []
@@ -383,6 +384,13 @@ def pick_place_eval_vima(model, env, gpu_id, variation_id, img_formatter=None, m
     while True:
         try:
             obs = env.reset()
+            # make a "null step" to stabilize all objects
+            current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
+            current_gripper_orientation = T.quat2axisangle(T.mat2quat(np.reshape(
+                env.sim.data.site_xmat[env.robots[0].eef_site_id], (3, 3))))
+            current_gripper_pose = np.concatenate(
+                (current_gripper_position, current_gripper_orientation, np.array([1])), axis=-1)
+            obs, reward, env_done, info = env.step(current_gripper_pose)
             break
         except:
             pass
@@ -390,6 +398,19 @@ def pick_place_eval_vima(model, env, gpu_id, variation_id, img_formatter=None, m
     traj.append(obs)
     tasks = {'success': False, 'reached': False,
              'picked': False, 'variation_id': variation_id}
+
+    # Compute the target obj-slot
+    if target_obj_dec != None:
+        agent_target_obj_position = -1
+        agent_target_obj_id = traj.get(0)['obs']['target-object']
+        for id, obj_name in enumerate(ENV_OBJECTS['pick_place']['obj_names']):
+            if id == agent_target_obj_id:
+                # get object position
+                pos = traj.get(0)['obs'][f'{obj_name}_pos']
+                for i, pos_range in enumerate(ENV_OBJECTS['pick_place']["ranges"]):
+                    if pos[1] >= pos_range[0] and pos[1] <= pos_range[1]:
+                        agent_target_obj_position = i
+                break
 
     n_steps = 0
 
@@ -399,8 +420,8 @@ def pick_place_eval_vima(model, env, gpu_id, variation_id, img_formatter=None, m
 
     start_z = obs[obj_key][2]
 
-    t = 0
     inference_cache = {}
+    avg_prediction = 0
 
     # Prepare prompt for current task
     prompt_dict = make_prompt(
@@ -420,7 +441,7 @@ def pick_place_eval_vima(model, env, gpu_id, variation_id, img_formatter=None, m
         states.append(np.concatenate(
             (obs['ee_aa'], obs['gripper_qpos'])).astype(np.float32)[None])
 
-        if t == 0:
+        if n_steps == 0:
 
             prompt_token_type = torch.from_numpy(prompt_dict["prompt_token_type"]).to(
                 device=gpu_id)[None]
@@ -439,13 +460,14 @@ def pick_place_eval_vima(model, env, gpu_id, variation_id, img_formatter=None, m
             )
 
         # Prepare obs
-        obs = prepare_obs(env=env,
-                          obs=obs,
-                          views=['front'],
-                          task_name="pick_place").to_torch_tensor(device=gpu_id)[None]
+        obs_to_tokenize = prepare_obs(env=env,
+                                      obs=obs,
+                                      views=['front'],
+                                      task_name="pick_place").to_torch_tensor(device=gpu_id)[None]
 
         # 2. Forward obs token
-        obs_token_this_step, obs_mask_this_step = model.forward_obs_token(obs)
+        obs_token_this_step, obs_mask_this_step = model.forward_obs_token(
+            obs_to_tokenize)
 
         # Dim: 1 B Num_obj Obj_Emb_size
         obs_token_this_step = rearrange(
@@ -474,7 +496,7 @@ def pick_place_eval_vima(model, env, gpu_id, variation_id, img_formatter=None, m
         obs_tokens_to_forward = any_stack(obs_tokens_this_env, dim=0)
         obs_masks_to_forward = any_stack(obs_masks_this_env, dim=0)
 
-        if t == 0:
+        if n_steps == 0:
             action_tokens_to_forward = None
         else:
             action_tokens_to_forward = any_stack(
@@ -521,25 +543,30 @@ def pick_place_eval_vima(model, env, gpu_id, variation_id, img_formatter=None, m
             for a in action_component:
                 action.append(a)
         action = np.asarray(action)
-        action = denormalize_action(norm_action=action,
-                                    action_ranges=action_ranges)
-        obs, reward, env_done, info = perform_primitive(
-            env, action=action, primitive="reaching", trajectory=traj)
+        action = denormalize_action_vima(norm_action=action,
+                                         action_ranges=action_ranges)
+        if n_steps == 0:
+            obs, reward, env_done, info = perform_primitive(
+                env, action=action, primitive="reaching", trajectory=traj)
+        elif n_steps == 1:
+            obs, reward, env_done, info = perform_primitive(
+                env, action=action, primitive="placing", trajectory=traj)
 
-        # try:
-        # cv2.imwrite(
-        #     f"{n_steps}.png", obs['camera_front_image'][:, :, ::-1])
-        # except:
-        # print("Exception during step")
+        tasks['success'] = reward or tasks['success']
+        n_steps += 1
+        if env_done or reward or n_steps > 2:
+            done = True
 
-        # traj.append(obs, reward, done, info, action)
-
-        # tasks['success'] = reward or tasks['success']
-        # n_steps += 1
-        # if env_done or reward or n_steps > max_T:
-        #     done = True
+        # TODO ADD target pred
+        if target_obj_dec is not None:
+            target_pred = None
+            info['target_pred'] = None
+            info['target_gt'] = agent_target_obj_position
+            if np.argmax(target_pred) == agent_target_obj_position:
+                avg_prediction += 1
 
     env.close()
+    tasks['avg_pred'] = avg_prediction/len(traj)
     del env
     del states
     del images
@@ -648,29 +675,132 @@ def pick_place_eval(model, target_obj_dec, env, context, gpu_id, variation_id, i
                                          action_ranges=action_ranges)
 
 
-def reaching_primitive(env: object, action: np.array, trajectory: object):
-    desired_position_reached = False
-    while not desired_position_reached:
-        # Action Logic
-        # 1. Align with the object
+def reaching_primitive(env: object, desired_action: np.array, trajectory: object):
+
+    # Action Logic
+
+    # 1. Align with the object
+    # get the current gripper position
+    current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
+    action_alignment = copy.copy(desired_action)
+    # change z value with the current value
+    action_alignment[2] = current_gripper_position[2]
+    t = 0
+    while np.linalg.norm(current_gripper_position[:2]-action_alignment[:2]) > 0.005 and t < 100:
+        delta_position = np.round(
+            action_alignment[:3] - current_gripper_position, 2)
+        delta_position = np.clip(delta_position, -0.02, 0.02)
+        action_to_perform = copy.copy(action_alignment)
+        action_to_perform[:3] = current_gripper_position + delta_position
+        action_to_perform[6] = -1
+        obs, reward, env_done, info = env.step(action_to_perform)
+        cv2.imwrite("debug.png", obs['camera_front_image'][:, :, ::-1])
+        trajectory.append(obs, reward, False, info, desired_action)
         current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
-        action_alignment = action
-        # change z value with the current value
-        action_alignment[2] = current_gripper_position[2]
-        gripper_aligned = False
-        while not gripper_aligned:
-            env.step(action)
+        t += 1
+
+    if t == 100:
+        return obs, reward, env_done, info, False
+
+    # 2. Move toward the object
+    current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
+    action_pick_object = copy.copy(desired_action)
+    t = 0
+    while abs(current_gripper_position[2]-action_pick_object[2]) > 0.005 and t < 100:
+        delta_position = np.round(
+            action_pick_object[:3] - current_gripper_position, 2)
+        delta_position = np.clip(delta_position, -0.02, 0.02)
+        action_to_perform = copy.copy(action_pick_object)
+        action_to_perform[:3] = current_gripper_position + delta_position
+        action_to_perform[6] = -1
+        obs, reward, env_done, info = env.step(action_to_perform)
+        cv2.imwrite("debug.png", obs['camera_front_image'][:, :, ::-1])
+        trajectory.append(obs, reward, False, info, desired_action)
+        current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
+
+    # 3. Close the gripper
+    action_pick_object[6] = 1
+    obs, reward, env_done, info = env.step(action_pick_object)
+    cv2.imwrite("debug.png", obs['camera_front_image'][:, :, ::-1])
+    trajectory.append(obs, reward, False, info, desired_action)
+
+    return obs, reward, env_done, info
+
+
+def placing_primitive(env: object, desired_action: np.array, trajectory: object):
+    # Action Logic
+
+    # 1. Move up from current position
+    current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
+    current_gripper_orientation = T.quat2axisangle(T.mat2quat(np.reshape(
+        env.sim.data.site_xmat[env.robots[0].eef_site_id], (3, 3))))
+    current_gripper_pose = np.concatenate(
+        (current_gripper_position, current_gripper_orientation, np.array([1])), axis=-1)
+
+    start_gripper_pose = current_gripper_pose
+    while abs(current_gripper_pose[2] - start_gripper_pose[2]) < 0.10:
+        delta_position = np.array([0, 0, 0.02])
+        action_to_perform = copy.copy(current_gripper_pose)
+        action_to_perform[:3] = action_to_perform[:3] + delta_position
+        obs, reward, env_done, info = env.step(action_to_perform)
+        cv2.imwrite("debug.png", obs['camera_front_image'][:, :, ::-1])
+        trajectory.append(obs, reward, False, info, desired_action)
+        current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
+        current_gripper_orientation = T.quat2axisangle(T.mat2quat(np.reshape(
+            env.sim.data.site_xmat[env.robots[0].eef_site_id], (3, 3))))
+        current_gripper_pose = np.concatenate(
+            (current_gripper_position, current_gripper_orientation, np.array([1])), axis=-1)
+
+    # 2. Move toward bin
+    target_action = copy.copy(desired_action)
+    target_action[2] = current_gripper_pose[2]
+    while np.linalg.norm(current_gripper_position[:2]-target_action[:2]) > 0.005:
+        delta_position = np.round(
+            target_action[:3] - current_gripper_position, 2)
+        delta_position = np.clip(delta_position, -0.02, 0.02)
+        action_to_perform = copy.copy(target_action)
+        action_to_perform[:3] = current_gripper_position + delta_position
+        action_to_perform[6] = 1
+        obs, reward, env_done, info = env.step(action_to_perform)
+        cv2.imwrite("debug.png", obs['camera_front_image'][:, :, ::-1])
+        trajectory.append(obs, reward, False, info, desired_action)
+        current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
+        current_gripper_orientation = T.quat2axisangle(T.mat2quat(np.reshape(
+            env.sim.data.site_xmat[env.robots[0].eef_site_id], (3, 3))))
+        current_gripper_pose = np.concatenate(
+            (current_gripper_position, current_gripper_orientation, np.array([1])), axis=-1)
+
+    # 4. Placing object
+    current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
+    target_action[2] = desired_action[2]
+    while abs(current_gripper_position[2]-target_action[2]) > 0.005:
+        delta_position = np.round(
+            target_action[:3] - current_gripper_position, 2)
+        delta_position = np.clip(delta_position, -0.02, 0.02)
+        action_to_perform = target_action
+        action_to_perform[:3] = current_gripper_position + delta_position
+        action_to_perform[6] = 1
+        obs, reward, env_done, info = env.step(action_to_perform)
+        cv2.imwrite("debug.png", obs['camera_front_image'][:, :, ::-1])
+        trajectory.append(obs, reward, False, info, desired_action)
+        current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
+
+    # 5. Open the gripper
+    desired_action[6] = -1
+    obs, reward, env_done, info = env.step(desired_action)
+    cv2.imwrite("debug.png", obs['camera_front_image'][:, :, ::-1])
+    trajectory.append(obs, reward, False, info, desired_action)
+
+    return obs, reward, env_done, info
 
 
 def perform_primitive(env: object, action: dict() = None, primitive: str = "reaching", trajectory: object = None):
-    action_list = []
-    for key in action.keys():
-        action_component = action[key]
-        action_list.append(action_component)
 
     if primitive == "reaching":
+        print("Reaching object")
         return reaching_primitive(env, action, trajectory)
     elif primitive == "placing":
-        pass
+        print("Placing object")
+        return placing_primitive(env, action, trajectory)
     else:
-        pass
+        print(f"Primitive {primitive} not implemented")

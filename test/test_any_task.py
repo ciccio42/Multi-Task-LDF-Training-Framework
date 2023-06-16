@@ -405,7 +405,7 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
         print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             ctr, variation_id, info['reached'], info['picked'], info['success']))
         print(f"Avg prediction {info['avg_pred']}")
-        return traj, info, expert_traj, context
+        return traj, info
 
 
 def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, seed, max_T, controller_path, model_name, n):
@@ -417,31 +417,47 @@ def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, sha
         print("Using previous results at {}. Loaded eval traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             json_name, n, task_success_flags['variation_id'], task_success_flags['reached'], task_success_flags['picked'], task_success_flags['success']))
     else:
-        rollout, task_success_flags, expert_traj, context = rollout_imitation(model,
-                                                                              target_obj_dec,
-                                                                              config,
-                                                                              n,
-                                                                              heights,
-                                                                              widths,
-                                                                              size,
-                                                                              shape,
-                                                                              color,
-                                                                              max_T=max_T, env_name=env_name, baseline=baseline, variation=variation,
-                                                                              controller_path=controller_path,
-                                                                              seed=seed,
-                                                                              action_ranges=np.array(
-                                                                                  config.dataset_cfg.get('normalization_ranges', [])),
-                                                                              model_name=model_name)
-        pkl.dump(rollout, open(results_dir+'/traj{}.pkl'.format(n), 'wb'))
-        pkl.dump(expert_traj, open(results_dir+'/demo{}.pkl'.format(n), 'wb'))
-        pkl.dump(context, open(results_dir+'/context{}.pkl'.format(n), 'wb'))
-        res_dict = dict()
-        for k, v in task_success_flags.items():
-            if v == True or v == False:
-                res_dict[k] = int(v)
-            else:
-                res_dict[k] = v
-        json.dump(res_dict, open(results_dir+'/traj{}.json'.format(n), 'w'))
+        return_rollout = rollout_imitation(model,
+                                           target_obj_dec,
+                                           config,
+                                           n,
+                                           heights,
+                                           widths,
+                                           size,
+                                           shape,
+                                           color,
+                                           max_T=max_T, env_name=env_name, baseline=baseline, variation=variation,
+                                           controller_path=controller_path,
+                                           seed=seed,
+                                           action_ranges=np.array(
+                                               config.dataset_cfg.get('normalization_ranges', [])),
+                                           model_name=model_name)
+
+        if "vima" not in model_name:
+            rollout, task_success_flags, expert_traj, context = return_rollout
+            pkl.dump(rollout, open(results_dir+'/traj{}.pkl'.format(n), 'wb'))
+            pkl.dump(expert_traj, open(
+                results_dir+'/demo{}.pkl'.format(n), 'wb'))
+            pkl.dump(context, open(results_dir+'/context{}.pkl'.format(n), 'wb'))
+            res_dict = dict()
+            for k, v in task_success_flags.items():
+                if v == True or v == False:
+                    res_dict[k] = int(v)
+                else:
+                    res_dict[k] = v
+            json.dump(res_dict, open(
+                results_dir+'/traj{}.json'.format(n), 'w'))
+        else:
+            rollout, task_success_flags = return_rollout
+            pkl.dump(rollout, open(results_dir+'/traj{}.pkl'.format(n), 'wb'))
+            res_dict = dict()
+            for k, v in task_success_flags.items():
+                if v == True or v == False:
+                    res_dict[k] = int(v)
+                else:
+                    res_dict[k] = v
+            json.dump(res_dict, open(
+                results_dir+'/traj{}.json'.format(n), 'w'))
     del model
     return task_success_flags
 

@@ -38,15 +38,23 @@ def denormalize_action(norm_action, action_ranges):
     return action
 
 
+def denormalize_action_vima(norm_action, action_ranges):
+    action = np.clip(norm_action.copy(), 0, 1)
+    for d in range(action_ranges.shape[0]):
+        action[d] = ((action[d]) *
+                     (action_ranges[d, 1] - action_ranges[d, 0])) + action_ranges[d, 0]
+    return action
+
+
 def discretize_action(action, n_action_bin, action_ranges):
     disc_action = action.copy()
     # normalize between [0 , 1]
     disc_action[:-1] = ((disc_action[:-1] - action_ranges[:, 0]) /
                         (action_ranges[:, 1] - action_ranges[:, 0]))
-    if disc_action[-1] == -1:
-        disc_action[-1] = 0
-    else:
-        disc_action[-1] = 1
+    # if disc_action[-1] == -1:
+    #     disc_action[-1] = 0
+    # else:
+    #     disc_action[-1] = 1
 
     return (disc_action * n_action_bin).astype(np.int32)
 

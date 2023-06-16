@@ -1,12 +1,12 @@
 export CUDA_VISIBLE_DEVICES=0
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/ciccio/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 
-BASE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework
+BASE_PATH=/home/ciccio/Desktop/multi_task_lfd/Multi-Task-LFD-Framework
 PROJECT_NAME=ur_vima
 NUM_WORKERS=1
-MODEL_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-VIMA-Batch32
-CONTROLLER_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
+MODEL_PATH=/home/ciccio/Desktop/multi_task_lfd/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-VIMA-Batch32
+CONTROLLER_PATH=/home/ciccio/Desktop/multi_task_lfd/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
 
 for MODEL in ${MODEL_PATH}; do
     for S in 3330; do

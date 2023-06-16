@@ -71,7 +71,7 @@ def make_prompt(env: object, obs: object, command: str, task_name: str):
     command = command.replace(
         f"{color} {object}", "{pick_object}")
     ret_dict['prompt'] = command
-
+    print(f"Command {ret_dict['prompt']}")
     prompt_assets = _create_prompt_assets(
         obs=obs,
         task_name=task_name,
@@ -166,10 +166,10 @@ def _prepare_prompt(obs, task_name, prompt, prompt_assets, views):
                             object_center = target_obj_bb['center']
                             # get prompt observation
                             rgb_this_view = asset['rgb'][view]
-                            # prompt_img = cv2.rectangle(
-                            #     np.array(rgb_this_view), upper_left_corner, bottom_right_corner, (255, 0, 0), 1)
-                            # cv2.imwrite("rgb_this_view.png",
-                            #             np.array(prompt_img))
+                            prompt_img = cv2.rectangle(
+                                np.array(rgb_this_view), upper_left_corner, bottom_right_corner, (255, 0, 0), 1)
+                            cv2.imwrite("prompt_view.png",
+                                        np.array(prompt_img))
 
                             # bounding box center, height and width
                             x_center, y_center = object_center[0], object_center[1]
@@ -181,8 +181,8 @@ def _prepare_prompt(obs, task_name, prompt, prompt_assets, views):
                             # crop image
                             cropped_img = np.array(rgb_this_view[
                                 bottom_right_corner[1]:upper_left_corner[1] + 1, bottom_right_corner[0]:upper_left_corner[0] + 1, :])
-                            # cv2.imwrite("cropped_img.png",
-                            #             np.array(cropped_img))
+                            cv2.imwrite("prompot_cropped.png",
+                                        np.array(cropped_img))
                             # pad if dimensions are different
                             if cropped_img.shape[0] != cropped_img.shape[1]:
                                 diff = abs(
@@ -322,8 +322,8 @@ def prepare_obs(env, obs, views, task_name):
             # crop image
             cropped_img = np.array(rgb_this_view[
                 bottom_right_corner[1]:upper_left_corner[1] + 1, bottom_right_corner[0]:upper_left_corner[0] + 1, :])
-            # cv2.imwrite("cropped_img.png",
-            #             np.array(cropped_img))
+            cv2.imwrite("cropped_img.png",
+                        np.array(cropped_img))
 
             # pad if dimensions are different
             if cropped_img.shape[0] != cropped_img.shape[1]:
