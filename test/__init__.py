@@ -52,7 +52,8 @@ ENV_OBJECTS = {
                     'bin': [0.6, 0.06, 0.15]},
     },
     'nut_assembly': {
-        'obj_names': ['nut0', 'nut1', 'nut2'],
+        'obj_names': ['round-nut', 'round-nut-2', 'round-nut-3', "peg1", "peg2", "peg3"],
+        'splitted_obj_names': ['grey nut', 'brown nut', 'blue nut'],
         'ranges': [[0.10, 0.31], [-0.10, 0.10], [-0.31, -0.10]]
     }
 }
@@ -98,7 +99,7 @@ def _create_prompt_assets(obs, task_name, views, modalities):
     prompt_assets = dict()
     prompt_assets['pick_object'] = dict()
 
-    if task_name == 'pick_place':
+    if task_name == 'pick_place' or task_name == 'nut_assembly':
         prompt_assets['pick_object']['rgb'] = dict()
         prompt_assets['pick_object']['segm'] = dict({'obj_info': dict()})
         prompt_assets['pick_object']['placeholder_type'] = 'object'
@@ -112,8 +113,8 @@ def _create_prompt_assets(obs, task_name, views, modalities):
                 target_obj_name = ENV_OBJECTS[task_name]['obj_names'][target_obj_id]
                 # assign prompt assets
                 prompt_assets['pick_object'][modality][view] = obs['camera_front_image'][:, :, ::-1]
-                prompt_assets['pick_object']['segm']['obj_info']['obj_id'] = target_obj_name
-                prompt_assets['pick_object']['segm']['obj_info']['obj_id'] = ENV_OBJECTS[task_name]['splitted_obj_names'][target_obj_id]
+                prompt_assets['pick_object']['segm']['obj_info']['obj_id'] = target_obj_id
+                prompt_assets['pick_object']['segm']['obj_info']['obj_name'] = ENV_OBJECTS[task_name]['splitted_obj_names'][target_obj_id]
                 prompt_assets['pick_object']['segm']['obj_info']['obj_color'] = ENV_OBJECTS[task_name]['splitted_obj_names'][target_obj_id].split(" ")[
                     0]
 
@@ -155,7 +156,7 @@ def _prepare_prompt(obs, task_name, prompt, prompt_assets, views):
                 # for each object, crop the image around the target object
                 for i, obj_id in enumerate(objects):
                     # Create bounding box for the target object
-                    if task_name == 'pick_place':
+                    if task_name == 'pick_place' or task_name == 'nut_assembly':
                         if i == 0:
                             # In pick-place the first object is the target object
                             target_obj_id = obs['target-object']
@@ -168,8 +169,8 @@ def _prepare_prompt(obs, task_name, prompt, prompt_assets, views):
                             rgb_this_view = asset['rgb'][view]
                             prompt_img = cv2.rectangle(
                                 np.array(rgb_this_view), upper_left_corner, bottom_right_corner, (255, 0, 0), 1)
-                            cv2.imwrite("prompt_view.png",
-                                        np.array(prompt_img))
+                            # cv2.imwrite("rgb_this_view.png",
+                            #             np.array(prompt_img))
 
                             # bounding box center, height and width
                             x_center, y_center = object_center[0], object_center[1]
@@ -181,7 +182,7 @@ def _prepare_prompt(obs, task_name, prompt, prompt_assets, views):
                             # crop image
                             cropped_img = np.array(rgb_this_view[
                                 bottom_right_corner[1]:upper_left_corner[1] + 1, bottom_right_corner[0]:upper_left_corner[0] + 1, :])
-                            cv2.imwrite("prompot_cropped.png",
+                            cv2.imwrite(f"prompt_cropped_img_{target_obj_name}.png",
                                         np.array(cropped_img))
                             # pad if dimensions are different
                             if cropped_img.shape[0] != cropped_img.shape[1]:
@@ -322,7 +323,7 @@ def prepare_obs(env, obs, views, task_name):
             # crop image
             cropped_img = np.array(rgb_this_view[
                 bottom_right_corner[1]:upper_left_corner[1] + 1, bottom_right_corner[0]:upper_left_corner[0] + 1, :])
-            cv2.imwrite("cropped_img.png",
+            cv2.imwrite(f"cropped_img_{obj_name}.png",
                         np.array(cropped_img))
 
             # pad if dimensions are different

@@ -112,6 +112,6 @@ python ../training/train_scripts/train_any.py \
     simclr.mul_pos=${CONTRASTIVE_POS} \
     simclr.mul_intm=${MUL_INTM} \
     debug=false \
-    wandb_log=true \
+    wandb_log=false \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS}

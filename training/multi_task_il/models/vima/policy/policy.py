@@ -120,7 +120,6 @@ class Policy(nn.Module):
             action_dims={
                 "pose_position": [100, 100, 100],
                 "pose_rotation": [50, 50, 50],
-                "gripper_action": 2,
             },
             hidden_dim=512,
             hidden_depth=2,
@@ -144,12 +143,6 @@ class Policy(nn.Module):
                     input_dim=3,
                     hidden_dim=256,
                     hidden_depth=1,
-                ),
-                "gripper_action": vnn.ContinuousActionEmbedding(
-                    output_dim=256,
-                    input_dim=1,
-                    hidden_dim=256,
-                    hidden_depth=1,
                 )
             },
         )
@@ -159,6 +152,7 @@ class Policy(nn.Module):
         self._n_discrete_z_bins = 100
         self._n_discrete_rot_bins = 50
 
+        self.train(mode=False)
         model_parameters = filter(lambda p: p.requires_grad, self.parameters())
         params = sum([np.prod(p.size()) for p in model_parameters])
         print('Total params module:', params)
@@ -245,7 +239,7 @@ class Policy(nn.Module):
         rotation_logits_p_trajectory = rotation_logits_p_t
         rotation_logits_y_trajectory = rotation_logits_y_t
 
-        gripper_logits_trajectory = gripper_logits_t
+        # gripper_logits_trajectory = gripper_logits_t
 
         out['position_x_logits'] = position_logits_x_trajectory
         out['position_y_logits'] = position_logits_y_trajectory
@@ -255,7 +249,7 @@ class Policy(nn.Module):
         out['rotation_p_logits'] = rotation_logits_p_trajectory
         out['rotation_y_logits'] = rotation_logits_y_trajectory
 
-        out['gripper_logits'] = gripper_logits_trajectory
+        # out['gripper_logits'] = gripper_logits_trajectory
 
         return out
 
@@ -406,8 +400,8 @@ class Policy(nn.Module):
                     input['actions'], 1, torch.tensor(t).to(obs_token_batch.device)), 'B T A -> T B A')
                 actions_to_embed['pose_position'] = action_this_step[:, :, :3]
                 actions_to_embed['pose_rotation'] = action_this_step[:, :, 3:6]
-                actions_to_embed['gripper_action'] = torch.reshape(
-                    action_this_step[:, :, 6], (1, B, 1))
+                # actions_to_embed['gripper_action'] = torch.reshape(
+                #     action_this_step[:, :, 6], (1, B, 1))
             else:
                 actions_to_embed = predicted_actions
 
@@ -436,8 +430,8 @@ class Policy(nn.Module):
                             rotation_logits_p_t = dist.logits
                         else:
                             rotation_logits_y_t = dist.logits
-                elif k == "gripper_action":
-                    gripper_logits_t = v.logits
+                # elif k == "gripper_action":
+                #     gripper_logits_t = v.logits
 
             if t == 0:
                 position_logits_x_trajectory = position_logits_x_t
@@ -448,7 +442,7 @@ class Policy(nn.Module):
                 rotation_logits_p_trajectory = rotation_logits_p_t
                 rotation_logits_y_trajectory = rotation_logits_y_t
 
-                gripper_logits_trajectory = gripper_logits_t
+                # gripper_logits_trajectory = gripper_logits_t
 
             else:
                 position_logits_x_trajectory = torch.cat(
@@ -465,8 +459,8 @@ class Policy(nn.Module):
                 rotation_logits_y_trajectory = torch.cat(
                     (rotation_logits_y_trajectory, rotation_logits_y_t), 0)
 
-                gripper_logits_trajectory = torch.cat(
-                    (gripper_logits_trajectory, gripper_logits_t), 0)
+                # gripper_logits_trajectory = torch.cat(
+                #     (gripper_logits_trajectory, gripper_logits_t), 0)
 
         out['position_x_logits'] = position_logits_x_trajectory
         out['position_y_logits'] = position_logits_y_trajectory
@@ -476,7 +470,7 @@ class Policy(nn.Module):
         out['rotation_p_logits'] = rotation_logits_p_trajectory
         out['rotation_y_logits'] = rotation_logits_y_trajectory
 
-        out['gripper_logits'] = gripper_logits_trajectory
+        # out['gripper_logits'] = gripper_logits_trajectory
 
         return out
 

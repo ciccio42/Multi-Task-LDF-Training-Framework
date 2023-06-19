@@ -9,11 +9,11 @@ EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
 SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline
 POLICY='${vima}'
 
-SAVE_FREQ=450
+SAVE_FREQ=2500
 LOG_FREQ=1
-VAL_FREQ=45
+VAL_FREQ=100000
 
-EXP_NAME=1Task-Pick-Place-VIMA
+EXP_NAME=1Task-Nut-Assembly-VIMA
 TASK_str=pick_place
 EPOCH=200
 BSIZE=32 #64 #32

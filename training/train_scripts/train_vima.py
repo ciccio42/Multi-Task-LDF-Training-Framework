@@ -112,14 +112,14 @@ class Trainer:
         # Add cosine annealing with warmup
         cosine_annealing = CosineAnnealingLR(
             optimizer=optimizer,
-            T_max=9000,
+            T_max=10000,
             eta_min=0,
             last_epoch=-1,
             verbose=False)
         scheduler = create_lr_scheduler_with_warmup(cosine_annealing,
                                                     warmup_start_value=0.0,
                                                     warmup_end_value=self.train_cfg.lr,
-                                                    warmup_duration=2250)
+                                                    warmup_duration=2500)
 
         # initialize constants:
         # compute epochs
@@ -149,12 +149,14 @@ class Trainer:
                           float("{:3f}".format(task.get('loss_mul', 1) / sum_mul)) for task in self.tasks}
         print(" Weighting each task loss separately:", task_loss_muls)
         self.generated_png = False
-        val_iter = iter(self._val_loader)
+        if self._val_loader != None:
+            val_iter = iter(self._val_loader)
+            print(f"Training for {epochs} epochs train dataloader has length {len(self._train_loader)}, \ which sums to {epochs * len(self._train_loader)} total train steps, \ validation loader has length {len(self._val_loader)}")
+        else:
+            print(
+                f"Training for {epochs} epochs train dataloader has length {len(self._train_loader)}")
         # log stats to both 'task_name/loss_name' AND 'loss_name/task_name'
         raw_stats = dict()
-        print(f"Training for {epochs} epochs train dataloader has length {len(self._train_loader)}, \
-                which sums to {epochs * len(self._train_loader)} total train steps, \
-                validation loader has length {len(self._val_loader)}")
 
         summary(model)
         model = model.train()
@@ -220,7 +222,7 @@ class Trainer:
                 #### ---- Validation step ----####
 
                 print(self._step, val_freq)
-                if self._step % val_freq == 0:
+                if self._step % val_freq == 0 and self._val_loader != None:
                     print("---- Validation ----")
                     # exhaust all data in val loader and take avg loss
                     all_val_losses = {task: defaultdict(
@@ -427,7 +429,7 @@ def main(cfg):
 
     if cfg.debug:
         import debugpy
-        debugpy.listen(('0.0.0.0', 5679))
+        debugpy.listen(('0.0.0.0', 5678))
         print("Waiting for debugger attach")
         debugpy.wait_for_client()
 

@@ -36,7 +36,8 @@ ENV_OBJECTS = {
         'ranges': [[0.195, 0.255], [0.045, 0.105], [-0.105, -0.045], [-0.255, -0.195]],
     },
     'nut_assembly': {
-        'obj_names': ['nut0', 'nut1', 'nut2'],
+        'obj_names': ['round-nut', 'round-nut-2', 'round-nut-3', "peg1", "peg2", "peg3"],
+        'splitted_obj_names': ['grey nut', 'brown nut', 'blue nut'],
         'ranges': [[0.10, 0.31], [-0.10, 0.10], [-0.31, -0.10]]
     }
 }
@@ -474,9 +475,39 @@ class MultiTaskPairedDataset(Dataset):
             if v is not None:
                 ret_dict[k] = np.concatenate(v, 0).astype(np.float32)
 
-        # [ToDo Add special tokens]
+        # [TODO Add special tokens]
         if add_special_token:
             if task_name == 'pick_place':
+                # add special token
+                color = command.split(" ")[2]
+                object = command.split(" ")[3]
+                command = command.replace(
+                    f"{color} {object}", "{pick_object}")
+                ret_dict['prompt'] = command
+
+                prompt_assets = self._create_prompt_assets(
+                    obs=agent_traj.get(1)['obs'],
+                    task_name=task_name,
+                    views=self._views,
+                    modalities=self._modality
+                )
+                prompt_token_type, word_batch, image_batch = self._prepare_prompt(
+                    obs=agent_traj.get(1)['obs'],
+                    task_name=task_name,
+                    prompt=command,
+                    prompt_assets=prompt_assets,
+                    views=self._views
+                )
+                ret_dict['prompt_token_type'] = prompt_token_type
+                ret_dict['word_batch'] = word_batch
+                ret_dict['image_batch'] = image_batch
+
+                ret_dict['obs'] = self._prepare_obs(agent_traj=agent_traj,
+                                                    chosen_t=chosen_t,
+                                                    views=self._views,
+                                                    task_name=task_name)
+            elif task_name == 'nut_assembly':
+                # print(command)
                 # add special token
                 color = command.split(" ")[2]
                 object = command.split(" ")[3]
@@ -546,7 +577,7 @@ class MultiTaskPairedDataset(Dataset):
                     # for each object, crop the image around the target object
                     for i, obj_id in enumerate(objects):
                         # Create bounding box for the target object
-                        if task_name == 'pick_place':
+                        if task_name == 'pick_place' or task_name == 'nut_assembly':
                             if i == 0:
                                 # In pick-place the first object is the target object
                                 target_obj_id = obs['target-object']
@@ -557,8 +588,8 @@ class MultiTaskPairedDataset(Dataset):
                                 object_center = target_obj_bb['center']
                                 # get prompt observation
                                 rgb_this_view = asset['rgb'][view]
-                                # prompt_img = cv2.rectangle(
-                                #     np.array(rgb_this_view), upper_left_corner, bottom_right_corner, (255, 0, 0), 1)
+                                prompt_img = cv2.rectangle(
+                                    np.array(rgb_this_view), upper_left_corner, bottom_right_corner, (255, 0, 0), 1)
                                 # cv2.imwrite("rgb_this_view.png",
                                 #             np.array(prompt_img))
 
@@ -700,7 +731,6 @@ class MultiTaskPairedDataset(Dataset):
 
                 # cut the image around each object in the scene
                 for obj_name in ENV_OBJECTS[task_name]['obj_names']:
-
                     # get object bb
                     obj_bb = obs_t['obj_bb']['camera_front'][obj_name]
                     upper_left_corner = obj_bb['upper_left_corner']
@@ -716,7 +746,7 @@ class MultiTaskPairedDataset(Dataset):
                     # crop image
                     cropped_img = np.array(rgb_this_view[
                         bottom_right_corner[1]:upper_left_corner[1] + 1, bottom_right_corner[0]:upper_left_corner[0] + 1, :])
-                    # cv2.imwrite("cropped_img.png",
+                    # cv2.imwrite("cropped_img_obs.png",
                     #             np.array(cropped_img))
 
                     # pad if dimensions are different
@@ -775,7 +805,7 @@ class MultiTaskPairedDataset(Dataset):
         prompt_assets = dict()
         prompt_assets['pick_object'] = dict()
 
-        if task_name == 'pick_place':
+        if task_name == 'pick_place' or task_name == 'nut_assembly':
             prompt_assets['pick_object']['rgb'] = dict()
             prompt_assets['pick_object']['segm'] = dict({'obj_info': dict()})
             prompt_assets['pick_object']['placeholder_type'] = 'object'
@@ -789,8 +819,8 @@ class MultiTaskPairedDataset(Dataset):
                     target_obj_name = ENV_OBJECTS[task_name]['obj_names'][target_obj_id]
                     # assign prompt assets
                     prompt_assets['pick_object'][modality][view] = obs['camera_front_image'][:, :, ::-1]
-                    prompt_assets['pick_object']['segm']['obj_info']['obj_id'] = target_obj_name
-                    prompt_assets['pick_object']['segm']['obj_info']['obj_id'] = ENV_OBJECTS[task_name]['splitted_obj_names'][target_obj_id]
+                    prompt_assets['pick_object']['segm']['obj_info']['obj_id'] = target_obj_id
+                    prompt_assets['pick_object']['segm']['obj_info']['obj_name'] = ENV_OBJECTS[task_name]['splitted_obj_names'][target_obj_id]
                     prompt_assets['pick_object']['segm']['obj_info']['obj_color'] = ENV_OBJECTS[task_name]['splitted_obj_names'][target_obj_id].split(" ")[
                         0]
 

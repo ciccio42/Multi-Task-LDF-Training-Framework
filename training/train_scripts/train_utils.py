@@ -80,29 +80,31 @@ def make_data_loaders(config, dataset_cfg):
         collate_fn=collate_by_task
     )
 
-    dataset_cfg.mode = 'val'
-    val_dataset = instantiate(dataset_cfg)
-    # allow validation batch to have a different size
-    config.samplers.batch_size = config.train_cfg.val_size
-    val_step = int(config.get('epochs') *
-                   int(len(val_dataset)/config.get('vsize')))
-    val_sampler = samplerClass(
-        task_to_idx=val_dataset.task_to_idx,
-        subtask_to_idx=val_dataset.subtask_to_idx,
-        tasks_spec=dataset_cfg.tasks_spec,
-        object_distribution_to_indx=None,
-        sampler_spec=config.samplers,
-        n_step=val_step
-    )
+    val_loader = None
+    if dataset_cfg.split[1] > 0.0:
+        dataset_cfg.mode = 'val'
+        val_dataset = instantiate(dataset_cfg)
+        # allow validation batch to have a different size
+        config.samplers.batch_size = config.train_cfg.val_size
+        val_step = int(config.get('epochs') *
+                       int(len(val_dataset)/config.get('vsize')))
+        val_sampler = samplerClass(
+            task_to_idx=val_dataset.task_to_idx,
+            subtask_to_idx=val_dataset.subtask_to_idx,
+            tasks_spec=dataset_cfg.tasks_spec,
+            object_distribution_to_indx=None,
+            sampler_spec=config.samplers,
+            n_step=val_step
+        )
 
-    val_loader = DataLoader(
-        val_dataset,
-        batch_sampler=val_sampler,
-        num_workers=config.get('loader_workers', cpu_count()),
-        worker_init_fn=lambda w: np.random.seed(
-            np.random.randint(2 ** 29) + w),
-        collate_fn=collate_by_task
-    )
+        val_loader = DataLoader(
+            val_dataset,
+            batch_sampler=val_sampler,
+            num_workers=config.get('loader_workers', cpu_count()),
+            worker_init_fn=lambda w: np.random.seed(
+                np.random.randint(2 ** 29) + w),
+            collate_fn=collate_by_task
+        )
 
     # check_train_val_overlap(train_dataset=dataset, val_dataset=val_dataset)
     return train_loader, val_loader
@@ -289,8 +291,6 @@ def calculate_task_loss_vima(config, train_cfg, device, model, task_inputs, mode
 
     # Compute Categorical-Cross-Entropy for each command component
     loss = CrossEntropyLoss(reduction="mean")
-    position_accuracy_x = Accuracy(
-        task="multiclass", num_classes=256).to(device=0)
     for key in out.keys():
         if "position_x_logits" == key:
             prediction_x = rearrange(
@@ -300,11 +300,6 @@ def calculate_task_loss_vima(config, train_cfg, device, model, task_inputs, mode
             if mode == 'train':
                 x_true.requires_grad = True
             loss_x = loss(prediction_x, x_true.to(torch.float32))
-
-            # gt_action_class_x = torch.argmax(x_true, dim=1)
-            # predicted_action_class_x = torch.argmax(prediction_x, dim=1)
-            # accuracy_x = position_accuracy_x(
-            #     predicted_action_class_x, gt_action_class_x)
 
         elif "position_y_logits" == key:
             y_true = rearrange(rearrange(F.one_hot(
@@ -346,16 +341,16 @@ def calculate_task_loss_vima(config, train_cfg, device, model, task_inputs, mode
             loss_yaw = loss(rearrange(
                 out['rotation_y_logits'][:, :, :], 'T B C -> (T B) C').to(torch.float32), yaw_true.to(torch.float32))
 
-        elif "gripper_logits" == key:
-            gripper_true = rearrange(rearrange(F.one_hot(
-                model_inputs['actions'][:, :, 6].to(torch.int64), out['gripper_logits'][:, :, :].shape[-1]), 'B T C -> T B C'), 'T B C -> (T B) C').to(torch.float32)
-            if mode == 'train':
-                gripper_true.requires_grad = True
-            loss_gripper = loss(rearrange(
-                out['gripper_logits'][:, :, :], 'T B C -> (T B) C').to(torch.float32), gripper_true.to(torch.float32))
+        # elif "gripper_logits" == key:
+        #     gripper_true = rearrange(rearrange(F.one_hot(
+        #         model_inputs['actions'][:, :, 6].to(torch.int64), out['gripper_logits'][:, :, :].shape[-1]), 'B T C -> T B C'), 'T B C -> (T B) C').to(torch.float32)
+        #     if mode == 'train':
+        #         gripper_true.requires_grad = True
+        #     loss_gripper = loss(rearrange(
+        #         out['gripper_logits'][:, :, :], 'T B C -> (T B) C').to(torch.float32), gripper_true.to(torch.float32))
 
     all_losses['l_bc'] = loss_x + loss_y + \
-        loss_z + loss_r + loss_p + loss_yaw + loss_gripper
+        loss_z + loss_r + loss_p + loss_yaw  # + loss_gripper
 
     all_losses["loss_sum"] = all_losses["l_bc"]
     # flatten here to avoid headache
