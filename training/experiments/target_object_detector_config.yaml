@@ -18,11 +18,11 @@ bsize:          30
 vsize:          ${bsize} # optionally, set to a different batchsize for validation loader
 optimizer:      null #Adam # RMSProp
 task_names: null
+dataset_target: 'multi_task_il.datasets.target_object_detection_dataset.TargetObjectDataset'
 # imitation loss multipliers
-inv_mul:        0
-bc_mul:         0
-ce_mul:        1
-pnt_mul:        0
+inv_mul:        1
+bc_mul:         1
+pnt_mul:        0.1
 rep_muls:
   img_byol:           ${byol.mul_pre}
   attn_byol:          ${byol.mul_pos}
@@ -69,7 +69,7 @@ defaults:
   - tasks_cfgs:  7_tasks
 
 # dataset/loader/samplers
-loader_workers: 20
+loader_workers:   20
 samplers:        
   batch_size:         ${bsize}
   drop_last:          False
@@ -80,24 +80,37 @@ val_skip:             False # whether to let the samplers skip some **sub**tasks
 train_skip:           True
 
 dataset_cfg:
-  _target_:         'multi_task_il.datasets.multi_task_target_obj_datasets.MultiTaskPairedTargetObjDataset'
+  _target_:         ${dataset_target}
   root_dir:         ${EXPERT_DATA}/
   mode:             ???
   tasks_spec:       ${tasks}
   aux_pose:         True # only required for DAML baseline 
-  height:           200
-  width:            360
-  split:            [0.9, 0.1]
+  height:           200 # 100
+  width:            360 # 180
+  split:            [1.0, 0.0]
   demo_T:           4
-  obs_T:            10
+  obs_T:            7
+  normalize_action: True
+  # x, y, z, e_x, e_y, e_z
+  normalization_ranges: [[-0.35,  0.35],
+                        [-0.35,  0.35],
+                        [ 0.60,  1.20],
+                        [-3.14,  3.14911766],
+                        [-3.14911766, 3.14911766],
+                        [-3.14911766,  3.14911766]]
+  n_action_bin: 256
+  take_first_frame: ${policy.concat_target_obj_embedding}
   data_augs:        ${augs}
-  non_sequential:   True
-  crop_twice:       False
+  non_sequential:   False
+  crop_twice:       True
+  state_spec:       [ee_aa, gripper_qpos]
   allow_val_skip:   ${val_skip}
   allow_train_skip: ${train_skip}
-  use_strong_augs:  False 
+  use_strong_augs:  True 
   select_random_frames: True
-  compute_obj_distribution: True
+  compute_obj_distribution: False
+  agent_name: 'ur5e'
+  demo_name: 'panda'
 
 augs:
   strong_jitter:     0.01    
@@ -105,58 +118,11 @@ augs:
   grayscale:         0.01   
   blur:              [0.1, 2.0] 
   flip:              0.05   # only flip for the strong augs
-  weak_crop_scale:   [0.8, 1.0] 
-  strong_crop_scale: [0.6, 1.0] 
+  weak_crop_scale:   [0.7,1.0] 
+  strong_crop_scale: [0.6,1.0] 
   weak_crop_ratio:   [1.8, 1.8]
   strong_crop_ratio: [1.8, 1.8]
   use_affine:        False  
   rand_trans:        0.1
 
-# model related
-policy: ???  # set to any set of configs via command line, e.g. policy='${tosil}'
 
-target_obj_detector:
-  _target_:           multi_task_il.models.target_obj_detector.TargetObjDetector
-  latent_dim:         40
-  sdim:               8
-  concat_state:       True
-  height:             ${train_cfg.dataset.height}
-  width:              ${train_cfg.dataset.width} 
-  demo_T:             ${train_cfg.dataset.demo_T}
-  obs_T:              ${train_cfg.dataset.obs_T}   
-  dim_H:              7
-  dim_W:              12  
-  demo_mean:          True 
-  mlp_cfg:         ${mlp_cfg}
-  concat_demo_head:   False
-  concat_demo_act:    True 
-  attn_cfg:           ${attn}
-
-mlp_cfg:
-  n_layers:         2    
-  out_dim:          256 #64
-  hidden_dim:       128
-  adim:             8
-  n_mixtures:       4   
-  const_var:        False
-  sep_var:          True 
-  concat_demo_head:   False
-  concat_demo_act:    True
-  demo_mean:        ${policy.demo_mean}
-
-attn:
-  embed_hidden:     256
-  dropout:          0.2
-  n_attn_layers:    2
-  attn_heads:       4
-  attn_ff:          128
-  pos_enc:          True 
-  fuse_starts:      0   # default 0 so attend everywhere
-  causal:           True
-  attend_demo:      True
-  demo_out:         True     
-  img_cfg:           
-    network_flag:   0 # e.g Res18  
-    out_feature:    256
-    drop_dim:       3
-    pretrained:     True 

@@ -334,12 +334,12 @@ class MultiTaskPairedDataset(Dataset):
                 augmented = self.transforms(obs)
             assert augmented.shape == obs.shape
 
-            if self.mode == 'val':
-                cv2.imwrite(f"augment_val.png", np.moveaxis(
-                    augmented.numpy()*255, 0, -1))
-            if self.mode == 'train':
-                cv2.imwrite(f"augment_train.png", np.moveaxis(
-                    augmented.numpy()*255, 0, -1))
+            # if self.mode == 'val':
+            #     cv2.imwrite(f"augment_val.png", np.moveaxis(
+            #         augmented.numpy()*255, 0, -1))
+            # if self.mode == 'train':
+            #     cv2.imwrite(f"augment_train.png", np.moveaxis(
+            #         augmented.numpy()*255, 0, -1))
             return augmented
         self.frame_aug = frame_aug
 

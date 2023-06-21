@@ -369,7 +369,8 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
                              img_formatter,
                              baseline=baseline,
                              max_T=max_T,
-                             action_ranges=action_ranges)
+                             action_ranges=action_ranges,
+                             model_name=model_name)
         print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             ctr, variation_id, info['reached'], info['picked'], info['success']))
         print(f"Avg prediction {info['avg_pred']}")

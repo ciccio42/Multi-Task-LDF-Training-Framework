@@ -212,7 +212,7 @@ def calculate_obj_pos_loss(config, train_cfg, device, model, task_inputs, loss, 
         task_inputs[task_name]['traj']['target_position_one_hot'].requires_grad = True
         obj_position = task_inputs[task_name]['traj']['target_position_one_hot'].to(
             device)
-        obj_position.requires_grad = True
+        # obj_position.requires_grad = True
         target_obj_pos_one_hot[task_name] = obj_position
         task_bsize = inputs['traj']['images'].shape[0]
         task_to_idx[task_name] = [start + i for i in range(task_bsize)]

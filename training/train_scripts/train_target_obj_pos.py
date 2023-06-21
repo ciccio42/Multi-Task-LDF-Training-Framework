@@ -2,7 +2,7 @@ import wandb
 from train_utils import *
 from torchmetrics.classification import Accuracy
 from tqdm import tqdm
-from mosaic.utils.early_stopping import EarlyStopping
+from multi_task_il.utils.early_stopping import EarlyStopping
 from copy import deepcopy
 import learn2learn as l2l
 import os
@@ -13,7 +13,7 @@ import hydra
 import torch.nn as nn
 from os.path import join
 from omegaconf import OmegaConf
-from mosaic.utils.lr_scheduler import build_scheduler
+from multi_task_il.utils.lr_scheduler import build_scheduler
 from collections import defaultdict
 torch.autograd.set_detect_anomaly(True)
 
@@ -310,18 +310,32 @@ class Trainer:
         assert self.device_list is not None, str(self.device_list)
         if optimizer == 'Adam':
             optimizer = torch.optim.Adam(
-                optim_weights, cfg.lr, weight_decay=cfg.get('weight_decay', 0))
+                optim_weights,
+                cfg.lr,
+                weight_decay=cfg.get('weight_decay', 0))
         elif optimizer == 'RMSProp':
             optimizer = torch.optim.RMSprop(
-                optim_weights, cfg.lr, weight_decay=cfg.get('weight_decay', 0))
-
+                optim_weights,
+                cfg.lr,
+                weight_decay=cfg.get('weight_decay', 0))
+        elif optimizer == 'AdamW':
+            optimizer = torch.optim.AdamW(
+                optim_weights,
+                cfg.lr,
+                weight_decay=cfg.weight_decay)
         if optimizer_state_dict:
             optimizer.load_state_dict(optimizer_state_dict)
 
         print(
             f"Creating {optimizer}, with lr {optimizer.param_groups[0]['lr']}")
 
-        return optimizer, build_scheduler(optimizer, cfg.get('lr_schedule', {}))
+        lr_schedule = dict()
+        if cfg.lr_schedule == 'None':
+            lr_schedule['type'] = None
+        else:
+            lr_schedule['type'] = cfg.lr_schedule
+        print(f"Lr-scheduler {cfg.lr_schedule}")
+        return optimizer, build_scheduler(optimizer, lr_schedule)
 
     def _loss_to_scalar(self, loss):
         """For more readable logging"""
@@ -348,14 +362,6 @@ class Workspace(object):
         config = self.trainer.config
         resume = config.get('resume', False)
         self.action_model = hydra.utils.instantiate(config.policy)
-        config.use_daml = 'DAMLNetwork' in cfg.policy._target_
-        if config.use_daml:
-            print("Switching to l2l.algorithms.MAML")
-            self.action_model = l2l.algorithms.MAML(
-                self.action_model,
-                lr=config['policy']['maml_lr'],
-                first_order=config['policy']['first_order'],
-                allow_unused=True)
 
         print("Action model initialized to: {}".format(config.policy._target_))
         if resume:

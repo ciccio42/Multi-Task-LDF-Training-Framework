@@ -19,11 +19,12 @@ import copy
 from copy import deepcopy
 from functools import reduce
 from operator import concat
+from multi_task_il.utils import normalize_action
 
 ENV_OBJECTS = {
     'pick_place': {
         'obj_names': ['greenbox', 'yellowbox', 'bluebox', 'redbox'],
-        'ranges': [[-0.255, -0.195], [-0.105, -0.045], [0.045, 0.105], [0.195, 0.255]],
+        'ranges': [[0.195, 0.255], [0.045, 0.105], [-0.105, -0.045], [-0.255, -0.195]],
     },
     'nut_assembly': {
         'obj_names': ['nut0', 'nut1', 'nut2'],
@@ -48,29 +49,36 @@ def collate_by_task(batch):
     return per_task_data
 
 
-class MultiTaskPairedTargetObjDataset(Dataset):
+class TargetObjectDataset(Dataset):
     def __init__(
             self,
             tasks_spec,
             root_dir='mosaic_multitask_dataset',
             mode='train',
             split=[0.9, 0.1],
+            demo_T=4,
+            obs_T=7,
+            take_first_frame=False,
             aug_twice=True,
             width=180,
             height=100,
-            demo_T=4,
-            obs_T=1,
             data_augs=None,
             non_sequential=False,
+            state_spec=('ee_aa', 'gripper_qpos'),
+            action_spec=('action',),
             allow_val_skip=False,
             allow_train_skip=False,
             use_strong_augs=False,
             aux_pose=False,
             select_random_frames=True,
+            balance_target_obj_pos=True,
             compute_obj_distribution=False,
             agent_name='ur5e',
             demo_name='panda',
-            **params):
+            normalize_action=True,
+            normalization_ranges=[],
+            n_action_bin=256,
+            ** params):
         """
         Args:
         -  root_dir:
@@ -117,14 +125,24 @@ class MultiTaskPairedTargetObjDataset(Dataset):
         self.agent_files = dict()
         self.demo_files = dict()
         self.mode = mode
-        self._demo_T = demo_T
-        self._obs_T = obs_T
 
         self.select_random_frames = select_random_frames
+        self.balance_target_obj_pos = balance_target_obj_pos
         self.compute_obj_distribution = compute_obj_distribution
         self.object_distribution = OrderedDict()
         self.object_distribution_to_indx = OrderedDict()
-        self.index_to_slot = OrderedDict()
+
+        self._take_first_frame = take_first_frame
+
+        self._selected_target_frame_distribution_task_object_target_position = OrderedDict()
+
+        self._compute_frame_distribution = False
+        self._normalize_action = normalize_action
+        self._normalization_ranges = np.array(normalization_ranges)
+        self._n_action_bin = n_action_bin
+
+        # Frame distribution for each trajectory
+        self._frame_distribution = OrderedDict()
 
         for spec in tasks_spec:
             name, date = spec.get('name', None), spec.get('date', None)
@@ -233,7 +251,6 @@ class MultiTaskPairedTargetObjDataset(Dataset):
                                     # assign the slot for the given agent file
                                     self.object_distribution_to_indx[name][task_id][slot_indx].append(
                                         count)
-                                    self.index_to_slot[count] = slot_indx
                         count += 1
 
             self.task_crops[name] = spec.get('crop', [0, 0, 0, 0])
@@ -242,10 +259,12 @@ class MultiTaskPairedTargetObjDataset(Dataset):
         self.pairs_count = count
         self.task_count = len(tasks_spec)
 
+        self._demo_T, self._obs_T = demo_T, obs_T
         self.width, self.height = width, height
         self.aug_twice = aug_twice
         self.aux_pose = aux_pose
 
+        self._state_action_spec = (state_spec, action_spec)
         self.non_sequential = non_sequential
         if non_sequential:
             print("Warning! The agent observations are not sampled in neighboring timesteps, make sure inverse dynamics loss is NOT used in training \n ")
@@ -314,6 +333,7 @@ class MultiTaskPairedTargetObjDataset(Dataset):
             else:
                 augmented = self.transforms(obs)
             assert augmented.shape == obs.shape
+
             # if self.mode == 'val':
             #     cv2.imwrite(f"augment_val.png", np.moveaxis(
             #         augmented.numpy()*255, 0, -1))
@@ -335,9 +355,13 @@ class MultiTaskPairedTargetObjDataset(Dataset):
             pass
         (task_name, sub_task_id, demo_file,
          agent_file) = self.all_file_pairs[idx]
+
+        if agent_file not in self.all_file_pairs:
+            self._frame_distribution[agent_file] = np.zeros((1, 250))
+
         demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
         demo_data = self._make_demo(demo_traj[0], task_name)
-        traj = self._make_traj(agent_traj[0], task_name, idx)
+        traj = self._make_traj(agent_traj[0], task_name, agent_file)
         return {'demo_data': demo_data, 'traj': traj, 'task_name': task_name, 'task_id': sub_task_id}
 
     def _make_demo(self, traj, task_name):
@@ -414,57 +438,105 @@ class MultiTaskPairedTargetObjDataset(Dataset):
         ret_dict['demo_cp'] = torch.stack(cp_frames)
         return ret_dict
 
-    def _make_traj(self, traj, task_name, indx):
-        # get the first frame from the trajectory
-        ret_dict = {}
+    def _make_traj(self, traj, task_name, agent_file):
+        crop_params = self.task_crops.get(task_name, [0, 0, 0, 0])
+
+        def _adjust_points(points, frame_dims):
+            h = np.clip(points[0] - crop_params[0], 0,
+                        frame_dims[0] - crop_params[1])
+            w = np.clip(points[1] - crop_params[2], 0,
+                        frame_dims[1] - crop_params[3])
+            h = float(
+                h) / (frame_dims[0] - crop_params[0] - crop_params[1]) * self.height
+            w = float(
+                w) / (frame_dims[1] - crop_params[2] - crop_params[3]) * self.width
+            return tuple([int(min(x, d - 1)) for x, d in zip([h, w], (self.height, self.width))])
+
+        def _get_tensor(k, step_t):
+            if k == 'action':
+                return step_t['action']
+            elif k == 'grip_action':
+                return [step_t['action'][-1]]
+            o = step_t['obs']
+            if k == 'ee_aa' and 'ee_aa' not in o:
+                ee, axis_angle = o['ee_pos'][:3], o['axis_angle']
+                if axis_angle[0] < 0:
+                    axis_angle[0] += 2
+                o = np.concatenate((ee, axis_angle)).astype(np.float32)
+            else:
+                o = o[k]
+            return o
+
+        state_keys, action_keys = self._state_action_spec
+        ret_dict = {'states': [], 'actions': []}
+        has_eef_point = 'eef_point' in traj.get(0, False)['obs']
+        if has_eef_point:
+            ret_dict['points'] = []
+        end = len(traj)
+        start = torch.randint(low=1, high=max(
+            1, end - self._obs_T + 1), size=(1,))
+
+        if self._take_first_frame:
+            first_frame = [torch.tensor(1)]
+            chosen_t = first_frame
+
         images = []
         images_cp = []
-        target_obj_pos_one_hot = []
 
-        if self.non_sequential and self._obs_T > 1:
-            end = len(traj)
-            chosen_t = torch.randperm(end)
-            chosen_t = chosen_t[chosen_t != 0][:self._obs_T]
-            for j, t in enumerate(chosen_t):
-                t = t.item()
-                step_t = traj.get(t)
-                image = copy.copy(
-                    step_t['obs']['camera_front_image'][:, :, ::-1])
-                processed = self.frame_aug(task_name, image)
-                images.append(processed)
-                if self.aug_twice:
-                    images_cp.append(self.frame_aug(task_name, image, True))
-        elif not self.non_sequential and self._obs_T > 1:
-            end = len(traj)
-            start = torch.randint(low=1, high=max(
-                1, end - self._obs_T + 1), size=(1,))
-            chosen_t = [j + start for j in range(self._obs_T)]
-            images = []
-            images_cp = []
-            for j, t in enumerate(chosen_t):
-                t = t.item()
-                step_t = traj.get(t)
-                image = copy.copy(
-                    step_t['obs']['camera_front_image'][:, :, ::-1])
-                processed = self.frame_aug(task_name, image)
-                images.append(processed)
-                if self.aug_twice:
-                    images_cp.append(self.frame_aug(task_name, image, True))
-        else:
+        for j, t in enumerate(chosen_t):
+
+            # self._frame_distribution[agent_file][t] = self._frame_distribution[agent_file][t]
+
+            t = t.item()
+
+            step_t = traj.get(t)
             image = copy.copy(
-                traj.get(1)['obs']['camera_front_image'][:, :, ::-1])
-            images.append(self.frame_aug(task_name, image))
-            images_cp.append(self.frame_aug(task_name, image, True))
+                step_t['obs']['camera_front_image'][:, :, ::-1])
+            processed = self.frame_aug(task_name, image)
+            images.append(processed)
+            if self.aug_twice:
+                images_cp.append(self.frame_aug(task_name, image, True))
+            if has_eef_point:
+                ret_dict['points'].append(np.array(
+                    _adjust_points(step_t['obs']['eef_point'], image.shape[:2]))[None])
+
+            state = []
+            for k in state_keys:
+                state.append(_get_tensor(k, step_t))
+            ret_dict['states'].append(
+                np.concatenate(state).astype(np.float32)[None])
+
+            if (j >= 1 and not self._take_first_frame) or (self._take_first_frame and j >= 2):
+                action = []
+                for k in action_keys:
+                    action.append(_get_tensor(k, step_t))
+
+                if self._normalize_action:
+                    action = normalize_action(
+                        action=action[0],
+                        n_action_bin=self._n_action_bin,
+                        action_ranges=self._normalization_ranges
+                    )[None]
+
+                ret_dict['actions'].append(
+                    np.concatenate(action).astype(np.float32)[None])
+
+        for k, v in ret_dict.items():
+            ret_dict[k] = np.concatenate(v, 0).astype(np.float32)
 
         ret_dict['images'] = torch.stack(images)
         if self.aug_twice:
             ret_dict['images_cp'] = torch.stack(images_cp)
-        # get target object position
-        one_hot_encoding = np.zeros(4)
-        one_hot_encoding[self.index_to_slot[indx]] = 1
-        one_hot_encoding = torch.from_numpy(
-            one_hot_encoding).repeat(self._obs_T, 1)
-        ret_dict['target_position_one_hot'] = one_hot_encoding
+
+        if self.aux_pose:
+            grip_close = np.array(
+                [traj.get(i, False)['action'][-1] > 0 for i in range(1, len(traj))])
+            grip_t = np.argmax(grip_close)
+            drop_t = len(traj) - 1 - \
+                np.argmax(np.logical_not(grip_close)[::-1])
+            aux_pose = [traj.get(t, False)['obs']['ee_aa'][:3]
+                        for t in (grip_t, drop_t)]
+            ret_dict['aux_pose'] = np.concatenate(aux_pose).astype(np.float32)
         return ret_dict
 
 
@@ -615,7 +687,7 @@ class DIYBatchSampler(Sampler):
 
         assert idx == batch_size, "The constructed batch size {} doesn't match desired {}".format(
             idx, batch_size)
-        self.batch_size = idx
+        self.batch_size = batch_size
         self.drop_last = drop_last
 
         print("Shuffling to break the task ordering in each batch? ", self.shuffle)
