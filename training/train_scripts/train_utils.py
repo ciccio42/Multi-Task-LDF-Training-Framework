@@ -234,7 +234,7 @@ def calculate_obj_pos_loss(config, train_cfg, device, model, task_inputs, loss, 
         # for each task compute the cross-entropy loss
         # B - T - Number Classes
         gt = target_obj_pos_one_hot[task_name].permute(0, 2, 1)
-        gt.requires_grad = True
+        # gt.requires_grad = True
         prediction = out['target_obj_pred'].permute(0, 2, 1)
         all_losses[task_name]['ce_loss'] = loss(prediction, gt)
 

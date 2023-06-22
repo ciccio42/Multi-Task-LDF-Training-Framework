@@ -32,8 +32,8 @@ with open("/home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training
 
 ENV_OBJECTS = {
     'pick_place': {
-        'obj_names': ['milk', 'bread', 'cereal', 'can'],
-        'ranges':  [[0.16, 0.19], [0.05, 0.09], [-0.08, -0.03], [-0.19, -0.15]]
+        'obj_names': ['greenbox', 'yellowbox', 'bluebox', 'redbox'],
+        'ranges': [[0.195, 0.255], [0.045, 0.105], [-0.105, -0.045], [-0.255, -0.195]],
     },
     'nut_assembly': {
         'obj_names': ['round-nut', 'round-nut-2', 'round-nut-3', "peg1", "peg2", "peg3"],

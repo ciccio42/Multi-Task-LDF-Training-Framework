@@ -12,6 +12,7 @@ from collections import OrderedDict
 import os
 import hydra
 from omegaconf import DictConfig, OmegaConf
+from torchsummary import summary
 
 
 class _StackedAttnLayers(nn.Module):
@@ -361,7 +362,11 @@ class VideoImitation(nn.Module):
             conf_file = OmegaConf.load(os.path.join(
                 target_obj_detector_path, "config.yaml"))
             self._embed, self._obj_classifier, self._target_obj_embedding = self._load_model(
-                model_path=target_obj_detector_path, step=target_obj_detector_step, conf_file=conf_file, freeze=freeze_target_obj_detector, remove_class_layers=remove_class_layers)
+                model_path=target_obj_detector_path,
+                step=target_obj_detector_step,
+                conf_file=conf_file,
+                freeze=freeze_target_obj_detector,
+                remove_class_layers=remove_class_layers)
 
         self._target_object_backbone = None
         if not freeze_target_obj_detector and load_target_obj_detector:
@@ -466,6 +471,7 @@ class VideoImitation(nn.Module):
         if model_path:
             # 1. Create the model starting from configuration
             model = hydra.utils.instantiate(conf_file.policy)
+            summary(model)
             # 2. Load weights
             weights = torch.load(os.path.join(
                 model_path, f"model_save-{step}.pt"), map_location=torch.device('cpu'))

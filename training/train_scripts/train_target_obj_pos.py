@@ -111,6 +111,9 @@ class Trainer:
 
         vlm_alpha = self.train_cfg.get('vlm_alpha', 0.6)
         log_freq = self.train_cfg.get('log_freq', 1000)
+        val_freq = self.train_cfg.get('val_freq', 1000)
+        print_freq = self.train_cfg.get('print_freq', 10000)
+        save_freq = self.train_cfg.get('save_freq', 10000)
 
         self.tasks = self.config.tasks
         num_tasks = len(self.tasks)
@@ -139,7 +142,22 @@ class Trainer:
                 tolog = {}
 
                 # Save stats
-                if (self._step % len(self._train_loader) == 0):  # stats
+                if self._step % save_freq == 0:  # stats
+                    self.save_checkpoint(model, optimizer, weights_fn, save_fn)
+                    if save_fn is not None:
+                        save_fn(self._save_fname, self._step)
+                    else:
+                        save_module = model
+                        if weights_fn is not None:
+                            save_module = weights_fn()
+                        elif isinstance(model, nn.DataParallel):
+                            save_module = model.module
+                        torch.save(save_module.state_dict(),
+                                   self._save_fname + '-{}.pt'.format(self._step))
+                    if self.config.get('save_optim', False):
+                        torch.save(optimizer.state_dict(
+                        ), self._save_fname + '-optim-{}.pt'.format(self._step))
+
                     stats_save_name = join(
                         self.save_dir, 'stats', '{}.json'.format('train_val_stats'))
                     json.dump({k: str(v) for k, v in raw_stats.items()},
@@ -173,14 +191,14 @@ class Trainer:
                                 tolog[f'train/{acc_name}/{task_name}'] = acc_val
                                 tolog[f'train/{task_name}/{acc_name}'] = acc_val
 
-                    if (self._step % len(self._train_loader) == 0):
+                    if (self._step % log_freq == 0):
                         print(
                             'Training epoch {1}/{2}, step {0}: \t '.format(self._step, e, epochs))
                         print(
                             f"Train Weighted CE Loss {weighted_task_loss} - Train Accuracy {weighted_accuracy}")
 
                 #### ---- Validation step ----####
-                if (self._step % len(self._train_loader) == 0):
+                if self._step % val_freq == 0 and self._val_loader != None:
                     # exhaust all data in val loader and take avg loss
                     all_val_losses = {task: defaultdict(
                         list) for task in task_names}
@@ -189,7 +207,9 @@ class Trainer:
 
                     val_iter = iter(self._val_loader)
                     model = model.eval()
+                    val_indx = 0
                     for val_inputs in val_iter:
+                        val_indx += 1
                         with torch.no_grad():
                             val_task_losses, val_task_accuracy = calculate_obj_pos_loss(
                                 self.config, self.train_cfg, self._device, model, val_inputs, val_loss, val_accuracy)
@@ -231,18 +251,18 @@ class Trainer:
                     weighted_accuracy_val = sum(
                         [acc["accuracy"] * task_loss_muls.get(name) for name, acc in avg_accuracy.items()])
 
-                    if (self._step % len(self._train_loader) == 0):
+                    if (self._step % log_freq == 0):
                         print('Validation step {}:'.format(self._step))
                         print(
                             f"CE val loss {weighted_task_loss_val} - Validation accuracy {weighted_accuracy_val}")
 
-                    if self.config.train_cfg.lr_schedule['type'] is not None:
-                        # perform lr-scheduling step
-                        scheduler.step(val_loss=weighted_task_loss_val)
-                        if self.config.wandb_log:
-                            # log learning-rate
-                            tolog['Validation Step'] = self._step
-                            tolog['learning_rate'] = scheduler._schedule.optimizer.param_groups[0]['lr']
+                    # if self.config.train_cfg.lr_schedule['type'] is not None:
+                    #     # perform lr-scheduling step
+                    #     scheduler.step(val_loss=weighted_task_loss_val)
+                    #     if self.config.wandb_log:
+                    #         # log learning-rate
+                    #         tolog['Validation Step'] = self._step
+                    #         tolog['learning_rate'] = scheduler._schedule.optimizer.param_groups[0]['lr']
 
                     # check for early stopping
                     self._early_stopping(

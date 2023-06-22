@@ -56,6 +56,155 @@ def get_backbone(backbone_name="slow_r50", video_backbone=True, pretrained=False
                                drop_dim=2)
 
 
+def conv(ic, oc, k, s, p):
+    return nn.Sequential(
+        nn.Conv2d(ic, oc, k, s, p),
+        nn.ReLU(inplace=True),
+        nn.BatchNorm2d(oc),
+    )
+
+
+class FeatureExtractor(nn.Module):
+    def __init__(self):
+        super(FeatureExtractor, self).__init__()
+
+        self.model = nn.Sequential(
+            # conv(3, 128, 5, 1, 2),
+            # conv(128, 128, 3, 1, 1),
+            # conv(128, 128, 4, 2, 1),
+            # conv(128, 128, 4, 2, 1),
+            # conv(128, 128, 4, 2, 1),
+            conv(3, 128, 5, 2, 2),
+            conv(128, 128, 3, 2, 1),
+            conv(128, 128, 3, 2, 1),
+            conv(128, 128, 3, 1, 1),
+            conv(128, 128, 3, 1, 1),
+            # conv(3, 128, 4, 2, 2),
+            # conv(128, 128, 4, 2, 1),
+            # conv(128, 128, 4, 2, 1),
+            # conv(128, 128, 4, 2, 1),
+        )
+
+    def forward(self, x):
+        return self.model(x)
+
+
+class FiLMBlock(nn.Module):
+    def __init__(self):
+        super(FiLMBlock, self).__init__()
+
+    def forward(self, x, gamma, beta):
+        beta = beta.view(x.size(0), x.size(1), 1, 1)
+        gamma = gamma.view(x.size(0), x.size(1), 1, 1)
+
+        x = gamma * x + beta
+
+        return x
+
+
+class ResBlock(nn.Module):
+    def __init__(self, in_place, out_place):
+        super(ResBlock, self).__init__()
+
+        self.conv1 = nn.Conv2d(in_place, out_place, 1, 1, 0)
+        self.relu1 = nn.ReLU(inplace=True)
+
+        self.conv2 = nn.Conv2d(out_place, out_place, 3, 1, 1)
+        self.norm2 = nn.BatchNorm2d(out_place)
+        self.film = FiLMBlock()
+        self.relu2 = nn.ReLU(inplace=True)
+
+    def forward(self, x, beta, gamma):
+        x = self.conv1(x)
+        x = self.relu1(x)
+        identity = x
+
+        x = self.conv2(x)
+        x = self.norm2(x)
+        x = self.film(x, beta, gamma)
+        x = self.relu2(x)
+
+        x = x + identity
+
+        return x
+
+
+class Classifier(nn.Module):
+    def __init__(self, prev_channels, n_classes):
+        super(Classifier, self).__init__()
+
+        self.conv = nn.Conv2d(prev_channels, 512, 1, 1, 0)
+        self.relu = nn.ReLU(inplace=True)
+        self.global_max_pool = nn.AdaptiveMaxPool2d((1, 1))
+        self.model = nn.Sequential(nn.Linear(512, 1024),
+                                   nn.ReLU(inplace=True),
+                                   nn.Linear(1024, 1024),
+                                   nn.ReLU(inplace=True),
+                                   nn.Linear(1024, n_classes))
+
+    def forward(self, x):
+        x = self.conv(x)
+        feature = x
+        x = self.global_max_pool(x)
+        x = x.view(x.size(0), x.size(1))
+        x = self.model(x)
+
+        return x, feature
+
+
+class FiLM(nn.Module):
+    def __init__(self, n_res_blocks=18, n_classes=1, n_channels=128, task_embedding_dim=128):
+        super(FiLM, self).__init__()
+
+        self.task_embedding_dim = task_embedding_dim
+
+        self.film_generator = nn.Linear(
+            task_embedding_dim, 2 * n_res_blocks * n_channels)
+        self.feature_extractor = FeatureExtractor()
+        self.res_blocks = nn.ModuleList()
+
+        for _ in range(n_res_blocks):
+            self.res_blocks.append(ResBlock(n_channels + 2, n_channels))
+
+        self.classifier = Classifier(n_channels, n_classes)
+
+        self.n_res_blocks = n_res_blocks
+        self.n_channels = n_channels
+
+    def forward(self, agent_obs, task_emb):
+        batch_size = agent_obs.size(0)
+
+        agent_obs_feat = self.feature_extractor(agent_obs)  # 128, 25, 45
+        film_vector = self.film_generator(task_emb).view(
+            batch_size, self.n_res_blocks, 2, self.n_channels)
+
+        d = agent_obs_feat.size(2)
+        coordinate = torch.arange(-1, 1 + 0.00001, 2 / (d-1)).cuda()
+        coordinate_x = coordinate.expand(batch_size, 1, d, d)
+        coordinate_y = coordinate.view(d, 1).expand(batch_size, 1, d, d)
+
+        for i, res_block in enumerate(self.res_blocks):
+            beta = film_vector[:, i, 0, :]
+            gamma = film_vector[:, i, 1, :]
+
+            if i == 0:
+                x = agent_obs
+            x = torch.cat([x, coordinate_x, coordinate_y], 1)
+            x = res_block(x, beta, gamma)
+
+        cond_feature = x
+        # x = self.classifier(x)
+
+        return cond_feature
+
+
+def make_model(model_dict, task_embedding_dim):
+    return FiLM(model_dict['n_res_blocks'],
+                model_dict['n_classes'],
+                model_dict['n_channels'],
+                task_embedding_dim)
+
+
 class CondModule(nn.Module):
 
     def __init__(self, height=120, width=160, demo_T=4, model_name="slow_r50", pretrained=False, cond_video=True, n_layers=3, demo_W=7, demo_H=12, demo_ff_dim=[128, 64, 32], demo_linear_dim=[512, 256, 128],):
@@ -99,26 +248,48 @@ class CondModule(nn.Module):
         self._mlp_encoder = nn.Sequential(*mlp_encoder)
 
     def forward(self, input):
-        backbone_out = self._backbone(input)
-        backbone_out = rearrange(backbone_out, 'B C W H -> C B W H')
+        # 1. Compute features for each frame in the batch
+        sizes = parse_shape(input, 'B T _ _ _')
+        backbone_input = rearrange(input, 'B T C H W -> (B T) C H W')
+        backbone_out = self._backbone(backbone_input)
+        backbone_out = rearrange(
+            backbone_out, '(B T) C H W -> B T C H W', **sizes)
+        backbone_out = rearrange(backbone_out, 'B T C H W -> B C T H W')
         temp_conv_out = self._3d_conv(backbone_out)
-        temp_conv_out = rearrange(temp_conv_out, 'C B W H-> B C W H')
+        temp_conv_out = rearrange(temp_conv_out, 'B C T H W -> B T C H W')
         linear_input = torch.flatten(temp_conv_out, start_dim=1)
         task_embedding = self._mlp_encoder(linear_input)
-        print(task_embedding.shape)
-        return temp_conv_out
+        # print(task_embedding.shape)
+        return task_embedding
 
 
 class AgentModule(nn.Module):
 
-    def __init__(self, height=120, width=160, obs_T=4, model_name="resnet18", pretrained=False):
+    def __init__(self, height=120, width=160, obs_T=4, model_name="resnet18", pretrained=False, load_film=True, n_res_blocks=18, n_classes=1, n_channels=128, task_embedding_dim=128):
         super().__init__()
-        self._module = get_backbone(backbone_name=model_name,
-                                    video_backbone=False,
-                                    pretrained=pretrained)
+        if not load_film:
+            self._module = get_backbone(backbone_name=model_name,
+                                        video_backbone=False,
+                                        pretrained=pretrained)
+        else:
+            model_dict = dict()
+            model_dict['n_res_blocks'] = n_res_blocks
+            model_dict['n_classes'] = n_classes
+            model_dict['n_channels'] = n_channels
+            self._module = make_model(model_dict=model_dict,
+                                      task_embedding_dim=task_embedding_dim)
 
-    def forward(self, input):
-        return self._module(input)
+        self.load_film = load_film
+
+    def forward(self, agent_obs, task_embedding):
+        if self.load_film:
+            # 1. Compute conditioned embedding
+            self._module(agent_obs=agent_obs, task_emb=task_embedding)
+
+        else:
+            scene_embegging = self._module(input)
+            # print(scene_embegging.shape)
+            return self._module(input)
 
 
 class CondTargetObjectDetector(nn.Module):
@@ -154,8 +325,8 @@ class CondTargetObjectDetector(nn.Module):
         agent_obs = inputs['images']
 
         cond_emb = self._cond_backbone(cond_video)
-        print(cond_emb.shape)
-        agent_emb = self._agent_backone(agent_obs)
+        # print(f"Cond embedding shape: {cond_emb.shape}")
+        agent_emb = self._agent_backone(agent_obs, cond_emb)
         print(agent_emb.shape)
 
 
@@ -174,10 +345,10 @@ def main(cfg):
     height = 200
     demo_T = 4
     inputs['demo'] = torch.rand(
-        (4, 3, 200, 360),  dtype=torch.float).to('cuda:0')
+        (4, 3, 200, 360),  dtype=torch.float).to('cuda:0')[None]  # B, T, C, W, H
 
     inputs['images'] = torch.rand(
-        (1, 3, 200, 360),  dtype=torch.float).to('cuda:0')
+        (1, 3, 200, 360),  dtype=torch.float).to('cuda:0')[None]  # B, T, C, W, H
 
     module = CondTargetObjectDetector(
         width=width,

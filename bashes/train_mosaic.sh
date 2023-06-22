@@ -13,45 +13,47 @@ SAVE_FREQ=1000
 LOG_FREQ=1000
 VAL_FREQ=1000
 
-EXP_NAME=1Task-Nut-Assembly-Mosaic-200-360
-TASK_str=nut_assembly
+EXP_NAME=1Task-Pick-Place-Target-Slot-Mosaic-200-360
+TASK_str=pick_place
 EPOCH=40
-BSIZE=27 #128 #64 #32
+BSIZE=32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=3
+SET_SAME_N=2
 CONFIG_PATH=../experiments
-PROJECT_NAME="ur_nut_assembly_200_360"
+PROJECT_NAME="ur_pick_place_target_slot_200_360"
 CONFIG_NAME=config.yaml
 LOADER_WORKERS=16
 NORMALIZE_ACTION=true
 
-LOAD_CONTRASTIVE=true
+LOAD_CONTRASTIVE=false
 CONTRASTIVE_PRE=1.0
 CONTRASTIVE_POS=1.0
 MUL_INTM=0
 
-LOAD_TARGET_OBJ_DETECTOR=false
-TARGET_OBJ_DETECTOR_STEP=17204
-TARGET_OBJ_DETECTOR_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/baseline-1/1Task-Pick-Place-Target-Obj-Random-Frames-Batch128-1gpu-Attn2ly128-Act2ly256mix4-actCat
+LOAD_TARGET_OBJ_DETECTOR=true
+TARGET_OBJ_DETECTOR_STEP=18000
+TARGET_OBJ_DETECTOR_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/TARGET_OBJ_DETECTOR_SLOT/1Task-Pick-Place-Mosaic-200-360-Target-Obj-Detector-Batch32-1gpu-Attn2ly128-Act2ly256mix4-headCat
 FREEZE_TARGET_OBJ_DETECTOR=false
+REMOVE_CLASS_LAYERS=true
+CONCAT_TARGET_OBJ_EMBEDDING=true
 CONCAT_STATE=false
 
 ACTION_DIM=7
-N_MIXTURES=2       # Pick-place 6
-OUT_DIM=64         # 128
-ATTN_FF=128        # 256
-COMPRESSOR_DIM=128 # 256
-HIDDEN_DIM=256     # 512
-CONCAT_DEMO_HEAD=true
-CONCAT_DEMO_ACT=false
+N_MIXTURES=2       # Nut-Assembly 2 # Pick-place 6
+OUT_DIM=128        # 64                  # 128
+ATTN_FF=256        # 128                 # 256
+COMPRESSOR_DIM=256 # 128          # 256
+HIDDEN_DIM=512     # 256              # 512
+CONCAT_DEMO_HEAD=false
+CONCAT_DEMO_ACT=true
 PRETRAINED=false
 
 EARLY_STOPPING_PATIECE=-1
-OPTIMIZER='Adam'
-LR=0.0005
-WEIGHT_DECAY=0
+OPTIMIZER='AdamW'
+LR=0.0001
+WEIGHT_DECAY=0.0
 SCHEDULER=None
 
 DROP_DIM=3      # 2    # 3
@@ -83,9 +85,11 @@ python ../training/train_scripts/train_any.py \
     mosaic.target_obj_detector_step=${TARGET_OBJ_DETECTOR_STEP} \
     mosaic.target_obj_detector_path=${TARGET_OBJ_DETECTOR_PATH} \
     mosaic.freeze_target_obj_detector=${FREEZE_TARGET_OBJ_DETECTOR} \
+    mosaic.remove_class_layers=${REMOVE_CLASS_LAYERS} \
     mosaic.dim_H=${DIM_H} \
     mosaic.dim_W=${DIM_W} \
     mosaic.load_contrastive=${LOAD_CONTRASTIVE} \
+    mosaic.concat_target_obj_embedding=${CONCAT_TARGET_OBJ_EMBEDDING} \
     attn.img_cfg.pretrained=${PRETRAINED} \
     actions.adim=${ACTION_DIM} \
     actions.n_mixtures=${N_MIXTURES} \
@@ -112,6 +116,6 @@ python ../training/train_scripts/train_any.py \
     simclr.mul_pos=${CONTRASTIVE_POS} \
     simclr.mul_intm=${MUL_INTM} \
     debug=false \
-    wandb_log=false \
+    wandb_log=true \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS}

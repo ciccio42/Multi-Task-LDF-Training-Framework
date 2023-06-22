@@ -13,19 +13,20 @@ SAVE_FREQ=50000
 LOG_FREQ=1000
 VAL_FREQ=1000
 
-EXP_NAME=1Task-Pick-Place-Tosil-cropped-no-normalized-warmup
-TASK_str=pick_place
-EPOCH=80
-BSIZE=32 #128 #64 #32
+EXP_NAME=1Task-Nut-Assembly-Tosil-cropped-no-normalized-warmup
+TASK_str=nut_assembly
+EPOCH=40
+BSIZE=27 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=2
+SET_SAME_N=3
 CONFIG_PATH=../experiments/
-PROJECT_NAME="ur_tosil_baseline_cropped-no-normalized-warmup"
+PROJECT_NAME="ur_nut_assembly_warmup"
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=16
+LOADER_WORKERS=8
 NORMALIZE_ACTION=true
+PRETRAINED=false
 
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=17204
@@ -78,6 +79,7 @@ python ../training/train_scripts/train_any.py \
     train_cfg.lr=${LR} \
     train_cfg.weight_decay=${WEIGHT_DECAY} \
     train_cfg.lr_schedule=${SCHEDULER} \
+    attn.img_cfg.pretrained=${PRETRAINED} \
     debug=false \
     wandb_log=true \
     resume=false \

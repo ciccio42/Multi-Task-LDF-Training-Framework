@@ -187,7 +187,7 @@ class MultiTaskPairedTargetObjDataset(Dataset):
                 self.object_distribution[name][task_id] = OrderedDict()
                 self.object_distribution_to_indx[name][task_id] = [
                     [] for i in range(len(ENV_OBJECTS[name]['ranges']))]
-                if self.compute_obj_distribution and self.mode == 'train':
+                if self.compute_obj_distribution:
                     # for each subtask, create a dict with the object name
                     # assign the slot at each file
                     for agent in agent_files:
@@ -224,7 +224,7 @@ class MultiTaskPairedTargetObjDataset(Dataset):
                         self.all_file_pairs[count] = (name, _id, demo, agent)
                         self.task_to_idx[name].append(count)
                         self.subtask_to_idx[name][task_id].append(count)
-                        if self.compute_obj_distribution and self.mode == 'train':
+                        if self.compute_obj_distribution:
                             # take objs for the current task_id
                             for obj in self.object_distribution[name][task_id].keys():
                                 # take the slot for the given agent file

@@ -9,9 +9,9 @@ EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
 SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline
 POLICY='${target_obj_detector}'
 
-SAVE_FREQ=1000
-LOG_FREQ=1000
-VAL_FREQ=1000
+SAVE_FREQ=1000000
+LOG_FREQ=1
+VAL_FREQ=4050
 
 EXP_NAME=1Task-Pick-Place-Mosaic-200-360-Target-Obj-Detector
 TASK_str=pick_place
@@ -24,14 +24,14 @@ SET_SAME_N=2
 CONFIG_PATH=../experiments
 PROJECT_NAME="ur_pick_place_200_360_target_obj_detector"
 CONFIG_NAME=config_target_obj.yaml
-LOADER_WORKERS=1
+LOADER_WORKERS=16
 
 ATTN_FF=128 # 256
 CONCAT_DEMO_HEAD=true
 CONCAT_DEMO_ACT=false
 PRETRAINED=false
 
-EARLY_STOPPING_PATIECE=-1
+EARLY_STOPPING_PATIECE=5
 OPTIMIZER='AdamW'
 LR=0.0005
 WEIGHT_DECAY=0
@@ -80,7 +80,7 @@ python ../training/train_scripts/train_target_obj_pos.py \
     train_cfg.lr=${LR} \
     train_cfg.weight_decay=${WEIGHT_DECAY} \
     train_cfg.lr_schedule=${SCHEDULER} \
-    debug=true \
-    wandb_log=false \
+    debug=false \
+    wandb_log=true \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS}

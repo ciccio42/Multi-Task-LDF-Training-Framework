@@ -6,6 +6,7 @@ from torchvision import models
 import math
 import numpy as np
 from einops import rearrange, reduce, repeat
+from torchsummary import summary
 
 
 class ResNetFeats(nn.Module):
@@ -27,6 +28,7 @@ class ResNetFeats(nn.Module):
         else:
             resnet = models.resnet18(
                 pretrained=pretrained) if use_resnet18 else models.resnet50(pretrained=pretrained)
+        summary(resnet)
         self._features = nn.Sequential(*list(resnet.children())[:-drop_dim])
         self._output_raw = output_raw
         self._out_dim = 512 if use_resnet18 else 2048

@@ -113,14 +113,14 @@ class Trainer:
         # Add cosine annealing with warmup
         cosine_annealing = CosineAnnealingLR(
             optimizer=optimizer,
-            T_max=400000,
+            T_max=200000,
             eta_min=0,
             last_epoch=-1,
             verbose=False)
         scheduler = create_lr_scheduler_with_warmup(cosine_annealing,
                                                     warmup_start_value=0.0,
                                                     warmup_end_value=self.train_cfg.lr,
-                                                    warmup_duration=100000)
+                                                    warmup_duration=50000)
 
         # initialize constants:
         # compute epochs
