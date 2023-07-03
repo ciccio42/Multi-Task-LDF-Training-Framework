@@ -1,4 +1,5 @@
 from torch.optim.lr_scheduler import ExponentialLR, CosineAnnealingLR
+from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
 from ignite.handlers.param_scheduler import create_lr_scheduler_with_warmup
 from torchsummary import summary
 import wandb
@@ -110,18 +111,14 @@ class Trainer:
         optimizer, scheduler = self._build_optimizer_and_scheduler(
             self.config.train_cfg.optimizer, optim_weights, optimizer_state_dict, self.train_cfg)
 
-        # Add cosine annealing with warmup
-        cosine_annealing = CosineAnnealingLR(
-            optimizer=optimizer,
-            T_max=200000,
-            eta_min=0,
-            last_epoch=-1,
-            verbose=False)
-        scheduler = create_lr_scheduler_with_warmup(cosine_annealing,
-                                                    warmup_start_value=0.0,
-                                                    warmup_end_value=self.train_cfg.lr,
-                                                    warmup_duration=50000)
-
+        if self.config.cosine_annealing:
+            scheduler = CosineAnnealingWarmupRestarts(optimizer,
+                                                      first_cycle_steps=10000,
+                                                      cycle_mult=1.0,
+                                                      max_lr=0.0005,
+                                                      min_lr=0.00001,
+                                                      warmup_steps=2500,
+                                                      gamma=1.0)
         # initialize constants:
         # compute epochs
         if self.config.resume:
@@ -224,66 +221,120 @@ class Trainer:
                         print(train_print)
 
                 #### ---- Validation step ----####
-                if self._step % val_freq == 0 and self._val_loader != None:
-                    # exhaust all data in val loader and take avg loss
-                    all_val_losses = {task: defaultdict(
-                        list) for task in task_names}
-                    val_iter = iter(self._val_loader)
-                    model = model.eval()
-                    for val_inputs in val_iter:
-                        if self.config.use_daml:  # allow grad!
-                            val_task_losses = calculate_task_loss(
-                                self.confg, self.train_cfg,  self._device, model, val_inputs)
-                        else:
-                            with torch.no_grad():
+                if self._step % val_freq == 0:
+                    validation_set = True
+                    if validation_set and self._val_loader != None:
+                        # exhaust all data in val loader and take avg loss
+                        all_val_losses = {task: defaultdict(
+                            list) for task in task_names}
+                        val_iter = iter(self._val_loader)
+                        model = model.eval()
+                        for val_inputs in val_iter:
+                            if self.config.use_daml:  # allow grad!
                                 val_task_losses = calculate_task_loss(
-                                    self.config, self.train_cfg, self._device, model, val_inputs)
+                                    self.config, self.train_cfg,  self._device, model, val_inputs)
+                            else:
+                                with torch.no_grad():
+                                    val_task_losses = calculate_task_loss(
+                                        self.config, self.train_cfg, self._device, model, val_inputs)
 
-                        for task, losses in val_task_losses.items():
-                            for k, v in losses.items():
-                                all_val_losses[task][k].append(v)
+                            for task, losses in val_task_losses.items():
+                                for k, v in losses.items():
+                                    all_val_losses[task][k].append(v)
 
-                    # take average across all batches in the val loader
-                    avg_losses = dict()
-                    for task, losses in all_val_losses.items():
-                        avg_losses[task] = {
-                            k: torch.mean(torch.stack(v)) for k, v in losses.items()}
+                        # take average across all batches in the val loader
+                        avg_losses = dict()
+                        for task, losses in all_val_losses.items():
+                            avg_losses[task] = {
+                                k: torch.mean(torch.stack(v)) for k, v in losses.items()}
 
-                    if self.config.wandb_log:
-                        tolog['Validation Step'] = self._step
-                        for task_name, losses in avg_losses.items():
-                            for loss_name, loss_val in losses.items():
-                                tolog[f'val/{loss_name}/{task_name}'] = loss_val
-                                tolog[f'val/{task_name}/{loss_name}'] = loss_val
+                        if self.config.wandb_log:
+                            tolog['Validation Step'] = self._step
+                            for task_name, losses in avg_losses.items():
+                                for loss_name, loss_val in losses.items():
+                                    tolog[f'val/{loss_name}/{task_name}'] = loss_val
+                                    tolog[f'val/{task_name}/{loss_name}'] = loss_val
 
-                    val_print = collect_stats(
-                        self._step, avg_losses, raw_stats, prefix='val')
-                    if (self._step % len(self._train_loader) == 0):
-                        print('Validation step {}:'.format(self._step))
-                        print(val_print)
+                        val_print = collect_stats(
+                            self._step, avg_losses, raw_stats, prefix='val')
+                        if (self._step % len(self._train_loader) == 0):
+                            print('Validation step {}:'.format(self._step))
+                            print(val_print)
 
-                    # compute the sum of validation losses
-                    weighted_task_loss_val = sum(
-                        [l["loss_sum"] * task_loss_muls.get(name) for name, l in avg_losses.items()])
-                    # if self.config.train_cfg.lr_schedule != 'None':
-                    #     # perform lr-scheduling step
-                    #     scheduler.step(val_loss=weighted_task_loss_val)
-                    #     if self.config.wandb_log:
-                    #         # log learning-rate
-                    #         tolog['Validation Step'] = self._step
-                    #         tolog['learning_rate'] = scheduler._schedule.optimizer.param_groups[0]['lr']
+                        # compute the sum of validation losses
+                        weighted_task_loss_val = sum(
+                            [l["loss_sum"] * task_loss_muls.get(name) for name, l in avg_losses.items()])
+                        if self.config.train_cfg.lr_schedule != 'None':
+                            # perform lr-scheduling step
+                            scheduler.step(val_loss=weighted_task_loss_val)
+                            if self.config.wandb_log:
+                                # log learning-rate
+                                tolog['Validation Step'] = self._step
+                                tolog['learning_rate'] = scheduler._schedule.optimizer.param_groups[0]['lr']
 
-                    # check for early stopping
-                    if self.train_cfg.early_stopping.patience != -1:
-                        self._early_stopping(
-                            weighted_task_loss_val, model, self._step, optimizer)
+                        # check for early stopping
+                        if self.train_cfg.early_stopping.patience != -1:
+                            self._early_stopping(
+                                weighted_task_loss_val, model, self._step, optimizer)
+                    else:
+                        from multi_task_test.test_any_task import _proc
+                        import functools
+                        from torch.multiprocessing import Pool
+                        target_obj_dec = None
+                        controller_path = "/home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json"
+                        if 'mosaic' in self.config.policy._target_:
+                            model_name = 'mosaic'
+                        else:
+                            model_name = 'tosil'
+                        for task in self.tasks:
+                            task_name = task['name']
+                            results_dir = os.path.join(os.path.dirname(
+                                self.save_dir), 'results_{}/'.format(task_name))
+                            os.makedirs(results_dir, exist_ok=True)
+                            f = functools.partial(_proc,
+                                                  model,
+                                                  target_obj_dec,
+                                                  self.config,
+                                                  results_dir,
+                                                  200,
+                                                  360,
+                                                  False,
+                                                  False,
+                                                  False,
+                                                  task_name,
+                                                  None,
+                                                  None,
+                                                  None,
+                                                  70,
+                                                  controller_path,
+                                                  model_name)
+                            with Pool(4) as p:
+                                task_success_flags = p.map(f, range(4))
+
+                                all_succ_flags = [t['success']
+                                                  for t in task_success_flags]
+                                all_reached_flags = [t['reached']
+                                                     for t in task_success_flags]
+                                all_picked_flags = [t['picked']
+                                                    for t in task_success_flags]
+                                all_avg_pred = [t['avg_pred']
+                                                for t in task_success_flags]
+                                tolog['avg_success'] = np.mean(all_succ_flags)
+                                tolog['avg_reached'] = np.mean(
+                                    all_reached_flags)
+                                tolog['avg_picked'] = np.mean(
+                                    all_picked_flags)
+                                tolog['avg_prediction'] = np.mean(
+                                    all_avg_pred)
+
+                            if self.config.wandb_log:
+                                wandb.log(tolog)
 
                     model = model.train()
                     if self._early_stopping.early_stop:
                         break
 
-                if scheduler != 'None':
-                    scheduler(None)
+                if scheduler != 'None' and self.config.cosine_annealing:
                     if self.config.wandb_log:
                         # log learning-rate
                         tolog['Train Step'] = self._step

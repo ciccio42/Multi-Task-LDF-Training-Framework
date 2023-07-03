@@ -18,7 +18,7 @@ from multi_task_robosuite_env.controllers.controllers.expert_pick_place import \
 #     get_expert_trajectory as press_expert
 # from multi_task_robosuite_env.controllers.controllers.expert_door import \
 #     get_expert_trajectory as door_expert
-from eval_functions import *
+from multi_task_test.eval_functions import *
 
 import random
 import copy
@@ -46,6 +46,8 @@ from torchvision.transforms.functional import resized_crop
 import learn2learn as l2l
 from torchvision.transforms import RandomAffine, ToTensor, Normalize, \
     RandomGrayscale, ColorJitter, RandomApply, RandomHorizontalFlip, GaussianBlur, RandomResizedCrop
+import torch.nn as nn
+
 
 set_start_method('forkserver', force=True)
 LOG_PATH = None
@@ -170,10 +172,7 @@ def build_tvf_formatter(config, env_name='stack'):
     height, width = dataset_cfg.get(
         'height', 100), dataset_cfg.get('width', 180)
     task_spec = config.tasks_cfgs.get(env_name, dict())
-    # if 'baseline' in config.policy._target_: # yaml for the CMU baseline is messed up
-    #     crop_params = [10, 50, 70, 70] if env_name == 'place' else [0,0,0,0]
 
-    # assert task_spec, 'Must go back to the saved config file to get crop params for this task: '+env_name
     crop_params = task_spec.get('crop', [0, 0, 0, 0])
     # print(crop_params)
     top, left = crop_params[0], crop_params[2]
@@ -191,13 +190,14 @@ def build_tvf_formatter(config, env_name='stack'):
                            size=(height, width))
         cv2.imwrite("resized_test.png",
                     np.moveaxis(obs.numpy(), 0, -1)*255)
+
         # weak_scale = config.augs.get('weak_crop_scale', (0.8, 1.0))
-        # weak_ratio = config.augs.get('weak_crop_ratio', (1.6, 1.8))
+        # weak_ratio = [1.0, 1.0]
         # randcrop = RandomResizedCrop(
         #     size=(height, width), scale=weak_scale, ratio=weak_ratio)
         # cv2.imwrite("obs_cropped.png", np.moveaxis(obs.numpy(), 0, -1)*255)
-        # obs = Normalize(mean=[0.485, 0.456, 0.406],
-        #                 std=[0.229, 0.224, 0.225])(obs)
+        # # obs = Normalize(mean=[0.485, 0.456, 0.406],
+        # #                 std=[0.229, 0.224, 0.225])(obs)
         # obs = randcrop(obs)
         cv2.imwrite("random_resized_crop_test.png",
                     np.moveaxis(obs.numpy(), 0, -1)*255)
@@ -594,6 +594,8 @@ if __name__ == '__main__':
     else:
         model.load_state_dict(loaded)
 
+    model.set_conv_layer_reference(model)
+
     model = model.eval()  # .cuda()
     n_success = 0
     size = args.size
@@ -601,7 +603,7 @@ if __name__ == '__main__':
     color = args.color
     variation = args.variation
     seed = args.seed
-    max_T = 150
+    max_T = 80
     # load target object detector
     model_path = config.policy.get('target_obj_detector_path', None)
     target_obj_dec = None

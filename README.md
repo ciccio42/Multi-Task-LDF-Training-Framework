@@ -25,3 +25,10 @@ pip install protobuf pyserial matplotlib psutil pyasn1-modules webencodings six=
 ```
 
 *) [Swin](https://github.com/SwinTransformer/Swin-Transformer-Object-Detection)
+
+
+
+# ROBOMIMIC
+Modified robomimic for GTI
+
+*) ROBOMIMIC FORK [link](git@github.com:ciccio42/robomimic.git)

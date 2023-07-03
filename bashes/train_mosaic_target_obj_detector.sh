@@ -10,7 +10,7 @@ SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur
 POLICY='${target_obj_detector}'
 
 SAVE_FREQ=1000000
-LOG_FREQ=1
+LOG_FREQ=100
 VAL_FREQ=4050
 
 EXP_NAME=1Task-Pick-Place-Mosaic-200-360-Target-Obj-Detector
@@ -39,8 +39,8 @@ SCHEDULER=None
 
 DROP_DIM=3      # 2    # 3
 OUT_FEATURE=256 # 512 # 256
-DIM_H=13        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
-DIM_W=23        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
+DIM_H=14        # 13        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
+DIM_W=14        # 23        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 
 RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Mosaic-cropped-no-normalized-drop-2-Batch32
 RESUME_STEP=95000

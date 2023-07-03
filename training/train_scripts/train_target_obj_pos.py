@@ -1,3 +1,5 @@
+from ignite.handlers.param_scheduler import create_lr_scheduler_with_warmup
+from torch.optim.lr_scheduler import ExponentialLR, CosineAnnealingLR
 import wandb
 from train_utils import *
 from torchmetrics.classification import Accuracy
@@ -96,6 +98,18 @@ class Trainer:
         optim_weights = optim_weights if optim_weights is not None else model.parameters()
         optimizer, scheduler = self._build_optimizer_and_scheduler(
             self.config.train_cfg.optimizer, optim_weights, optimizer_state_dict, self.train_cfg)
+
+        # Add cosine annealing with warmup
+        cosine_annealing = CosineAnnealingLR(
+            optimizer=optimizer,
+            T_max=81000,
+            eta_min=0,
+            last_epoch=-1,
+            verbose=False)
+        scheduler = create_lr_scheduler_with_warmup(cosine_annealing,
+                                                    warmup_start_value=0.0,
+                                                    warmup_end_value=self.train_cfg.lr,
+                                                    warmup_duration=20250)
 
         # initialize constants:
         # compute epochs
@@ -272,8 +286,12 @@ class Trainer:
                     if self._early_stopping.early_stop:
                         break
 
-                    self.save_checkpoint(
-                        model, optimizer, weights_fn, save_fn)
+                if scheduler != 'None':
+                    scheduler(None)
+                    if self.config.wandb_log:
+                        # log learning-rate
+                        tolog['Train Step'] = self._step
+                        tolog['learning_rate'] = scheduler.optimizer.param_groups[0]['lr']
 
                 if self.config.wandb_log:
                     wandb.log(tolog)

@@ -24,11 +24,11 @@ from multi_task_il.utils import normalize_action
 ENV_OBJECTS = {
     'pick_place': {
         'obj_names': ['greenbox', 'yellowbox', 'bluebox', 'redbox'],
-        'ranges': [[0.195, 0.255], [0.045, 0.105], [-0.105, -0.045], [-0.255, -0.195]],
+        'ranges': [[-0.255, -0.195], [-0.105, -0.045], [0.045, 0.105], [0.195, 0.255]],
     },
     'nut_assembly': {
         'obj_names': ['nut0', 'nut1', 'nut2'],
-        'ranges': [[0.10, 0.31], [-0.10, 0.10], [-0.31, -0.10]]
+        'ranges': [[-0.31, -0.10], [-0.10, 0.10], [0.10, 0.31],]
     }
 }
 
@@ -323,23 +323,25 @@ class MultiTaskPairedDataset(Dataset):
                 crop_params[1], img_width - left - crop_params[3]
 
             obs = self.toTensor(obs)
+            # cv2.imwrite("original.png", np.moveaxis(
+            #     obs.numpy()*255, 0, -1))
             # only this resize+crop is task-specific
             obs = resized_crop(obs, top=top, left=left, height=box_h,
                                width=box_w, size=(self.height, self.width))
-            cv2.imwrite("resized.png", np.moveaxis(
-                obs.numpy()*255, 0, -1))
+            # cv2.imwrite("resized.png", np.moveaxis(
+            #     obs.numpy()*255, 0, -1))
             if self.use_strong_augs and second:
                 augmented = self.strong_augs(obs)
             else:
                 augmented = self.transforms(obs)
             assert augmented.shape == obs.shape
 
-            if self.mode == 'val':
-                cv2.imwrite(f"augment_val.png", np.moveaxis(
-                    augmented.numpy()*255, 0, -1))
-            if self.mode == 'train':
-                cv2.imwrite(f"augment_train.png", np.moveaxis(
-                    augmented.numpy()*255, 0, -1))
+            # if self.mode == 'val':
+            #     cv2.imwrite(f"augment_val.png", np.moveaxis(
+            #         augmented.numpy()*255, 0, -1))
+            # if self.mode == 'train':
+            #     cv2.imwrite(f"augment_train.png", np.moveaxis(
+            #         augmented.numpy()*255, 0, -1))
             return augmented
         self.frame_aug = frame_aug
 
@@ -396,7 +398,7 @@ class MultiTaskPairedDataset(Dataset):
             for i in range(self._demo_T):
                 # get first frame
                 if i == 0:
-                    n = 0
+                    n = 1
                 # get the last frame
                 elif i == self._demo_T - 1:
                     n = len(traj) - 1

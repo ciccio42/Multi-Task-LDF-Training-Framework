@@ -7,6 +7,7 @@ log_freq: 1
 val_freq: 1
 print_freq: 1
 save_freq: 1
+cosine_annealing: False
 save_optim:     True
 resume:         False
 resume_path:    null
@@ -41,6 +42,7 @@ train_cfg:
   log_freq:             ${log_freq}
   save_freq:            ${save_freq}
   print_freq:           ${print_freq}
+  val_freq:             ${val_freq}
   inv_loss_mult:        ${inv_mul}
   bc_loss_mult:         ${bc_mul}
   pnt_loss_mult:        ${pnt_mul}
@@ -85,9 +87,9 @@ dataset_cfg:
   mode:             ???
   tasks_spec:       ${tasks}
   aux_pose:         True # only required for DAML baseline 
-  height:           200 # 100
-  width:            360 # 180
-  split:            [1.0, 0.0]
+  height:           224 # 224 # 200 # 100
+  width:            224 # 224 # 360 # 180
+  split:            [0.90, 0.10]
   demo_T:           4
   obs_T:            7
   normalize_action: True
@@ -118,10 +120,10 @@ augs:
   grayscale:         0.01   
   blur:              [0.1, 2.0] 
   flip:              0.05   # only flip for the strong augs
-  weak_crop_scale:   [0.7,1.0] 
-  strong_crop_scale: [0.6,1.0] 
-  weak_crop_ratio:   [1.8, 1.8]
-  strong_crop_ratio: [1.8, 1.8]
+  weak_crop_scale:   [0.8, 1.0] # [0.8, 1.0]
+  strong_crop_scale: [0.8, 1.0] # [0.8, 1.0]
+  weak_crop_ratio:   [1.0, 1.0]
+  strong_crop_ratio: [1.0, 1.0]
   use_affine:        False  
   rand_trans:        0.1
 
@@ -261,9 +263,10 @@ daml:
   T_context: 4
   maml_lr: 0.1
   first_order: False
+  adim: 8 
   n_mix: 2
   const_var: True
-  inner_iters: 1
+  concat_target_obj_embedding: False
 
 vima:
   _target_: multi_task_il.models.vima.policy.Policy

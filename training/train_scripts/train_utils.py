@@ -181,7 +181,7 @@ def calculate_maml_loss(config, device, meta_model, model_inputs):
     bc_loss, aux_loss = [], []
 
     for task in range(states.shape[0]):
-        learner = meta_model.module.clone()
+        learner = meta_model.clone(first_order=True)
         for _ in range(inner_iters):
             learner.adapt(
                 learner(None, context[task], learned_loss=True)['learned_loss'], allow_nograd=True, allow_unused=True)
@@ -391,7 +391,11 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
     all_losses = dict()
 
     if config.use_daml:
-        bc_loss, aux_loss = calculate_maml_loss(model, model_inputs)
+        bc_loss, aux_loss = calculate_maml_loss(
+            config=config,
+            device=device,
+            meta_model=model,
+            model_inputs=model_inputs)
         all_losses["l_bc"] = bc_loss
         all_losses["l_aux"] = aux_loss
         all_losses["loss_sum"] = bc_loss + aux_loss

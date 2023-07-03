@@ -2,29 +2,29 @@
 export MUJOCO_PY_MUJOCO_PATH="/home/frosa_loc/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
 SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline
-POLICY='${mosaic}'
+POLICY='${daml}'
 
 SAVE_FREQ=8100
 LOG_FREQ=100
 VAL_FREQ=4050
 
-EXP_NAME=1Task-Pick-Place-Target-Slot-Mosaic-224_224
+EXP_NAME=1Task-Pick-Place-Target-Slot-MAML-224_224
 TASK_str=pick_place
 EPOCH=40
-BSIZE=32 #128 #64 #32
+BSIZE=16 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=2
+SET_SAME_N=1
 CONFIG_PATH=../experiments
-PROJECT_NAME="ur_pick_place_target_slot_224_224"
+PROJECT_NAME="ur_pick_place_daml"
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=8
+LOADER_WORKERS=4
 NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=false
@@ -66,6 +66,7 @@ RESUME_STEP=10000
 RESUME=false
 
 COSINE_ANNEALING=false
+USE_DAML=true
 
 python ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
@@ -83,28 +84,8 @@ python ../training/train_scripts/train_any.py \
     dataset_cfg.normalize_action=${NORMALIZE_ACTION} \
     dataset_cfg.compute_obj_distribution=${COMPUTE_OBJ_DISTRIBUTION} \
     samplers.balancing_policy=${BALANCING_POLICY} \
-    mosaic.load_target_obj_detector=${LOAD_TARGET_OBJ_DETECTOR} \
-    mosaic.target_obj_detector_step=${TARGET_OBJ_DETECTOR_STEP} \
-    mosaic.target_obj_detector_path=${TARGET_OBJ_DETECTOR_PATH} \
-    mosaic.freeze_target_obj_detector=${FREEZE_TARGET_OBJ_DETECTOR} \
-    mosaic.remove_class_layers=${REMOVE_CLASS_LAYERS} \
-    mosaic.dim_H=${DIM_H} \
-    mosaic.dim_W=${DIM_W} \
-    mosaic.load_contrastive=${LOAD_CONTRASTIVE} \
-    mosaic.concat_target_obj_embedding=${CONCAT_TARGET_OBJ_EMBEDDING} \
-    attn.img_cfg.pretrained=${PRETRAINED} \
-    actions.adim=${ACTION_DIM} \
-    actions.n_mixtures=${N_MIXTURES} \
-    actions.out_dim=${OUT_DIM} \
-    attn.attn_ff=${ATTN_FF} \
-    attn.img_cfg.drop_dim=${DROP_DIM} \
-    attn.img_cfg.out_feature=${OUT_FEATURE} \
-    simclr.compressor_dim=${COMPRESSOR_DIM} \
-    simclr.hidden_dim=${HIDDEN_DIM} \
-    mosaic.concat_state=${CONCAT_STATE} \
-    mosaic.concat_demo_head=${CONCAT_DEMO_HEAD} \
-    mosaic.concat_demo_act=${CONCAT_DEMO_ACT} \
-    early_stopping_cfg.patience=${EARLY_STOPPING_PATIECE} \
+    daml.adim=${ACTION_DIM} \
+    daml.n_mix=${N_MIXTURES} \
     project_name=${PROJECT_NAME} \
     EXPERT_DATA=${EXPERT_DATA} \
     save_path=${SAVE_PATH} \
@@ -117,8 +98,8 @@ python ../training/train_scripts/train_any.py \
     simclr.mul_pre=${CONTRASTIVE_PRE} \
     simclr.mul_pos=${CONTRASTIVE_POS} \
     simclr.mul_intm=${MUL_INTM} \
-    debug=false \
-    wandb_log=true \
+    debug=true \
+    wandb_log=false \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS} \
     cosine_annealing=${COSINE_ANNEALING}

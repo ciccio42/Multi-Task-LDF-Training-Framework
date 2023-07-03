@@ -14,7 +14,7 @@ import numpy as np
 from multi_task_il.datasets import Trajectory
 import cv2
 from multi_task_il.utils import denormalize_action, denormalize_action_vima
-from __init__ import make_prompt, prepare_obs
+from multi_task_test import make_prompt, prepare_obs
 from einops import rearrange, repeat
 from vima.utils import *
 import robosuite.utils.transform_utils as T
@@ -33,17 +33,17 @@ with open("/home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training
 ENV_OBJECTS = {
     'pick_place': {
         'obj_names': ['greenbox', 'yellowbox', 'bluebox', 'redbox'],
-        'ranges': [[0.195, 0.255], [0.045, 0.105], [-0.105, -0.045], [-0.255, -0.195]],
+        'ranges': [[-0.255, -0.195], [-0.105, -0.045], [0.045, 0.105], [0.195, 0.255]],
     },
     'nut_assembly': {
         'obj_names': ['round-nut', 'round-nut-2', 'round-nut-3', "peg1", "peg2", "peg3"],
         'splitted_obj_names': ['grey nut', 'brown nut', 'blue nut'],
-        'ranges': [[0.10, 0.31], [-0.10, 0.10], [-0.31, -0.10]]
+        'ranges': [[-0.31, -0.10], [-0.10, 0.10], [0.10, 0.31]]
     }
 }
 
 
-def get_action(model, target_obj_dec, states, images, context, gpu_id, n_steps, max_T=80, baseline=None, action_ranges=[]):
+def get_action(model, target_obj_dec, states, images, context, gpu_id, n_steps, max_T=80, baseline=None, action_ranges=[], target_obj_embedding=None):
     s_t = torch.from_numpy(np.concatenate(states, 0).astype(np.float32))[None]
     if isinstance(images[-1], np.ndarray):
         i_t = torch.from_numpy(np.concatenate(
@@ -60,7 +60,6 @@ def get_action(model, target_obj_dec, states, images, context, gpu_id, n_steps, 
         action = out['action_dist'].sample()[-1].cpu().detach().numpy()
 
     else:
-        target_obj_embedding = None
         with torch.no_grad():
             out = model(states=s_t, images=i_t, context=context, eval=True,
                         target_obj_embedding=target_obj_embedding)  # to avoid computing ATC loss
@@ -79,7 +78,7 @@ def get_action(model, target_obj_dec, states, images, context, gpu_id, n_steps, 
     # action[3:7] = [1.0, 1.0, 0.0, 0.0]
     action = denormalize_action(action, action_ranges)
     action[-1] = 1 if action[-1] > 0 and n_steps < max_T - 1 else -1
-    return action, predicted_prob
+    return action, predicted_prob, target_obj_embedding
 
 
 def startup_env(model, env, context, gpu_id, variation_id, baseline=None):
@@ -92,6 +91,13 @@ def startup_env(model, env, context, gpu_id, variation_id, baseline=None):
     while True:
         try:
             obs = env.reset()
+            # make a "null step" to stabilize all objects
+            current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
+            current_gripper_orientation = T.quat2axisangle(T.mat2quat(np.reshape(
+                env.sim.data.site_xmat[env.robots[0].eef_site_id], (3, 3))))
+            current_gripper_pose = np.concatenate(
+                (current_gripper_position, current_gripper_orientation, np.array([-1])), axis=-1)
+            obs, reward, env_done, info = env.step(current_gripper_pose)
             break
         except:
             pass
@@ -374,6 +380,7 @@ def nut_assembly_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, var
                 break
     # compute the average prediction over the whole trajectory
     avg_prediction = 0
+    target_obj_emb = None
     print(f"Max-t {max_T}")
 
     while not done:
@@ -387,7 +394,7 @@ def nut_assembly_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, var
             (obs['ee_aa'], obs['gripper_qpos'])).astype(np.float32)[None])
         images.append(img_formatter(
             obs['camera_front_image'][:, :, ::-1])[None])
-        action, target_pred = get_action(
+        action, target_pred, target_obj_emb = get_action(
             model,
             target_obj_dec,
             states,
@@ -397,7 +404,8 @@ def nut_assembly_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, var
             n_steps,
             max_T,
             baseline,
-            action_ranges)
+            action_ranges,
+            target_obj_emb)
 
         obs, reward, env_done, info = env.step(action)
         traj.append(obs, reward, done, info, action)
@@ -441,8 +449,14 @@ def basketball_eval(model, env, context, gpu_id, variation_id, img_formatter, ma
         states.append(np.concatenate(
             (obs['ee_aa'], obs['gripper_qpos'])).astype(np.float32)[None])
         images.append(img_formatter(obs['camera_front_image'])[None])
-        action = get_action(model, states, images, context,
-                            gpu_id, n_steps, max_T, baseline)
+        action = get_action(model,
+                            states,
+                            images,
+                            context,
+                            gpu_id,
+                            n_steps,
+                            max_T,
+                            baseline)
 
         obs, reward, env_done, info = env.step(action)
         traj.append(obs, reward, done, info, action)
@@ -848,6 +862,7 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
                 break
     # compute the average prediction over the whole trajectory
     avg_prediction = 0
+    target_obj_emb = None
     print(f"Max-t {max_T}")
     while not done:
         tasks['reached'] = tasks['reached'] or np.linalg.norm(
@@ -861,7 +876,7 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
         # convert observation from BGR to RGB and scale to 0-1
         images.append(img_formatter(
             obs['camera_front_image'][:, :, ::-1])[None])
-        action, target_pred = get_action(
+        action, target_pred, target_obj_emb = get_action(
             model,
             target_obj_dec,
             states,
@@ -871,11 +886,12 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
             n_steps,
             max_T,
             baseline,
-            action_ranges)
+            action_ranges,
+            target_obj_emb)
         try:
             obs, reward, env_done, info = env.step(action)
-            # cv2.imwrite(
-            #     f"{n_steps}.png", obs['camera_front_image'][:, :, ::-1])
+            cv2.imwrite(
+                f"step_test.png", obs['camera_front_image'][:, :, ::-1])
         except:
             print("Exception during step")
         if target_obj_dec is not None:

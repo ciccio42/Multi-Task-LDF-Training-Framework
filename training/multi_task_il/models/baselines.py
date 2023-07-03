@@ -15,6 +15,9 @@ from torchvision import models
 from multi_task_il.models.discrete_logistic import DiscreteMixLogistic
 import numpy as np
 from torch.distributions import MultivariateNormal
+from torchcam.methods import SmoothGradCAMpp, LayerCAM
+import cv2
+from torch.nn import AvgPool2d
 
 
 class _TransformerFeatures(nn.Module):
@@ -22,6 +25,9 @@ class _TransformerFeatures(nn.Module):
         super().__init__()
         self._resnet18 = get_model('resnet')(
             output_raw=True, drop_dim=2, use_resnet18=True, pretrained=False)
+
+        # self._cam_extractor = SmoothGradCAMpp(self._resnet18)
+
         ProcLayer = TempConvLayer if just_conv else NonLocalLayer
         self._temporal_process = nn.Sequential(ProcLayer(
             512, 512, attn_ff, dropout=dropout, n_heads=attn_heads), nn.Conv3d(512, 512, (context_T, 1, 1), 1))
@@ -39,6 +45,7 @@ class _TransformerFeatures(nn.Module):
             (context, images), 1) if forward_predict or self._st_goal_attn else images
         features = self._st_attn(self._resnet_features(
             im_in).transpose(1, 2)).transpose(1, 2)
+
         if forward_predict:
             features = self._temporal_process(
                 features.transpose(1, 2)).transpose(1, 2)
@@ -46,7 +53,28 @@ class _TransformerFeatures(nn.Module):
         elif self._st_goal_attn:
             T_ctxt = context.shape[1]
             features = features[:, T_ctxt:]
-        return F.normalize(self._to_embed(self._spatial_embed(features)), dim=2)
+
+        if not self.training:
+            for name, param in self.named_parameters():
+                # get the weights of the last layer
+                if name == "_st_attn.1._norm.weight":
+                    weights = param.data.cpu().numpy()
+                feat_cam = features.cpu().numpy()
+
+            CAMs = self.return_CAM(feat_cam, weights)
+            _, _, _, height, width = images.shape
+            heatmap = cv2.applyColorMap(cv2.resize(
+                CAMs[0], (width, height)), cv2.COLORMAP_JET)
+            image = np.transpose(images.cpu().numpy()[
+                                 0, 0, :, :, :]*255, (1, 2, 0))
+            cv2.imwrite("start_image_1.png", image)
+            result = heatmap * 0.5 + \
+                image * 0.5
+            cv2.imwrite("image_1.png", result)
+
+        spatial_embed = self._spatial_embed(features)
+        embed = self._to_embed(spatial_embed)
+        return F.normalize(embed, dim=2)
 
     def _spatial_embed(self, features):
         if not self._use_ss:
@@ -66,6 +94,22 @@ class _TransformerFeatures(nn.Module):
         features = self._resnet18(x).transpose(1, 2)
         features = self._pe(features).transpose(1, 2)
         return features
+
+    def return_CAM(self, feature_conv, weight):
+        # generate the class -activation maps upsample to (224, 224)
+        size_upsample = (224, 224)
+        bz, t, nc, h, w = feature_conv.shape
+        output_cam = []
+
+        # beforeDot = feature_conv.reshape((nc, h*w))
+        # cam = np.matmul(weight, beforeDot)
+
+        cam = np.mean(feature_conv[0, 0, :, :], axis=0)
+        cam = cam - np.min(cam)
+        cam_img = cam / np.max(cam)
+        cam_img = np.uint8(255 * cam_img)
+        output_cam.append(cv2.resize(cam_img, size_upsample))
+        return output_cam
 
 
 class _AblatedFeatures(_TransformerFeatures):
@@ -202,8 +246,28 @@ class InverseImitation(nn.Module):
         params = sum([np.prod(p.size()) for p in model_parameters])
         print('Total params in Imitation module:', params)
 
+    def get_conv_layer_reference(self,  model=None):
+        if model == None:
+            return []
+
+        model_children = list(model.children())
+        conv_layers = []
+        for child in model_children:
+            if type(child) == nn.Conv2d:
+                conv_layers.append(child)
+            conv_layer_ret = self.get_conv_layer_reference(child)
+            if len(conv_layer_ret) != 0:
+                conv_layers = conv_layers + conv_layer_ret
+
+        return conv_layers
+
+    def set_conv_layer_reference(self,  model=None):
+        self.conv_layer_ref = self.get_conv_layer_reference(model=model)
+        print(self.conv_layer_ref)
+
     def forward(self, states, images, context, ret_dist=True, target_obj_embedding=None, eval=False):
         img_embed = self._embed(images, context, False)
+
         pred_latent, goal_embed = self._pred_goal(images[:, :1], context)
         states = torch.cat((img_embed, states),
                            2) if self._concat_state else img_embed
@@ -267,14 +331,14 @@ class InverseImitation(nn.Module):
 
 
 class DAMLNetwork(nn.Module):
-    def __init__(self, n_final_convs, aux_dim=6, adim=8, n_mix=2, T_context=2, const_var=True, maml_lr=None, first_order=None):
+    def __init__(self, n_final_convs, aux_dim=6, adim=8, n_mix=2, T_context=2, const_var=True, maml_lr=None, first_order=None, **kwargs):
         super().__init__()
         if n_final_convs == 'resnet':
             self._is_resnet = True
             self._visual_net = get_model('resnet')(
-                output_raw=True, drop_dim=3, use_resnet18=True)
+                output_raw=True, drop_dim=2, use_resnet18=True, pretrained=False)
             self._resnet_2_embed = nn.Sequential(
-                nn.Linear(512, 256), nn.Dropout(p=0.2), nn.ReLU(), nn.Linear(256, 256))
+                nn.Linear(1024, 512), nn.Dropout(p=0.2), nn.ReLU(), nn.Linear(512, 256), nn.ReLU(), nn.Linear(256, 256))
             n_final_convs = 128
         else:
             self._is_resnet = False

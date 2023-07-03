@@ -115,6 +115,7 @@ class DiscreteMixLogistic(torch.distributions.Distribution):
         # sample from logistic & clip to interval
         # we don't actually round to the nearest 8bit value when sampling
         u = means.data.new(means.size()).uniform_(1e-5, 1.0 - 1e-5)
+
         x = means + torch.exp(log_scales) * (torch.log(u) - torch.log(1. - u))
 
         x = torch.clamp(torch.clamp(x, min=-1.), max=1.)

@@ -2,32 +2,43 @@
 export MUJOCO_PY_MUJOCO_PATH="/home/frosa_loc/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
 SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline
 POLICY='${tosil}'
 
-SAVE_FREQ=50000
-LOG_FREQ=1000
-VAL_FREQ=1000
+SAVE_FREQ=8100
+LOG_FREQ=100
+VAL_FREQ=4050
 
-EXP_NAME=1Task-Nut-Assembly-Tosil-cropped-no-normalized-warmup
+# Pick-Place
+# EXP_NAME=1Task-Pick-Place-Tosil-cropped-no-normalized
+# TASK_str=pick_place
+# PROJECT_NAME="ur_tosil_pick_place"
+# EPOCH=40
+# BSIZE=32 #128 #64 #32
+# SET_SAME_N=2
+# N_MIXTURES=5
+
+# Nut-Assembly
+EXP_NAME=1Task-Nut-Assembly-Tosil-cropped-no-normalized
 TASK_str=nut_assembly
+PROJECT_NAME="ur_tosil_nut_assembly"
 EPOCH=40
 BSIZE=27 #128 #64 #32
+SET_SAME_N=3
+N_MIXTURES=5 #3
+
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=3
 CONFIG_PATH=../experiments/
-PROJECT_NAME="ur_nut_assembly_warmup"
 CONFIG_NAME=config.yaml
 LOADER_WORKERS=8
 NORMALIZE_ACTION=true
 PRETRAINED=false
-
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=17204
 TARGET_OBJ_DETECTOR_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/baseline-1/1Task-Pick-Place-Target-Obj-Random-Frames-Batch128-1gpu-Attn2ly128-Act2ly256mix4-actCat
@@ -35,17 +46,16 @@ FREEZE_TARGET_OBJ_DETECTOR=false
 CONCAT_STATE=false
 
 ACTION_DIM=7
-N_MIXTURES=6
 
 EARLY_STOPPING_PATIECE=-1
-OPTIMIZER='Adam'
+OPTIMIZER='AdamW'
 LR=0.0005
-WEIGHT_DECAY=0
-SCHEDULER=None
+WEIGHT_DECAY=0.0
+SCHEDULER=ReduceLROnPlateau
 
-RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Mosaic-cropped-no-normalized-Batch32
-RESUME_STEP=84100
-RESUME=false
+RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Nut-Assembly-Tosil-cropped-no-normalized-Batch27
+RESUME_STEP=105300
+RESUME=true
 
 python ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
@@ -68,6 +78,7 @@ python ../training/train_scripts/train_any.py \
     tosil.target_obj_detector_path=${TARGET_OBJ_DETECTOR_PATH} \
     tosil.freeze_target_obj_detector=${FREEZE_TARGET_OBJ_DETECTOR} \
     tosil.adim=${ACTION_DIM} \
+    tosil.n_mixtures=${N_MIXTURES} \
     tosil.concat_state=${CONCAT_STATE} \
     early_stopping_cfg.patience=${EARLY_STOPPING_PATIECE} \
     project_name=${PROJECT_NAME} \
@@ -82,5 +93,5 @@ python ../training/train_scripts/train_any.py \
     attn.img_cfg.pretrained=${PRETRAINED} \
     debug=false \
     wandb_log=true \
-    resume=false \
+    resume=${RESUME} \
     loader_workers=${LOADER_WORKERS}

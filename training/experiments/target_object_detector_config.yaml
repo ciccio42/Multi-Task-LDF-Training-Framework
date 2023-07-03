@@ -85,11 +85,11 @@ dataset_cfg:
   mode:             ???
   tasks_spec:       ${tasks}
   aux_pose:         True # only required for DAML baseline 
-  height:           200 # 100
-  width:            360 # 180
+  height:           224 # 100
+  width:            224 # 180
   split:            [1.0, 0.0]
   demo_T:           4
-  obs_T:            7
+  obs_T:            1
   normalize_action: True
   # x, y, z, e_x, e_y, e_z
   normalization_ranges: [[-0.35,  0.35],
@@ -118,10 +118,10 @@ augs:
   grayscale:         0.01   
   blur:              [0.1, 2.0] 
   flip:              0.05   # only flip for the strong augs
-  weak_crop_scale:   [0.7,1.0] 
-  strong_crop_scale: [0.6,1.0] 
-  weak_crop_ratio:   [1.8, 1.8]
-  strong_crop_ratio: [1.8, 1.8]
+  weak_crop_scale:   [0.8, 1.0] #  [0.7,1.0] 
+  strong_crop_scale: [0.8, 1.0] # [0.6,1.0] 
+  weak_crop_ratio:   [1.2, 1.8] # [1.8, 1.8]
+  strong_crop_ratio: [1.2, 1.8] # [1.8, 1.8]
   use_affine:        False  
   rand_trans:        0.1
 

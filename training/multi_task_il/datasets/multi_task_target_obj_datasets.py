@@ -307,19 +307,19 @@ class MultiTaskPairedTargetObjDataset(Dataset):
             # only this resize+crop is task-specific
             obs = resized_crop(obs, top=top, left=left, height=box_h,
                                width=box_w, size=(self.height, self.width))
-            # cv2.imwrite("resized.png", np.moveaxis(
-            #     obs.numpy()*255, 0, -1))
+            cv2.imwrite("resized_target_obj.png", np.moveaxis(
+                obs.numpy()*255, 0, -1))
             if self.use_strong_augs and second:
                 augmented = self.strong_augs(obs)
             else:
                 augmented = self.transforms(obs)
             assert augmented.shape == obs.shape
-            # if self.mode == 'val':
-            #     cv2.imwrite(f"augment_val.png", np.moveaxis(
-            #         augmented.numpy()*255, 0, -1))
-            # if self.mode == 'train':
-            #     cv2.imwrite(f"augment_train.png", np.moveaxis(
-            #         augmented.numpy()*255, 0, -1))
+            if self.mode == 'val':
+                cv2.imwrite(f"augment_val_target_obj.png", np.moveaxis(
+                    augmented.numpy()*255, 0, -1))
+            if self.mode == 'train':
+                cv2.imwrite(f"augment_train_target_obj.png", np.moveaxis(
+                    augmented.numpy()*255, 0, -1))
             return augmented
         self.frame_aug = frame_aug
 

@@ -1,5 +1,3 @@
-from mmdet.models.backbones.swin import SwinTransformer
-from mmengine.registry import init_default_scope
 import copy
 import torch
 import torch.nn as nn
@@ -39,9 +37,13 @@ from pytorchvideo.transforms import (
 )
 from typing import Dict
 from einops import rearrange, repeat, parse_shape
+from torch.autograd import Variable
+from torchvision.models.detection import FasterRCNN
+from torchvision.models.detection.rpn import AnchorGenerator
+from torchvision.ops import MultiScaleRoIAlign
 
 
-def get_backbone(backbone_name="slow_r50", video_backbone=True, pretrained=False):
+def get_backbone(backbone_name="slow_r50", video_backbone=True, pretrained=False, drop_dim=2):
     if video_backbone:
         print(f"Loading video backbone {backbone_name}.....")
         return torch.hub.load("facebookresearch/pytorchvideo",
@@ -53,7 +55,7 @@ def get_backbone(backbone_name="slow_r50", video_backbone=True, pretrained=False
             return ResNetFeats(use_resnet18=True,
                                pretrained=pretrained,
                                output_raw=True,
-                               drop_dim=2)
+                               drop_dim=drop_dim)
 
 
 def conv(ic, oc, k, s, p):
@@ -62,6 +64,21 @@ def conv(ic, oc, k, s, p):
         nn.ReLU(inplace=True),
         nn.BatchNorm2d(oc),
     )
+
+
+def coord_map(shape, start=-1, end=1):
+    """
+    Gives, a 2d shape tuple, returns two mxn coordinate maps,
+    Ranging min-max in the x and y directions, respectively.
+    """
+    m, n = shape
+    x_coord_row = torch.linspace(
+        start, end, steps=n).type(torch.cuda.FloatTensor)
+    y_coord_row = torch.linspace(
+        start, end, steps=m).type(torch.cuda.FloatTensor)
+    x_coords = x_coord_row.unsqueeze(0).expand(torch.Size((m, n))).unsqueeze(0)
+    y_coords = y_coord_row.unsqueeze(1).expand(torch.Size((m, n))).unsqueeze(0)
+    return Variable(torch.cat([x_coords, y_coords], 0))
 
 
 class FeatureExtractor(nn.Module):
@@ -153,14 +170,17 @@ class Classifier(nn.Module):
 
 
 class FiLM(nn.Module):
-    def __init__(self, n_res_blocks=18, n_classes=1, n_channels=128, task_embedding_dim=128):
+    def __init__(self, backbone_name="resnet18", n_res_blocks=18, n_classes=1, n_channels=128, task_embedding_dim=128):
         super(FiLM, self).__init__()
 
         self.task_embedding_dim = task_embedding_dim
 
         self.film_generator = nn.Linear(
             task_embedding_dim, 2 * n_res_blocks * n_channels)
-        self.feature_extractor = FeatureExtractor()
+        self.feature_extractor = get_backbone(backbone_name=backbone_name,
+                                              video_backbone=False,
+                                              pretrained=False,
+                                              drop_dim=2)
         self.res_blocks = nn.ModuleList()
 
         for _ in range(n_res_blocks):
@@ -172,24 +192,28 @@ class FiLM(nn.Module):
         self.n_channels = n_channels
 
     def forward(self, agent_obs, task_emb):
-        batch_size = agent_obs.size(0)
 
-        agent_obs_feat = self.feature_extractor(agent_obs)  # 128, 25, 45
+        sizes = parse_shape(agent_obs, 'B T _ _ _')
+
+        agent_obs = rearrange(agent_obs, "B T C H W -> (B T) C H W")
+        agent_obs_feat = self.feature_extractor(agent_obs)  # B*T, C, H, W
+        # agent_obs_feat = rearrange(
+        #     agent_obs_feat, "(B T) C H W -> B T C H W", **sizes)
+
         film_vector = self.film_generator(task_emb).view(
-            batch_size, self.n_res_blocks, 2, self.n_channels)
+            sizes['B'], self.n_res_blocks, 2, self.n_channels)  # B N_RES 2(alpha, beta) N_CHANNELS
 
-        d = agent_obs_feat.size(2)
-        coordinate = torch.arange(-1, 1 + 0.00001, 2 / (d-1)).cuda()
-        coordinate_x = coordinate.expand(batch_size, 1, d, d)
-        coordinate_y = coordinate.view(d, 1).expand(batch_size, 1, d, d)
+        h = agent_obs_feat.size(2)
+        w = agent_obs_feat.size(3)
+        coords = coord_map((h, w))[None]  # B 2 h w
 
         for i, res_block in enumerate(self.res_blocks):
             beta = film_vector[:, i, 0, :]
             gamma = film_vector[:, i, 1, :]
 
             if i == 0:
-                x = agent_obs
-            x = torch.cat([x, coordinate_x, coordinate_y], 1)
+                x = agent_obs_feat
+            x = torch.cat([x, coords], 1)
             x = res_block(x, beta, gamma)
 
         cond_feature = x
@@ -198,11 +222,13 @@ class FiLM(nn.Module):
         return cond_feature
 
 
-def make_model(model_dict, task_embedding_dim):
-    return FiLM(model_dict['n_res_blocks'],
-                model_dict['n_classes'],
-                model_dict['n_channels'],
-                task_embedding_dim)
+def make_model(model_dict, backbone_name="resnet18", task_embedding_dim=128):
+    return FiLM(
+        backbone_name=backbone_name,
+        n_res_blocks=model_dict['n_res_blocks'],
+        n_classes=model_dict['n_classes'],
+        n_channels=model_dict['n_channels'],
+        task_embedding_dim=task_embedding_dim)
 
 
 class CondModule(nn.Module):
@@ -265,27 +291,58 @@ class CondModule(nn.Module):
 
 class AgentModule(nn.Module):
 
-    def __init__(self, height=120, width=160, obs_T=4, model_name="resnet18", pretrained=False, load_film=True, n_res_blocks=18, n_classes=1, n_channels=128, task_embedding_dim=128):
+    def __init__(self, height=120, width=160, obs_T=4, model_name="resnet18", pretrained=False, load_film=True, n_res_blocks=6, n_classes=1, n_channels=512, task_embedding_dim=128):
         super().__init__()
         if not load_film:
             self._module = get_backbone(backbone_name=model_name,
                                         video_backbone=False,
                                         pretrained=pretrained)
         else:
+            # Create model with backbone + film
             model_dict = dict()
             model_dict['n_res_blocks'] = n_res_blocks
             model_dict['n_classes'] = n_classes
             model_dict['n_channels'] = n_channels
-            self._module = make_model(model_dict=model_dict,
-                                      task_embedding_dim=task_embedding_dim)
+            backbone = make_model(model_dict=model_dict,
+                                  task_embedding_dim=task_embedding_dim)
+            backbone.out_channels = n_channels
+            summary(backbone)
+            # Add FasterRCNN head
+            # We create a total of 9 anchors
+            anchor_generator = AnchorGenerator(
+                sizes=((4, 8, 16, 32),),
+                aspect_ratios=((0.5, 1.0, 2.0),)
+            )
+
+            # Feature maps to perform RoI cropping.
+            # If backbone returns a Tensor, `featmap_names` is expected to
+            # be [0]. We can choose which feature maps to use.
+            roi_pooler = MultiScaleRoIAlign(
+                featmap_names=['0'],
+                output_size=4,
+                sampling_ratio=2
+            )
+
+            # Final Faster RCNN model.
+            self._model = FasterRCNN(
+                backbone=backbone,
+                num_classes=n_classes,
+                rpn_anchor_generator=anchor_generator,
+                box_roi_pool=roi_pooler
+            )
+
+            self._model.train()
 
         self.load_film = load_film
 
-    def forward(self, agent_obs, task_embedding):
+    def forward(self, agent_obs, task_embedding, gt_bb=None):
         if self.load_film:
-            # 1. Compute conditioned embedding
-            self._module(agent_obs=agent_obs, task_emb=task_embedding)
-
+            # # 1. Compute conditioned embedding
+            # cond_feature = self._backbone(
+            #     agent_obs=agent_obs, task_emb=task_embedding)
+            # 2. Predict bounding boxes given conditioned embedding and input image
+            predictions = self._model(agent_obs, gt_bb)
+            return predictions
         else:
             scene_embegging = self._module(input)
             # print(scene_embegging.shape)
