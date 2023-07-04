@@ -20,7 +20,7 @@ from copy import deepcopy
 from utils import *
 
 
-class MultiTaskPairedTargetObjDataset(Dataset):
+class CondTargetObjDetectorDataset(Dataset):
     def __init__(
             self,
             tasks_spec,
