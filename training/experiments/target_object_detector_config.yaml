@@ -120,8 +120,8 @@ augs:
   flip:              0.05   # only flip for the strong augs
   weak_crop_scale:   [0.8, 1.0] #  [0.7,1.0] 
   strong_crop_scale: [0.8, 1.0] # [0.6,1.0] 
-  weak_crop_ratio:   [1.2, 1.8] # [1.8, 1.8]
-  strong_crop_ratio: [1.2, 1.8] # [1.8, 1.8]
+  weak_crop_ratio:   [1.0, 1.0] # [1.8, 1.8]
+  strong_crop_ratio: [1.0, 1.0] # [1.8, 1.8]
   use_affine:        False  
   rand_trans:        0.1
 

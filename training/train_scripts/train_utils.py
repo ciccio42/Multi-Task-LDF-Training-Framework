@@ -21,7 +21,7 @@ from multi_task_il.models.discrete_logistic import DiscreteMixLogistic
 from collections import defaultdict, OrderedDict
 from hydra.utils import instantiate
 # need for val. loader
-from multi_task_il.datasets.multi_task_datasets import DIYBatchSampler, collate_by_task
+from multi_task_il.datasets.utils import DIYBatchSampler, collate_by_task
 from torch.nn import CrossEntropyLoss, BCELoss
 from torchmetrics.classification import Accuracy
 import torch.nn.functional as F
@@ -195,6 +195,26 @@ def calculate_maml_loss(config, device, meta_model, model_inputs):
         aux_loss.append(l_aux)
 
     return torch.cat(bc_loss, dim=0), torch.cat(aux_loss, dim=0)
+
+
+def calc_cls_loss(conf_scores_pos, conf_scores_neg, batch_size):
+    target_pos = torch.ones_like(conf_scores_pos)
+    target_neg = torch.zeros_like(conf_scores_neg)
+
+    target = torch.cat((target_pos, target_neg))
+    inputs = torch.cat((conf_scores_pos, conf_scores_neg))
+
+    loss = F.binary_cross_entropy_with_logits(
+        inputs, target, reduction='sum') * 1. / batch_size
+
+    return loss
+
+
+def calc_bbox_reg_loss(gt_offsets, reg_offsets_pos, batch_size):
+    assert gt_offsets.size() == reg_offsets_pos.size()
+    loss = F.smooth_l1_loss(reg_offsets_pos, gt_offsets,
+                            reduction='sum') * 1. / batch_size
+    return loss
 
 
 def calculate_obj_pos_loss(config, train_cfg, device, model, task_inputs, loss, accuracy):

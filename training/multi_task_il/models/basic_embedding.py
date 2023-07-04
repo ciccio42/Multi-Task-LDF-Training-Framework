@@ -28,6 +28,7 @@ class ResNetFeats(nn.Module):
         else:
             resnet = models.resnet18(
                 pretrained=pretrained) if use_resnet18 else models.resnet50(pretrained=pretrained)
+        print("Backbone summary of resnet")
         summary(resnet)
         self._features = nn.Sequential(*list(resnet.children())[:-drop_dim])
         self._output_raw = output_raw
