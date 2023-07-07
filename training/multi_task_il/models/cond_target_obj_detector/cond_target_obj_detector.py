@@ -39,10 +39,10 @@ from typing import Dict
 from einops import rearrange, repeat, parse_shape
 from torch.autograd import Variable
 from torchvision import ops
-from utils import *
+from multi_task_il.models.cond_target_obj_detector.utils import *
 
 
-def get_backbone(backbone_name="slow_r50", video_backbone=True, pretrained=False, drop_dim=3):
+def get_backbone(backbone_name="slow_r50", video_backbone=True, pretrained=False, conv_drop_dim=3):
     if video_backbone:
         print(f"Loading video backbone {backbone_name}.....")
         return torch.hub.load("facebookresearch/pytorchvideo",
@@ -54,7 +54,7 @@ def get_backbone(backbone_name="slow_r50", video_backbone=True, pretrained=False
             return ResNetFeats(use_resnet18=True,
                                pretrained=pretrained,
                                output_raw=True,
-                               drop_dim=drop_dim)
+                               drop_dim=conv_drop_dim)
 
 
 def conv(ic, oc, k, s, p):
@@ -169,7 +169,7 @@ class Classifier(nn.Module):
 
 
 class FiLM(nn.Module):
-    def __init__(self, backbone_name="resnet18", drop_dim=3, n_res_blocks=18, n_classes=1, n_channels=128, task_embedding_dim=128):
+    def __init__(self, backbone_name="resnet18", conv_drop_dim=3, n_res_blocks=18, n_classes=1, n_channels=128, task_embedding_dim=128):
         super(FiLM, self).__init__()
 
         self.task_embedding_dim = task_embedding_dim
@@ -179,7 +179,7 @@ class FiLM(nn.Module):
         self.feature_extractor = get_backbone(backbone_name=backbone_name,
                                               video_backbone=False,
                                               pretrained=False,
-                                              drop_dim=drop_dim)
+                                              conv_drop_dim=conv_drop_dim)
         self.res_blocks = nn.ModuleList()
 
         for _ in range(n_res_blocks):
@@ -202,9 +202,13 @@ class FiLM(nn.Module):
         film_vector = self.film_generator(task_emb).view(
             sizes['B'], self.n_res_blocks, 2, self.n_channels)  # B N_RES 2(alpha, beta) N_CHANNELS
 
+        # B*T N_RES 2(alpha, beta) N_CHANNELS
+        film_vector = film_vector.repeat_interleave(sizes['T'], 0)
+
         h = agent_obs_feat.size(2)
         w = agent_obs_feat.size(3)
-        coords = coord_map((h, w))[None]  # B 2 h w
+        coords = coord_map((h, w))[None].repeat(
+            agent_obs_feat.shape[0], 1, 1, 1)  # B 2 h w
 
         for i, res_block in enumerate(self.res_blocks):
             beta = film_vector[:, i, 0, :]
@@ -260,10 +264,10 @@ class ProposalModule(nn.Module):
             return conf_scores_pred, reg_offsets_pred
 
 
-def make_model(model_dict, backbone_name="resnet18", task_embedding_dim=128, drop_dim=3):
+def make_model(model_dict, backbone_name="resnet18", task_embedding_dim=128, conv_drop_dim=3):
     return FiLM(
         backbone_name=backbone_name,
-        drop_dim=drop_dim,
+        conv_drop_dim=conv_drop_dim,
         n_res_blocks=model_dict['n_res_blocks'],
         n_classes=model_dict['n_classes'],
         n_channels=model_dict['n_channels'],
@@ -272,7 +276,7 @@ def make_model(model_dict, backbone_name="resnet18", task_embedding_dim=128, dro
 
 class CondModule(nn.Module):
 
-    def __init__(self, height=120, width=160, demo_T=4, model_name="slow_r50", pretrained=False, cond_video=True, n_layers=3, demo_W=14, demo_H=14, demo_ff_dim=[128, 64, 32], demo_linear_dim=[512, 256, 128], drop_dim=3):
+    def __init__(self, height=120, width=160, demo_T=4, model_name="slow_r50", pretrained=False, cond_video=True, n_layers=3, demo_W=7, demo_H=7, demo_ff_dim=[128, 64, 32], demo_linear_dim=[512, 256, 128], conv_drop_dim=3):
         super().__init__()
         self._demo_T = demo_T
         self._cond_video = cond_video
@@ -280,13 +284,13 @@ class CondModule(nn.Module):
         self._backbone = get_backbone(backbone_name=model_name,
                                       video_backbone=cond_video,
                                       pretrained=pretrained,
-                                      drop_dim=drop_dim)
+                                      conv_drop_dim=conv_drop_dim)
 
         if not cond_video:
             conv_layer = []
-            if drop_dim == 2:
+            if conv_drop_dim == 2:
                 input_dim_0 = 512
-            elif drop_dim == 3:
+            elif conv_drop_dim == 3:
                 input_dim_0 = 256
             input_dim = [input_dim_0, demo_ff_dim[0], demo_ff_dim[1]]
             output_dim = demo_ff_dim
@@ -335,21 +339,19 @@ class CondModule(nn.Module):
 
 class AgentModule(nn.Module):
 
-    def __init__(self, height=120, width=160, obs_T=4, model_name="resnet18", pretrained=False, load_film=True, n_res_blocks=6, n_classes=1, n_channels=512, task_embedding_dim=128, dim_H=14, dim_W=14, drop_dim=3):
+    def __init__(self, height=120, width=160, obs_T=4, model_name="resnet18", pretrained=False, load_film=True, n_res_blocks=6, n_classes=1, n_channels=512, task_embedding_dim=128, dim_H=7, dim_W=7, conv_drop_dim=3):
         super().__init__()
         if not load_film:
             self._module = get_backbone(backbone_name=model_name,
                                         video_backbone=False,
                                         pretrained=pretrained,
-                                        drop_dim=drop_dim)
+                                        conv_drop_dim=conv_drop_dim)
         else:
             #### Create model with backbone + film ####
             model_dict = dict()
             model_dict['n_res_blocks'] = n_res_blocks
             model_dict['n_classes'] = n_classes
-            if drop_dim == 2:
-                n_channels = 512
-            elif drop_dim == 3:
+            if conv_drop_dim == 3 or conv_drop_dim == 2:
                 n_channels = 256
             model_dict['n_channels'] = n_channels
             backbone = make_model(model_dict=model_dict,
@@ -398,29 +400,46 @@ class AgentModule(nn.Module):
             agent_obs=agent_obs, task_emb=task_embedding)
 
         # 2. Predict bounding boxes given conditioned embedding and input image
-        B, T, C, H, W = agent_obs.shape
+        agent_obs = rearrange(agent_obs, 'B T C H W -> (B T) C H W')
+        gt_bb = rearrange(gt_bb, 'B T N C -> (B T) N C')
+        gt_classes = rearrange(gt_classes, 'B T N -> (B T) N')
+        B, C, H, W = agent_obs.shape
 
         if self.load_film:
             # generate anchors
             anc_pts_x, anc_pts_y = gen_anc_centers(
                 out_size=(self.out_h, self.out_w))
+
+            # plot anchor boxes
+            # anc_pts_x_image = anc_pts_x.clone() * self.width_scale_factor
+            # anc_pts_y_image = anc_pts_y.clone() * self.height_scale_factor
+            # import cv2
+            # image = np.array(np.moveaxis(
+            #     agent_obs[0, :, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+            # for anc_x in anc_pts_x_image.numpy():
+            #     for anc_y in anc_pts_y_image.numpy():
+            #         image = cv2.circle(np.ascontiguousarray(image), (int(anc_x), int(anc_y)),
+            #                            radius=int(1), color=(0, 0, 255), thickness=5)
+            # cv2.imwrite("prova_anc_pts.png", image)
+
             anc_base = gen_anc_base(
                 anc_pts_x, anc_pts_y, self.anc_scales, self.anc_ratios, (self.out_h, self.out_w))
-            anc_boxes_all = anc_base.repeat(B, 1, 1, 1, 1)
+            anc_boxes_all = anc_base.repeat(
+                B, 1, 1, 1, 1).to(agent_obs.get_device())
 
             if not validation:
                 # if the model is training
                 # get positive and negative anchors amongst other things
                 gt_bboxes_proj = project_bboxes(
                     gt_bb,
-                    self.width_scale_factor,
-                    self.height_scale_factor,
+                    torch.tensor(self.width_scale_factor, dtype=float),
+                    torch.tensor(self.height_scale_factor, dtype=float),
                     mode='p2a')
 
                 positive_anc_ind, negative_anc_ind, GT_conf_scores, GT_offsets, GT_class_pos, positive_anc_coords, negative_anc_coords, positive_anc_ind_sep = get_req_anchors(
-                    anc_boxes_all,
-                    gt_bboxes_proj,
-                    gt_classes)
+                    anc_boxes_all.to(agent_obs.get_device()),
+                    gt_bboxes_proj.to(agent_obs.get_device()),
+                    gt_classes.to(agent_obs.get_device()))
 
                 # pass through the proposal module
                 conf_scores_pos, conf_scores_neg, offsets_pos, proposals = self.proposal_module(
@@ -431,7 +450,20 @@ class AgentModule(nn.Module):
 
                 ret_dict['feature_map'] = feature_map
                 ret_dict['proposals'] = proposals
+                ret_dict['GT_offsets'] = GT_offsets
+                ret_dict['offsets_pos'] = offsets_pos
 
+                # test plot proposal
+                import cv2
+                image = np.array(np.moveaxis(
+                    agent_obs[0, :, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+                proposal_bb = proposals.cpu().detach().numpy()
+                for bb in proposal_bb:
+                    image = cv2.rectangle(np.ascontiguousarray(image),
+                                          (int(bb[0]), int(bb[1])),
+                                          (int(bb[2]), int(bb[3])),
+                                          color=(0, 0, 255), thickness=5)
+                cv2.imwrite("prova_predictions.png", image)
                 return ret_dict
             else:
                 # model is in validation/inference mode
@@ -493,7 +525,8 @@ class CondTargetObjectDetector(nn.Module):
                  cond_backbone_name="slow_r50",
                  agent_backbone_name="resnet18",
                  cond_video=False,
-                 pretrained=False):
+                 pretrained=False,
+                 conv_drop_dim=2):
         super().__init__()
 
         self._cond_backbone = CondModule(height=height,
@@ -501,25 +534,34 @@ class CondTargetObjectDetector(nn.Module):
                                          demo_T=demo_T,
                                          model_name=cond_backbone_name,
                                          pretrained=pretrained,
-                                         cond_video=cond_video)
+                                         cond_video=cond_video,
+                                         conv_drop_dim=conv_drop_dim)
 
         self._agent_backone = AgentModule(height=height,
                                           width=width,
                                           obs_T=obs_T,
                                           model_name=agent_backbone_name,
-                                          pretrained=pretrained)
+                                          pretrained=pretrained,
+                                          conv_drop_dim=conv_drop_dim)
 
         # summary(self)
 
     def forward(self, inputs: dict, validation=False):
         cond_video = inputs['demo']
         agent_obs = inputs['images']
+        gt_bb = inputs['gt_bb']
+        gt_classes = inputs['gt_classes']
 
         cond_emb = self._cond_backbone(cond_video)
         # print(f"Cond embedding shape: {cond_emb.shape}")
         ret_dict = self._agent_backone(
-            agent_obs, cond_emb, validation=validation)
+            agent_obs,
+            cond_emb,
+            gt_bb=gt_bb,
+            gt_classes=gt_classes,
+            validation=validation)
         # print(agent_emb.shape)
+        return ret_dict
 
 
 @hydra.main(

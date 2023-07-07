@@ -2,7 +2,7 @@
 export MUJOCO_PY_MUJOCO_PATH="/home/frosa_loc/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
@@ -12,19 +12,20 @@ POLICY='${daml}'
 SAVE_FREQ=8100
 LOG_FREQ=100
 VAL_FREQ=4050
+PRINT_FREQ=1
 
 EXP_NAME=1Task-Pick-Place-Target-Slot-MAML-224_224
 TASK_str=pick_place
 EPOCH=40
-BSIZE=16 #128 #64 #32
+BSIZE=32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=1
+SET_SAME_N=2
 CONFIG_PATH=../experiments
 PROJECT_NAME="ur_pick_place_daml"
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=4
+LOADER_WORKERS=16
 NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=false
@@ -78,6 +79,7 @@ python ../training/train_scripts/train_any.py \
     save_freq=${SAVE_FREQ} \
     log_freq=${LOG_FREQ} \
     val_freq=${VAL_FREQ} \
+    print_freq=${PRINT_FREQ} \
     bsize=${BSIZE} \
     vsize=${BSIZE} \
     epochs=${EPOCH} \
@@ -98,8 +100,8 @@ python ../training/train_scripts/train_any.py \
     simclr.mul_pre=${CONTRASTIVE_PRE} \
     simclr.mul_pos=${CONTRASTIVE_POS} \
     simclr.mul_intm=${MUL_INTM} \
-    debug=true \
-    wandb_log=false \
+    debug=false \
+    wandb_log=true \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS} \
     cosine_annealing=${COSINE_ANNEALING}

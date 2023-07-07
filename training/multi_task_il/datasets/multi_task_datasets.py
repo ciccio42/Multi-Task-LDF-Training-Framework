@@ -20,7 +20,7 @@ from copy import deepcopy
 from functools import reduce
 from operator import concat
 from multi_task_il.utils import normalize_action
-from utils import *
+from multi_task_il.datasets.utils import *
 
 
 class MultiTaskPairedDataset(Dataset):
@@ -63,14 +63,24 @@ class MultiTaskPairedDataset(Dataset):
         self.agent_files = dict()
         self.demo_files = dict()
         self.mode = mode
-        self._demo_T = demo_T
-        self._obs_T = obs_T
 
         self.select_random_frames = select_random_frames
+        self.balance_target_obj_pos = balance_target_obj_pos
         self.compute_obj_distribution = compute_obj_distribution
         self.object_distribution = OrderedDict()
         self.object_distribution_to_indx = OrderedDict()
-        self.index_to_slot = OrderedDict()
+
+        self._take_first_frame = take_first_frame
+
+        self._selected_target_frame_distribution_task_object_target_position = OrderedDict()
+
+        self._compute_frame_distribution = False
+        self._normalize_action = normalize_action
+        self._normalization_ranges = np.array(normalization_ranges)
+        self._n_action_bin = n_action_bin
+
+        # Frame distribution for each trajectory
+        self._frame_distribution = OrderedDict()
 
         create_train_val_dict(self,
                               agent_name,
@@ -81,14 +91,15 @@ class MultiTaskPairedDataset(Dataset):
                               allow_train_skip,
                               allow_val_skip)
 
-        print('Done loading Task {}, agent/demo trajctores pairs reach a count of: {}'.format(name, count))
         self.pairs_count = count
         self.task_count = len(tasks_spec)
 
+        self._demo_T, self._obs_T = demo_T, obs_T
         self.width, self.height = width, height
         self.aug_twice = aug_twice
         self.aux_pose = aux_pose
 
+        self._state_action_spec = (state_spec, action_spec)
         self.non_sequential = non_sequential
         if non_sequential:
             print("Warning! The agent observations are not sampled in neighboring timesteps, make sure inverse dynamics loss is NOT used in training \n ")
@@ -123,7 +134,7 @@ class MultiTaskPairedDataset(Dataset):
         Do a near-uniform sampling of the demonstration trajectory
         """
         if self.select_random_frames:
-            def clip(x): return int(max(0, min(x, len(traj) - 1)))
+            def clip(x): return int(max(1, min(x, len(traj) - 1)))
             per_bracket = max(len(traj) / self._demo_T, 1)
             frames = []
             cp_frames = []

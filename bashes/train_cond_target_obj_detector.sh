@@ -7,7 +7,8 @@ export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
 SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline
-POLICY='${}'
+POLICY='${cond_target_obj_detector}'
+DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
 
 SAVE_FREQ=2500
 LOG_FREQ=1
@@ -22,8 +23,9 @@ CONFIG_PATH=../experiments/
 PROJECT_NAME="pick_place_cond_target_obj_detector"
 CONFIG_NAME=config_cond_target_obj_detector.yaml
 LOADER_WORKERS=16
+BALANCING_POLICY=0
 SET_SAME_N=2
-OBS_T=7
+OBS_T=1
 
 EARLY_STOPPING_PATIECE=-1
 OPTIMIZER='AdamW'
@@ -33,8 +35,6 @@ SCHEDULER=None
 
 RESUME_PATH=None
 RESUME_STEP=-1
-
-DATASET_TARGET=multi_task_il.datasets.multi_task_target_cond_obj_dataset.CondTargetObjDetectorDataset
 
 python ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
@@ -64,7 +64,7 @@ python ../training/train_scripts/train_any.py \
     train_cfg.lr=${LR} \
     train_cfg.weight_decay=${WEIGHT_DECAY} \
     train_cfg.lr_schedule=${SCHEDULER} \
-    debug=false \
+    debug=true \
     wandb_log=false \
     resume=false \
     loader_workers=${LOADER_WORKERS}

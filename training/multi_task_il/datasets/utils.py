@@ -51,6 +51,7 @@ def collate_by_task(batch):
 
 def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_name: str = "panda", root_dir: str = "", task_spec=None, split: list = [0.9, 0.1], allow_train_skip: bool = False, allow_val_skip: bool = False):
 
+    count = 0
     for spec in task_spec:
         name, date = spec.get('name', None), spec.get('date', None)
         assert name, 'need to specify the task name for data generated, for easier tracking'
@@ -162,6 +163,7 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                                 dataset_loader.index_to_slot[count] = slot_indx
                     count += 1
 
+        print('Done loading Task {}, agent/demo trajctores pairs reach a count of: {}'.format(name, count))
         dataset_loader.task_crops[name] = spec.get('crop', [0, 0, 0, 0])
 
 
@@ -226,19 +228,19 @@ def create_data_aug(dataset_loader=object):
         # only this resize+crop is task-specific
         obs = resized_crop(obs, top=top, left=left, height=box_h,
                            width=box_w, size=(dataset_loader.height, dataset_loader.width))
-        cv2.imwrite("resized_target_obj.png", np.moveaxis(
-            obs.numpy()*255, 0, -1))
+        # cv2.imwrite("resized_target_obj.png", np.moveaxis(
+        #     obs.numpy()*255, 0, -1))
         if dataset_loader.use_strong_augs and second:
             augmented = dataset_loader.strong_augs(obs)
         else:
             augmented = dataset_loader.transforms(obs)
         assert augmented.shape == obs.shape
-        if dataset_loader.mode == 'val':
-            cv2.imwrite(f"augment_val_target_obj.png", np.moveaxis(
-                augmented.numpy()*255, 0, -1))
-        if dataset_loader.mode == 'train':
-            cv2.imwrite(f"augment_train_target_obj.png", np.moveaxis(
-                augmented.numpy()*255, 0, -1))
+        # if dataset_loader.mode == 'val':
+        #     cv2.imwrite(f"augment_val_target_obj.png", np.moveaxis(
+        #         augmented.numpy()*255, 0, -1))
+        # if dataset_loader.mode == 'train':
+        #     cv2.imwrite(f"augment_train_target_obj.png", np.moveaxis(
+        #         augmented.numpy()*255, 0, -1))
         return augmented
 
     return frame_aug

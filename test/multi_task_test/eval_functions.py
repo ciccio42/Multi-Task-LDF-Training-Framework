@@ -62,7 +62,7 @@ def get_action(model, target_obj_dec, states, images, context, gpu_id, n_steps, 
     else:
         with torch.no_grad():
             out = model(states=s_t, images=i_t, context=context, eval=True,
-                        target_obj_embedding=target_obj_embedding)  # to avoid computing ATC loss
+                        target_obj_embedding=target_obj_embedding, compute_activation_map=True)  # to avoid computing ATC loss
             try:
                 target_obj_embedding = out['target_obj_embedding']
             except:
@@ -78,7 +78,7 @@ def get_action(model, target_obj_dec, states, images, context, gpu_id, n_steps, 
     # action[3:7] = [1.0, 1.0, 0.0, 0.0]
     action = denormalize_action(action, action_ranges)
     action[-1] = 1 if action[-1] > 0 and n_steps < max_T - 1 else -1
-    return action, predicted_prob, target_obj_embedding
+    return action, predicted_prob, target_obj_embedding, out['activation_map']
 
 
 def startup_env(model, env, context, gpu_id, variation_id, baseline=None):
@@ -394,7 +394,7 @@ def nut_assembly_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, var
             (obs['ee_aa'], obs['gripper_qpos'])).astype(np.float32)[None])
         images.append(img_formatter(
             obs['camera_front_image'][:, :, ::-1])[None])
-        action, target_pred, target_obj_emb = get_action(
+        action, target_pred, target_obj_emb, activation_map = get_action(
             model,
             target_obj_dec,
             states,
@@ -408,6 +408,8 @@ def nut_assembly_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, var
             target_obj_emb)
 
         obs, reward, env_done, info = env.step(action)
+        obs['activation_map'] = activation_map
+        cv2.imwrite("prova_activation_map.png", activation_map.numpy())
         traj.append(obs, reward, done, info, action)
 
         if target_obj_dec is not None:
@@ -876,7 +878,7 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
         # convert observation from BGR to RGB and scale to 0-1
         images.append(img_formatter(
             obs['camera_front_image'][:, :, ::-1])[None])
-        action, target_pred, target_obj_emb = get_action(
+        action, target_pred, target_obj_emb, activation_map = get_action(
             model,
             target_obj_dec,
             states,
@@ -899,6 +901,8 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
             info['target_gt'] = agent_target_obj_position
             if np.argmax(target_pred) == agent_target_obj_position:
                 avg_prediction += 1
+        obs['activation_map'] = activation_map
+        cv2.imwrite("prova_activation_map.png", activation_map)
         traj.append(obs, reward, done, info, action)
 
         tasks['success'] = reward or tasks['success']

@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import copy
 from copy import deepcopy
 
-from utils import *
+from multi_task_il.datasets.utils import *
 
 
 class CondTargetObjDetectorDataset(Dataset):
@@ -71,7 +71,6 @@ class CondTargetObjDetectorDataset(Dataset):
                               allow_train_skip,
                               allow_val_skip)
 
-        print('Done loading Task {}, agent/demo trajctores pairs reach a count of: {}'.format(name, count))
         self.pairs_count = count
         self.task_count = len(tasks_spec)
 
@@ -184,6 +183,7 @@ class CondTargetObjDetectorDataset(Dataset):
         images = []
         images_cp = []
         bb = []
+        obj_classes = []
 
         if self.non_sequential and self._obs_T > 1:
             end = len(traj)
@@ -199,9 +199,12 @@ class CondTargetObjDetectorDataset(Dataset):
                 if self.aug_twice:
                     images_cp.append(self.frame_aug(task_name, image, True))
                 # Create GT BB
-                bb.append(self._create_gt_bb(traj=traj,
-                                             t=1,
-                                             task_name=task_name))
+                bb_frame, class_frame = self._create_gt_bb(traj=traj,
+                                                           t=t,
+                                                           task_name=task_name)
+                bb.append(torch.from_numpy(bb_frame))
+
+                obj_classes.append((torch.from_numpy(class_frame)))
         elif not self.non_sequential and self._obs_T > 1:
             end = len(traj)
             start = torch.randint(low=1, high=max(
@@ -219,42 +222,52 @@ class CondTargetObjDetectorDataset(Dataset):
                 images.append(processed)
                 if self.aug_twice:
                     images_cp.append(self.frame_aug(task_name, image, True))
-                # Create GT BB
-                bb.append(self._create_gt_bb(traj=traj,
-                                             t=t,
-                                             task_name=task_name))
+
         else:
             image = copy.copy(
                 traj.get(1)['obs']['camera_front_image'][:, :, ::-1])
             images.append(self.frame_aug(task_name, image))
             images_cp.append(self.frame_aug(task_name, image, True))
             # Create GT BB
-            bb.append(self._create_gt_bb(traj=traj,
-                                         t=1,
-                                         task_name=task_name))
+            bb_frame, class_frame = self._create_gt_bb(traj=traj,
+                                                       t=1,
+                                                       task_name=task_name)
+            bb.append(torch.from_numpy(bb_frame))
+
+            obj_classes.append((torch.from_numpy(class_frame)))
 
         ret_dict['images'] = torch.stack(images)
         if self.aug_twice:
             ret_dict['images_cp'] = torch.stack(images_cp)
 
         ret_dict['gt_bb'] = torch.stack(bb)
+        ret_dict['gt_classes'] = torch.stack(obj_classes)
 
         return ret_dict
 
     def _create_gt_bb(self, traj, t, task_name):
+        bb = []
+        cl = []
         # 1. Get Target Object
         target_obj_id = traj.get(
             t)['obs']['target-object']
         # 2. Get stored BB
         top_left_x = traj.get(
-            t)['obs']['obj_bb']["camera_front_img"][ENV_OBJECTS[task_name]['obj_names'][target_obj_id]]['bottom_right_corner'][0]
+            t)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][target_obj_id]]['bottom_right_corner'][0]
         top_left_y = traj.get(
-            t)['obs']['obj_bb']["camera_front_img"][ENV_OBJECTS[task_name]['obj_names'][target_obj_id]]['bottom_right_corner'][1]
+            t)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][target_obj_id]]['bottom_right_corner'][1]
         # print(f"Top-Left X {top_left_x} - Top-Left Y {top_left_y}")
         bottom_right_x = traj.get(
-            t)['obs']['obj_bb']["camera_front_img"][ENV_OBJECTS[task_name]['obj_names'][target_obj_id]]['upper_left_corner'][0]
+            t)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][target_obj_id]]['upper_left_corner'][0]
         bottom_right_y = traj.get(
-            t)['obs']['obj_bb']["camera_front_img"][ENV_OBJECTS[task_name]['obj_names'][target_obj_id]]['upper_left_corner'][1]
+            t)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][target_obj_id]]['upper_left_corner'][1]
+
+        # center_x
+        center_x = traj.get(
+            t)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][target_obj_id]]['center'][0]
+        # center_y
+        center_y = traj.get(
+            t)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][target_obj_id]]['center'][1]
 
         # bounding-box
         # right_x - left_x
@@ -262,4 +275,8 @@ class CondTargetObjDetectorDataset(Dataset):
         # left_y - right_y
         height = bottom_right_y - top_left_y
 
-        return np.array([top_left_x, top_left_y, width, height])
+        bb.append([top_left_x, top_left_y, bottom_right_x, bottom_right_y])
+        # [1] - Target object
+        # [0] - No target
+        cl.append(1)
+        return np.array(bb), np.array(cl)

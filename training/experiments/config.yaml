@@ -2,7 +2,7 @@ debug: False
 EXPERT_DATA:    null 
 save_path:      null
 wandb_log: True 
-project_name: None
+project_name: null
 log_freq: 1
 val_freq: 1
 print_freq: 1
@@ -84,7 +84,7 @@ train_skip:           True
 
 dataset_cfg:
   _target_:         ${dataset_target}
-  root_dir:         ${EXPERT_DATA}/
+  root_dir:         ${EXPERT_DATA}
   mode:             ???
   tasks_spec:       ${tasks}
   aux_pose:         True # only required for DAML baseline 
@@ -277,4 +277,4 @@ vima:
   views: ['front']
   return_dist: True
   concat_state: True  
-  ckpt_path: "/home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/multi_task_il/models/vima/ckpt/92M.ckpt"
+  ckpt_path: /home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/multi_task_il/models/vima/ckpt/92M.ckpt

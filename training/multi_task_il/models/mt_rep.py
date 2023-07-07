@@ -13,6 +13,7 @@ import os
 import hydra
 from omegaconf import DictConfig, OmegaConf
 from torchsummary import summary
+from multi_task_il.models import return_activation_map
 
 
 class _StackedAttnLayers(nn.Module):
@@ -188,6 +189,7 @@ class _TransformerFeatures(nn.Module):
         assert flag == 0, "flag number %s not supported!" % flag
         self._img_encoder = get_model('resnet')(
             output_raw=True, drop_dim=drop_dim, use_resnet18=True, pretrained=img_cfg.pretrained)
+
         if drop_dim == 2:
             conv_feature_dim = 512
         elif drop_dim == 3:
@@ -202,7 +204,7 @@ class _TransformerFeatures(nn.Module):
         )
 
         self._pe = TemporalPositionalEncoding(
-            conv_feature_dim, dropout, max_len=8000) if pos_enc else None
+            conv_feature_dim, dropout, max_len=3000) if pos_enc else None
         self.demo_out = demo_out
         in_dim = conv_feature_dim * dim_H * dim_W
         print("Linear embedder has input dim: {}x{}x{}={} ".format(
@@ -213,7 +215,7 @@ class _TransformerFeatures(nn.Module):
             nn.Dropout(dropout), nn.ReLU(),
             nn.Linear(embed_hidden, latent_dim))
 
-    def forward(self, images, context):
+    def forward(self, images, context, compute_activation_map=False):
         assert len(
             images.shape) == 5, "expects [B, T, 3, height, width] tensor!"
         obs_T, demo_T = images.shape[1], context.shape[1]
@@ -244,6 +246,15 @@ class _TransformerFeatures(nn.Module):
                     self._linear_embed(rearrange(reshaped, 'B T d H W -> B T (d H W)')), dim=2)
                 out_dict['attn_'+k+'_demo'], out_dict['attn_'+k +
                                                       '_img'] = normalized.split([demo_T, obs_T], dim=1)
+
+        activation_map = None
+        if compute_activation_map:
+            activation_map = return_activation_map(
+                model=self,
+                features=out_dict['attn_features'][:, demo_T:, :, :, :],
+                images=images,
+                layer_name=None)
+            out_dict['activation_map'] = activation_map
 
         out_dict['linear_embed'] = self._linear_embed(
             rearrange(features, 'B T d H W -> B T (d H W)'))
@@ -466,6 +477,8 @@ class VideoImitation(nn.Module):
         model_parameters = filter(lambda p: p.requires_grad, self.parameters())
         params = sum([np.prod(p.size()) for p in model_parameters])
         print('Total params in Imitation module:', params)
+        print("---- Complete model ----")
+        summary(self)
 
     def _load_model(self, model_path=None, step=0, conf_file=None, remove_class_layers=True, freeze=True):
         if model_path:
@@ -497,6 +510,25 @@ class VideoImitation(nn.Module):
             return feature_extractor, obj_classifiers, target_obj_embedding
         else:
             raise ValueError("Model path cannot be None")
+
+    def get_conv_layer_reference(self,  model=None):
+        if model == None:
+            return []
+
+        model_children = list(model.children())
+        conv_layers = []
+        for child in model_children:
+            if type(child) == nn.Conv2d:
+                conv_layers.append(child)
+            conv_layer_ret = self.get_conv_layer_reference(child)
+            if len(conv_layer_ret) != 0:
+                conv_layers = conv_layers + conv_layer_ret
+
+        return conv_layers
+
+    def set_conv_layer_reference(self,  model=None):
+        self.conv_layer_ref = self.get_conv_layer_reference(model=model)
+        print(self.conv_layer_ref)
 
     def get_action(self, embed_out, target_obj_embedding=None, ret_dist=True, states=None, eval=False):
         """directly modifies output dict to put action outputs inside"""
@@ -585,13 +617,15 @@ class VideoImitation(nn.Module):
         images_cp=None,
         context_cp=None,
         actions=None,
-        target_obj_embedding=None
+        target_obj_embedding=None,
+        compute_activation_map=False
     ):
         B, obs_T, _, height, width = images.shape
         demo_T = context.shape[1]
         if not eval:
             assert images_cp is not None, 'Must pass in augmented version of images'
-        embed_out = self._embed(images, context)
+        embed_out = self._embed(
+            images, context, compute_activation_map=compute_activation_map)
 
         if self._target_object_backbone is not None and not self._freeze_target_obj_detector and target_obj_embedding is None:
             # compute the embedding for the first frame
@@ -609,6 +643,9 @@ class VideoImitation(nn.Module):
 
         out = self.get_action(
             embed_out=embed_out, target_obj_embedding=target_obj_embedding, ret_dist=ret_dist, states=states, eval=eval)
+
+        if compute_activation_map:
+            out['activation_map'] = embed_out['activation_map']
 
         if self._concat_target_obj_embedding:
             out["target_obj_embedding"] = target_obj_embedding

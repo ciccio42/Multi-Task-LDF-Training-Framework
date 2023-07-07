@@ -13,6 +13,7 @@ from multi_task_il.models import get_model
 from multi_task_il.models.basic_embedding import NonLocalLayer, TemporalPositionalEncoding, TempConvLayer
 from torchvision import models
 from multi_task_il.models.discrete_logistic import DiscreteMixLogistic
+from multi_task_il.models import return_activation_map
 import numpy as np
 from torch.distributions import MultivariateNormal
 from torchcam.methods import SmoothGradCAMpp, LayerCAM
@@ -39,7 +40,7 @@ class _TransformerFeatures(nn.Module):
             *[ProcLayer(512, 512, 128, dropout=dropout, causal=True, n_heads=attn_heads) for _ in range(n_st_attn)])
         self._pe = TemporalPositionalEncoding(512, dropout) if use_pe else None
 
-    def forward(self, images, context, forward_predict):
+    def forward(self, images, context, forward_predict, compute_activation_map=False):
         assert len(images.shape) == 5, "expects [B, T, C, H, W] tensor!"
         im_in = torch.cat(
             (context, images), 1) if forward_predict or self._st_goal_attn else images
@@ -54,27 +55,20 @@ class _TransformerFeatures(nn.Module):
             T_ctxt = context.shape[1]
             features = features[:, T_ctxt:]
 
-        if not self.training:
-            for name, param in self.named_parameters():
-                # get the weights of the last layer
-                if name == "_st_attn.1._norm.weight":
-                    weights = param.data.cpu().numpy()
-                feat_cam = features.cpu().numpy()
-
-            CAMs = self.return_CAM(feat_cam, weights)
-            _, _, _, height, width = images.shape
-            heatmap = cv2.applyColorMap(cv2.resize(
-                CAMs[0], (width, height)), cv2.COLORMAP_JET)
-            image = np.transpose(images.cpu().numpy()[
-                                 0, 0, :, :, :]*255, (1, 2, 0))
-            cv2.imwrite("start_image_1.png", image)
-            result = heatmap * 0.5 + \
-                image * 0.5
-            cv2.imwrite("image_1.png", result)
+        activation_map = None
+        if compute_activation_map:
+            activation_map = return_activation_map(
+                model=self,
+                features=features,
+                images=images,
+                layer_name="_st_attn.1._norm.weight")
 
         spatial_embed = self._spatial_embed(features)
         embed = self._to_embed(spatial_embed)
-        return F.normalize(embed, dim=2)
+        if compute_activation_map:
+            return F.normalize(embed, dim=2), activation_map
+        else:
+            return F.normalize(embed, dim=2)
 
     def _spatial_embed(self, features):
         if not self._use_ss:
@@ -94,22 +88,6 @@ class _TransformerFeatures(nn.Module):
         features = self._resnet18(x).transpose(1, 2)
         features = self._pe(features).transpose(1, 2)
         return features
-
-    def return_CAM(self, feature_conv, weight):
-        # generate the class -activation maps upsample to (224, 224)
-        size_upsample = (224, 224)
-        bz, t, nc, h, w = feature_conv.shape
-        output_cam = []
-
-        # beforeDot = feature_conv.reshape((nc, h*w))
-        # cam = np.matmul(weight, beforeDot)
-
-        cam = np.mean(feature_conv[0, 0, :, :], axis=0)
-        cam = cam - np.min(cam)
-        cam_img = cam / np.max(cam)
-        cam_img = np.uint8(255 * cam_img)
-        output_cam.append(cv2.resize(cam_img, size_upsample))
-        return output_cam
 
 
 class _AblatedFeatures(_TransformerFeatures):
@@ -265,8 +243,10 @@ class InverseImitation(nn.Module):
         self.conv_layer_ref = self.get_conv_layer_reference(model=model)
         print(self.conv_layer_ref)
 
-    def forward(self, states, images, context, ret_dist=True, target_obj_embedding=None, eval=False):
-        img_embed = self._embed(images, context, False)
+    def forward(self, states, images, context, ret_dist=True, target_obj_embedding=None, eval=False, compute_activation_map=False):
+
+        img_embed, activation_map = self._embed(
+            images, context, False, compute_activation_map=compute_activation_map)
 
         pred_latent, goal_embed = self._pred_goal(images[:, :1], context)
         states = torch.cat((img_embed, states),
@@ -288,6 +268,7 @@ class InverseImitation(nn.Module):
         mu_bc, scale_bc, logit_bc = self._action_dist(ac_pred)
 
         out = {}
+        out['activation_map'] = activation_map
         # package distribution in objects or as tensors
         if ret_dist:
             out['bc_distrib'] = DiscreteMixLogistic(mu_bc, scale_bc, logit_bc)

@@ -4,7 +4,6 @@ import yaml
 import copy
 import torch
 import hydra
-import pickle as pkl
 import numpy as np
 import torch.nn as nn
 from os.path import join
@@ -30,7 +29,6 @@ from torchsummary import summary
 from tqdm import tqdm
 from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
 import learn2learn as l2l
-
 
 torch.autograd.set_detect_anomaly(True)
 # for visualization
@@ -203,24 +201,68 @@ def calculate_maml_loss(config, device, meta_model, model_inputs):
     return torch.cat(bc_loss, dim=0), torch.cat(aux_loss, dim=0)
 
 
-def calc_cls_loss(conf_scores_pos, conf_scores_neg, batch_size):
-    target_pos = torch.ones_like(conf_scores_pos)
-    target_neg = torch.zeros_like(conf_scores_neg)
+def loss_func_bb(config, train_cfg, device, model, inputs):
 
-    target = torch.cat((target_pos, target_neg))
-    inputs = torch.cat((conf_scores_pos, conf_scores_neg))
+    def calc_cls_loss(conf_scores_pos, conf_scores_neg, batch_size):
+        target_pos = torch.ones_like(conf_scores_pos)
+        target_neg = torch.zeros_like(conf_scores_neg)
 
-    loss = F.binary_cross_entropy_with_logits(
-        inputs, target, reduction='sum') * 1. / batch_size
+        target = torch.cat((target_pos, target_neg))
+        inputs = torch.cat((conf_scores_pos, conf_scores_neg))
 
-    return loss
+        loss = F.binary_cross_entropy_with_logits(
+            inputs, target, reduction='sum') * 1. / batch_size
 
+        return loss
 
-def calc_bbox_reg_loss(gt_offsets, reg_offsets_pos, batch_size):
-    assert gt_offsets.size() == reg_offsets_pos.size()
-    loss = F.smooth_l1_loss(reg_offsets_pos, gt_offsets,
-                            reduction='sum') * 1. / batch_size
-    return loss
+    def calc_bbox_reg_loss(gt_offsets, reg_offsets_pos, batch_size):
+        assert gt_offsets.size() == reg_offsets_pos.size()
+        loss = F.smooth_l1_loss(reg_offsets_pos, gt_offsets,
+                                reduction='sum') * 1. / batch_size
+        return loss
+
+    model_inputs = defaultdict(list)
+    task_to_idx = dict()
+    task_losses = OrderedDict()
+    start = 0
+    for idx, (task_name, inputs) in enumerate(inputs.items()):
+        traj = inputs['traj']
+        input_keys = ['images', 'images_cp', 'gt_bb', 'gt_classes']
+
+        for key in input_keys:
+            model_inputs[key].append(traj[key].to(device))
+
+        for key in ['demo', 'demo_cp']:
+            model_inputs[key].append(inputs['demo_data'][key].to(device))
+
+        task_bsize = traj['images'].shape[0]
+        task_to_idx[task_name] = [start + i for i in range(task_bsize)]
+        task_losses[task_name] = OrderedDict()
+        start += task_bsize
+
+    for key in model_inputs.keys():
+        model_inputs[key] = torch.cat(model_inputs[key], dim=0)
+
+    all_losses = dict()
+
+    model = model.to(device)
+    predictions_dict = model(model_inputs, validation=False)
+
+    # compute detection loss
+    loss = calc_bbox_reg_loss(predictions_dict['GT_offsets'],
+                              predictions_dict['offsets_pos'],
+                              traj['images'].shape[0]*traj['images'].shape[1])
+
+    all_losses["loss_sum"] = loss
+
+    # flatten here to avoid headache
+    for (task_name, idxs) in task_to_idx.items():
+        for (loss_name, loss_val) in all_losses.items():
+            if len(loss_val.shape) > 0:
+                task_losses[task_name][loss_name] = torch.mean(loss_val[idxs])
+            else:
+                task_losses[task_name][loss_name] = loss_val
+    return task_losses
 
 
 def calculate_obj_pos_loss(config, train_cfg, device, model, task_inputs, loss, accuracy):
@@ -599,13 +641,17 @@ class Trainer:
         print_freq = self.train_cfg.get('print_freq', 10000)
         save_freq = self.train_cfg.get('save_freq', 10000)
 
-        print("Loss multipliers: \n BC: {} inv: {} Point: {}".format(
-            self.train_cfg.bc_loss_mult, self.train_cfg.inv_loss_mult, self.train_cfg.pnt_loss_mult))
-        print(
-            {name: mul for name, mul in self.train_cfg.rep_loss_muls.items() if mul != 0})
-        if self.train_cfg.bc_loss_mult == 0 and self.train_cfg.inv_loss_mult == 0:
-            assert sum([v for k, v in self.train_cfg.rep_loss_muls.items()]
-                       ) != 0, self.train_cfg.rep_loss_muls
+        try:
+            print("Loss multipliers: \n BC: {} inv: {} Point: {}".format(
+                self.train_cfg.bc_loss_mult, self.train_cfg.inv_loss_mult, self.train_cfg.pnt_loss_mult))
+
+            print(
+                {name: mul for name, mul in self.train_cfg.rep_loss_muls.items() if mul != 0})
+            if self.train_cfg.bc_loss_mult == 0 and self.train_cfg.inv_loss_mult == 0:
+                assert sum([v for k, v in self.train_cfg.rep_loss_muls.items()]
+                           ) != 0, self.train_cfg.rep_loss_muls
+        except:
+            pass
 
         self.tasks = self.config.tasks
         num_tasks = len(self.tasks)
@@ -683,7 +729,7 @@ class Trainer:
                         print(train_print)
 
                 #### ---- Validation step ----####
-                if self._step % val_freq == 0:
+                if self._step % val_freq == 0 and False:
                     validation_set = True
                     if validation_set and self._val_loader != None:
                         # exhaust all data in val loader and take avg loss
@@ -738,7 +784,7 @@ class Trainer:
                         if self.train_cfg.early_stopping.patience != -1:
                             self._early_stopping(
                                 weighted_task_loss_val, model, self._step, optimizer)
-                    else:
+                    elif not validation_set and self._val_loader == None:
                         from multi_task_test.test_any_task import _proc
                         import functools
                         from torch.multiprocessing import Pool
@@ -915,14 +961,17 @@ class Workspace(object):
         config = self.trainer.config
         resume = config.get('resume', False)
         self.action_model = hydra.utils.instantiate(config.policy)
-        config.use_daml = 'DAMLNetwork' in cfg.policy._target_
-        if config.use_daml:
-            print("Switching to l2l.algorithms.MAML")
-            self.action_model = l2l.algorithms.MAML(
-                self.action_model,
-                lr=config['policy']['maml_lr'],
-                first_order=config['policy']['first_order'],
-                allow_unused=True)
+        try:
+            config.use_daml = 'DAMLNetwork' in cfg.policy._target_
+            if config.use_daml:
+                print("Switching to l2l.algorithms.MAML")
+                self.action_model = l2l.algorithms.MAML(
+                    self.action_model,
+                    lr=config['policy']['maml_lr'],
+                    first_order=config['policy']['first_order'],
+                    allow_unused=True)
+        except:
+            print("use_daml not in configuration file")
 
         print("Model initialized to: {}".format(config.policy._target_))
         if resume:
@@ -961,12 +1010,12 @@ class Workspace(object):
 
     def run(self):
         loss_function = None
-        if self.config.policy == "mosaic" or self.config.policy == "tosil" or self.config.policy == "daml":
+        if "mosaic" in self.config.policy._target_ or "InverseImitation" in self.config.policy._target_ or "DAMLNetwork" in self.config.policy._target_:
             loss_function = calculate_task_loss
-        elif self.config.policy == "vima":
+        elif "vima" in self.config.policy._target_:
             loss_function = loss_function_vima
-        elif self.config.policy == "cond_target_obj_detector":
-            loss_function = None
+        elif "cond_target_obj_detector" in self.config.policy._target_:
+            loss_function = loss_func_bb
 
         self.trainer.train(model=self.action_model,
                            optimizer_state_dict=self.optimizer_state_dict,
