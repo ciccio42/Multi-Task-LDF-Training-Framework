@@ -131,10 +131,10 @@ def collect_stats(step, task_losses, raw_stats, prefix='train'):
             raw_stats["step"] = [int(step)]
     tr_print = ""
     for i, task in enumerate(task_names):
-        tr_print += "[{0:<9}] l_tot: {1:.1f} l_bc: {2:.1f} l_inv: {3: 1f} l_rep: {4: 1f} l_pnt: {5:.1f} l_aux: {6:.1f} ".format(
+        tr_print += "[{0:<9}] l_tot: {1:.4f} l_bc: {2:.4f} l_inv: {3: 4f} l_rep: {4: 4f} l_pnt: {5:.4f} l_aux: {6:.4f} ".format(
             task,
-            raw_stats[f"{prefix}/{task}/loss_sum"][-1],
-            raw_stats[f"{prefix}/{task}/l_bc"][-1],
+            raw_stats.get(f"{prefix}/{task}/loss_sum", [0])[-1],
+            raw_stats.get(f"{prefix}/{task}/l_bc", [0])[-1],
             raw_stats.get(f"{prefix}/{task}/l_inv", [0])[-1],
             raw_stats.get(f"{prefix}/{task}/rep_loss", [0])[-1],
             raw_stats.get(f"{prefix}/{task}/point_loss", [0])[-1],
@@ -246,7 +246,7 @@ def loss_func_bb(config, train_cfg, device, model, inputs):
     all_losses = dict()
 
     model = model.to(device)
-    predictions_dict = model(model_inputs, validation=False)
+    predictions_dict = model(model_inputs, inference=False)
 
     # compute detection loss
     loss = calc_bbox_reg_loss(predictions_dict['GT_offsets'],
@@ -729,7 +729,7 @@ class Trainer:
                         print(train_print)
 
                 #### ---- Validation step ----####
-                if self._step % val_freq == 0 and False:
+                if self._step % val_freq == 0:
                     validation_set = True
                     if validation_set and self._val_loader != None:
                         # exhaust all data in val loader and take avg loss
@@ -737,8 +737,9 @@ class Trainer:
                             list) for task in task_names}
                         val_iter = iter(self._val_loader)
                         model = model.eval()
-                        for val_inputs in val_iter:
-                            if self.config.use_daml:  # allow grad!
+                        for i, val_inputs in enumerate(val_iter):
+                            use_daml = self.config.get("use_daml", False)
+                            if use_daml:  # allow grad!
                                 val_task_losses = loss_function(
                                     self.config, self.train_cfg,  self._device, model, val_inputs)
                             else:

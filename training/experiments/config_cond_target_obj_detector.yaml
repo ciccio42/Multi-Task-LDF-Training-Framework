@@ -105,17 +105,20 @@ dataset_cfg:
   demo_name: 'panda'
 
 augs:
-  strong_jitter:     0.01    
-  weak_jitter:       0.01
-  grayscale:         0.01   
-  blur:              [0.1, 2.0] 
-  flip:              0.05   # only flip for the strong augs
-  weak_crop_scale:   [0.8, 1.0] # [0.8, 1.0]
-  strong_crop_scale: [0.8, 1.0] # [0.8, 1.0]
-  weak_crop_ratio:   [1.0, 1.0]
-  strong_crop_ratio: [1.0, 1.0]
-  use_affine:        False  
-  rand_trans:        0.1
+  old_aug: false
+  brightness: [0.875, 1.125]
+  contrast: [0.5, 1.5]
+  saturation: [0.5, 1.5]
+  hue: [-0.05, 0.05]
+  p: 0.1 
+  horizontal_flip_p: 0.1
+  
+  brightness_strong: [0.875, 1.125]
+  contrast_strong: [0.5, 1.5]
+  saturation_strong: [0.5, 1.5]
+  hue_strong: [-0.05, 0.05]
+  p_strong: 0.5 
+  horizontal_flip_p_strong: 0.5
 
 # model related
 policy: ???  # set to any set of configs via command line, e.g. policy='${tosil}'

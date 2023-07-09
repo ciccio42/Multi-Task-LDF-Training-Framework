@@ -1,8 +1,8 @@
+import random
 from train_utils import *
 import torch
 import hydra
 torch.autograd.set_detect_anomaly(True)
-
 # from torch.utils.tensorboard import SummaryWriter
 # writer = SummaryWriter()
 
@@ -18,6 +18,9 @@ def main(cfg):
         debugpy.listen(('0.0.0.0', 5678))
         print("Waiting for debugger attach")
         debugpy.wait_for_client()
+
+    random.seed(42)
+    np.random.seed(42)
 
     from train_any import Workspace as W
     all_tasks_cfgs = [cfg.tasks_cfgs.nut_assembly, cfg.tasks_cfgs.door, cfg.tasks_cfgs.drawer,

@@ -102,16 +102,17 @@ def project_bboxes(bboxes, width_scale_factor, height_scale_factor, mode='a2p'):
     if mode == 'a2p':
         # activation map to pixel image
 
-        proj_bboxes[:, :, [0, 2]] = torch.tensor(proj_bboxes[:,
-                                                             :, [0, 2]] * width_scale_factor, dtype=torch.long).to(bboxes.get_device())
-        proj_bboxes[:, :, [1, 3]] = torch.tensor(proj_bboxes[:,
-                                                             :, [1, 3]] * height_scale_factor, dtype=torch.long).to(bboxes.get_device())
+        proj_bboxes[:, :, [0, 2]] = (proj_bboxes[:, :, [
+                                     0, 2]] * width_scale_factor).clone().detach().to(bboxes.device).float()
+
+        proj_bboxes[:, :, [1, 3]] = (proj_bboxes[:, :, [
+                                     1, 3]] * height_scale_factor).clone().detach().to(bboxes.device).float()
     else:
         # pixel image to activation map
-        proj_bboxes[:, :, [0, 2]] = torch.tensor(proj_bboxes[:,
-                                                             :, [0, 2]] / width_scale_factor, dtype=torch.long).to(bboxes.get_device())
-        proj_bboxes[:, :, [1, 3]] = torch.tensor(proj_bboxes[:,
-                                                             :, [1, 3]] / height_scale_factor, dtype=torch.long).to(bboxes.get_device())
+        proj_bboxes[:, :, [0, 2]] = (proj_bboxes[:, :, [
+                                     0, 2]] / width_scale_factor).clone().detach().to(bboxes.device).float()
+        proj_bboxes[:, :, [1, 3]] = (proj_bboxes[:, :, [
+                                     1, 3]] / height_scale_factor).clone().detach().to(bboxes.device).float()
     # fill padded bboxes back with -1
     proj_bboxes.masked_fill_(invalid_bbox_mask, -1)
     proj_bboxes.resize_as_(bboxes)

@@ -368,3 +368,22 @@ class DAMLNetwork(nn.Module):
         if self._is_resnet:
             return self._resnet_2_embed(spatial_softmax)
         return spatial_softmax
+
+    def set_conv_layer_reference(self,  model=None):
+        self.conv_layer_ref = self.get_conv_layer_reference(model=model)
+        print(self.conv_layer_ref)
+
+    def get_conv_layer_reference(self,  model=None):
+        if model == None:
+            return []
+
+        model_children = list(model.children())
+        conv_layers = []
+        for child in model_children:
+            if type(child) == nn.Conv2d:
+                conv_layers.append(child)
+            conv_layer_ret = self.get_conv_layer_reference(child)
+            if len(conv_layer_ret) != 0:
+                conv_layers = conv_layers + conv_layer_ret
+
+        return conv_layers

@@ -21,6 +21,8 @@ from functools import reduce
 from operator import concat
 from multi_task_il.utils import normalize_action
 
+DEBUG = False
+
 ENV_OBJECTS = {
     'pick_place': {
         'obj_names': ['greenbox', 'yellowbox', 'bluebox', 'redbox'],
@@ -172,51 +174,130 @@ def create_data_aug(dataset_loader=object):
     assert dataset_loader.data_augs, 'Must give some basic data-aug parameters'
     if dataset_loader.mode == 'train':
         print('Data aug parameters:', dataset_loader.data_augs)
-    # self.randAffine = RandomAffine(degrees=0, translate=(dataset_loader.data_augs.get('rand_trans', 0.1), dataset_loader.data_augs.get('rand_trans', 0.1)))
+
     dataset_loader.toTensor = ToTensor()
-    dataset_loader.normalize = Normalize(
-        mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    jitters = {k: v * dataset_loader.data_augs.get('weak_jitter', 0)
-               for k, v in JITTER_FACTORS.items()}
-    weak_jitter = ColorJitter(**jitters)
+    old_aug = dataset_loader.data_augs.get('old_aug', True)
+    if old_aug:
+        dataset_loader.normalize = Normalize(
+            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        jitters = {k: v * dataset_loader.data_augs.get('weak_jitter', 0)
+                   for k, v in JITTER_FACTORS.items()}
+        weak_jitter = ColorJitter(**jitters)
 
-    weak_scale = dataset_loader.data_augs.get('weak_crop_scale', (0.8, 1.0))
-    weak_ratio = dataset_loader.data_augs.get('weak_crop_ratio', (1.6, 1.8))
-    randcrop = RandomResizedCrop(
-        size=(dataset_loader.height, dataset_loader.width), scale=weak_scale, ratio=weak_ratio)
-    if dataset_loader.data_augs.use_affine:
-        randcrop = RandomAffine(degrees=0, translate=(dataset_loader.data_augs.get(
-            'rand_trans', 0.1), dataset_loader.data_augs.get('rand_trans', 0.1)))
-    dataset_loader.transforms = transforms.Compose([
-        RandomApply([weak_jitter], p=0.1),
-        RandomApply(
-            [GaussianBlur(kernel_size=5, sigma=dataset_loader.data_augs.get('blur', (0.1, 2.0)))], p=0.1),
-        randcrop,
-        # dataset_loader.normalize
-    ])
+        weak_scale = dataset_loader.data_augs.get(
+            'weak_crop_scale', (0.8, 1.0))
+        weak_ratio = dataset_loader.data_augs.get(
+            'weak_crop_ratio', (1.6, 1.8))
+        randcrop = RandomResizedCrop(
+            size=(dataset_loader.height, dataset_loader.width), scale=weak_scale, ratio=weak_ratio)
+        if dataset_loader.data_augs.use_affine:
+            randcrop = RandomAffine(degrees=0, translate=(dataset_loader.data_augs.get(
+                'rand_trans', 0.1), dataset_loader.data_augs.get('rand_trans', 0.1)))
+        dataset_loader.transforms = transforms.Compose([
+            RandomApply([weak_jitter], p=0.1),
+            RandomApply(
+                [GaussianBlur(kernel_size=5, sigma=dataset_loader.data_augs.get('blur', (0.1, 2.0)))], p=0.1),
+            randcrop,
+            # dataset_loader.normalize
+        ])
 
-    print("Using strong augmentations?", dataset_loader.use_strong_augs)
-    jitters = {k: v * dataset_loader.data_augs.get('strong_jitter', 0)
-               for k, v in JITTER_FACTORS.items()}
-    strong_jitter = ColorJitter(**jitters)
-    dataset_loader.grayscale = RandomGrayscale(
-        dataset_loader.data_augs.get("grayscale", 0))
-    strong_scale = dataset_loader.data_augs.get(
-        'strong_crop_scale', (0.2, 0.76))
-    strong_ratio = dataset_loader.data_augs.get(
-        'strong_crop_ratio', (1.2, 1.8))
-    dataset_loader.strong_augs = transforms.Compose([
-        RandomApply([strong_jitter], p=0.05),
-        dataset_loader.grayscale,
-        RandomHorizontalFlip(p=dataset_loader.data_augs.get('flip', 0)),
-        RandomApply(
-            [GaussianBlur(kernel_size=5, sigma=dataset_loader.data_augs.get('blur', (0.1, 2.0)))], p=0.01),
-        RandomResizedCrop(
-            size=(dataset_loader.height, dataset_loader.width), scale=strong_scale, ratio=strong_ratio),
-        # dataset_loader.normalize,
-    ])
+        print("Using strong augmentations?", dataset_loader.use_strong_augs)
+        jitters = {k: v * dataset_loader.data_augs.get('strong_jitter', 0)
+                   for k, v in JITTER_FACTORS.items()}
+        strong_jitter = ColorJitter(**jitters)
+        dataset_loader.grayscale = RandomGrayscale(
+            dataset_loader.data_augs.get("grayscale", 0))
+        strong_scale = dataset_loader.data_augs.get(
+            'strong_crop_scale', (0.2, 0.76))
+        strong_ratio = dataset_loader.data_augs.get(
+            'strong_crop_ratio', (1.2, 1.8))
+        dataset_loader.strong_augs = transforms.Compose([
+            RandomApply([strong_jitter], p=0.05),
+            dataset_loader.grayscale,
+            RandomHorizontalFlip(p=dataset_loader.data_augs.get('flip', 0)),
+            RandomApply(
+                [GaussianBlur(kernel_size=5, sigma=dataset_loader.data_augs.get('blur', (0.1, 2.0)))], p=0.01),
+            RandomResizedCrop(
+                size=(dataset_loader.height, dataset_loader.width), scale=strong_scale, ratio=strong_ratio),
+            # dataset_loader.normalize,
+        ])
+    else:
+        dataset_loader.transforms = transforms.Compose([
+            transforms.ColorJitter(
+                brightness=list(dataset_loader.data_augs.get(
+                    "brightness", [0.875, 1.125])),
+                contrast=list(dataset_loader.data_augs.get(
+                    "contrast", [0.5, 1.5])),
+                saturation=list(dataset_loader.data_augs.get(
+                    "contrast", [0.5, 1.5])),
+                hue=list(dataset_loader.data_augs.get("hue", [-0.05, 0.05]))
+            ),
+        ])
+        print("Using strong augmentations?", dataset_loader.use_strong_augs)
+        dataset_loader.strong_augs = transforms.Compose([
+            transforms.ColorJitter(
+                brightness=list(dataset_loader.data_augs.get(
+                    "brightness_strong", [0.875, 1.125])),
+                contrast=list(dataset_loader.data_augs.get(
+                    "contrast_strong", [0.5, 1.5])),
+                saturation=list(dataset_loader.data_augs.get(
+                    "contrast_strong", [0.5, 1.5])),
+                hue=list(dataset_loader.data_augs.get(
+                    "hue_strong", [-0.05, 0.05]))
+            ),
+        ])
 
-    def frame_aug(task_name, obs, second=False):
+    def adjust_bb(dataset_loader, bb, obs, img_width=360, img_height=200, top=0, left=0, box_w=360, box_h=200):
+        # For each bounding box
+        for obj_indx, obj_bb in enumerate(bb):
+            # Convert normalized bounding box coordinates to actual coordinates
+            x1_old, y1_old, x2_old, y2_old = obj_bb
+            x1_old = int(x1_old)
+            y1_old = int(y1_old)
+            x2_old = int(x2_old)
+            y2_old = int(y2_old)
+
+            # Modify bb based on computed resized-crop
+            # 1. Take into account crop and resize
+            x_scale = dataset_loader.width/box_w
+            y_scale = dataset_loader.height/box_h
+            x1 = int((x1_old - left) * x_scale)
+            x2 = int((x2_old - left) * x_scale)
+            y1 = int((y1_old - top) * y_scale)
+            y2 = int((y2_old - top) * y_scale)
+
+            if DEBUG:
+                image = cv2.rectangle(np.ascontiguousarray(np.array(np.moveaxis(
+                    obs.numpy()*255, 0, -1), dtype=np.uint8)),
+                    (x1,
+                        y1),
+                    (x2,
+                        y2),
+                    color=(0, 0, 255),
+                    thickness=1)
+                cv2.imwrite("bb_cropped.png", image)
+
+            # replace with new bb
+            bb[obj_indx] = np.array([[x1, y1, x2, y2]])
+        return bb
+
+    def horizontal_flip(obs, bb=None, p=0.1):
+        if random.random() < p:
+            height, width = obs.shape[-2:]
+            obs = obs.flip(-1)
+            if bb is not None:
+                # For each bounding box
+                for obj_indx, obj_bb in enumerate(bb):
+                    x1, y1, x2, y2 = obj_bb
+                    x1_new = width - x2
+                    x2_new = width - x1
+                    # replace with new bb
+                    bb[obj_indx] = np.array([[x1_new, y1, x2_new, y2]])
+        return obs, bb
+
+    def frame_aug(task_name, obs, second=False, bb=None, class_frame=None):
+
+        img_height, img_width = obs.shape[:2]
         """applies to every timestep's RGB obs['camera_front_image']"""
         crop_params = dataset_loader.task_crops.get(task_name, [0, 0, 0, 0])
         top, left = crop_params[0], crop_params[2]
@@ -225,24 +306,49 @@ def create_data_aug(dataset_loader=object):
             crop_params[1], img_width - left - crop_params[3]
 
         obs = dataset_loader.toTensor(obs)
-        # only this resize+crop is task-specific
+        # ---- Resized crop ----#
         obs = resized_crop(obs, top=top, left=left, height=box_h,
                            width=box_w, size=(dataset_loader.height, dataset_loader.width))
-        # cv2.imwrite("resized_target_obj.png", np.moveaxis(
-        #     obs.numpy()*255, 0, -1))
+        if DEBUG:
+            cv2.imwrite("resized_target_obj.png", np.moveaxis(
+                obs.numpy()*255, 0, -1))
+        if bb is not None and class_frame is not None:
+            bb = adjust_bb(dataset_loader=dataset_loader,
+                           bb=bb,
+                           obs=obs,
+                           img_height=img_height,
+                           img_width=img_width,
+                           top=top,
+                           left=left,
+                           box_w=box_w,
+                           box_h=box_h)
+
+        # ---- Horizontal Flip ----#
+        obs, bb = horizontal_flip(obs=obs,
+                                  bb=bb,
+                                  p=dataset_loader.data_augs.get("p", 0.1))
+
+        # ---- Augmentation ----#
         if dataset_loader.use_strong_augs and second:
             augmented = dataset_loader.strong_augs(obs)
         else:
             augmented = dataset_loader.transforms(obs)
         assert augmented.shape == obs.shape
-        # if dataset_loader.mode == 'val':
-        #     cv2.imwrite(f"augment_val_target_obj.png", np.moveaxis(
-        #         augmented.numpy()*255, 0, -1))
-        # if dataset_loader.mode == 'train':
-        #     cv2.imwrite(f"augment_train_target_obj.png", np.moveaxis(
-        #         augmented.numpy()*255, 0, -1))
-        return augmented
 
+        if bb is not None:
+            if DEBUG:
+                image = cv2.rectangle(np.ascontiguousarray(np.array(np.moveaxis(
+                    augmented.numpy()*255, 0, -1), dtype=np.uint8)),
+                    (int(bb[0][0]),
+                     int(bb[0][1])),
+                    (int(bb[0][2]),
+                     int(bb[0][3])),
+                    color=(0, 0, 255),
+                    thickness=1)
+                cv2.imwrite("bb_cropped_after_aug.png", image)
+            return augmented, bb, class_frame
+        else:
+            return augmented
     return frame_aug
 
 

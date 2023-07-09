@@ -18,6 +18,7 @@ import copy
 from copy import deepcopy
 
 from multi_task_il.datasets.utils import *
+DEBUG = False
 
 
 class CondTargetObjDetectorDataset(Dataset):
@@ -100,7 +101,7 @@ class CondTargetObjDetectorDataset(Dataset):
          agent_file) = self.all_file_pairs[idx]
         demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
         demo_data = self._make_demo(demo_traj[0], task_name)
-        traj = self._make_traj(agent_traj[0], task_name, idx)
+        traj = self._make_traj(agent_traj[0], agent_traj[1], task_name, idx)
         return {'demo_data': demo_data, 'traj': traj, 'task_name': task_name, 'task_id': sub_task_id}
 
     def _make_demo(self, traj, task_name):
@@ -126,6 +127,9 @@ class CondTargetObjDetectorDataset(Dataset):
                 obs = copy.copy(
                     traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
                 processed = self.frame_aug(task_name, obs)
+                if DEBUG:
+                    cv2.imwrite(f"processed_cond.png", np.moveaxis(
+                                processed.numpy()*255, 0, -1))
                 frames.append(processed)
                 if self.aug_twice:
                     cp_frames.append(self.frame_aug(task_name, obs, True))
@@ -135,7 +139,7 @@ class CondTargetObjDetectorDataset(Dataset):
             for i in range(self._demo_T):
                 # get first frame
                 if i == 0:
-                    n = 0
+                    n = 1
                 # get the last frame
                 elif i == self._demo_T - 1:
                     n = len(traj) - 1
@@ -177,13 +181,14 @@ class CondTargetObjDetectorDataset(Dataset):
         ret_dict['demo_cp'] = torch.stack(cp_frames)
         return ret_dict
 
-    def _make_traj(self, traj, task_name, indx):
+    def _make_traj(self, traj, command, task_name, indx):
         # get the first frame from the trajectory
         ret_dict = {}
         images = []
         images_cp = []
         bb = []
         obj_classes = []
+        # print(f"Command {command}")
 
         if self.non_sequential and self._obs_T > 1:
             end = len(traj)
@@ -218,23 +223,51 @@ class CondTargetObjDetectorDataset(Dataset):
                 step_t = traj.get(t)
                 image = copy.copy(
                     step_t['obs']['camera_front_image'][:, :, ::-1])
-                processed = self.frame_aug(task_name, image)
+                # Create GT BB
+                bb_frame, class_frame = self._create_gt_bb(traj=traj,
+                                                           t=t,
+                                                           task_name=task_name)
+                # Append bb, obj classes and images
+                processed, bb_aug, class_frame = self.frame_aug(
+                    task_name, image, False, bb_frame, class_frame)
+                bb.append(torch.from_numpy(bb_aug))
+                obj_classes.append((torch.from_numpy(class_frame)))
                 images.append(processed)
-                if self.aug_twice:
-                    images_cp.append(self.frame_aug(task_name, image, True))
+
+                image_cp = self.frame_aug(task_name, image, True)
+                images_cp.append(image_cp)
 
         else:
             image = copy.copy(
                 traj.get(1)['obs']['camera_front_image'][:, :, ::-1])
-            images.append(self.frame_aug(task_name, image))
-            images_cp.append(self.frame_aug(task_name, image, True))
             # Create GT BB
             bb_frame, class_frame = self._create_gt_bb(traj=traj,
                                                        t=1,
                                                        task_name=task_name)
-            bb.append(torch.from_numpy(bb_frame))
-
+            # Append bb, obj classes and images
+            processed, bb_aug, class_frame = self.frame_aug(
+                task_name, image, False, bb_frame, class_frame)
+            bb.append(torch.from_numpy(bb_aug))
             obj_classes.append((torch.from_numpy(class_frame)))
+            images.append(processed)
+
+            image_cp = self.frame_aug(task_name, image, True)
+            images_cp.append(image_cp)
+
+            # test GT
+            if DEBUG:
+                image_size = images[0].shape[1:]
+                image = np.array(np.moveaxis(
+                    images[0].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+                image = cv2.rectangle(np.ascontiguousarray(image),
+                                      (int(bb_frame[0][0]),
+                                       int(bb_frame[0][1])),
+                                      (int(bb_frame[0][2]),
+                                       int(bb_frame[0][3])),
+                                      color=(0, 0, 255),
+                                      thickness=1)
+                print(f"Command {command}")
+                cv2.imwrite("GT_bb_after_aug.png", image)
 
         ret_dict['images'] = torch.stack(images)
         if self.aug_twice:
@@ -248,35 +281,55 @@ class CondTargetObjDetectorDataset(Dataset):
     def _create_gt_bb(self, traj, t, task_name):
         bb = []
         cl = []
+        image_size = traj.get(
+            t)['obs']['camera_front_image'].shape
+
         # 1. Get Target Object
         target_obj_id = traj.get(
             t)['obs']['target-object']
-        # 2. Get stored BB
-        top_left_x = traj.get(
-            t)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][target_obj_id]]['bottom_right_corner'][0]
-        top_left_y = traj.get(
-            t)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][target_obj_id]]['bottom_right_corner'][1]
-        # print(f"Top-Left X {top_left_x} - Top-Left Y {top_left_y}")
-        bottom_right_x = traj.get(
-            t)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][target_obj_id]]['upper_left_corner'][0]
-        bottom_right_y = traj.get(
-            t)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][target_obj_id]]['upper_left_corner'][1]
+        for obj_id, object_name in enumerate(traj.get(t)['obs']['obj_bb']['camera_front'].keys()):
+            if object_name != 'bin' and target_obj_id == obj_id:
+                # 2. Get stored BB
+                top_left_x = traj.get(
+                    t)['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner'][0]
+                top_left_y = traj.get(
+                    t)['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner'][1]
+                # print(f"Top-Left X {top_left_x} - Top-Left Y {top_left_y}")
+                bottom_right_x = traj.get(
+                    t)['obs']['obj_bb']["camera_front"][object_name]['upper_left_corner'][0]
+                bottom_right_y = traj.get(
+                    t)['obs']['obj_bb']["camera_front"][object_name]['upper_left_corner'][1]
 
-        # center_x
-        center_x = traj.get(
-            t)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][target_obj_id]]['center'][0]
-        # center_y
-        center_y = traj.get(
-            t)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][target_obj_id]]['center'][1]
+                # center_x
+                center_x = traj.get(
+                    t)['obs']['obj_bb']["camera_front"][object_name]['center'][0]
+                # center_y
+                center_y = traj.get(
+                    t)['obs']['obj_bb']["camera_front"][object_name]['center'][1]
 
-        # bounding-box
-        # right_x - left_x
-        width = bottom_right_x - top_left_x
-        # left_y - right_y
-        height = bottom_right_y - top_left_y
+                # bounding-box
+                # right_x - left_x
+                width = bottom_right_x - top_left_x
+                # left_y - right_y
+                height = bottom_right_y - top_left_y
+                # test GT
+                if DEBUG:
+                    image = cv2.rectangle(np.array(traj.get(
+                        t)['obs']['camera_front_image'][:, :, ::-1]),
+                        (int(top_left_x),
+                         int(top_left_y)),
+                        (int(bottom_right_x),
+                         int(bottom_right_y)),
+                        color=(0, 0, 255),
+                        thickness=1)
+                    cv2.imwrite("GT_bb.png", image)
 
-        bb.append([top_left_x, top_left_y, bottom_right_x, bottom_right_y])
-        # [1] - Target object
-        # [0] - No target
-        cl.append(1)
+                bb.append([top_left_x, top_left_y,
+                          bottom_right_x, bottom_right_y])
+                # [1] - Target object
+                # [0] - No target
+                if obj_id == target_obj_id:
+                    cl.append(1)
+                else:
+                    cl.append(0)
         return np.array(bb), np.array(cl)

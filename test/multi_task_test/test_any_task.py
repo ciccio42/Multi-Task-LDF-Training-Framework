@@ -410,6 +410,7 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
 
 
 def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, seed, max_T, controller_path, model_name, n):
+
     json_name = results_dir + '/traj{}.json'.format(n)
     pkl_name = results_dir + '/traj{}.pkl'.format(n)
     if os.path.exists(json_name) and os.path.exists(pkl_name):
@@ -491,6 +492,9 @@ if __name__ == '__main__':
     parser.add_argument('--controller_path', default=None, type=str)
 
     args = parser.parse_args()
+
+    random.seed(42)
+    np.random.seed(42)
 
     if args.debug:
         import debugpy
@@ -582,7 +586,8 @@ if __name__ == '__main__':
     if 'mt_rep' in config.policy._target_:
         model.skip_for_eval()
     loaded = torch.load(model_path, map_location=torch.device('cpu'))
-    if config.get('use_maml', False):
+
+    if config.get('use_daml', False):
         removed = OrderedDict(
             {k.replace('module.', ''): v for k, v in loaded.items()})
         model.load_state_dict(removed)

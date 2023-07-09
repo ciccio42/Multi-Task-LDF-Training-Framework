@@ -10,13 +10,14 @@ SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur
 POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
 
-SAVE_FREQ=2500
-LOG_FREQ=1
-VAL_FREQ=100000
+SAVE_FREQ=2025
+LOG_FREQ=100
+VAL_FREQ=4050
+PRINT_FREQ=100
 
 EXP_NAME=1Task-Pick-Place-Cond-Target-Obj-Detector
 TASK_str=pick_place
-EPOCH=200
+EPOCH=20
 BSIZE=32 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
@@ -25,7 +26,7 @@ CONFIG_NAME=config_cond_target_obj_detector.yaml
 LOADER_WORKERS=16
 BALANCING_POLICY=0
 SET_SAME_N=2
-OBS_T=1
+OBS_T=7
 
 EARLY_STOPPING_PATIECE=-1
 OPTIMIZER='AdamW'
@@ -46,12 +47,13 @@ python ../training/train_scripts/train_any.py \
     save_freq=${SAVE_FREQ} \
     log_freq=${LOG_FREQ} \
     val_freq=${VAL_FREQ} \
+    print_freq=${PRINT_FREQ} \
     dataset_target=${DATASET_TARGET} \
     bsize=${BSIZE} \
     vsize=${BSIZE} \
     epochs=${EPOCH} \
     dataset_cfg.obs_T=${OBS_T} \
-    dataset_cfg.select_random_frames=false \
+    dataset_cfg.select_random_frames=true \
     dataset_cfg.compute_obj_distribution=${COMPUTE_OBJ_DISTRIBUTION} \
     samplers.balancing_policy=${BALANCING_POLICY} \
     early_stopping_cfg.patience=${EARLY_STOPPING_PATIECE} \
@@ -64,7 +66,7 @@ python ../training/train_scripts/train_any.py \
     train_cfg.lr=${LR} \
     train_cfg.weight_decay=${WEIGHT_DECAY} \
     train_cfg.lr_schedule=${SCHEDULER} \
-    debug=true \
-    wandb_log=false \
+    debug=false \
+    wandb_log=true \
     resume=false \
     loader_workers=${LOADER_WORKERS}

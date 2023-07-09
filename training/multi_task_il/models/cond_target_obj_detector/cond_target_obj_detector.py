@@ -40,6 +40,9 @@ from einops import rearrange, repeat, parse_shape
 from torch.autograd import Variable
 from torchvision import ops
 from multi_task_il.models.cond_target_obj_detector.utils import *
+import cv2
+
+DEBUG = False
 
 
 def get_backbone(backbone_name="slow_r50", video_backbone=True, pretrained=False, conv_drop_dim=3):
@@ -351,11 +354,14 @@ class AgentModule(nn.Module):
             model_dict = dict()
             model_dict['n_res_blocks'] = n_res_blocks
             model_dict['n_classes'] = n_classes
-            if conv_drop_dim == 3 or conv_drop_dim == 2:
+            if conv_drop_dim == 3:
                 n_channels = 256
+            elif conv_drop_dim == 2:
+                n_channels = 512
             model_dict['n_channels'] = n_channels
             backbone = make_model(model_dict=model_dict,
-                                  task_embedding_dim=task_embedding_dim)
+                                  task_embedding_dim=task_embedding_dim,
+                                  conv_drop_dim=conv_drop_dim)
             backbone.out_channels = n_channels
             self.out_channels_backbone = n_channels
             self._backbone = backbone
@@ -371,8 +377,8 @@ class AgentModule(nn.Module):
             self.height_scale_factor = self.img_height // self.out_h
 
             # scales and ratios for anchor boxes
-            self.anc_scales = [4, 8, 16, 32]
-            self.anc_ratios = [0.5, 1.0, 2.0]
+            self.anc_scales = [0.5, 1]  # [0.5, 1]
+            self.anc_ratios = [0.5, 1]  # [0.5, 1, 1.5]
             self.n_anc_boxes = len(self.anc_scales) * len(self.anc_ratios)
 
             # IoU thresholds for +ve and -ve anchors
@@ -391,7 +397,7 @@ class AgentModule(nn.Module):
 
         self.load_film = load_film
 
-    def forward(self, agent_obs, task_embedding, gt_bb=None, gt_classes=None, validation=False):
+    def forward(self, agent_obs, task_embedding, gt_bb=None, gt_classes=None, inference=False):
 
         ret_dict = dict()
 
@@ -401,7 +407,9 @@ class AgentModule(nn.Module):
 
         # 2. Predict bounding boxes given conditioned embedding and input image
         agent_obs = rearrange(agent_obs, 'B T C H W -> (B T) C H W')
+        # N is the number of objects, and C the bb components
         gt_bb = rearrange(gt_bb, 'B T N C -> (B T) N C')
+        # N is the number of objects
         gt_classes = rearrange(gt_classes, 'B T N -> (B T) N')
         B, C, H, W = agent_obs.shape
 
@@ -410,36 +418,63 @@ class AgentModule(nn.Module):
             anc_pts_x, anc_pts_y = gen_anc_centers(
                 out_size=(self.out_h, self.out_w))
 
-            # plot anchor boxes
-            # anc_pts_x_image = anc_pts_x.clone() * self.width_scale_factor
-            # anc_pts_y_image = anc_pts_y.clone() * self.height_scale_factor
-            # import cv2
-            # image = np.array(np.moveaxis(
-            #     agent_obs[0, :, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
-            # for anc_x in anc_pts_x_image.numpy():
-            #     for anc_y in anc_pts_y_image.numpy():
-            #         image = cv2.circle(np.ascontiguousarray(image), (int(anc_x), int(anc_y)),
-            #                            radius=int(1), color=(0, 0, 255), thickness=5)
-            # cv2.imwrite("prova_anc_pts.png", image)
+            if DEBUG:
+                # # plot anchor boxes
+                anc_pts_x_image = anc_pts_x.clone() * self.width_scale_factor
+                anc_pts_y_image = anc_pts_y.clone() * self.height_scale_factor
+                image = np.array(np.moveaxis(
+                    agent_obs[0, :, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+                for anc_x in anc_pts_x_image.numpy():
+                    for anc_y in anc_pts_y_image.numpy():
+                        image = cv2.circle(np.ascontiguousarray(image), (int(anc_x), int(anc_y)),
+                                           radius=int(1), color=(0, 0, 255), thickness=1)
+                cv2.imwrite("prova_anc_pts.png", image)
 
             anc_base = gen_anc_base(
                 anc_pts_x, anc_pts_y, self.anc_scales, self.anc_ratios, (self.out_h, self.out_w))
             anc_boxes_all = anc_base.repeat(
-                B, 1, 1, 1, 1).to(agent_obs.get_device())
+                B, 1, 1, 1, 1).to(agent_obs.get_device())  # B, Feature_H, Feature_W,
 
-            if not validation:
+            if DEBUG:
+                # # Plot anchor boxes to image
+                for x, anc_x in enumerate(anc_pts_x_image.numpy()):
+                    for y, anc_y in enumerate(anc_pts_y_image.numpy()):
+                        anc_boxes_proj = project_bboxes(
+                            anc_boxes_all, self.width_scale_factor, self.height_scale_factor, mode='a2p')
+                        anc_boxes_proj_interest = anc_boxes_proj[0, x, y, :, :].cpu(
+                        ).numpy()
+                        image = np.array(np.moveaxis(
+                            agent_obs[0, :, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+                        image = cv2.rectangle(np.ascontiguousarray(image),
+                                              (int(gt_bb[0, 0, 0]),
+                                               int(gt_bb[0, 0, 1])),
+                                              (int(gt_bb[0, 0, 2]),
+                                               int(gt_bb[0, 0, 3])),
+                                              color=(0, 0, 255), thickness=1)
+                        for anc_box in anc_boxes_proj_interest:
+                            image = cv2.rectangle(np.ascontiguousarray(image),
+                                                  (int(anc_box[0]),
+                                                   int(anc_box[1])),
+                                                  (int(anc_box[2]),
+                                                   int(anc_box[3])),
+                                                  color=(0, 0, 255), thickness=1)
+                        cv2.imwrite("prova_anch_box.png", image)
+
+            if not inference:
                 # if the model is training
                 # get positive and negative anchors amongst other things
                 gt_bboxes_proj = project_bboxes(
-                    gt_bb,
+                    gt_bb.float(),
                     torch.tensor(self.width_scale_factor, dtype=float),
                     torch.tensor(self.height_scale_factor, dtype=float),
-                    mode='p2a')
+                    mode='p2a').float()
 
                 positive_anc_ind, negative_anc_ind, GT_conf_scores, GT_offsets, GT_class_pos, positive_anc_coords, negative_anc_coords, positive_anc_ind_sep = get_req_anchors(
                     anc_boxes_all.to(agent_obs.get_device()),
                     gt_bboxes_proj.to(agent_obs.get_device()),
-                    gt_classes.to(agent_obs.get_device()))
+                    gt_classes.to(agent_obs.get_device()),
+                    pos_thresh=self.pos_thresh,
+                    neg_thresh=self.neg_thresh)
 
                 # pass through the proposal module
                 conf_scores_pos, conf_scores_neg, offsets_pos, proposals = self.proposal_module(
@@ -453,21 +488,26 @@ class AgentModule(nn.Module):
                 ret_dict['GT_offsets'] = GT_offsets
                 ret_dict['offsets_pos'] = offsets_pos
 
-                # test plot proposal
-                import cv2
-                image = np.array(np.moveaxis(
-                    agent_obs[0, :, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
-                proposal_bb = proposals.cpu().detach().numpy()
-                for bb in proposal_bb:
-                    image = cv2.rectangle(np.ascontiguousarray(image),
-                                          (int(bb[0]), int(bb[1])),
-                                          (int(bb[2]), int(bb[3])),
-                                          color=(0, 0, 255), thickness=5)
-                cv2.imwrite("prova_predictions.png", image)
+                if not self.training and DEBUG:
+                    # test plot proposal
+                    proposal_projected = project_bboxes(
+                        proposals, self.width_scale_factor, self.height_scale_factor, mode='a2p').cpu().detach().numpy()
+                    for indx, bb_proposal in enumerate(proposal_projected):
+                        image = np.array(np.moveaxis(
+                            agent_obs[indx, :, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+                        image = cv2.rectangle(np.ascontiguousarray(image),
+                                              (int(bb_proposal[0]), int(
+                                                  bb_proposal[1])),
+                                              (int(bb_proposal[2]), int(
+                                                  bb_proposal[3])),
+                                              color=(0, 0, 255), thickness=1)
+                        cv2.imwrite("prova_predictions_eval.png", image)
+
                 return ret_dict
             else:
-                # model is in validation/inference mode
+                # model is in inference mode
                 with torch.no_grad():
+
                     # generate anchors
                     anc_pts_x, anc_pts_y = gen_anc_centers(
                         out_size=(self.out_h, self.out_w))
@@ -489,7 +529,9 @@ class AgentModule(nn.Module):
                         conf_scores = torch.sigmoid(conf_scores_pred[i])
                         offsets = offsets_pred[i]
                         anc_boxes = anc_boxes_flat[i]
-                        proposals = generate_proposals(anc_boxes, offsets)
+                        proposals = generate_proposals(
+                            anc_boxes.to(agent_obs.get_device()),
+                            offsets.to(agent_obs.get_device()))
                         # filter based on confidence threshold
                         conf_idx = torch.where(
                             conf_scores >= self.conf_thresh)[0]
@@ -504,10 +546,10 @@ class AgentModule(nn.Module):
                         proposals_final.append(proposals_pos)
                         conf_scores_final.append(conf_scores_pos)
 
-                        ret_dict['proposals'] = proposals_final
-                        ret_dict['conf_scores_final'] = conf_scores_final
+                    ret_dict['proposals'] = proposals_final
+                    ret_dict['conf_scores_final'] = conf_scores_final
 
-                        return ret_dict
+                    return ret_dict
 
         else:
             scene_embegging = self._module(input)
@@ -546,7 +588,7 @@ class CondTargetObjectDetector(nn.Module):
 
         # summary(self)
 
-    def forward(self, inputs: dict, validation=False):
+    def forward(self, inputs: dict, inference: bool = False):
         cond_video = inputs['demo']
         agent_obs = inputs['images']
         gt_bb = inputs['gt_bb']
@@ -559,7 +601,7 @@ class CondTargetObjectDetector(nn.Module):
             cond_emb,
             gt_bb=gt_bb,
             gt_classes=gt_classes,
-            validation=validation)
+            inference=inference)
         # print(agent_emb.shape)
         return ret_dict
 

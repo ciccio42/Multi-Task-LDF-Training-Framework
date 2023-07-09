@@ -52,13 +52,15 @@ def get_action(model, target_obj_dec, states, images, context, gpu_id, n_steps, 
         i_t = images[0][None]
     s_t, i_t = s_t.float().cuda(gpu_id), i_t.float().cuda(gpu_id)
 
-    if baseline == 'maml':
+    predicted_prob = None
+
+    if baseline == 'daml':
         learner = model.clone()
+        # Perform adaptation
         learner.adapt(
             learner(None, context[0], learned_loss=True)['learned_loss'], allow_nograd=True, allow_unused=True)
-        out = learner(states=s_t[0], images=i_t[0], ret_dist=True)
+        out = model(states=s_t[0], images=i_t[0], ret_dist=True)
         action = out['action_dist'].sample()[-1].cpu().detach().numpy()
-
     else:
         with torch.no_grad():
             out = model(states=s_t, images=i_t, context=context, eval=True,
@@ -78,7 +80,7 @@ def get_action(model, target_obj_dec, states, images, context, gpu_id, n_steps, 
     # action[3:7] = [1.0, 1.0, 0.0, 0.0]
     action = denormalize_action(action, action_ranges)
     action[-1] = 1 if action[-1] > 0 and n_steps < max_T - 1 else -1
-    return action, predicted_prob, target_obj_embedding, out['activation_map']
+    return action, predicted_prob, target_obj_embedding, out.get('activation_map', None)
 
 
 def startup_env(model, env, context, gpu_id, variation_id, baseline=None):
@@ -87,7 +89,7 @@ def startup_env(model, env, context, gpu_id, variation_id, baseline=None):
         states = deque(states, maxlen=1)
         images = deque(images, maxlen=1)  # NOTE: always use only one frame
     context = context.cuda(gpu_id).float()
-    np.random.seed(None)
+
     while True:
         try:
             obs = env.reset()
@@ -137,7 +139,7 @@ def nut_assembly_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None
     if baseline is None:
         states = deque(states, maxlen=10)
         images = deque(images, maxlen=10)  # NOTE: always use only one frame
-    np.random.seed(None)
+
     while True:
         try:
             obs = env.reset()
@@ -634,7 +636,7 @@ def pick_place_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None, 
     if baseline is None:
         states = deque(states, maxlen=10)
         images = deque(images, maxlen=10)  # NOTE: always use only one frame
-    np.random.seed(None)
+
     while True:
         try:
             obs = env.reset()
@@ -839,6 +841,7 @@ def pick_place_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None, 
 
 
 def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[]):
+
     done, states, images, context, obs, traj, tasks = \
         startup_env(model, env, context, gpu_id,
                     variation_id, baseline=baseline)
@@ -865,8 +868,11 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
     # compute the average prediction over the whole trajectory
     avg_prediction = 0
     target_obj_emb = None
+
     print(f"Max-t {max_T}")
+
     while not done:
+
         tasks['reached'] = tasks['reached'] or np.linalg.norm(
             obs[obj_delta_key][:2]) < 0.03
         tasks['picked'] = tasks['picked'] or (
@@ -875,21 +881,23 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
             states, images = [], []
         states.append(np.concatenate(
             (obs['ee_aa'], obs['gripper_qpos'])).astype(np.float32)[None])
-        # convert observation from BGR to RGB and scale to 0-1
+        # convert observation from BGR to RGB
         images.append(img_formatter(
             obs['camera_front_image'][:, :, ::-1])[None])
+
         action, target_pred, target_obj_emb, activation_map = get_action(
-            model,
-            target_obj_dec,
-            states,
-            images,
-            context,
-            gpu_id,
-            n_steps,
-            max_T,
-            baseline,
-            action_ranges,
-            target_obj_emb)
+            model=model,
+            target_obj_dec=target_obj_dec,
+            states=states,
+            images=images,
+            context=context,
+            gpu_id=gpu_id,
+            n_steps=n_steps,
+            max_T=max_T,
+            baseline=baseline,
+            action_ranges=action_ranges,
+            target_obj_embedding=target_obj_emb
+        )
         try:
             obs, reward, env_done, info = env.step(action)
             cv2.imwrite(
@@ -901,8 +909,11 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
             info['target_gt'] = agent_target_obj_position
             if np.argmax(target_pred) == agent_target_obj_position:
                 avg_prediction += 1
-        obs['activation_map'] = activation_map
-        cv2.imwrite("prova_activation_map.png", activation_map)
+
+        if activation_map is not None:
+            obs['activation_map'] = activation_map
+            cv2.imwrite("prova_activation_map.png", activation_map)
+
         traj.append(obs, reward, done, info, action)
 
         tasks['success'] = reward or tasks['success']
