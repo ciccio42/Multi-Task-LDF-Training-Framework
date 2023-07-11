@@ -385,10 +385,6 @@ class AgentModule(nn.Module):
             self.pos_thresh = 0.7
             self.neg_thresh = 0.3
 
-            # weights for loss
-            self.w_conf = 1
-            self.w_reg = 5
-
             self.conf_thresh = 0.5
             self.nms_thresh = 0.7
 
@@ -487,6 +483,8 @@ class AgentModule(nn.Module):
                 ret_dict['proposals'] = proposals
                 ret_dict['GT_offsets'] = GT_offsets
                 ret_dict['offsets_pos'] = offsets_pos
+                ret_dict['conf_scores_pos'] = conf_scores_pos
+                ret_dict['conf_scores_neg'] = conf_scores_neg
 
                 if not self.training and DEBUG:
                     # test plot proposal
@@ -508,12 +506,6 @@ class AgentModule(nn.Module):
                 # model is in inference mode
                 with torch.no_grad():
 
-                    # generate anchors
-                    anc_pts_x, anc_pts_y = gen_anc_centers(
-                        out_size=(self.out_h, self.out_w))
-                    anc_base = gen_anc_base(
-                        anc_pts_x, anc_pts_y, self.anc_scales, self.anc_ratios, (self.out_h, self.out_w))
-                    anc_boxes_all = anc_base.repeat(B, 1, 1, 1, 1)
                     anc_boxes_flat = anc_boxes_all.reshape(B, -1, 4)
 
                     # get conf scores and offsets

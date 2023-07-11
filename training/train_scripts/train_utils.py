@@ -185,7 +185,7 @@ def calculate_maml_loss(config, device, meta_model, model_inputs):
     bc_loss, aux_loss = [], []
 
     for task in range(states.shape[0]):
-        learner = meta_model.clone(first_order=True)
+        learner = meta_model.clone()
         for _ in range(inner_iters):
             learner.adapt(
                 learner(None, context[task], learned_loss=True)['learned_loss'], allow_nograd=True, allow_unused=True)
@@ -201,7 +201,7 @@ def calculate_maml_loss(config, device, meta_model, model_inputs):
     return torch.cat(bc_loss, dim=0), torch.cat(aux_loss, dim=0)
 
 
-def loss_func_bb(config, train_cfg, device, model, inputs):
+def loss_func_bb(config, train_cfg, device, model, inputs, w_conf=1, w_reg=5):
 
     def calc_cls_loss(conf_scores_pos, conf_scores_neg, batch_size):
         target_pos = torch.ones_like(conf_scores_pos)
@@ -249,11 +249,16 @@ def loss_func_bb(config, train_cfg, device, model, inputs):
     predictions_dict = model(model_inputs, inference=False)
 
     # compute detection loss
-    loss = calc_bbox_reg_loss(predictions_dict['GT_offsets'],
-                              predictions_dict['offsets_pos'],
-                              traj['images'].shape[0]*traj['images'].shape[1])
+    cls_loss = calc_cls_loss(predictions_dict['conf_scores_pos'],
+                             predictions_dict['conf_scores_neg'],
+                             traj['images'].shape[0]*traj['images'].shape[1])
+    bb_reg_loss = calc_bbox_reg_loss(predictions_dict['GT_offsets'],
+                                     predictions_dict['offsets_pos'],
+                                     traj['images'].shape[0]*traj['images'].shape[1])
 
-    all_losses["loss_sum"] = loss
+    all_losses["cls_loss"] = cls_loss
+    all_losses["bb_reg_loss"] = bb_reg_loss
+    all_losses["loss_sum"] = w_conf*cls_loss + w_reg*bb_reg_loss
 
     # flatten here to avoid headache
     for (task_name, idxs) in task_to_idx.items():
@@ -729,7 +734,7 @@ class Trainer:
                         print(train_print)
 
                 #### ---- Validation step ----####
-                if self._step % val_freq == 0:
+                if self._step % val_freq == 0 and not self.config.get("use_daml", False):
                     validation_set = True
                     if validation_set and self._val_loader != None:
                         # exhaust all data in val loader and take avg loss

@@ -47,7 +47,7 @@ import learn2learn as l2l
 from torchvision.transforms import RandomAffine, ToTensor, Normalize, \
     RandomGrayscale, ColorJitter, RandomApply, RandomHorizontalFlip, GaussianBlur, RandomResizedCrop
 import torch.nn as nn
-
+import multi_task_il
 
 set_start_method('forkserver', force=True)
 LOG_PATH = None
@@ -205,6 +205,68 @@ def build_tvf_formatter(config, env_name='stack'):
     return resize_crop
 
 
+def build_tvf_formatter_obj_detector(config, env_name):
+    """Use this for torchvision.transforms in multi-task dataset, 
+    note eval_fn always feeds in traj['obs']['images'], i.e. shape (h,w,3)
+    """
+
+    def resize_crop(img, bb=None):
+        img_height, img_width = img.shape[:2]
+        """applies to every timestep's RGB obs['camera_front_image']"""
+        task_spec = config.tasks_cfgs.get(env_name, dict())
+        crop_params = task_spec.get('crop', [0, 0, 0, 0])
+        top, left = crop_params[0], crop_params[2]
+        img_height, img_width = img.shape[0], img.shape[1]
+        box_h, box_w = img_height - top - \
+            crop_params[1], img_width - left - crop_params[3]
+
+        img = transforms.ToTensor()(img.copy())
+        # ---- Resized crop ----#
+        img = resized_crop(img, top=top, left=left, height=box_h,
+                           width=box_w, size=(config.dataset_cfg.height, config.dataset_cfg.width))
+        # transforms_pipe = transforms.Compose([
+        #     transforms.ColorJitter(
+        #         brightness=list(config.augs.get(
+        #             "brightness", [0.875, 1.125])),
+        #         contrast=list(config.augs.get(
+        #             "contrast", [0.5, 1.5])),
+        #         saturation=list(config.augs.get(
+        #             "contrast", [0.5, 1.5])),
+        #         hue=list(config.augs.get("hue", [-0.05, 0.05]))
+        #     ),
+        # ])
+        # img = transforms_pipe(img)
+
+        cv2.imwrite("resized_target_obj.png", np.moveaxis(
+            img.numpy()*255, 0, -1))
+
+        if bb is not None:
+            bb = multi_task_il.datasets.utils.adjust_bb(dataset_loader=config.dataset_cfg,
+                                                        bb=bb,
+                                                        obs=img,
+                                                        img_height=img_height,
+                                                        img_width=img_width,
+                                                        top=top,
+                                                        left=left,
+                                                        box_w=box_w,
+                                                        box_h=box_h)
+
+            image = cv2.rectangle(np.ascontiguousarray(np.array(np.moveaxis(
+                img.numpy()*255, 0, -1), dtype=np.uint8)),
+                (bb[0][0],
+                 bb[0][1]),
+                (bb[0][2],
+                 bb[0][3]),
+                color=(0, 0, 255),
+                thickness=1)
+            cv2.imwrite("bb_cropped.png", image)
+            return img, bb
+
+        return img
+
+    return resize_crop
+
+
 def build_env(ctr=0, env_name='nut', heights=100, widths=200, size=False, shape=False, color=False, gpu_id=0, variation=None, controller_path=None):
 
     create_seed = random.Random(None)
@@ -252,10 +314,10 @@ def build_env(ctr=0, env_name='nut', heights=100, widths=200, size=False, shape=
     return agent_env, variation
 
 
-def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut',
-                      heights=100, widths=200, size=False, shape=False, color=False, gpu_id=0, variation=None, random_frames=True, controller_path=None):
-    create_seed = random.Random(None)
-    create_seed = create_seed.getrandbits(32)
+def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights=100, widths=200, size=False, shape=False, color=False, gpu_id=0, variation=None, random_frames=True, controller_path=None):
+
+    # create_seed = random.Random(42)
+    create_seed = random.getrandbits(32)
     if controller_path == None:
         controller = load_controller_config(default_controller='IK_POSE')
     else:
@@ -324,6 +386,58 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut',
         context = torch.cat(context, dim=0)[None]
 
     return agent_env, context, variation, teacher_expert_rollout
+
+
+def object_detection_inference(model, config, ctr, heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, model_name=None):
+
+    if gpu_id == -1:
+        gpu_id = int(ctr % torch.cuda.device_count())
+    print(f"Model GPU id {gpu_id}")
+    model = model.cuda(gpu_id)
+
+    T_context = config.train_cfg.dataset.get('T_context', None)
+    random_frames = config.dataset_cfg.get('select_random_frames', False)
+    if not T_context:
+        assert 'multi' in config.train_cfg.dataset._target_, config.train_cfg.dataset._target_
+        T_context = config.train_cfg.dataset.demo_T
+
+    # Build pre-processing module
+    img_formatter = build_tvf_formatter_obj_detector(config, env_name)
+
+    # Build environments
+    env, context, variation_id, expert_traj = build_env_context(img_formatter,
+                                                                T_context=T_context,
+                                                                ctr=ctr,
+                                                                env_name=env_name,
+                                                                heights=heights,
+                                                                widths=widths,
+                                                                size=size,
+                                                                shape=shape,
+                                                                color=color,
+                                                                gpu_id=gpu_id,
+                                                                variation=variation, random_frames=random_frames,
+                                                                controller_path=controller_path)
+    build_task = TASK_MAP.get(env_name, None)
+    assert build_task, 'Got unsupported task '+env_name
+    eval_fn = build_task['eval_fn']
+    traj, info = eval_fn(model,
+                         target_obj_dec,
+                         env,
+                         context,
+                         gpu_id,
+                         variation_id,
+                         img_formatter,
+                         baseline=baseline,
+                         max_T=max_T,
+                         action_ranges=None,
+                         model_name=model_name,
+                         task_name=env_name)
+    print("Evaluated traj #{}, task #{}, Avg IOU {}".format(
+        ctr, variation_id, info['avg_iou']))
+    # print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
+    #     ctr, variation_id, info['reached'], info['picked'], info['success']))
+    # print(f"Avg prediction {info['avg_pred']}")
+    return traj, info, expert_traj, context
 
 
 def rollout_imitation(model, target_obj_dec, config, ctr,
@@ -419,21 +533,42 @@ def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, sha
         print("Using previous results at {}. Loaded eval traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             json_name, n, task_success_flags['variation_id'], task_success_flags['reached'], task_success_flags['picked'], task_success_flags['success']))
     else:
-        return_rollout = rollout_imitation(model,
-                                           target_obj_dec,
-                                           config,
-                                           n,
-                                           heights,
-                                           widths,
-                                           size,
-                                           shape,
-                                           color,
-                                           max_T=max_T, env_name=env_name, baseline=baseline, variation=variation,
-                                           controller_path=controller_path,
-                                           seed=seed,
-                                           action_ranges=np.array(
-                                               config.dataset_cfg.get('normalization_ranges', [])),
-                                           model_name=model_name)
+        if "cond_target_obj_detector" not in model_name:
+            return_rollout = rollout_imitation(model,
+                                               target_obj_dec,
+                                               config,
+                                               n,
+                                               heights,
+                                               widths,
+                                               size,
+                                               shape,
+                                               color,
+                                               max_T=max_T,
+                                               env_name=env_name,
+                                               baseline=baseline,
+                                               variation=variation,
+                                               controller_path=controller_path,
+                                               seed=seed,
+                                               action_ranges=np.array(
+                                                   config.dataset_cfg.get('normalization_ranges', [])),
+                                               model_name=model_name)
+        else:
+            # Perform object detection inference
+            return_rollout = object_detection_inference(model=model,
+                                                        config=config,
+                                                        ctr=n,
+                                                        heights=heights,
+                                                        widths=widths,
+                                                        size=size,
+                                                        shape=shape,
+                                                        color=color,
+                                                        max_T=max_T,
+                                                        env_name=env_name,
+                                                        baseline=baseline,
+                                                        variation=variation,
+                                                        controller_path=controller_path,
+                                                        seed=seed,
+                                                        model_name=model_name)
 
         if "vima" not in model_name:
             rollout, task_success_flags, expert_traj, context = return_rollout
@@ -599,7 +734,7 @@ if __name__ == '__main__':
     else:
         model.load_state_dict(loaded)
 
-    model.set_conv_layer_reference(model)
+    # model.set_conv_layer_reference(model)
 
     model = model.eval()  # .cuda()
     n_success = 0

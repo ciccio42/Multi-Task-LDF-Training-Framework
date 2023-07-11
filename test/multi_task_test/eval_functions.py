@@ -18,7 +18,8 @@ from multi_task_test import make_prompt, prepare_obs
 from einops import rearrange, repeat
 from vima.utils import *
 import robosuite.utils.transform_utils as T
-
+from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
+from torchvision.ops import box_iou
 
 # Frezzes at this line if torchvision is imported
 # cv2.imshow("debug", np.zeros((128, 128, 3), dtype=np.uint8))
@@ -41,6 +42,8 @@ ENV_OBJECTS = {
         'ranges': [[-0.31, -0.10], [-0.10, 0.10], [0.10, 0.31]]
     }
 }
+
+DEBUG = True
 
 
 def get_action(model, target_obj_dec, states, images, context, gpu_id, n_steps, max_T=80, baseline=None, action_ranges=[], target_obj_embedding=None):
@@ -83,11 +86,14 @@ def get_action(model, target_obj_dec, states, images, context, gpu_id, n_steps, 
     return action, predicted_prob, target_obj_embedding, out.get('activation_map', None)
 
 
-def startup_env(model, env, context, gpu_id, variation_id, baseline=None):
+def startup_env(model, env, context, gpu_id, variation_id, baseline=None, bb_flag=False):
     done, states, images = False, [], []
     if baseline is None:
         states = deque(states, maxlen=1)
         images = deque(images, maxlen=1)  # NOTE: always use only one frame
+        if bb_flag:
+            bb = deque([], maxlen=1)
+            gt_classes = deque([], maxlen=1)
     context = context.cuda(gpu_id).float()
 
     while True:
@@ -107,7 +113,10 @@ def startup_env(model, env, context, gpu_id, variation_id, baseline=None):
     traj.append(obs)
     tasks = {'success': False, 'reached': False,
              'picked': False, 'variation_id': variation_id}
-    return done, states, images, context, obs, traj, tasks
+    if bb_flag:
+        return done, states, images, context, obs, traj, tasks, bb, gt_classes
+    else:
+        return done, states, images, context, obs, traj, tasks
 
 
 def nut_assembly_eval(model, target_obj_dec, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None):
@@ -930,7 +939,114 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
     return traj, tasks
 
 
-def pick_place_eval(model, target_obj_dec, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None):
+def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None):
+
+    done, states, images, context, obs, traj, tasks, bb, gt_classes = \
+        startup_env(model,
+                    env,
+                    context,
+                    gpu_id,
+                    variation_id,
+                    baseline=baseline,
+                    bb_flag=True)
+    n_steps = 0
+    iou = 0
+    while not done:
+
+        # Get GT Bounding Box
+        agent_target_obj_id = traj.get(0)['obs']['target-object']
+        for id, obj_name in enumerate(ENV_OBJECTS['pick_place']['obj_names']):
+            if id == agent_target_obj_id:
+                top_left_x = traj.get(
+                    n_steps)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][agent_target_obj_id]]['bottom_right_corner'][0]
+                top_left_y = traj.get(
+                    n_steps)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][agent_target_obj_id]]['bottom_right_corner'][1]
+                # print(f"Top-Left X {top_left_x} - Top-Left Y {top_left_y}")
+                bottom_right_x = traj.get(
+                    n_steps)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][agent_target_obj_id]]['upper_left_corner'][0]
+                bottom_right_y = traj.get(
+                    n_steps)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][agent_target_obj_id]]['upper_left_corner'][1]
+                bb_t = np.array(
+                    [[top_left_x, top_left_y, bottom_right_x, bottom_right_y]])
+                gt_t = np.array(1)
+
+        if baseline and len(states) >= 5:
+            states, images = [], []
+        states.append(np.concatenate(
+            (obs['ee_aa'], obs['gripper_qpos'])).astype(np.float32)[None])
+
+        # convert observation from BGR to RGB
+        formatted_img, bb_t = img_formatter(
+            obs['camera_front_image'][:, :, ::-1], bb_t)
+
+        model_input = dict()
+        model_input['demo'] = context.to(device=gpu_id)
+        model_input['images'] = formatted_img[None][None].to(device=gpu_id)
+        model_input['gt_bb'] = torch.from_numpy(
+            bb_t[None][None]).to(device=gpu_id)
+        model_input['gt_classes'] = torch.from_numpy(
+            gt_t[None][None][None]).to(device=gpu_id)
+        # Perform bb detection
+        prediction = model(model_input, inference=True)
+
+        # Project bb over image
+        predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None],
+                                      width_scale_factor=model._agent_backone.width_scale_factor,
+                                      height_scale_factor=model._agent_backone.height_scale_factor,
+                                      mode='a2p')
+        max_conf_score_indx = torch. argmax(
+            prediction['conf_scores_final'][0])
+        predicted_bb = predicted_bb[0][max_conf_score_indx]
+        if DEBUG:
+            image = np.array(np.moveaxis(
+                formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+
+            image = cv2.rectangle(np.ascontiguousarray(image),
+                                  (int(predicted_bb[0]),
+                                   int(predicted_bb[1])),
+                                  (int(predicted_bb[2]),
+                                   int(predicted_bb[3])),
+                                  color=(0, 0, 255), thickness=1)
+            image = cv2.rectangle(np.ascontiguousarray(image),
+                                  (int(bb_t[0][0]),
+                                   int(bb_t[0][1])),
+                                  (int(bb_t[0][2]),
+                                   int(bb_t[0][3])),
+                                  color=(250, 0, 0), thickness=1)
+            cv2.imwrite("predicted_bb.png", image)
+            obs['predicted_bb'] = predicted_bb.cpu().numpy()
+            obs['gt_bb'] = bb_t
+            # compute IoU over time
+            iou_t = box_iou(boxes1=torch.from_numpy(
+                bb_t).to(device=gpu_id), boxes2=predicted_bb[None])
+            obs['iou'] = iou_t[0][0].cpu().numpy()
+            iou += iou_t[0][0].cpu().numpy()
+            traj.append(obs)
+        try:
+            if controller is not None:
+                # compute the action for the current state
+                action, status = controller.act(obs)
+                obs, reward, env_done, info = env.step(action)
+                cv2.imwrite(
+                    f"step_test.png", obs['camera_front_image'][:, :, ::-1])
+        except:
+            print("Exception during step")
+
+        n_steps += 1
+        if n_steps > max_T or env_done:
+            done = True
+
+    env.close()
+    tasks['avg_iou'] = iou/(n_steps-1)
+    del env
+    del states
+    del images
+    del model
+
+    return traj, tasks
+
+
+def pick_place_eval(model, target_obj_dec, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place"):
 
     if "vima" in model_name:
         return pick_place_eval_vima(model=model,
@@ -940,6 +1056,25 @@ def pick_place_eval(model, target_obj_dec, env, context, gpu_id, variation_id, i
                                     max_T=max_T,
                                     baseline=baseline,
                                     action_ranges=action_ranges)
+    elif "cond_target_obj_detector" in model_name:
+        # Instantiate Controller
+        if task_name == "pick_place":
+            from multi_task_robosuite_env.controllers.controllers.expert_pick_place import PickPlaceController
+            controller = PickPlaceController(
+                env=env.env,
+                tries=[],
+                ranges=[],
+                object_set=2)
+        return object_detection_inference(model=model,
+                                          env=env,
+                                          context=context,
+                                          gpu_id=gpu_id,
+                                          variation_id=variation_id,
+                                          img_formatter=img_formatter,
+                                          max_T=max_T,
+                                          baseline=baseline,
+                                          controller=controller
+                                          )
     else:
         return pick_place_eval_demo_cond(model=model,
                                          target_obj_dec=target_obj_dec,

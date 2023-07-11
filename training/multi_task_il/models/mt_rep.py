@@ -85,6 +85,7 @@ class _StackedAttnLayers(nn.Module):
     def forward(self, inputs):
         """"""
         B, d, T, H, W = inputs.shape
+
         # obs_T could be as small as 1
         obs_T = T - self._demo_T
         out_dict = dict()
@@ -143,6 +144,10 @@ class _StackedAttnLayers(nn.Module):
                 obs_kq.shape[-2] == H*W
             # no causal mask is needed
             obs_attn = F.softmax(obs_kq, dim=4)
+
+            # save attention weights
+            # attention_weights = rearrange()
+
             obs_v = torch.einsum('btncj,btnji->btnci', cat_v, obs_attn)
 
             obs_out = self._obs_Outs[i](
@@ -154,6 +159,7 @@ class _StackedAttnLayers(nn.Module):
 
             inputs = self._norms[i](torch.cat([demo_ly_in, obs_ly_in], dim=2))
             out_dict['out_%s' % i] = inputs
+
         out_dict['last'] = inputs
         return out_dict
 
@@ -247,14 +253,14 @@ class _TransformerFeatures(nn.Module):
                 out_dict['attn_'+k+'_demo'], out_dict['attn_'+k +
                                                       '_img'] = normalized.split([demo_T, obs_T], dim=1)
 
-        activation_map = None
-        if compute_activation_map:
-            activation_map = return_activation_map(
-                model=self,
-                features=out_dict['attn_features'][:, demo_T:, :, :, :],
-                images=images,
-                layer_name=None)
-            out_dict['activation_map'] = activation_map
+        # activation_map = None
+        # if compute_activation_map:
+        #     activation_map = return_activation_map(
+        #         model=self,
+        #         features=out_dict['attn_features'][:, demo_T:, :, :, :],
+        #         images=images,
+        #         layer_name=None)
+        #     out_dict['activation_map'] = activation_map
 
         out_dict['linear_embed'] = self._linear_embed(
             rearrange(features, 'B T d H W -> B T (d H W)'))

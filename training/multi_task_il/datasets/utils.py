@@ -169,6 +169,41 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
         dataset_loader.task_crops[name] = spec.get('crop', [0, 0, 0, 0])
 
 
+def adjust_bb(dataset_loader, bb, obs, img_width=360, img_height=200, top=0, left=0, box_w=360, box_h=200):
+    # For each bounding box
+    for obj_indx, obj_bb in enumerate(bb):
+        # Convert normalized bounding box coordinates to actual coordinates
+        x1_old, y1_old, x2_old, y2_old = obj_bb
+        x1_old = int(x1_old)
+        y1_old = int(y1_old)
+        x2_old = int(x2_old)
+        y2_old = int(y2_old)
+
+        # Modify bb based on computed resized-crop
+        # 1. Take into account crop and resize
+        x_scale = dataset_loader.width/box_w
+        y_scale = dataset_loader.height/box_h
+        x1 = int((x1_old - left) * x_scale)
+        x2 = int((x2_old - left) * x_scale)
+        y1 = int((y1_old - top) * y_scale)
+        y2 = int((y2_old - top) * y_scale)
+
+        if DEBUG:
+            image = cv2.rectangle(np.ascontiguousarray(np.array(np.moveaxis(
+                obs.numpy()*255, 0, -1), dtype=np.uint8)),
+                (x1,
+                    y1),
+                (x2,
+                    y2),
+                color=(0, 0, 255),
+                thickness=1)
+            cv2.imwrite("bb_cropped.png", image)
+
+        # replace with new bb
+        bb[obj_indx] = np.array([[x1, y1, x2, y2]])
+    return bb
+
+
 def create_data_aug(dataset_loader=object):
 
     assert dataset_loader.data_augs, 'Must give some basic data-aug parameters'
@@ -246,40 +281,6 @@ def create_data_aug(dataset_loader=object):
                     "hue_strong", [-0.05, 0.05]))
             ),
         ])
-
-    def adjust_bb(dataset_loader, bb, obs, img_width=360, img_height=200, top=0, left=0, box_w=360, box_h=200):
-        # For each bounding box
-        for obj_indx, obj_bb in enumerate(bb):
-            # Convert normalized bounding box coordinates to actual coordinates
-            x1_old, y1_old, x2_old, y2_old = obj_bb
-            x1_old = int(x1_old)
-            y1_old = int(y1_old)
-            x2_old = int(x2_old)
-            y2_old = int(y2_old)
-
-            # Modify bb based on computed resized-crop
-            # 1. Take into account crop and resize
-            x_scale = dataset_loader.width/box_w
-            y_scale = dataset_loader.height/box_h
-            x1 = int((x1_old - left) * x_scale)
-            x2 = int((x2_old - left) * x_scale)
-            y1 = int((y1_old - top) * y_scale)
-            y2 = int((y2_old - top) * y_scale)
-
-            if DEBUG:
-                image = cv2.rectangle(np.ascontiguousarray(np.array(np.moveaxis(
-                    obs.numpy()*255, 0, -1), dtype=np.uint8)),
-                    (x1,
-                        y1),
-                    (x2,
-                        y2),
-                    color=(0, 0, 255),
-                    thickness=1)
-                cv2.imwrite("bb_cropped.png", image)
-
-            # replace with new bb
-            bb[obj_indx] = np.array([[x1, y1, x2, y2]])
-        return bb
 
     def horizontal_flip(obs, bb=None, p=0.1):
         if random.random() < p:

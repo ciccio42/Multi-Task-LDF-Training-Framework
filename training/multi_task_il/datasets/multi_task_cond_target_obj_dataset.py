@@ -288,7 +288,7 @@ class CondTargetObjDetectorDataset(Dataset):
         target_obj_id = traj.get(
             t)['obs']['target-object']
         for obj_id, object_name in enumerate(traj.get(t)['obs']['obj_bb']['camera_front'].keys()):
-            if object_name != 'bin' and target_obj_id == obj_id:
+            if object_name != 'bin' and obj_id == target_obj_id:
                 # 2. Get stored BB
                 top_left_x = traj.get(
                     t)['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner'][0]

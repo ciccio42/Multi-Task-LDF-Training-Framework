@@ -2,7 +2,7 @@
 export MUJOCO_PY_MUJOCO_PATH="/home/frosa_loc/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
@@ -14,16 +14,17 @@ LOG_FREQ=100
 VAL_FREQ=4050
 PRINT_FREQ=1
 
-EXP_NAME=1Task-Pick-Place-Target-Slot-MAML-224_224
-TASK_str=pick_place
+EXP_NAME=1Task-Nut-Assembly-Target-Slot-MAML-224_224
+TASK_str=nut_assembly
+PROJECT_NAME="ur_${TASK_str}_daml"
+
 EPOCH=40
-BSIZE=32 #128 #64 #32
+BSIZE=18 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
 SET_SAME_N=2
 CONFIG_PATH=../experiments
-PROJECT_NAME="ur_pick_place_daml"
 CONFIG_NAME=config.yaml
 LOADER_WORKERS=16
 NORMALIZE_ACTION=true
@@ -33,23 +34,8 @@ CONTRASTIVE_PRE=1.0
 CONTRASTIVE_POS=1.0
 MUL_INTM=0
 
-LOAD_TARGET_OBJ_DETECTOR=true
-TARGET_OBJ_DETECTOR_STEP=13000
-TARGET_OBJ_DETECTOR_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Mosaic-200-360-Target-Obj-Detector-Batch32-1gpu-Attn2ly128-Act2ly256mix4-headCat
-FREEZE_TARGET_OBJ_DETECTOR=false
-REMOVE_CLASS_LAYERS=true
-CONCAT_TARGET_OBJ_EMBEDDING=true
-CONCAT_STATE=false
-
 ACTION_DIM=7
-N_MIXTURES=5       # Nut-Assembly 3 # Pick-place 6
-OUT_DIM=128        # 64                  # 128
-ATTN_FF=256        # 128                 # 256
-COMPRESSOR_DIM=256 # 128          # 256
-HIDDEN_DIM=512     # 256              # 512
-CONCAT_DEMO_HEAD=false
-CONCAT_DEMO_ACT=true
-PRETRAINED=false
+N_MIXTURES=3       # Nut-Assembly 3 # Pick-place 6
 
 EARLY_STOPPING_PATIECE=-1
 OPTIMIZER='AdamW'
@@ -57,10 +43,6 @@ LR=0.0005
 WEIGHT_DECAY=0.0
 SCHEDULER=ReduceLROnPlateau
 
-DROP_DIM=3      # 2    # 3
-OUT_FEATURE=256 # 512 # 256
-DIM_H=14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
-DIM_W=14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 
 RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Target-Slot-Mosaic-200-360-Batch32
 RESUME_STEP=10000
