@@ -432,11 +432,13 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
                          action_ranges=None,
                          model_name=model_name,
                          task_name=env_name)
-    print("Evaluated traj #{}, task #{}, Avg IOU {}".format(
-        ctr, variation_id, info['avg_iou']))
-    # print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
-    #     ctr, variation_id, info['reached'], info['picked'], info['success']))
-    # print(f"Avg prediction {info['avg_pred']}")
+    if "cond_target_obj_detector" in model_name:
+        print("Evaluated traj #{}, task #{}, Avg IOU {}".format(
+            ctr, variation_id, info['avg_iou']))
+    else:
+        print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
+            ctr, variation_id, info['reached'], info['picked'], info['success']))
+        (f"Avg prediction {info['avg_pred']}")
     return traj, info, expert_traj, context
 
 
@@ -516,10 +518,12 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
                              max_T=max_T,
                              action_ranges=action_ranges,
                              model_name=model_name)
-
-        print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
-            ctr, variation_id, info['reached'], info['picked'], info['success']))
-        print(f"Avg prediction {info['avg_pred']}")
+        if "cond_target_obj_detector" not in model_name:
+            print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
+                ctr, variation_id, info['reached'], info['picked'], info['success']))
+            print(f"Avg prediction {info['avg_pred']}")
+        else:
+            print()
         return traj, info
 
 
@@ -783,11 +787,15 @@ if __name__ == '__main__':
         with Pool(args.num_workers) as p:
             task_success_flags = p.map(f, range(args.N))
     else:
-        task_success_flags = [f(n) for n in range(args.N)]
+        task_success_flags = f(0)   # [f(n) for n in range(args.N)]
 
     if args.wandb_log:
 
         for i, t in enumerate(task_success_flags):
+            log = dict()
+            for k in t.keys():
+                log['episode']
+
             wandb.log({
                 'episode': i,
                 'reached': float(t['reached']),

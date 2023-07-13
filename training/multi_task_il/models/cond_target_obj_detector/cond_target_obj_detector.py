@@ -560,6 +560,8 @@ class CondTargetObjectDetector(nn.Module):
                  agent_backbone_name="resnet18",
                  cond_video=False,
                  pretrained=False,
+                 dim_H=7,
+                 dim_W=7,
                  conv_drop_dim=2):
         super().__init__()
 
@@ -569,6 +571,8 @@ class CondTargetObjectDetector(nn.Module):
                                          model_name=cond_backbone_name,
                                          pretrained=pretrained,
                                          cond_video=cond_video,
+                                         demo_H=dim_H,
+                                         demo_W=dim_W,
                                          conv_drop_dim=conv_drop_dim)
 
         self._agent_backone = AgentModule(height=height,
@@ -576,9 +580,11 @@ class CondTargetObjectDetector(nn.Module):
                                           obs_T=obs_T,
                                           model_name=agent_backbone_name,
                                           pretrained=pretrained,
+                                          dim_H=dim_H,
+                                          dim_W=dim_W,
                                           conv_drop_dim=conv_drop_dim)
 
-        # summary(self)
+        summary(self)
 
     def forward(self, inputs: dict, inference: bool = False):
         cond_video = inputs['demo']
