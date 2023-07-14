@@ -994,8 +994,11 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                                       width_scale_factor=model._agent_backone.width_scale_factor,
                                       height_scale_factor=model._agent_backone.height_scale_factor,
                                       mode='a2p')
-        max_conf_score_indx = torch. argmax(
-            prediction['conf_scores_final'][0])
+        try:
+            max_conf_score_indx = torch.argmax(
+                prediction['conf_scores_final'][0])
+        except:
+            print("Argmax error")
         predicted_bb = predicted_bb[0][max_conf_score_indx]
         if DEBUG:
             image = np.array(np.moveaxis(

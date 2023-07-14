@@ -420,6 +420,7 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
     build_task = TASK_MAP.get(env_name, None)
     assert build_task, 'Got unsupported task '+env_name
     eval_fn = build_task['eval_fn']
+    target_obj_dec = None
     traj, info = eval_fn(model,
                          target_obj_dec,
                          env,
@@ -787,51 +788,52 @@ if __name__ == '__main__':
         with Pool(args.num_workers) as p:
             task_success_flags = p.map(f, range(args.N))
     else:
-        task_success_flags = f(0)   # [f(n) for n in range(args.N)]
+        task_success_flags = [f(n) for n in range(args.N)]
 
     if args.wandb_log:
 
         for i, t in enumerate(task_success_flags):
             log = dict()
+            log['episode'] = i
             for k in t.keys():
-                log['episode']
+                log[k] = float(t[k]) if k != "variation_id" else int(t[k])
+            wandb.log(log)
+
+        if "cond_target_obj_detector" not in model_name:
+            all_succ_flags = [t['success'] for t in task_success_flags]
+            all_reached_flags = [t['reached'] for t in task_success_flags]
+            all_picked_flags = [t['picked'] for t in task_success_flags]
+            all_avg_pred = [t['avg_pred'] for t in task_success_flags]
 
             wandb.log({
-                'episode': i,
-                'reached': float(t['reached']),
-                'picked': float(t['picked']),
-                'success': float(t['success']),
-                'variation': int(t['variation_id']),
+                'avg_success': np.mean(all_succ_flags),
+                'avg_reached': np.mean(all_reached_flags),
+                'avg_picked': np.mean(all_picked_flags),
+                'avg_prediction': np.mean(all_avg_pred),
+                'success_err': np.mean(all_succ_flags) / np.sqrt(args.N),
             })
-        all_succ_flags = [t['success'] for t in task_success_flags]
-        all_reached_flags = [t['reached'] for t in task_success_flags]
-        all_picked_flags = [t['picked'] for t in task_success_flags]
-        all_avg_pred = [t['avg_pred'] for t in task_success_flags]
+        else:
+            all_avg_iou = [t['avg_iou'] for t in task_success_flags]
+            wandb.log({
+                'avg_iou': np.mean(all_avg_iou)})
 
-        wandb.log({
-            'avg_success': np.mean(all_succ_flags),
-            'avg_reached': np.mean(all_reached_flags),
-            'avg_picked': np.mean(all_picked_flags),
-            'avg_prediction': np.mean(all_avg_pred),
-            'success_err': np.mean(all_succ_flags) / np.sqrt(args.N),
-        })
+    if "cond_target_obj_detector" not in model_name:
+        final_results = dict()
+        for k in ['reached', 'picked', 'success']:
+            n_success = sum([t[k] for t in task_success_flags])
+            print('Task {}, rate {}'.format(k, n_success / float(args.N)))
+            final_results[k] = n_success / float(args.N)
+        variation_ids = defaultdict(list)
+        for t in task_success_flags:
+            _id = t['variation_id']
+            variation_ids[_id].append(t['success'])
+        for _id in variation_ids.keys():
+            num_eval = len(variation_ids[_id])
+            rate = sum(variation_ids[_id]) / num_eval
+            final_results['task#'+str(_id)] = rate
+            print('Success rate on task#'+str(_id), rate)
 
-    final_results = dict()
-    for k in ['reached', 'picked', 'success']:
-        n_success = sum([t[k] for t in task_success_flags])
-        print('Task {}, rate {}'.format(k, n_success / float(args.N)))
-        final_results[k] = n_success / float(args.N)
-    variation_ids = defaultdict(list)
-    for t in task_success_flags:
-        _id = t['variation_id']
-        variation_ids[_id].append(t['success'])
-    for _id in variation_ids.keys():
-        num_eval = len(variation_ids[_id])
-        rate = sum(variation_ids[_id]) / num_eval
-        final_results['task#'+str(_id)] = rate
-        print('Success rate on task#'+str(_id), rate)
-
-    final_results['N'] = int(args.N)
-    final_results['model_saved'] = model_saved_step
-    json.dump({k: v for k, v in final_results.items()}, open(
-        results_dir+'/test_across_{}trajs.json'.format(args.N), 'w'))
+        final_results['N'] = int(args.N)
+        final_results['model_saved'] = model_saved_step
+        json.dump({k: v for k, v in final_results.items()}, open(
+            results_dir+'/test_across_{}trajs.json'.format(args.N), 'w'))
