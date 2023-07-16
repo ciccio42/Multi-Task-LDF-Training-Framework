@@ -277,7 +277,7 @@ def build_env(ctr=0, env_name='nut', heights=100, widths=200, size=False, shape=
         # load custom controller
         controller = load_controller_config(
             custom_fpath=controller_path)
-    assert gpu_id != -1
+    # assert gpu_id != -1
     build_task = TASK_MAP.get(env_name, None)
     assert build_task, 'Got unsupported task '+env_name
     div = int(build_task['num_variations'])
@@ -324,7 +324,7 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights
         # load custom controller
         controller = load_controller_config(
             custom_fpath=controller_path)
-    assert gpu_id != -1
+    # assert gpu_id != -1
     build_task = TASK_MAP.get(env_name, None)
     assert build_task, 'Got unsupported task '+env_name
     div = int(build_task['num_variations'])
@@ -528,7 +528,7 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
         return traj, info
 
 
-def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, seed, max_T, controller_path, model_name, n):
+def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, seed, max_T, controller_path, model_name, gpu_id, n):
 
     json_name = results_dir + '/traj{}.json'.format(n)
     pkl_name = results_dir + '/traj{}.pkl'.format(n)
@@ -556,7 +556,8 @@ def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, sha
                                                seed=seed,
                                                action_ranges=np.array(
                                                    config.dataset_cfg.get('normalization_ranges', [])),
-                                               model_name=model_name)
+                                               model_name=model_name,
+                                               gpu_id=gpu_id)
         else:
             # Perform object detection inference
             return_rollout = object_detection_inference(model=model,
@@ -573,7 +574,8 @@ def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, sha
                                                         variation=variation,
                                                         controller_path=controller_path,
                                                         seed=seed,
-                                                        model_name=model_name)
+                                                        model_name=model_name,
+                                                        gpu_id=gpu_id)
 
         if "vima" not in model_name:
             rollout, task_success_flags, expert_traj, context = return_rollout
@@ -630,6 +632,7 @@ if __name__ == '__main__':
     parser.add_argument('--variation', default=None, type=int)
     parser.add_argument('--seed', default=None, type=int)
     parser.add_argument('--controller_path', default=None, type=str)
+    parser.add_argument('--gpu_id', default=-1, type=int)
 
     args = parser.parse_args()
 
@@ -782,7 +785,8 @@ if __name__ == '__main__':
                           seed,
                           max_T,
                           args.controller_path,
-                          model_name)
+                          model_name,
+                          args.gpu_id)
 
     if parallel:
         with Pool(args.num_workers) as p:

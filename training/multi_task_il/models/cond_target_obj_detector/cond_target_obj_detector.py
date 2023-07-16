@@ -342,7 +342,7 @@ class CondModule(nn.Module):
 
 class AgentModule(nn.Module):
 
-    def __init__(self, height=120, width=160, obs_T=4, model_name="resnet18", pretrained=False, load_film=True, n_res_blocks=6, n_classes=1, n_channels=512, task_embedding_dim=128, dim_H=7, dim_W=7, conv_drop_dim=3):
+    def __init__(self, height=120, width=160, obs_T=4, model_name="resnet18", pretrained=False, load_film=True, n_res_blocks=6, n_classes=1, task_embedding_dim=128, dim_H=7, dim_W=7, conv_drop_dim=3):
         super().__init__()
         if not load_film:
             self._module = get_backbone(backbone_name=model_name,
@@ -540,6 +540,7 @@ class AgentModule(nn.Module):
 
                     ret_dict['proposals'] = proposals_final
                     ret_dict['conf_scores_final'] = conf_scores_final
+                    ret_dict['feature_map'] = feature_map
 
                     return ret_dict
 
@@ -562,8 +563,12 @@ class CondTargetObjectDetector(nn.Module):
                  pretrained=False,
                  dim_H=7,
                  dim_W=7,
-                 conv_drop_dim=2):
+                 conv_drop_dim=2,
+                 n_channels=512):
         super().__init__()
+
+        self.dim_H = dim_H
+        self.dim_W = dim_W
 
         self._cond_backbone = CondModule(height=height,
                                          width=width,
@@ -573,7 +578,8 @@ class CondTargetObjectDetector(nn.Module):
                                          cond_video=cond_video,
                                          demo_H=dim_H,
                                          demo_W=dim_W,
-                                         conv_drop_dim=conv_drop_dim)
+                                         conv_drop_dim=conv_drop_dim
+                                         )
 
         self._agent_backone = AgentModule(height=height,
                                           width=width,

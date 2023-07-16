@@ -1,6 +1,7 @@
 export CUDA_VISIBLE_DEVICES=0
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib 
 
 BASE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework
 PROJECT_NAME=pick_place_cond_target_obj_detector
@@ -12,7 +13,7 @@ for MODEL in ${MODEL_PATH}; do
     for S in 16200; do
         for TASK in pick_place; do
 
-            python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --wandb_log
+            python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --debug
         done
     done
 done

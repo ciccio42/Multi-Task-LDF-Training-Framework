@@ -18,8 +18,6 @@ import cv2
 import random
 from tokenizers import Tokenizer
 from tokenizers import AddedToken
-import vima.nn as vnn
-from vima.utils import *
 from einops import rearrange, repeat
 
 set_start_method('forkserver', force=True)

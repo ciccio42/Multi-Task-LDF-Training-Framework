@@ -1,12 +1,13 @@
 #!/bin/sh
-export MUJOCO_PY_MUJOCO_PATH="/home/frosa_loc/.mujoco/mujoco210"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
+export MUJOCO_PY_MUJOCO_PATH="/user/frosa/.mujoco/mujoco210"
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=1
+export LD_LIBRARY_PATH=/user/frosa/miniconda3/envs/multi_task_lfd/lib:$LD_LIBRARY_PATH 
+export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
-SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline
+EXPERT_DATA=/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework/ur_multitask_dataset
+SAVE_PATH=/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/DAML
 POLICY='${daml}'
 
 SAVE_FREQ=8100
@@ -44,9 +45,9 @@ WEIGHT_DECAY=0.0
 SCHEDULER=ReduceLROnPlateau
 
 
-RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Target-Slot-Mosaic-200-360-Batch32
-RESUME_STEP=10000
-RESUME=false
+RESUME_PATH=/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/DAML/1Task-Nut-Assembly-Target-Slot-MAML-224_224-Batch18
+RESUME_STEP=48600
+RESUME=true
 
 COSINE_ANNEALING=false
 USE_DAML=true
@@ -82,8 +83,8 @@ python ../training/train_scripts/train_any.py \
     simclr.mul_pre=${CONTRASTIVE_PRE} \
     simclr.mul_pos=${CONTRASTIVE_POS} \
     simclr.mul_intm=${MUL_INTM} \
-    debug=false \
-    wandb_log=true \
+    debug=true \
+    wandb_log=false \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS} \
     cosine_annealing=${COSINE_ANNEALING}

@@ -16,7 +16,7 @@ import cv2
 from multi_task_il.utils import denormalize_action, denormalize_action_vima
 from multi_task_test import make_prompt, prepare_obs
 from einops import rearrange, repeat
-from vima.utils import *
+from multi_task_il.models.vima.utils import *
 import robosuite.utils.transform_utils as T
 from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
 from torchvision.ops import box_iou
@@ -28,7 +28,10 @@ from torchvision.ops import box_iou
 
 # open command json file
 import json
-with open("/home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/tasks/collect_data/command.json") as f:
+import multi_task_robosuite_env as mtre
+commad_path = os.path.join(os.path.dirname(
+    mtre.__file__), "../collect_data/command.json")
+with open(commad_path) as f:
     TASK_COMMAND = json.load(f)
 
 ENV_OBJECTS = {

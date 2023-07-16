@@ -111,27 +111,45 @@ class CondPolicy(nn.Module):
                  freeze_target_detector=True,
                  concat_state=True,
                  cond_target_obj_detector_cfg=None,
+                 cond_target_obj_detector_pretrained=True,
+                 cond_target_obj_detector_weights=None,
                  action_cfg=None,
                  concat_bb=True,
                  mlp_layers=[512, 256, 128],
                  pooling=False,
-                 avg_pooling=False,
+                 avg_pooling=False
                  ):
 
         super().__init__()
 
-        self.cond_target_obj_detector = CondTargetObjectDetector(height=cond_target_obj_detector_cfg.height,
-                                                                 width=cond_target_obj_detector_cfg.width,
-                                                                 demo_T=cond_target_obj_detector_cfg.demo_T,
-                                                                 obs_T=cond_target_obj_detector_cfg.obs_T,
-                                                                 cond_backbone_name=cond_target_obj_detector_cfg.cond_backbone_name,
-                                                                 agent_backbone_name=cond_target_obj_detector_cfg.agent_backbone_name,
-                                                                 cond_video=cond_target_obj_detector_cfg.cond_video,
-                                                                 pretrained=cond_target_obj_detector_cfg.pretrained,
-                                                                 dim_H=cond_target_obj_detector_cfg.dim_H,
-                                                                 dim_W=cond_target_obj_detector_cfg.dim_W,
-                                                                 conv_drop_dim=cond_target_obj_detector_cfg.conv_drop_dim,
-                                                                 )
+        # self.cond_target_obj_detector = CondTargetObjectDetector(height=cond_target_obj_detector_cfg.height,
+        #                                                          width=cond_target_obj_detector_cfg.width,
+        #                                                          demo_T=cond_target_obj_detector_cfg.demo_T,
+        #                                                          obs_T=cond_target_obj_detector_cfg.obs_T,
+        #                                                          cond_backbone_name=cond_target_obj_detector_cfg.cond_backbone_name,
+        #                                                          agent_backbone_name=cond_target_obj_detector_cfg.agent_backbone_name,
+        #                                                          cond_video=cond_target_obj_detector_cfg.cond_video,
+        #                                                          pretrained=cond_target_obj_detector_cfg.pretrained,
+        #                                                          dim_H=cond_target_obj_detector_cfg.dim_H,
+        #                                                          dim_W=cond_target_obj_detector_cfg.dim_W,
+        #                                                          conv_drop_dim=cond_target_obj_detector_cfg.conv_drop_dim,
+        #                                                          )
+
+        # 1. Istantiate cond_target_obj_detector
+        try:
+            self.cond_target_obj_detector = hydra.utils.instantiate(
+                cond_target_obj_detector_cfg)
+        except:
+            self.cond_target_obj_detector = cond_target_obj_detector_cfg
+        # 2. Load cond_target_obj_detector weights
+        if cond_target_obj_detector_pretrained:
+            print(
+                f"Loading Cond-Target-Obj-Detector from {cond_target_obj_detector_weights}")
+            cond_target_obj_detector_state_dict = torch.load(
+                cond_target_obj_detector_weights, map_location=torch.device('cuda:0'))
+            self.cond_target_obj_detector.load_state_dict(
+                cond_target_obj_detector_state_dict)
+
         if freeze_target_detector:
             # Freeze Conditioned Target Object Detector
             for param in self.cond_target_obj_detector.parameters():
@@ -169,7 +187,8 @@ class CondPolicy(nn.Module):
                     nn.Linear(mlp_layers[indx-1], mlp_layers[indx]))
                 action_module_mlp.append(nn.ReLU())
 
-        self.action_module = nn.Sequential(**action_module_mlp)
+        self.action_module = nn.Sequential(
+            *action_module_mlp)
 
         head_in_dim = mlp_layers[-1]
         self._action_dist = _DiscreteLogHead(
@@ -179,6 +198,12 @@ class CondPolicy(nn.Module):
             const_var=action_cfg.const_var,
             sep_var=action_cfg.sep_var
         )
+
+        model_parameters = filter(lambda p: p.requires_grad, self.parameters())
+        params = sum([np.prod(p.size()) for p in model_parameters])
+        print('Total params in Imitation module:', params)
+        print("\n\n---- Complete model ----\n")
+        summary(self)
 
     def forward(self, inputs: dict, inference: bool = False):
 
@@ -193,11 +218,19 @@ class CondPolicy(nn.Module):
         # 2. Compute average pooling channels wise
         # B*T, 1, 7, 7
         average_pooling = self.avg_pooling(last_layer_feature,
-                                           dim=1)
+                                           dim=1)[None]
         # 3. Compute SpatialSoftmax
         spatial_softmax_out = self.spatial_softmax(average_pooling)
 
         # 4. Flat the vector
+        # B*T, 1, 7, 7
+        spatial_softmax_out = torch.flatten(spatial_softmax_out, start_dim=1)
+
+        # 5. Create action_in vector
+        # reshape states
+        states = rearrange(inputs['states'], 'B T N -> (B T) N')
+        # get the bb with the highest conf score
+        action_in = torch.concat([spatial_softmax_out, states, ])
 
 
 @hydra.main(
@@ -223,18 +256,26 @@ def main(cfg):
     inputs['states'] = torch.rand(
         (1, 6),  dtype=torch.float).to('cuda:0')[None]
 
-    module = CondPolicy(freeze_target_detector=cfg.policy.freeze_target_detector,
-                        concat_state=cfg.policy.concat_state,
-                        cond_target_obj_detector_cfg=cfg.policy.cond_target_obj_detector_cfg,
-                        action_cfg=cfg.policy.action_cfg,
-                        concat_bb=cfg.policy.concat_bb,
-                        mlp_layers=cfg.policy.mlp_layers,
-                        pooling=cfg.policy.pooling,
-                        avg_pooling=cfg.policy.avg_pooling,
-                        )
+    inputs['gt_bb'] = torch.rand(
+        (1, 1, 4),  dtype=torch.float).to('cuda:0')[None]
+
+    inputs['gt_classes'] = torch.rand(
+        (1, 1),  dtype=torch.float).to('cuda:0')[None]
+
+    # module = CondPolicy(freeze_target_detector=cfg.policy.freeze_target_detector,
+    #                     concat_state=cfg.policy.concat_state,
+    #                     cond_target_obj_detector_cfg=cfg.policy.cond_target_obj_detector_cfg,
+    #                     action_cfg=cfg.policy.action_cfg,
+    #                     concat_bb=cfg.policy.concat_bb,
+    #                     mlp_layers=cfg.policy.mlp_layers,
+    #                     pooling=cfg.policy.pooling,
+    #                     avg_pooling=cfg.policy.avg_pooling,
+    #                     )
+
+    module = hydra.utils.instantiate(cfg.policy)
 
     module.to('cuda:0')
-    module(inputs, validation=True)
+    module(inputs, inference=False)
 
 
 if __name__ == '__main__':

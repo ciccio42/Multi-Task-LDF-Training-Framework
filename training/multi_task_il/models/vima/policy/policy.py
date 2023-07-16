@@ -5,8 +5,8 @@ import torch.nn as nn
 from tokenizers import AddedToken
 from einops import rearrange, repeat
 
-import vima.nn as vnn
-from vima.utils import *
+import multi_task_il.models.vima.nn as vnn
+from multi_task_il.models.vima.utils import *
 import numpy as np
 import cv2
 from multi_task_il.models.discrete_logistic import DiscreteMixLogistic

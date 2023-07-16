@@ -135,8 +135,9 @@ cond_target_obj_detector:
   pretrained: False
   dim_H: 7 
   dim_W: 7
-  out_ch: 512
+  n_channels: 512
   conv_drop_dim: 2
+
   
 
 actions:
@@ -150,6 +151,8 @@ actions:
 cond_policy:
   _target_: multi_task_il.models.cond_target_obj_detector.policy.CondPolicy
   cond_target_obj_detector_cfg: ${cond_target_obj_detector}
+  cond_target_obj_detector_pretrained: True
+  cond_target_obj_detector_weights: "/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/TARGET_OBJ_DETECTOR_SLOT/1Task-Pick-Place-Cond-Target-Obj-Detector-Batch32/model_save-16200.pt"
   action_cfg: ${actions}
   freeze_target_detector: True
   concat_state: True
