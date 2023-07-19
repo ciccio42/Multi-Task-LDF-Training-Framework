@@ -2,12 +2,11 @@
 export MUJOCO_PY_MUJOCO_PATH="/user/frosa/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export LD_LIBRARY_PATH=/user/frosa/miniconda3/envs/multi_task_lfd/lib:$LD_LIBRARY_PATH 
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=3
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework/ur_multitask_dataset
-SAVE_PATH=/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/DAML
+EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
+SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/DAML/
 POLICY='${daml}'
 
 SAVE_FREQ=8100
@@ -45,7 +44,7 @@ WEIGHT_DECAY=0.0
 SCHEDULER=ReduceLROnPlateau
 
 
-RESUME_PATH=/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/DAML/1Task-Nut-Assembly-Target-Slot-MAML-224_224-Batch18
+RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/DAML/1Task-Nut-Assembly-Target-Slot-MAML-224_224-Batch18
 RESUME_STEP=48600
 RESUME=true
 
