@@ -1,14 +1,9 @@
 import random
 import torch
-from os.path import join, expanduser
-from multi_task_il.datasets import load_traj, split_files
+from multi_task_il.datasets import load_traj
 import cv2
-from torch.utils.data import Dataset, Sampler, SubsetRandomSampler, RandomSampler, WeightedRandomSampler
-from torch.utils.data._utils.collate import default_collate
-from torchvision import transforms
-from torchvision.transforms import RandomAffine, ToTensor, Normalize, \
-    RandomGrayscale, ColorJitter, RandomApply, RandomHorizontalFlip, GaussianBlur, RandomResizedCrop
-from torchvision.transforms.functional import resized_crop
+from torch.utils.data import Dataset
+
 
 import pickle as pkl
 from collections import defaultdict, OrderedDict
@@ -16,9 +11,7 @@ import glob
 import numpy as np
 import matplotlib.pyplot as plt
 import copy
-from copy import deepcopy
-from functools import reduce
-from operator import concat
+
 from multi_task_il.utils import normalize_action
 from multi_task_il.datasets.utils import *
 
@@ -125,83 +118,9 @@ class MultiTaskPairedDataset(Dataset):
             self._frame_distribution[agent_file] = np.zeros((1, 250))
 
         demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
-        demo_data = self._make_demo(demo_traj[0], task_name)
+        demo_data = make_demo(self, demo_traj[0], task_name)
         traj = self._make_traj(agent_traj[0], task_name, agent_file)
         return {'demo_data': demo_data, 'traj': traj, 'task_name': task_name, 'task_id': sub_task_id}
-
-    def _make_demo(self, traj, task_name):
-        """
-        Do a near-uniform sampling of the demonstration trajectory
-        """
-        if self.select_random_frames:
-            def clip(x): return int(max(1, min(x, len(traj) - 1)))
-            per_bracket = max(len(traj) / self._demo_T, 1)
-            frames = []
-            cp_frames = []
-            for i in range(self._demo_T):
-                # fix to using uniform + 'sample_side' now
-                if i == self._demo_T - 1:
-                    n = len(traj) - 1
-                elif i == 0:
-                    n = 1
-                else:
-                    n = clip(np.random.randint(
-                        int(i * per_bracket), int((i + 1) * per_bracket)))
-                # frames.append(_make_frame(n))
-                # convert from BGR to RGB and scale to 0-1 range
-                obs = copy.copy(
-                    traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
-                processed = self.frame_aug(task_name, obs)
-                frames.append(processed)
-                if self.aug_twice:
-                    cp_frames.append(self.frame_aug(task_name, obs, True))
-        else:
-            frames = []
-            cp_frames = []
-            for i in range(self._demo_T):
-                # get first frame
-                if i == 0:
-                    n = 1
-                # get the last frame
-                elif i == self._demo_T - 1:
-                    n = len(traj) - 1
-                elif i == 1:
-                    obj_in_hand = 0
-                    # get the first frame with obj_in_hand and the gripper is closed
-                    for t in range(1, len(traj)):
-                        state = traj.get(t)['info']['status']
-                        trj_t = traj.get(t)
-                        gripper_act = trj_t['action'][-1]
-                        if state == 'obj_in_hand' and gripper_act == 1:
-                            obj_in_hand = t
-                            n = t
-                            break
-                elif i == 2:
-                    # get the middle moving frame
-                    start_moving = 0
-                    end_moving = 0
-                    for t in range(obj_in_hand, len(traj)):
-                        state = traj.get(t)['info']['status']
-                        if state == 'moving' and start_moving == 0:
-                            start_moving = t
-                        elif state != 'moving' and start_moving != 0 and end_moving == 0:
-                            end_moving = t
-                            break
-                    n = start_moving + int((end_moving-start_moving)/2)
-
-                # convert from BGR to RGB and scale to 0-1 range
-                obs = copy.copy(
-                    traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
-
-                processed = self.frame_aug(task_name, obs)
-                frames.append(processed)
-                if self.aug_twice:
-                    cp_frames.append(self.frame_aug(task_name, obs, True))
-
-        ret_dict = dict()
-        ret_dict['demo'] = torch.stack(frames)
-        ret_dict['demo_cp'] = torch.stack(cp_frames)
-        return ret_dict
 
     def _make_traj(self, traj, task_name, agent_file):
         crop_params = self.task_crops.get(task_name, [0, 0, 0, 0])

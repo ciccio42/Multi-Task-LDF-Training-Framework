@@ -46,7 +46,7 @@ ENV_OBJECTS = {
     }
 }
 
-DEBUG = True
+DEBUG = False
 
 
 def get_action(model, target_obj_dec, states, images, context, gpu_id, n_steps, max_T=80, baseline=None, action_ranges=[], target_obj_embedding=None):
@@ -422,9 +422,9 @@ def nut_assembly_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, var
             target_obj_emb)
 
         obs, reward, env_done, info = env.step(action)
-        obs['activation_map'] = activation_map
-        cv2.imwrite("prova_activation_map.png", activation_map.numpy())
-        traj.append(obs, reward, done, info, action)
+        # obs['activation_map'] = activation_map
+        # cv2.imwrite("prova_activation_map.png", activation_map.numpy())
+        # traj.append(obs, reward, done, info, action)
 
         if target_obj_dec is not None:
             info['target_pred'] = target_pred
@@ -1002,8 +1002,8 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                 prediction['conf_scores_final'][0])
         except:
             print("Argmax error")
-        predicted_bb = predicted_bb[0][max_conf_score_indx]
-        if DEBUG:
+        predicted_bb = predicted_bb[max_conf_score_indx]
+        if True:
             image = np.array(np.moveaxis(
                 formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
 
@@ -1020,14 +1020,14 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                                    int(bb_t[0][3])),
                                   color=(250, 0, 0), thickness=1)
             cv2.imwrite("predicted_bb.png", image)
-            obs['predicted_bb'] = predicted_bb.cpu().numpy()
-            obs['gt_bb'] = bb_t
-            # compute IoU over time
-            iou_t = box_iou(boxes1=torch.from_numpy(
-                bb_t).to(device=gpu_id), boxes2=predicted_bb[None])
-            obs['iou'] = iou_t[0][0].cpu().numpy()
-            iou += iou_t[0][0].cpu().numpy()
-            traj.append(obs)
+        obs['predicted_bb'] = predicted_bb.cpu().numpy()
+        obs['gt_bb'] = bb_t
+        # compute IoU over time
+        # iou_t = box_iou(boxes1=torch.from_numpy(
+        #     bb_t).to(device=gpu_id), boxes2=predicted_bb[None])
+        # obs['iou'] = iou_t[0][0].cpu().numpy()
+        # iou += iou_t[0][0].cpu().numpy()
+        traj.append(obs)
         try:
             if controller is not None:
                 # compute the action for the current state

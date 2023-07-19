@@ -1,14 +1,9 @@
 import random
 import torch
-from os.path import join, expanduser
-from multi_task_il.datasets import load_traj, split_files
+from multi_task_il.datasets import load_traj
 import cv2
-from torch.utils.data import Dataset, Sampler, SubsetRandomSampler, RandomSampler, WeightedRandomSampler
-from torch.utils.data._utils.collate import default_collate
-from torchvision import transforms
-from torchvision.transforms import RandomAffine, ToTensor, Normalize, \
-    RandomGrayscale, ColorJitter, RandomApply, RandomHorizontalFlip, GaussianBlur, RandomResizedCrop
-from torchvision.transforms.functional import resized_crop
+from torch.utils.data import Dataset
+
 
 import pickle as pkl
 from collections import defaultdict, OrderedDict
@@ -16,36 +11,9 @@ import glob
 import numpy as np
 import matplotlib.pyplot as plt
 import copy
-from copy import deepcopy
-from functools import reduce
-from operator import concat
 
-ENV_OBJECTS = {
-    'pick_place': {
-        'obj_names': ['greenbox', 'yellowbox', 'bluebox', 'redbox'],
-        'ranges': [[-0.255, -0.195], [-0.105, -0.045], [0.045, 0.105], [0.195, 0.255]],
-    },
-    'nut_assembly': {
-        'obj_names': ['nut0', 'nut1', 'nut2'],
-        'ranges': [[0.10, 0.31], [-0.10, 0.10], [-0.31, -0.10]]
-    }
-}
-
-JITTER_FACTORS = {'brightness': 0.4,
-                  'contrast': 0.4, 'saturation': 0.4, 'hue': 0.1}
-
-
-def collate_by_task(batch):
-    """ Use this for validation: groups data by task names to compute per-task losses """
-    per_task_data = defaultdict(list)
-    for b in batch:
-        per_task_data[b['task_name']].append(
-            {k: v for k, v in b.items() if k != 'task_name' and k != 'task_id'}
-        )
-
-    for name, data in per_task_data.items():
-        per_task_data[name] = default_collate(data)
-    return per_task_data
+from multi_task_il.utils import normalize_action
+from multi_task_il.datasets.utils import *
 
 
 class MultiTaskPairedTargetObjDataset(Dataset):
@@ -70,44 +38,9 @@ class MultiTaskPairedTargetObjDataset(Dataset):
             compute_obj_distribution=False,
             agent_name='ur5e',
             demo_name='panda',
-            **params):
-        """
-        Args:
-        -  root_dir:
-            path to robosuite multi-task's data folder e.g. /home/mandi/robosuite/multi_task
-        -  tasks_spec:
-            a **List** specifying data location and other info for each task
-            e.g. task_name = 'place'
-                tasks_spec[0] = {
-                    'name':             'place'
-                    'date':             '0418'
-                    'crop':             [30, 70, 85, 85], # this is pre-data-aug cropping
-                    'traj_per_subtask': 100,
-                    'n_tasks':          16,
-                    'skip_id':          [-1] # a list of task ids to exclude!
-                }
-        (below are info shared across tasks:)
-        - height， width
-            crop params can be different but keep final image sizes the same
-        - demo_T, obs_T:
-            fixed demontration length and observation length
-        - data_augs:
-            specify how to crop/translate/jitter the data _after_ each image is cropped into the same sizes
-            e.g. {
-                'rand_trans': 0.1,      # proportionally shift the image by 0.1 times its height/width
-                'jitter': 0.5,    # probability _factor_ to jitter each of the four jitter factors
-                'grayscale': 0.2,       # got recommended 0.2 or 0.1
-                }
-        - state_spec:
-            which state vectors to extract
-                e.g. ('ee_aa', 'ee_vel', 'joint_pos', 'joint_vel', 'gripper_qpos', 'object_detected')
-        -  action_spec
-                action keys to get
-        -  allow_train_skip, allow_val_skip:
-                whether we entirely skip loading some of the subtasks to the dataset
-        -   non_sequential：
-                whether to take strides when we sample， note if we do this then inverse dynamics loss is invalid
-        """
+            load_action=False,
+            ** params):
+
         self.task_crops = OrderedDict()
         # each idx i maps to a unique tuple of (task_name, sub_task_id, agent.pkl, demo.pkl)
         self.all_file_pairs = OrderedDict()
@@ -126,119 +59,15 @@ class MultiTaskPairedTargetObjDataset(Dataset):
         self.object_distribution_to_indx = OrderedDict()
         self.index_to_slot = OrderedDict()
 
-        for spec in tasks_spec:
-            name, date = spec.get('name', None), spec.get('date', None)
-            assert name, 'need to specify the task name for data generated, for easier tracking'
-            self.agent_files[name] = dict()
-            self.demo_files[name] = dict()
+        create_train_val_dict(self,
+                              agent_name,
+                              demo_name,
+                              root_dir,
+                              tasks_spec,
+                              split,
+                              allow_train_skip,
+                              allow_val_skip)
 
-            self.object_distribution[name] = OrderedDict()
-            self.object_distribution_to_indx[name] = OrderedDict()
-
-            if mode == 'train':
-                print(
-                    "Loading task [{:<9}] saved on date {}".format(name, date))
-            if date is None:
-                agent_dir = join(
-                    root_dir, name, '{}_{}'.format(agent_name, name))
-                demo_dir = join(
-                    root_dir, name, '{}_{}'.format(demo_name, name))
-            else:
-                agent_dir = join(
-                    root_dir, name, '{}_{}_{}'.format(date, agent_name, name))
-                demo_dir = join(
-                    root_dir, name, '{}_{}_{}'.format(date, demo_name, name))
-            self.subtask_to_idx[name] = defaultdict(list)
-            for _id in range(spec.get('n_tasks')):
-                if _id in spec.get('skip_ids', []):
-                    if (allow_train_skip and mode == 'train') or (allow_val_skip and mode == 'val'):
-                        print(
-                            'Warning! Excluding subtask id {} from loaded **{}** dataset for task {}'.format(_id, mode, name))
-                        continue
-                task_id = 'task_{:02d}'.format(_id)
-                task_dir = expanduser(join(agent_dir,  task_id, '*.pkl'))
-                agent_files = sorted(glob.glob(task_dir))
-                assert len(agent_files) != 0, "Can't find dataset for task {}, subtask {} in dir {}".format(
-                    name, _id, task_dir)
-                subtask_size = spec.get('traj_per_subtask', 100)
-                assert len(
-                    agent_files) >= subtask_size, "Doesn't have enough data "+str(len(agent_files))
-                agent_files = agent_files[:subtask_size]
-
-                # prev. version does split randomly, here we strictly split each subtask in the same split ratio:
-                idxs = split_files(len(agent_files), split, mode)
-                agent_files = [agent_files[i] for i in idxs]
-
-                task_dir = expanduser(join(demo_dir, task_id, '*.pkl'))
-
-                demo_files = sorted(glob.glob(task_dir))
-                subtask_size = spec.get('demo_per_subtask', 100)
-                assert len(
-                    demo_files) >= subtask_size, "Doesn't have enough data "+str(len(demo_files))
-                demo_files = demo_files[:subtask_size]
-                idxs = split_files(len(demo_files), split, mode)
-                demo_files = [demo_files[i] for i in idxs]
-                # assert len(agent_files) == len(demo_files), \
-                #     'data for task {}, subtask #{} is not matched'.format(name, task_id)
-
-                self.agent_files[name][_id] = deepcopy(agent_files)
-                self.demo_files[name][_id] = deepcopy(demo_files)
-
-                self.object_distribution[name][task_id] = OrderedDict()
-                self.object_distribution_to_indx[name][task_id] = [
-                    [] for i in range(len(ENV_OBJECTS[name]['ranges']))]
-                if self.compute_obj_distribution:
-                    # for each subtask, create a dict with the object name
-                    # assign the slot at each file
-                    for agent in agent_files:
-                        # compute object distribution if requested
-                        if self.compute_obj_distribution:
-                            # load pickle file
-                            with open(agent, "rb") as f:
-                                agent_file_data = pkl.load(f)
-                            # take trj
-                            trj = agent_file_data['traj']
-                            # take target object id
-                            target_obj_id = trj[1]['obs']['target-object']
-                            for id, obj_name in enumerate(ENV_OBJECTS[name]['obj_names']):
-                                if id == target_obj_id:
-                                    if obj_name not in self.object_distribution[name][task_id]:
-                                        self.object_distribution[name][task_id][obj_name] = OrderedDict(
-                                        )
-                                    # get object position
-                                    if name == 'nut_assembly':
-                                        if id == 0:
-                                            pos = trj[1]['obs']['round-nut_pos']
-                                        else:
-                                            pos = trj[1]['obs'][f'round-nut-{id+1}_pos']
-                                    else:
-                                        pos = trj[1]['obs'][f'{obj_name}_pos']
-                                    for i, pos_range in enumerate(ENV_OBJECTS[name]["ranges"]):
-                                        if pos[1] >= pos_range[0] and pos[1] <= pos_range[1]:
-                                            self.object_distribution[name][task_id][obj_name][agent] = i
-                                            break
-                                    break
-
-                for demo in demo_files:
-                    for agent in agent_files:
-                        self.all_file_pairs[count] = (name, _id, demo, agent)
-                        self.task_to_idx[name].append(count)
-                        self.subtask_to_idx[name][task_id].append(count)
-                        if self.compute_obj_distribution:
-                            # take objs for the current task_id
-                            for obj in self.object_distribution[name][task_id].keys():
-                                # take the slot for the given agent file
-                                if agent in self.object_distribution[name][task_id][obj]:
-                                    slot_indx = self.object_distribution[name][task_id][obj][agent]
-                                    # assign the slot for the given agent file
-                                    self.object_distribution_to_indx[name][task_id][slot_indx].append(
-                                        count)
-                                    self.index_to_slot[count] = slot_indx
-                        count += 1
-
-            self.task_crops[name] = spec.get('crop', [0, 0, 0, 0])
-
-        print('Done loading Task {}, agent/demo trajctores pairs reach a count of: {}'.format(name, count))
         self.pairs_count = count
         self.task_count = len(tasks_spec)
 
@@ -250,78 +79,9 @@ class MultiTaskPairedTargetObjDataset(Dataset):
         if non_sequential:
             print("Warning! The agent observations are not sampled in neighboring timesteps, make sure inverse dynamics loss is NOT used in training \n ")
 
-        assert data_augs, 'Must give some basic data-aug parameters'
-        if mode == 'train':
-            print('Data aug parameters:', data_augs)
-        # self.randAffine = RandomAffine(degrees=0, translate=(data_augs.get('rand_trans', 0.1), data_augs.get('rand_trans', 0.1)))
-        self.toTensor = ToTensor()
-        self.normalize = Normalize(
-            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        jitters = {k: v * data_augs.get('weak_jitter', 0)
-                   for k, v in JITTER_FACTORS.items()}
-        weak_jitter = ColorJitter(**jitters)
-
-        weak_scale = data_augs.get('weak_crop_scale', (0.8, 1.0))
-        weak_ratio = data_augs.get('weak_crop_ratio', (1.6, 1.8))
-        randcrop = RandomResizedCrop(
-            size=(height, width), scale=weak_scale, ratio=weak_ratio)
-        if data_augs.use_affine:
-            randcrop = RandomAffine(degrees=0, translate=(data_augs.get(
-                'rand_trans', 0.1), data_augs.get('rand_trans', 0.1)))
-        self.transforms = transforms.Compose([  # normalize at the end
-            RandomApply([weak_jitter], p=0.1),
-            RandomApply(
-                [GaussianBlur(kernel_size=5, sigma=data_augs.get('blur', (0.1, 2.0)))], p=0.1),
-            randcrop,
-            # self.normalize
-        ])
-
         self.use_strong_augs = use_strong_augs
-        print("Using strong augmentations?", use_strong_augs)
-        jitters = {k: v * data_augs.get('strong_jitter', 0)
-                   for k, v in JITTER_FACTORS.items()}
-        strong_jitter = ColorJitter(**jitters)
-        self.grayscale = RandomGrayscale(data_augs.get("grayscale", 0))
-        strong_scale = data_augs.get('strong_crop_scale', (0.2, 0.76))
-        strong_ratio = data_augs.get('strong_crop_ratio', (1.2, 1.8))
-        self.strong_augs = transforms.Compose([
-            RandomApply([strong_jitter], p=0.05),
-            self.grayscale,
-            RandomHorizontalFlip(p=data_augs.get('flip', 0)),
-            RandomApply(
-                [GaussianBlur(kernel_size=5, sigma=data_augs.get('blur', (0.1, 2.0)))], p=0.01),
-            RandomResizedCrop(
-                size=(height, width), scale=strong_scale, ratio=strong_ratio),
-            # self.normalize,
-        ])
-
-        def frame_aug(task_name, obs, second=False):
-            """applies to every timestep's RGB obs['camera_front_image']"""
-            crop_params = self.task_crops.get(task_name, [0, 0, 0, 0])
-            top, left = crop_params[0], crop_params[2]
-            img_height, img_width = obs.shape[0], obs.shape[1]
-            box_h, box_w = img_height - top - \
-                crop_params[1], img_width - left - crop_params[3]
-
-            obs = self.toTensor(obs)
-            # only this resize+crop is task-specific
-            obs = resized_crop(obs, top=top, left=left, height=box_h,
-                               width=box_w, size=(self.height, self.width))
-            cv2.imwrite("resized_target_obj.png", np.moveaxis(
-                obs.numpy()*255, 0, -1))
-            if self.use_strong_augs and second:
-                augmented = self.strong_augs(obs)
-            else:
-                augmented = self.transforms(obs)
-            assert augmented.shape == obs.shape
-            if self.mode == 'val':
-                cv2.imwrite(f"augment_val_target_obj.png", np.moveaxis(
-                    augmented.numpy()*255, 0, -1))
-            if self.mode == 'train':
-                cv2.imwrite(f"augment_train_target_obj.png", np.moveaxis(
-                    augmented.numpy()*255, 0, -1))
-            return augmented
-        self.frame_aug = frame_aug
+        self.data_augs = data_augs
+        self.frame_aug = create_data_aug(self)
 
     def __len__(self):
         """NOTE: we should count total possible demo-agent pairs, not just single-file counts
@@ -336,92 +96,18 @@ class MultiTaskPairedTargetObjDataset(Dataset):
         (task_name, sub_task_id, demo_file,
          agent_file) = self.all_file_pairs[idx]
         demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
-        demo_data = self._make_demo(demo_traj[0], task_name)
+        demo_data = make_demo(self, demo_traj[0], task_name)
         traj = self._make_traj(agent_traj[0], task_name, idx)
         return {'demo_data': demo_data, 'traj': traj, 'task_name': task_name, 'task_id': sub_task_id}
-
-    def _make_demo(self, traj, task_name):
-        """
-        Do a near-uniform sampling of the demonstration trajectory
-        """
-        if self.select_random_frames:
-            def clip(x): return int(max(0, min(x, len(traj) - 1)))
-            per_bracket = max(len(traj) / self._demo_T, 1)
-            frames = []
-            cp_frames = []
-            for i in range(self._demo_T):
-                # fix to using uniform + 'sample_side' now
-                if i == self._demo_T - 1:
-                    n = len(traj) - 1
-                elif i == 0:
-                    n = 1
-                else:
-                    n = clip(np.random.randint(
-                        int(i * per_bracket), int((i + 1) * per_bracket)))
-                # frames.append(_make_frame(n))
-                # convert from BGR to RGB and scale to 0-1 range
-                obs = copy.copy(
-                    traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
-                processed = self.frame_aug(task_name, obs)
-                frames.append(processed)
-                if self.aug_twice:
-                    cp_frames.append(self.frame_aug(task_name, obs, True))
-        else:
-            frames = []
-            cp_frames = []
-            for i in range(self._demo_T):
-                # get first frame
-                if i == 0:
-                    n = 0
-                # get the last frame
-                elif i == self._demo_T - 1:
-                    n = len(traj) - 1
-                elif i == 1:
-                    obj_in_hand = 0
-                    # get the first frame with obj_in_hand and the gripper is closed
-                    for t in range(1, len(traj)):
-                        state = traj.get(t)['info']['status']
-                        trj_t = traj.get(t)
-                        gripper_act = trj_t['action'][-1]
-                        if state == 'obj_in_hand' and gripper_act == 1:
-                            obj_in_hand = t
-                            n = t
-                            break
-                elif i == 2:
-                    # get the middle moving frame
-                    start_moving = 0
-                    end_moving = 0
-                    for t in range(obj_in_hand, len(traj)):
-                        state = traj.get(t)['info']['status']
-                        if state == 'moving' and start_moving == 0:
-                            start_moving = t
-                        elif state != 'moving' and start_moving != 0 and end_moving == 0:
-                            end_moving = t
-                            break
-                    n = start_moving + int((end_moving-start_moving)/2)
-
-                # convert from BGR to RGB and scale to 0-1 range
-                obs = copy.copy(
-                    traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
-
-                processed = self.frame_aug(task_name, obs)
-                frames.append(processed)
-                if self.aug_twice:
-                    cp_frames.append(self.frame_aug(task_name, obs, True))
-
-        ret_dict = dict()
-        ret_dict['demo'] = torch.stack(frames)
-        ret_dict['demo_cp'] = torch.stack(cp_frames)
-        return ret_dict
 
     def _make_traj(self, traj, task_name, indx):
         # get the first frame from the trajectory
         ret_dict = {}
         images = []
         images_cp = []
-        target_obj_pos_one_hot = []
 
         if self.non_sequential and self._obs_T > 1:
+            # Select random frames
             end = len(traj)
             chosen_t = torch.randperm(end)
             chosen_t = chosen_t[chosen_t != 0][:self._obs_T]

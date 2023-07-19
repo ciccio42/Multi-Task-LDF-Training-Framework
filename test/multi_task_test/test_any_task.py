@@ -241,15 +241,16 @@ def build_tvf_formatter_obj_detector(config, env_name):
             img.numpy()*255, 0, -1))
 
         if bb is not None:
-            bb = multi_task_il.datasets.utils.adjust_bb(dataset_loader=config.dataset_cfg,
-                                                        bb=bb,
-                                                        obs=img,
-                                                        img_height=img_height,
-                                                        img_width=img_width,
-                                                        top=top,
-                                                        left=left,
-                                                        box_w=box_w,
-                                                        box_h=box_h)
+            from multi_task_il.datasets.utils import adjust_bb
+            bb = adjust_bb(dataset_loader=config.dataset_cfg,
+                           bb=bb,
+                           obs=img,
+                           img_height=img_height,
+                           img_width=img_width,
+                           top=top,
+                           left=left,
+                           box_w=box_w,
+                           box_h=box_h)
 
             image = cv2.rectangle(np.ascontiguousarray(np.array(np.moveaxis(
                 img.numpy()*255, 0, -1), dtype=np.uint8)),
@@ -448,7 +449,10 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
     if gpu_id == -1:
         gpu_id = int(ctr % torch.cuda.device_count())
     print(f"Model GPU id {gpu_id}")
-    model = model.cuda(gpu_id)
+    try:
+        model = model.cuda(gpu_id)
+    except:
+        print("Error")
     if target_obj_dec is not None:
         target_obj_dec = target_obj_dec.cuda(gpu_id)
 
@@ -528,8 +532,7 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
         return traj, info
 
 
-def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, seed, max_T, controller_path, model_name, gpu_id, n):
-
+def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, seed, max_T, controller_path, model_name, gpu_id, save, n):
     json_name = results_dir + '/traj{}.json'.format(n)
     pkl_name = results_dir + '/traj{}.pkl'.format(n)
     if os.path.exists(json_name) and os.path.exists(pkl_name):
@@ -579,29 +582,34 @@ def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, sha
 
         if "vima" not in model_name:
             rollout, task_success_flags, expert_traj, context = return_rollout
-            pkl.dump(rollout, open(results_dir+'/traj{}.pkl'.format(n), 'wb'))
-            pkl.dump(expert_traj, open(
-                results_dir+'/demo{}.pkl'.format(n), 'wb'))
-            pkl.dump(context, open(results_dir+'/context{}.pkl'.format(n), 'wb'))
-            res_dict = dict()
-            for k, v in task_success_flags.items():
-                if v == True or v == False:
-                    res_dict[k] = int(v)
-                else:
-                    res_dict[k] = v
-            json.dump(res_dict, open(
-                results_dir+'/traj{}.json'.format(n), 'w'))
+            if not save:
+                pkl.dump(rollout, open(
+                    results_dir+'/traj{}.pkl'.format(n), 'wb'))
+                pkl.dump(expert_traj, open(
+                    results_dir+'/demo{}.pkl'.format(n), 'wb'))
+                pkl.dump(context, open(
+                    results_dir+'/context{}.pkl'.format(n), 'wb'))
+                res_dict = dict()
+                for k, v in task_success_flags.items():
+                    if v == True or v == False:
+                        res_dict[k] = int(v)
+                    else:
+                        res_dict[k] = v
+                json.dump(res_dict, open(
+                    results_dir+'/traj{}.json'.format(n), 'w'))
         else:
             rollout, task_success_flags = return_rollout
-            pkl.dump(rollout, open(results_dir+'/traj{}.pkl'.format(n), 'wb'))
-            res_dict = dict()
-            for k, v in task_success_flags.items():
-                if v == True or v == False:
-                    res_dict[k] = int(v)
-                else:
-                    res_dict[k] = v
-            json.dump(res_dict, open(
-                results_dir+'/traj{}.json'.format(n), 'w'))
+            if not save:
+                pkl.dump(rollout, open(
+                    results_dir+'/traj{}.pkl'.format(n), 'wb'))
+                res_dict = dict()
+                for k, v in task_success_flags.items():
+                    if v == True or v == False:
+                        res_dict[k] = int(v)
+                    else:
+                        res_dict[k] = v
+                json.dump(res_dict, open(
+                    results_dir+'/traj{}.json'.format(n), 'w'))
     del model
     return task_success_flags
 
@@ -679,7 +687,7 @@ if __name__ == '__main__':
     model_saved_step = model_saved_step[0][:-3]
     print("loading model from saved training step %s" % model_saved_step)
     results_dir = os.path.join(results_dir, 'step-'+model_saved_step)
-    os.makedirs(results_dir, exist_ok=True)
+    # os.makedirs(results_dir, exist_ok=True)
     print("Made new path for results at: %s" % results_dir)
     config_path = os.path.expanduser(args.config) if args.config else os.path.join(
         os.path.dirname(model_path), 'config.yaml')
@@ -751,7 +759,7 @@ if __name__ == '__main__':
     color = args.color
     variation = args.variation
     seed = args.seed
-    max_T = 80
+    max_T = 100
     # load target object detector
     model_path = config.policy.get('target_obj_detector_path', None)
     target_obj_dec = None
@@ -786,7 +794,8 @@ if __name__ == '__main__':
                           max_T,
                           args.controller_path,
                           model_name,
-                          args.gpu_id)
+                          args.gpu_id,
+                          True)
 
     if parallel:
         with Pool(args.num_workers) as p:

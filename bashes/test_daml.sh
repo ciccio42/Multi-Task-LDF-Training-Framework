@@ -1,7 +1,7 @@
-#export CUDA_VISIBLE_DEVICES=0
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
+export CUDA_VISIBLE_DEVICES=0
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export LD_LIBRARY_PATH=/user/frosa/miniconda3/envs/multi_task_lfd/lib:$LD_LIBRARY_PATH 
+# export LD_LIBRARY_PATH=/user/frosa/miniconda3/envs/multi_task_lfd/lib:$LD_LIBRARY_PATH 
 
 BASE_PATH=/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework
 PROJECT_NAME=ur_pick_place_daml

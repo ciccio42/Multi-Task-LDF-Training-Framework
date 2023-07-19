@@ -95,7 +95,7 @@ dataset_cfg:
   obs_T:            7
   data_augs:        ${augs}
   non_sequential:   False
-  crop_twice:       True
+  aug_twice:       False
   allow_val_skip:   ${val_skip}
   allow_train_skip: ${train_skip}
   use_strong_augs:  True 
@@ -103,6 +103,19 @@ dataset_cfg:
   compute_obj_distribution: False
   agent_name: 'ur5e'
   demo_name: 'panda'
+  load_action: false
+  load_state: false
+  state_spec: [joint_pos, joint_vel]
+  action_spec: 'action'
+  normalize_action: True
+  # x, y, z, e_x, e_y, e_z
+  normalization_ranges: [[-0.35,  0.35],
+                        [-0.35,  0.35],
+                        [ 0.60,  1.20],
+                        [-3.14,  3.14911766],
+                        [-3.14911766, 3.14911766],
+                        [-3.14911766,  3.14911766]]
+  n_action_bin: 256
 
 augs:
   old_aug: false
@@ -121,7 +134,7 @@ augs:
   horizontal_flip_p_strong: 0.5
 
 # model related
-policy: ${cond_policy}  # set to any set of configs via command line, e.g. policy='${tosil}'
+policy: ??? # ${cond_policy} # ${cond_target_obj_detector}
 
 cond_target_obj_detector:
   _target_: multi_task_il.models.cond_target_obj_detector.cond_target_obj_detector.CondTargetObjectDetector
@@ -138,11 +151,9 @@ cond_target_obj_detector:
   n_channels: 512
   conv_drop_dim: 2
 
-  
-
 actions:
   adim: 7
-  sdim: 6
+  sdim: 12
   action_cfg: 6
   n_mixtures: 2
   const_var: False

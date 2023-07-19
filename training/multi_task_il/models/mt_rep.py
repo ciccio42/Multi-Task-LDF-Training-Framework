@@ -483,7 +483,7 @@ class VideoImitation(nn.Module):
         model_parameters = filter(lambda p: p.requires_grad, self.parameters())
         params = sum([np.prod(p.size()) for p in model_parameters])
         print('Total params in Imitation module:', params)
-        print("---- Complete model ----")
+        print("\n---- Complete model ----\n")
         summary(self)
 
     def _load_model(self, model_path=None, step=0, conf_file=None, remove_class_layers=True, freeze=True):
@@ -650,8 +650,8 @@ class VideoImitation(nn.Module):
         out = self.get_action(
             embed_out=embed_out, target_obj_embedding=target_obj_embedding, ret_dist=ret_dist, states=states, eval=eval)
 
-        if compute_activation_map:
-            out['activation_map'] = embed_out['activation_map']
+        # if compute_activation_map:
+        #     out['activation_map'] = embed_out['activation_map']
 
         if self._concat_target_obj_embedding:
             out["target_obj_embedding"] = target_obj_embedding

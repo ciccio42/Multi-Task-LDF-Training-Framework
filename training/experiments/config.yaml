@@ -19,6 +19,7 @@ bsize:          30
 vsize:          ${bsize} # optionally, set to a different batchsize for validation loader
 optimizer:      null #Adam # RMSProp
 task_names: null
+rollout: False
 dataset_target: 'multi_task_il.datasets.multi_task_datasets.MultiTaskPairedDataset'
 # loss multipliers
 inv_mul:        0
@@ -116,15 +117,15 @@ dataset_cfg:
   demo_name: 'panda'
 
 augs:
-  strong_jitter:     0.01    
-  weak_jitter:       0.01
-  grayscale:         0.01   
+  strong_jitter:     1  
+  weak_jitter:       0.1
+  grayscale:         0.1   
   blur:              [0.1, 2.0] 
   flip:              0.05   # only flip for the strong augs
   weak_crop_scale:   [0.8, 1.0] # [0.8, 1.0]
   strong_crop_scale: [0.8, 1.0] # [0.8, 1.0]
-  weak_crop_ratio:   [1.0, 1.0]
-  strong_crop_ratio: [1.0, 1.0]
+  weak_crop_ratio:   [1.8, 1.8]
+  strong_crop_ratio: [1.8, 1.8]
   use_affine:        False  
   rand_trans:        0.1
 

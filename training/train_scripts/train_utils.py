@@ -227,12 +227,11 @@ def loss_func_bb(config, train_cfg, device, model, inputs, w_conf=1, w_reg=5):
     start = 0
     for idx, (task_name, inputs) in enumerate(inputs.items()):
         traj = inputs['traj']
-        input_keys = ['images', 'images_cp', 'gt_bb', 'gt_classes']
 
-        for key in input_keys:
+        for key in traj.keys():
             model_inputs[key].append(traj[key].to(device))
 
-        for key in ['demo', 'demo_cp']:
+        for key in inputs['demo_data'].keys():
             model_inputs[key].append(inputs['demo_data'][key].to(device))
 
         task_bsize = traj['images'].shape[0]
@@ -436,14 +435,17 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
     start = 0
     for idx, (task_name, inputs) in enumerate(task_inputs.items()):
         traj = inputs['traj']
-        input_keys = ['states', 'actions', 'images', 'images_cp']
-        if config.use_daml:
+        input_keys = traj.keys()
+
+        if config.get('use_daml', False):
             input_keys.append('aux_pose')
         for key in input_keys:
             model_inputs[key].append(traj[key].to(device))
 
-        model_inputs['points'].append(traj['points'].to(device).long())
-        for key in ['demo', 'demo_cp']:
+        if 'points' in traj.keys():
+            model_inputs['points'].append(traj['points'].to(device).long())
+
+        for key in inputs['demo_data'].keys():
             model_inputs[key].append(inputs['demo_data'][key].to(device))
 
         task_bsize = traj['actions'].shape[0]
@@ -455,7 +457,7 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
         model_inputs[key] = torch.cat(model_inputs[key], dim=0)
     all_losses = dict()
 
-    if config.use_daml:
+    if config.get('use_daml', False):
         bc_loss, aux_loss = calculate_maml_loss(
             config=config,
             device=device,
@@ -466,12 +468,19 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
         all_losses["loss_sum"] = bc_loss + aux_loss
     else:
         if config.policy._target_ == 'multi_task_il.models.mt_rep.VideoImitation':
-            model = model.to(device)
             out = model(
-                images=model_inputs['images'], images_cp=model_inputs['images_cp'],
-                context=model_inputs['demo'],  context_cp=model_inputs['demo_cp'],
-                states=model_inputs['states'], ret_dist=False,
+                images=model_inputs['images'],
+                images_cp=model_inputs['images_cp'],
+                context=model_inputs['demo'],
+                context_cp=model_inputs['demo_cp'],
+                states=model_inputs['states'],
+                ret_dist=False,
                 actions=model_inputs['actions'])
+        if "CondPolicy" in config.policy._target_:
+            out = model(
+                inputs=model_inputs,
+                inference=False)
+
         else:  # other baselines
             out = model(
                 images=model_inputs['images'],
@@ -580,6 +589,7 @@ class Trainer:
         save_dir = os.path.expanduser(save_dir)
         self._save_fname = join(save_dir, 'model_save')
         self.save_dir = save_dir
+        print(f"Saving dir {self.save_dir}")
         self._step = None
         if self.config.wandb_log:
             config_keys = ['train_cfg', 'tasks',
@@ -604,7 +614,7 @@ class Trainer:
         self._train_loader, self._val_loader = make_data_loaders(
             self.config, self.train_cfg.dataset)
         # wrap model in DataParallel if needed and transfer to correct device
-        print('Training stage \n Found {} GPU devices \n'.format(self.device_count))
+        print('Training stage\nFound {} GPU devices \n'.format(self.device_count))
         model = model.to(self._device)
         if self.device_count > 1 and not isinstance(model, nn.DataParallel):
             print("Training stage \n Device list: {}".format(self.device_list))
@@ -647,7 +657,7 @@ class Trainer:
         save_freq = self.train_cfg.get('save_freq', 10000)
 
         try:
-            print("Loss multipliers: \n BC: {} inv: {} Point: {}".format(
+            print("\n----Loss multipliers: \n BC: {} inv: {} Point: {}\n----".format(
                 self.train_cfg.bc_loss_mult, self.train_cfg.inv_loss_mult, self.train_cfg.pnt_loss_mult))
 
             print(
@@ -675,6 +685,8 @@ class Trainer:
 
         summary(model)
         model = model.train()
+        model = model.to(self._device)
+        best_avg_success = 0
 
         for e in range(epochs):
             frac = e / epochs
@@ -684,7 +696,7 @@ class Trainer:
                 tolog = {}
 
                 # Save stats
-                if self._step % save_freq == 0:  # stats
+                if save_freq != 0 and self._step % save_freq == 0:  # stats
                     self.save_checkpoint(model, optimizer, weights_fn, save_fn)
                     if save_fn is not None:
                         save_fn(self._save_fname, self._step)
@@ -705,6 +717,8 @@ class Trainer:
                     json.dump({k: str(v) for k, v in raw_stats.items()},
                               open(stats_save_name, 'w'))
 
+                torch.cuda.empty_cache()
+
                 optimizer.zero_grad()
                 # self.batch_distribution(inputs)
 
@@ -716,6 +730,10 @@ class Trainer:
                     [l["loss_sum"] * task_loss_muls.get(name) for name, l in task_losses.items()])
                 weighted_task_loss.backward()
                 optimizer.step()
+
+                del weighted_task_loss
+                torch.cuda.empty_cache()
+
                 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
                 # calculate train iter stats
                 if self._step % log_freq == 0:
@@ -734,9 +752,9 @@ class Trainer:
                         print(train_print)
 
                 #### ---- Validation step ----####
-                if self._step % val_freq == 0 and not self.config.get("use_daml", False):
-                    validation_set = True
-                    if validation_set and self._val_loader != None:
+                if self._step != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
+                    rollout = self.config.get("rollout", False)
+                    if not rollout:
                         # exhaust all data in val loader and take avg loss
                         all_val_losses = {task: defaultdict(
                             list) for task in task_names}
@@ -790,7 +808,7 @@ class Trainer:
                         if self.train_cfg.early_stopping.patience != -1:
                             self._early_stopping(
                                 weighted_task_loss_val, model, self._step, optimizer)
-                    elif not validation_set and self._val_loader == None:
+                    elif rollout:
                         from multi_task_test.test_any_task import _proc
                         import functools
                         from torch.multiprocessing import Pool
@@ -821,9 +839,11 @@ class Trainer:
                                                   None,
                                                   70,
                                                   controller_path,
-                                                  model_name)
-                            with Pool(4) as p:
-                                task_success_flags = p.map(f, range(4))
+                                                  model_name,
+                                                  0,
+                                                  False)
+                            with Pool(16) as p:
+                                task_success_flags = p.map(f, range(160))
 
                                 all_succ_flags = [t['success']
                                                   for t in task_success_flags]
@@ -840,6 +860,13 @@ class Trainer:
                                     all_picked_flags)
                                 tolog['avg_prediction'] = np.mean(
                                     all_avg_pred)
+
+                            if best_avg_success < tolog['avg_success']:
+                                print(
+                                    f"Save model best_avg_success from {best_avg_success} to {tolog['avg_success']}")
+                                best_avg_success = tolog['avg_success']
+                                self.save_checkpoint(
+                                    model, optimizer, weights_fn, save_fn)
 
                             if self.config.wandb_log:
                                 wandb.log(tolog)
@@ -858,7 +885,6 @@ class Trainer:
                     wandb.log(tolog)
 
                 self._step += 1
-
                 try:
                     if not model._load_target_obj_detector or not model._freeze_target_obj_detector:
                         # update target params
@@ -870,6 +896,7 @@ class Trainer:
                                 mod.soft_param_update()
                 except:
                     pass
+
             if self._early_stopping.early_stop:
                 print("----Stop training for early-stopping----")
                 break
@@ -1000,7 +1027,7 @@ class Workspace(object):
         self.train_cfg = config.train_cfg
 
         # move log path to here!
-        print('\n Done initializing Workspace, saving config.yaml to directory: {}'.format(
+        print('\n----Done initializing Workspace, saving config.yaml to directory: {}----\n'.format(
             self.trainer.save_dir))
 
         try:
@@ -1016,7 +1043,7 @@ class Workspace(object):
 
     def run(self):
         loss_function = None
-        if "mosaic" in self.config.policy._target_ or "InverseImitation" in self.config.policy._target_ or "DAMLNetwork" in self.config.policy._target_:
+        if "VideoImitation" in self.config.policy._target_ or "InverseImitation" in self.config.policy._target_ or "DAMLNetwork" in self.config.policy._target_ or "CondPolicy" in self.config.policy._target_:
             loss_function = calculate_task_loss
         elif "vima" in self.config.policy._target_:
             loss_function = loss_function_vima

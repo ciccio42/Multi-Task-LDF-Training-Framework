@@ -3,40 +3,13 @@ import torch
 import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
-from multi_task_il.models import get_model
-from multi_task_il.models.discrete_logistic import DiscreteMixLogistic
-from multi_task_il.models.rep_modules import BYOLModule, ContrastiveModule
-from multi_task_il.models.basic_embedding import TemporalPositionalEncoding
-from einops import rearrange, repeat, parse_shape
-from collections import OrderedDict
+from einops import rearrange, parse_shape
 import os
 import hydra
-from omegaconf import DictConfig, OmegaConf
-from torchvision import models
-import pickle
-from multi_task_il.datasets.multi_task_datasets import MultiTaskPairedDataset
 # mmdet moduls
-from typing import (Any, Callable, Dict, Iterable, List, Optional, Sequence,
-                    Tuple, Union)
 from torchsummary import summary
-from torchvision import models
 from multi_task_il.models.basic_embedding import ResNetFeats
 import torch
-import json
-from torchvision.transforms import Compose, Lambda
-from torchvision.transforms._transforms_video import (
-    CenterCropVideo,
-    NormalizeVideo,
-)
-from pytorchvideo.data.encoded_video import EncodedVideo
-from pytorchvideo.transforms import (
-    ApplyTransformToKey,
-    ShortSideScale,
-    UniformTemporalSubsample,
-    UniformCropVideo
-)
-from typing import Dict
-from einops import rearrange, repeat, parse_shape
 from torch.autograd import Variable
 from torchvision import ops
 from multi_task_il.models.cond_target_obj_detector.utils import *
@@ -486,7 +459,7 @@ class AgentModule(nn.Module):
                 ret_dict['conf_scores_pos'] = conf_scores_pos
                 ret_dict['conf_scores_neg'] = conf_scores_neg
 
-                if not self.training and DEBUG:
+                if DEBUG:
                     # test plot proposal
                     proposal_projected = project_bboxes(
                         proposals, self.width_scale_factor, self.height_scale_factor, mode='a2p').cpu().detach().numpy()
@@ -532,8 +505,8 @@ class AgentModule(nn.Module):
                         # filter based on nms threshold
                         nms_idx = ops.nms(
                             proposals_pos, conf_scores_pos, self.nms_thresh)
-                        conf_scores_pos = conf_scores_pos[nms_idx]
-                        proposals_pos = proposals_pos[nms_idx]
+                        conf_scores_pos = conf_scores_pos[nms_idx][0]
+                        proposals_pos = proposals_pos[nms_idx][0]
 
                         proposals_final.append(proposals_pos)
                         conf_scores_final.append(conf_scores_pos)

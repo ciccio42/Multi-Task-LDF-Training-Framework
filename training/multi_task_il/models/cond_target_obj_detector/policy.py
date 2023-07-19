@@ -1,47 +1,19 @@
-import copy
 import torch
 import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
-from multi_task_il.models import get_model
 from multi_task_il.models.discrete_logistic import DiscreteMixLogistic
 from multi_task_il.models.rep_modules import BYOLModule, ContrastiveModule
 from multi_task_il.models.basic_embedding import TemporalPositionalEncoding
-from einops import rearrange, repeat, parse_shape
+from einops import rearrange, repeat
 from collections import OrderedDict
-import os
 import hydra
-from omegaconf import DictConfig, OmegaConf
-from torchvision import models
-import pickle
-from multi_task_il.datasets.multi_task_datasets import MultiTaskPairedDataset
-# mmdet moduls
-from typing import (Any, Callable, Dict, Iterable, List, Optional, Sequence,
-                    Tuple, Union)
+
 from torchsummary import summary
-from torchvision import models
-from multi_task_il.models.basic_embedding import ResNetFeats
 import torch
-import json
-from torchvision.transforms import Compose, Lambda
-from torchvision.transforms._transforms_video import (
-    CenterCropVideo,
-    NormalizeVideo,
-)
-from pytorchvideo.data.encoded_video import EncodedVideo
-from pytorchvideo.transforms import (
-    ApplyTransformToKey,
-    ShortSideScale,
-    UniformTemporalSubsample,
-    UniformCropVideo
-)
-from typing import Dict
-from einops import rearrange, repeat, parse_shape
-from torch.autograd import Variable
-from torchvision import ops
+
 from multi_task_il.models.cond_target_obj_detector.utils import *
 from multi_task_il.models.cond_target_obj_detector.cond_target_obj_detector import *
-import cv2
 
 DEBUG = False
 
@@ -122,19 +94,6 @@ class CondPolicy(nn.Module):
 
         super().__init__()
 
-        # self.cond_target_obj_detector = CondTargetObjectDetector(height=cond_target_obj_detector_cfg.height,
-        #                                                          width=cond_target_obj_detector_cfg.width,
-        #                                                          demo_T=cond_target_obj_detector_cfg.demo_T,
-        #                                                          obs_T=cond_target_obj_detector_cfg.obs_T,
-        #                                                          cond_backbone_name=cond_target_obj_detector_cfg.cond_backbone_name,
-        #                                                          agent_backbone_name=cond_target_obj_detector_cfg.agent_backbone_name,
-        #                                                          cond_video=cond_target_obj_detector_cfg.cond_video,
-        #                                                          pretrained=cond_target_obj_detector_cfg.pretrained,
-        #                                                          dim_H=cond_target_obj_detector_cfg.dim_H,
-        #                                                          dim_W=cond_target_obj_detector_cfg.dim_W,
-        #                                                          conv_drop_dim=cond_target_obj_detector_cfg.conv_drop_dim,
-        #                                                          )
-
         # 1. Istantiate cond_target_obj_detector
         try:
             self.cond_target_obj_detector = hydra.utils.instantiate(
@@ -209,7 +168,10 @@ class CondPolicy(nn.Module):
 
         # get target object prediction
         prediction_target_obj_detector = self.cond_target_obj_detector(inputs=inputs,
-                                                                       inference=inference)
+                                                                       inference=True)
+
+        # Reshape BBs B*T, 4 to B,T,4
+        bbs = torch.FloatTensor(prediction_target_obj_detector['proposals'])
 
         # 1. Get last layer feature maps
         # B*T, 512, 7, 7
@@ -224,13 +186,14 @@ class CondPolicy(nn.Module):
 
         # 4. Flat the vector
         # B*T, 1, 7, 7
-        spatial_softmax_out = torch.flatten(spatial_softmax_out, start_dim=1)
+        spatial_softmax_out_flat = torch.flatten(
+            spatial_softmax_out, start_dim=1)
 
         # 5. Create action_in vector
         # reshape states
         states = rearrange(inputs['states'], 'B T N -> (B T) N')
         # get the bb with the highest conf score
-        action_in = torch.concat([spatial_softmax_out, states, ])
+        action_in = torch.concat([spatial_softmax_out_flat, states, ])
 
 
 @hydra.main(
