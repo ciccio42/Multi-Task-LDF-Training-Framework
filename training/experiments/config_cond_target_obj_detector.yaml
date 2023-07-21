@@ -138,6 +138,9 @@ policy: ??? # ${cond_policy} # ${cond_target_obj_detector}
 
 cond_target_obj_detector:
   _target_: multi_task_il.models.cond_target_obj_detector.cond_target_obj_detector.CondTargetObjectDetector
+  cond_target_obj_detector_cfg: ${cond_target_obj_detector_cfg}
+
+cond_target_obj_detector_cfg:
   height: 224
   width: 224
   demo_T: ${dataset_cfg.demo_T}
@@ -150,6 +153,7 @@ cond_target_obj_detector:
   dim_W: 7
   n_channels: 512
   conv_drop_dim: 2
+  gpu_id: 0
 
 actions:
   adim: 7
@@ -161,9 +165,9 @@ actions:
 
 cond_policy:
   _target_: multi_task_il.models.cond_target_obj_detector.policy.CondPolicy
-  cond_target_obj_detector_cfg: ${cond_target_obj_detector}
   cond_target_obj_detector_pretrained: True
-  cond_target_obj_detector_weights: "/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/TARGET_OBJ_DETECTOR_SLOT/1Task-Pick-Place-Cond-Target-Obj-Detector-Batch32/model_save-16200.pt"
+  cond_target_obj_detector_weights: "/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/TARGET_OBJ_DETECTOR_SLOT/1Task-Pick-Place-Cond-Target-Obj-Detector-Batch32/"
+  cond_target_obj_detector_step: 4050
   action_cfg: ${actions}
   freeze_target_detector: True
   concat_state: True

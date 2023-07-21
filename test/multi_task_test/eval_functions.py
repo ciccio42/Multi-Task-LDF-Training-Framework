@@ -993,41 +993,47 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
         prediction = model(model_input, inference=True)
 
         # Project bb over image
-        predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None],
-                                      width_scale_factor=model._agent_backone.width_scale_factor,
-                                      height_scale_factor=model._agent_backone.height_scale_factor,
-                                      mode='a2p')
-        try:
-            max_conf_score_indx = torch.argmax(
-                prediction['conf_scores_final'][0])
-        except:
-            print("Argmax error")
-        predicted_bb = predicted_bb[max_conf_score_indx]
-        if True:
-            image = np.array(np.moveaxis(
-                formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+        if prediction['conf_scores_final'][0] != -1:
+            predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None],
+                                          width_scale_factor=model._agent_backone.width_scale_factor,
+                                          height_scale_factor=model._agent_backone.height_scale_factor,
+                                          mode='a2p')
+            try:
+                max_conf_score_indx = torch.argmax(
+                    prediction['conf_scores_final'][0])
+            except:
+                print("Argmax error")
+            predicted_bb = predicted_bb[max_conf_score_indx]
+            if True:
+                image = np.array(np.moveaxis(
+                    formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
 
-            image = cv2.rectangle(np.ascontiguousarray(image),
-                                  (int(predicted_bb[0]),
-                                   int(predicted_bb[1])),
-                                  (int(predicted_bb[2]),
-                                   int(predicted_bb[3])),
-                                  color=(0, 0, 255), thickness=1)
-            image = cv2.rectangle(np.ascontiguousarray(image),
-                                  (int(bb_t[0][0]),
-                                   int(bb_t[0][1])),
-                                  (int(bb_t[0][2]),
-                                   int(bb_t[0][3])),
-                                  color=(250, 0, 0), thickness=1)
-            cv2.imwrite("predicted_bb.png", image)
-        obs['predicted_bb'] = predicted_bb.cpu().numpy()
-        obs['gt_bb'] = bb_t
-        # compute IoU over time
-        # iou_t = box_iou(boxes1=torch.from_numpy(
-        #     bb_t).to(device=gpu_id), boxes2=predicted_bb[None])
-        # obs['iou'] = iou_t[0][0].cpu().numpy()
-        # iou += iou_t[0][0].cpu().numpy()
-        traj.append(obs)
+                image = cv2.rectangle(np.ascontiguousarray(image),
+                                      (int(predicted_bb[0]),
+                                       int(predicted_bb[1])),
+                                      (int(predicted_bb[2]),
+                                       int(predicted_bb[3])),
+                                      color=(0, 0, 255), thickness=1)
+                image = cv2.rectangle(np.ascontiguousarray(image),
+                                      (int(bb_t[0][0]),
+                                       int(bb_t[0][1])),
+                                      (int(bb_t[0][2]),
+                                       int(bb_t[0][3])),
+                                      color=(250, 0, 0), thickness=1)
+                cv2.imwrite("predicted_bb.png", image)
+            obs['predicted_bb'] = predicted_bb.cpu().numpy()
+            obs['gt_bb'] = bb_t
+            # compute IoU over time
+            iou_t = box_iou(boxes1=torch.from_numpy(
+                bb_t).to(device=gpu_id), boxes2=predicted_bb[None])
+            obs['iou'] = iou_t[0][0].cpu().numpy()
+            iou += iou_t[0][0].cpu().numpy()
+            traj.append(obs)
+        else:
+            obs['predicted_bb'] = predicted_bb.cpu().numpy()
+            obs['gt_bb'] = bb_t
+            obs['iou'] = 0
+            traj.append(obs)
         try:
             if controller is not None:
                 # compute the action for the current state

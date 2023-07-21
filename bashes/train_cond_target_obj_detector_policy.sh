@@ -2,7 +2,7 @@
 export MUJOCO_PY_MUJOCO_PATH="/home/frosa_loc/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
@@ -10,7 +10,7 @@ SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur
 POLICY='${cond_policy}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
 
-SAVE_FREQ=2025
+SAVE_FREQ=0
 LOG_FREQ=100
 VAL_FREQ=4050
 PRINT_FREQ=100
@@ -42,11 +42,12 @@ SCHEDULER=None
 
 N_MIXTURES=6
 
-RESUME_PATH=None
+RESUME_PATH=
 RESUME_STEP=-1
 
 COND_TARGET_OBJ_DETECTOR_PRE_TRAINED=true
-COND_TARGET_OBJ_DETECTOR_WEIGHTS="/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/TARGET_OBJ_DETECTOR_SLOT/1Task-Pick-Place-Cond-Target-Obj-Detector-Batch32/model_save-16200.pt"
+COND_TARGET_OBJ_DETECTOR_WEIGHTS="/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Cond-Target-Obj-Detector-Batch32"
+COND_TARGET_OBJ_DETECTOR_STEP=4050
 
 
 python ../training/train_scripts/train_any.py \
@@ -68,6 +69,7 @@ python ../training/train_scripts/train_any.py \
     actions.n_mixtures=${N_MIXTURES} \
     cond_policy.cond_target_obj_detector_pretrained=${COND_TARGET_OBJ_DETECTOR_PRE_TRAINED} \
     cond_policy.cond_target_obj_detector_weights=${COND_TARGET_OBJ_DETECTOR_WEIGHTS} \
+    cond_policy.cond_target_obj_detector_step=${COND_TARGET_OBJ_DETECTOR_STEP} \
     dataset_cfg.obs_T=${OBS_T} \
     dataset_cfg.select_random_frames=true \
     dataset_cfg.compute_obj_distribution=${COMPUTE_OBJ_DISTRIBUTION} \

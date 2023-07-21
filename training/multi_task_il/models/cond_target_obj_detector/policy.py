@@ -2,9 +2,6 @@ import torch
 import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
-from multi_task_il.models.discrete_logistic import DiscreteMixLogistic
-from multi_task_il.models.rep_modules import BYOLModule, ContrastiveModule
-from multi_task_il.models.basic_embedding import TemporalPositionalEncoding
 from einops import rearrange, repeat
 from collections import OrderedDict
 import hydra
@@ -14,6 +11,8 @@ import torch
 
 from multi_task_il.models.cond_target_obj_detector.utils import *
 from multi_task_il.models.cond_target_obj_detector.cond_target_obj_detector import *
+from omegaconf import OmegaConf
+from multi_task_il.models.discrete_logistic import DiscreteMixLogistic
 
 DEBUG = False
 
@@ -82,9 +81,9 @@ class CondPolicy(nn.Module):
     def __init__(self,
                  freeze_target_detector=True,
                  concat_state=True,
-                 cond_target_obj_detector_cfg=None,
                  cond_target_obj_detector_pretrained=True,
                  cond_target_obj_detector_weights=None,
+                 cond_target_obj_detector_step=4050,
                  action_cfg=None,
                  concat_bb=True,
                  mlp_layers=[512, 256, 128],
@@ -95,17 +94,22 @@ class CondPolicy(nn.Module):
         super().__init__()
 
         # 1. Istantiate cond_target_obj_detector
-        try:
-            self.cond_target_obj_detector = hydra.utils.instantiate(
-                cond_target_obj_detector_cfg)
-        except:
-            self.cond_target_obj_detector = cond_target_obj_detector_cfg
+
+        # Load configuration file
+        conf_file = OmegaConf.load(os.path.join(
+            cond_target_obj_detector_weights, "config.yaml"))
+
+        self.cond_target_obj_detector = hydra.utils.instantiate(
+            conf_file.cond_target_obj_detector)
+
         # 2. Load cond_target_obj_detector weights
         if cond_target_obj_detector_pretrained:
+            weights_path = os.path.join(
+                cond_target_obj_detector_weights, f"model_save-{cond_target_obj_detector_step}.pt")
             print(
-                f"Loading Cond-Target-Obj-Detector from {cond_target_obj_detector_weights}")
+                f"Loading Cond-Target-Obj-Detector from {weights_path}")
             cond_target_obj_detector_state_dict = torch.load(
-                cond_target_obj_detector_weights, map_location=torch.device('cuda:0'))
+                weights_path, map_location=torch.device('cuda:0'))
             self.cond_target_obj_detector.load_state_dict(
                 cond_target_obj_detector_state_dict)
 
@@ -126,9 +130,10 @@ class CondPolicy(nn.Module):
             # Get a tensor of shape B, T, 1, dim_H, dim_W
             self.avg_pooling = torch.mean
             # apply spatial softmax
-            self.spatial_softmax = SpatialSoftmax(height=cond_target_obj_detector_cfg.dim_H,
-                                                  width=cond_target_obj_detector_cfg.dim_W)
-            latent_dim = cond_target_obj_detector_cfg.dim_W*cond_target_obj_detector_cfg.dim_H
+            self.spatial_softmax = SpatialSoftmax(height=conf_file.cond_target_obj_detector.dim_H,
+                                                  width=conf_file.cond_target_obj_detector.dim_W)
+            latent_dim = conf_file.cond_target_obj_detector.dim_W * \
+                conf_file.cond_target_obj_detector.dim_H
 
         # Compute action_module_input
         action_module_input = int(
@@ -165,13 +170,16 @@ class CondPolicy(nn.Module):
         summary(self)
 
     def forward(self, inputs: dict, inference: bool = False):
+        out = dict()
 
         # get target object prediction
         prediction_target_obj_detector = self.cond_target_obj_detector(inputs=inputs,
                                                                        inference=True)
 
         # Reshape BBs B*T, 4 to B,T,4
-        bbs = torch.FloatTensor(prediction_target_obj_detector['proposals'])
+        bbs = torch.stack(prediction_target_obj_detector['proposals'])
+        B, T, _, _, _ = inputs['images'].shape
+        bbs = rearrange(bbs, '(B T) N -> B T N', B=B, T=T, N=4)
 
         # 1. Get last layer feature maps
         # B*T, 512, 7, 7
@@ -180,20 +188,32 @@ class CondPolicy(nn.Module):
         # 2. Compute average pooling channels wise
         # B*T, 1, 7, 7
         average_pooling = self.avg_pooling(last_layer_feature,
-                                           dim=1)[None]
+                                           dim=1, keepdim=True)
         # 3. Compute SpatialSoftmax
         spatial_softmax_out = self.spatial_softmax(average_pooling)
 
         # 4. Flat the vector
-        # B*T, 1, 7, 7
+        # B*T, 1, 7, 7 -> B*T, 49
         spatial_softmax_out_flat = torch.flatten(
             spatial_softmax_out, start_dim=1)
+        spatial_softmax_out_flat = rearrange(spatial_softmax_out_flat,
+                                             '(B T) N -> B T N', B=B, T=T)
 
         # 5. Create action_in vector
         # reshape states
-        states = rearrange(inputs['states'], 'B T N -> (B T) N')
+        states = inputs['states']
         # get the bb with the highest conf score
-        action_in = torch.concat([spatial_softmax_out_flat, states, ])
+        action_in = torch.concat(
+            [spatial_softmax_out_flat, states, bbs], dim=2).to(torch.float32)
+        action_in = F.normalize(action_in, dim=2).to(torch.float32)
+        # 6. Infer action embedding
+        ac_pred = self.action_module(action_in)
+        mu_bc, scale_bc, logit_bc = self._action_dist(ac_pred)
+
+        out['bc_distrib'] = (mu_bc, scale_bc, logit_bc) \
+            if not inference else DiscreteMixLogistic(mu_bc, scale_bc, logit_bc)
+        out['prediction_target_obj_detector'] = prediction_target_obj_detector
+        return out
 
 
 @hydra.main(

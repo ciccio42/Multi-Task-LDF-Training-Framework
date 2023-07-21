@@ -2,7 +2,7 @@
 export MUJOCO_PY_MUJOCO_PATH="/home/frosa_loc/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=MIG-767498b9-57a8-5aa5-bed4-925c5af119d4
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
@@ -23,7 +23,7 @@ COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
 PROJECT_NAME="pick_place_cond_target_obj_detector"
 CONFIG_NAME=config_cond_target_obj_detector.yaml
-LOADER_WORKERS=8
+LOADER_WORKERS=16
 BALANCING_POLICY=0
 SET_SAME_N=2
 OBS_T=7
@@ -34,8 +34,8 @@ LR=0.0001
 WEIGHT_DECAY=5
 SCHEDULER='ReduceLROnPlateau'
 
-RESUME_PATH=None
-RESUME_STEP=-1
+RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Cond-Target-Obj-Detector-Batch32
+RESUME_STEP=4050
 
 python ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
@@ -68,5 +68,5 @@ python ../training/train_scripts/train_any.py \
     train_cfg.lr_schedule=${SCHEDULER} \
     debug=false \
     wandb_log=true \
-    resume=false \
+    resume=true \
     loader_workers=${LOADER_WORKERS}

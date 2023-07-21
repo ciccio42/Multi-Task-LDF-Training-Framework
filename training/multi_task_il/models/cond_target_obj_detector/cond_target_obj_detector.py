@@ -505,9 +505,17 @@ class AgentModule(nn.Module):
                         # filter based on nms threshold
                         nms_idx = ops.nms(
                             proposals_pos, conf_scores_pos, self.nms_thresh)
-                        conf_scores_pos = conf_scores_pos[nms_idx][0]
-                        proposals_pos = proposals_pos[nms_idx][0]
 
+                        try:
+                            conf_scores_pos = conf_scores_pos[nms_idx][0]
+                            proposals_pos = proposals_pos[nms_idx][0]
+                        except:
+                            print("No bb found")
+                            conf_scores_pos = torch.tensor(
+                                -1).to(agent_obs.get_device())
+                            proposals_pos = torch.tensor(
+                                [-1, -1, -1, -1])[None].to(
+                                agent_obs.get_device())
                         proposals_final.append(proposals_pos)
                         conf_scores_final.append(conf_scores_pos)
 

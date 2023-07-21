@@ -408,12 +408,14 @@ def create_data_aug(dataset_loader=object):
         # ---- Augmentation ----#
         if dataset_loader.use_strong_augs and second:
             augmented = dataset_loader.strong_augs(obs)
-            cv2.imwrite("strong_augmented.png", np.moveaxis(
-                augmented.numpy()*255, 0, -1))
+            if DEBUG:
+                cv2.imwrite("strong_augmented.png", np.moveaxis(
+                    augmented.numpy()*255, 0, -1))
         else:
             augmented = dataset_loader.transforms(obs)
-            cv2.imwrite("weak_augmented.png", np.moveaxis(
-                augmented.numpy()*255, 0, -1))
+            if DEBUG:
+                cv2.imwrite("weak_augmented.png", np.moveaxis(
+                    augmented.numpy()*255, 0, -1))
         assert augmented.shape == obs.shape
 
         if bb is not None:

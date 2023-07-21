@@ -582,7 +582,7 @@ def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, sha
 
         if "vima" not in model_name:
             rollout, task_success_flags, expert_traj, context = return_rollout
-            if not save:
+            if save:
                 pkl.dump(rollout, open(
                     results_dir+'/traj{}.pkl'.format(n), 'wb'))
                 pkl.dump(expert_traj, open(
@@ -599,7 +599,7 @@ def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, sha
                     results_dir+'/traj{}.json'.format(n), 'w'))
         else:
             rollout, task_success_flags = return_rollout
-            if not save:
+            if save:
                 pkl.dump(rollout, open(
                     results_dir+'/traj{}.pkl'.format(n), 'wb'))
                 res_dict = dict()

@@ -2,7 +2,7 @@
 export MUJOCO_PY_MUJOCO_PATH="/home/frosa_loc/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=3 #MIG-05d3e070-7dd8-57e1-a996-302be718107a
+export CUDA_VISIBLE_DEVICES=1 #MIG-05d3e070-7dd8-57e1-a996-302be718107a
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
@@ -52,11 +52,11 @@ CONCAT_DEMO_HEAD=false
 CONCAT_DEMO_ACT=true
 PRETRAINED=false
 
-EARLY_STOPPING_PATIECE=5
+EARLY_STOPPING_PATIECE=-1
 OPTIMIZER='AdamW'
 LR=0.0005
 WEIGHT_DECAY=0.0
-SCHEDULER=ReduceLROnPlateau
+SCHEDULER=None
 
 DROP_DIM=3      # 2    # 3
 OUT_FEATURE=256 # 512 # 256
@@ -125,8 +125,8 @@ python ../training/train_scripts/train_any.py \
     simclr.mul_pos=${CONTRASTIVE_POS} \
     simclr.mul_intm=${MUL_INTM} \
     bc_mul=${BC_MUL} \
-    debug=true \
-    wandb_log=false \
+    debug=false \
+    wandb_log=true \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS} \
     cosine_annealing=${COSINE_ANNEALING}

@@ -476,11 +476,10 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
                 states=model_inputs['states'],
                 ret_dist=False,
                 actions=model_inputs['actions'])
-        if "CondPolicy" in config.policy._target_:
+        elif "CondPolicy" in config.policy._target_:
             out = model(
                 inputs=model_inputs,
                 inference=False)
-
         else:  # other baselines
             out = model(
                 images=model_inputs['images'],
@@ -752,14 +751,14 @@ class Trainer:
                         print(train_print)
 
                 #### ---- Validation step ----####
-                if self._step != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
+                if self._step % val_freq == 0 and not self.config.get("use_daml", False):
                     rollout = self.config.get("rollout", False)
+                    model = model.eval()
                     if not rollout:
                         # exhaust all data in val loader and take avg loss
                         all_val_losses = {task: defaultdict(
                             list) for task in task_names}
                         val_iter = iter(self._val_loader)
-                        model = model.eval()
                         for i, val_inputs in enumerate(val_iter):
                             use_daml = self.config.get("use_daml", False)
                             if use_daml:  # allow grad!
@@ -808,7 +807,7 @@ class Trainer:
                         if self.train_cfg.early_stopping.patience != -1:
                             self._early_stopping(
                                 weighted_task_loss_val, model, self._step, optimizer)
-                    elif rollout:
+                    elif rollout and self._step != 0:
                         from multi_task_test.test_any_task import _proc
                         import functools
                         from torch.multiprocessing import Pool
@@ -842,8 +841,8 @@ class Trainer:
                                                   model_name,
                                                   0,
                                                   False)
-                            with Pool(16) as p:
-                                task_success_flags = p.map(f, range(160))
+                            with Pool(5) as p:
+                                task_success_flags = p.map(f, range(80))
 
                                 all_succ_flags = [t['success']
                                                   for t in task_success_flags]
@@ -861,7 +860,7 @@ class Trainer:
                                 tolog['avg_prediction'] = np.mean(
                                     all_avg_pred)
 
-                            if best_avg_success < tolog['avg_success']:
+                            if best_avg_success <= tolog['avg_success']:
                                 print(
                                     f"Save model best_avg_success from {best_avg_success} to {tolog['avg_success']}")
                                 best_avg_success = tolog['avg_success']
