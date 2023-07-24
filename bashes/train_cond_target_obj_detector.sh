@@ -1,12 +1,14 @@
 #!/bin/sh
-export MUJOCO_PY_MUJOCO_PATH="/home/frosa_loc/.mujoco/mujoco210"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
+export MUJOCO_PY_MUJOCO_PATH="/user/frosa/.mujoco/mujoco210"
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=MIG-767498b9-57a8-5aa5-bed4-925c5af119d4
+export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
+export WANDB_CACHE_DIR=/mnt/sdc1/frosa/wandb
+export TMPDIR=/mnt/sdc1/frosa/tmp
 
-EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
-SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline
+EXPERT_DATA=/mnt/sdc1/frosa/ur_baseline_dataset/
+SAVE_PATH=/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/TARGET_OBJ_DETECTOR_SLOT
 POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
 
@@ -34,8 +36,8 @@ LR=0.0001
 WEIGHT_DECAY=5
 SCHEDULER='ReduceLROnPlateau'
 
-RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Cond-Target-Obj-Detector-Batch32
-RESUME_STEP=4050
+RESUME_PATH=/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/TARGET_OBJ_DETECTOR_SLOT/1Task-Pick-Place-Cond-Target-Obj-Detector-Batch32
+RESUME_STEP=32400
 
 python ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \

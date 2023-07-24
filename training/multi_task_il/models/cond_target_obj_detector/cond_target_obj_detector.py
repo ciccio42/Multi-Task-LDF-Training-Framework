@@ -534,42 +534,31 @@ class AgentModule(nn.Module):
 class CondTargetObjectDetector(nn.Module):
 
     def __init__(self,
-                 height=120,
-                 width=160,
-                 demo_T=4,
-                 obs_T=6,
-                 cond_backbone_name="slow_r50",
-                 agent_backbone_name="resnet18",
-                 cond_video=False,
-                 pretrained=False,
-                 dim_H=7,
-                 dim_W=7,
-                 conv_drop_dim=2,
-                 n_channels=512):
+                 cond_target_obj_detector_cfg):
         super().__init__()
 
-        self.dim_H = dim_H
-        self.dim_W = dim_W
+        self.dim_H = cond_target_obj_detector_cfg.dim_H
+        self.dim_W = cond_target_obj_detector_cfg.dim_W
 
-        self._cond_backbone = CondModule(height=height,
-                                         width=width,
-                                         demo_T=demo_T,
-                                         model_name=cond_backbone_name,
-                                         pretrained=pretrained,
-                                         cond_video=cond_video,
-                                         demo_H=dim_H,
-                                         demo_W=dim_W,
-                                         conv_drop_dim=conv_drop_dim
+        self._cond_backbone = CondModule(height=cond_target_obj_detector_cfg.height,
+                                         width=cond_target_obj_detector_cfg.width,
+                                         demo_T=cond_target_obj_detector_cfg.demo_T,
+                                         model_name=cond_target_obj_detector_cfg.cond_backbone_name,
+                                         pretrained=cond_target_obj_detector_cfg.pretrained,
+                                         cond_video=cond_target_obj_detector_cfg.cond_video,
+                                         demo_H=cond_target_obj_detector_cfg.dim_H,
+                                         demo_W=cond_target_obj_detector_cfg.dim_W,
+                                         conv_drop_dim=cond_target_obj_detector_cfg.conv_drop_dim
                                          )
 
-        self._agent_backone = AgentModule(height=height,
-                                          width=width,
-                                          obs_T=obs_T,
-                                          model_name=agent_backbone_name,
-                                          pretrained=pretrained,
-                                          dim_H=dim_H,
-                                          dim_W=dim_W,
-                                          conv_drop_dim=conv_drop_dim)
+        self._agent_backone = AgentModule(height=cond_target_obj_detector_cfg.height,
+                                          width=cond_target_obj_detector_cfg.width,
+                                          obs_T=cond_target_obj_detector_cfg.obs_T,
+                                          model_name=cond_target_obj_detector_cfg.agent_backbone_name,
+                                          pretrained=cond_target_obj_detector_cfg.pretrained,
+                                          dim_H=cond_target_obj_detector_cfg.dim_H,
+                                          dim_W=cond_target_obj_detector_cfg.dim_W,
+                                          conv_drop_dim=cond_target_obj_detector_cfg.conv_drop_dim)
 
         summary(self)
 

@@ -81,7 +81,8 @@ def make_data_loaders(config, dataset_cfg):
         num_workers=config.get('loader_workers', cpu_count()),
         worker_init_fn=lambda w: np.random.seed(
             np.random.randint(2 ** 29) + w),
-        collate_fn=collate_by_task
+        collate_fn=collate_by_task,
+        pin_memory=True
     )
 
     val_loader = None
@@ -107,7 +108,8 @@ def make_data_loaders(config, dataset_cfg):
             num_workers=config.get('loader_workers', cpu_count()),
             worker_init_fn=lambda w: np.random.seed(
                 np.random.randint(2 ** 29) + w),
-            collate_fn=collate_by_task
+            collate_fn=collate_by_task,
+            pin_memory=False
         )
 
     # check_train_val_overlap(train_dataset=dataset, val_dataset=val_dataset)
@@ -689,7 +691,6 @@ class Trainer:
 
         for e in range(epochs):
             frac = e / epochs
-
             for i, inputs in tqdm(enumerate(self._train_loader), total=len(self._train_loader), leave=False):
 
                 tolog = {}
@@ -759,7 +760,9 @@ class Trainer:
                         all_val_losses = {task: defaultdict(
                             list) for task in task_names}
                         val_iter = iter(self._val_loader)
+                        import time
                         for i, val_inputs in enumerate(val_iter):
+                            start = time.time()
                             use_daml = self.config.get("use_daml", False)
                             if use_daml:  # allow grad!
                                 val_task_losses = loss_function(
@@ -772,7 +775,9 @@ class Trainer:
                             for task, losses in val_task_losses.items():
                                 for k, v in losses.items():
                                     all_val_losses[task][k].append(v)
-
+                            # your code...
+                            end = time.time()
+                            print(end - start)  # time in seconds
                         # take average across all batches in the val loader
                         avg_losses = dict()
                         for task, losses in all_val_losses.items():
@@ -882,7 +887,6 @@ class Trainer:
 
                 if self.config.wandb_log:
                     wandb.log(tolog)
-
                 self._step += 1
                 try:
                     if not model._load_target_obj_detector or not model._freeze_target_obj_detector:
