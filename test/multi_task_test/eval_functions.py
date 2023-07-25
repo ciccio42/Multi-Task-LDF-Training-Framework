@@ -1045,7 +1045,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
             print("Exception during step")
 
         n_steps += 1
-        if n_steps > max_T or env_done:
+        if n_steps > max_T or env_done or reward:
             done = True
 
     env.close()

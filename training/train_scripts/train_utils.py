@@ -500,12 +500,14 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
 
         all_losses["l_bc"] = train_cfg.bc_loss_mult * \
             torch.mean(act_prob, dim=-1)
-        # compute inverse model density
-        inv_distribution = DiscreteMixLogistic(*out['inverse_distrib'])
-        inv_prob = rearrange(- inv_distribution.log_prob(actions),
-                             'B n_mix act_dim -> B (n_mix act_dim)')
-        all_losses["l_inv"] = train_cfg.inv_loss_mult * \
-            torch.mean(inv_prob, dim=-1)
+
+        if 'inverse_distribution' in out.keys():
+            # compute inverse model density
+            inv_distribution = DiscreteMixLogistic(*out['inverse_distrib'])
+            inv_prob = rearrange(- inv_distribution.log_prob(actions),
+                                 'B n_mix act_dim -> B (n_mix act_dim)')
+            all_losses["l_inv"] = train_cfg.inv_loss_mult * \
+                torch.mean(inv_prob, dim=-1)
 
         if 'point_ll' in out:
             pnts = model_inputs['points']
@@ -518,20 +520,26 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
             all_losses["point_loss"] = point_ll
 
         # NOTE: the model should output calculated rep-learning loss
-        if not model._load_target_obj_detector or not model._freeze_target_obj_detector:
-            rep_loss = torch.zeros_like(all_losses["l_bc"])
-            for k, v in out.items():
-                if k in train_cfg.rep_loss_muls.keys():
-                    v = torch.mean(v, dim=-1)  # just return size (B,) here
-                    v = v * train_cfg.rep_loss_muls.get(k, 0)
-                    all_losses[k] = v
-                    rep_loss = rep_loss + v
-            all_losses["rep_loss"] = rep_loss
+        if hasattr(model, "_load_target_obj_detector") and hasattr(model, "_freeze_target_obj_detector"):
+            if not model._load_target_obj_detector or not model._freeze_target_obj_detector:
+                rep_loss = torch.zeros_like(all_losses["l_bc"])
+                for k, v in out.items():
+                    if k in train_cfg.rep_loss_muls.keys():
+                        v = torch.mean(v, dim=-1)  # just return size (B,) here
+                        v = v * train_cfg.rep_loss_muls.get(k, 0)
+                        all_losses[k] = v
+                        rep_loss = rep_loss + v
+                all_losses["rep_loss"] = rep_loss
+            else:
+                all_losses["rep_loss"] = 0
         else:
-            rep_loss = 0
+            pass
 
-        all_losses["loss_sum"] = all_losses["l_bc"] + \
-            all_losses["l_inv"] + rep_loss
+        loss_sum = 0
+        for loss in all_losses.keys():
+            loss_sum += all_losses[loss]
+        all_losses["loss_sum"] = loss_sum
+
         all_losses["loss_sum"] = all_losses["loss_sum"] + \
             all_losses["point_loss"] if 'point_ll' in out else all_losses["loss_sum"]
 

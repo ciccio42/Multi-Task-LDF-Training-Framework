@@ -130,10 +130,10 @@ class CondPolicy(nn.Module):
             # Get a tensor of shape B, T, 1, dim_H, dim_W
             self.avg_pooling = torch.mean
             # apply spatial softmax
-            self.spatial_softmax = SpatialSoftmax(height=conf_file.cond_target_obj_detector.dim_H,
-                                                  width=conf_file.cond_target_obj_detector.dim_W)
-            latent_dim = conf_file.cond_target_obj_detector.dim_W * \
-                conf_file.cond_target_obj_detector.dim_H
+            self.spatial_softmax = SpatialSoftmax(height=conf_file.cond_target_obj_detector_cfg.dim_H,
+                                                  width=conf_file.cond_target_obj_detector_cfg.dim_W)
+            latent_dim = conf_file.cond_target_obj_detector_cfg.dim_W * \
+                conf_file.cond_target_obj_detector_cfg.dim_H
 
         # Compute action_module_input
         action_module_input = int(

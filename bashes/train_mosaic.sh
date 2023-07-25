@@ -1,12 +1,14 @@
 #!/bin/sh
-export MUJOCO_PY_MUJOCO_PATH="/home/frosa_loc/.mujoco/mujoco210"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
+export MUJOCO_PY_MUJOCO_PATH="/user/frosa/.mujoco/mujoco210"
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=1 #MIG-05d3e070-7dd8-57e1-a996-302be718107a
+export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
+export WANDB_CACHE_DIR=/user/frosa
+export TMPDIR=/user/frosa/tmp
 
-EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
-SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/MOSAIC
+EXPERT_DATA=/mnt/sdc1/frosa/ur_baseline_dataset/
+SAVE_PATH=/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/MOSAIC
 POLICY='${mosaic}'
 
 SAVE_FREQ=0
@@ -125,8 +127,8 @@ python ../training/train_scripts/train_any.py \
     simclr.mul_pos=${CONTRASTIVE_POS} \
     simclr.mul_intm=${MUL_INTM} \
     bc_mul=${BC_MUL} \
-    debug=false \
-    wandb_log=true \
+    debug=true \
+    wandb_log=false \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS} \
     cosine_annealing=${COSINE_ANNEALING}

@@ -144,7 +144,7 @@ class CondTargetObjDetectorDataset(Dataset):
                 image_cp = self.frame_aug(task_name, image, True)
                 images_cp.append(image_cp)
 
-            if load_action:
+            if load_action and j >= 1:
                 # Load action
                 action = step_t['action'] if not self._normalize_action else normalize_action(
                     action=step_t['action'], n_action_bin=self._n_action_bin, action_ranges=self._normalization_ranges)
