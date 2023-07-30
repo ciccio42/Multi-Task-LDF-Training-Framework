@@ -116,6 +116,7 @@ dataset_cfg:
                         [-3.14911766, 3.14911766],
                         [-3.14911766,  3.14911766]]
   n_action_bin: 256
+  first_frame: False
 
 augs:
   old_aug: false

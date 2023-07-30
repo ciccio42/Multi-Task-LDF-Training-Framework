@@ -46,6 +46,7 @@ class CondTargetObjDetectorDataset(Dataset):
             normalize_action=True,
             normalization_ranges=[],
             n_action_bin=256,
+            first_frame=False,
             ** params):
 
         self.task_crops = OrderedDict()
@@ -66,6 +67,7 @@ class CondTargetObjDetectorDataset(Dataset):
         self._normalize_action = normalize_action
         self._normalization_ranges = np.array(normalization_ranges)
         self._n_action_bin = n_action_bin
+        self._first_frame = first_frame
 
         self.select_random_frames = select_random_frames
         self.compute_obj_distribution = compute_obj_distribution
@@ -191,6 +193,9 @@ class CondTargetObjDetectorDataset(Dataset):
 
         else:
             chosen_t = [1]
+
+        if self._first_frame:
+            chosen_t.insert(0, torch.tensor([1]))
 
         images, images_cp, bb, obj_classes, action, states = self._create_sample(traj=traj,
                                                                                  chosen_t=chosen_t,
