@@ -145,9 +145,6 @@ class _StackedAttnLayers(nn.Module):
             # no causal mask is needed
             obs_attn = F.softmax(obs_kq, dim=4)
 
-            # save attention weights
-            # attention_weights = rearrange()
-
             obs_v = torch.einsum('btncj,btnji->btnci', cat_v, obs_attn)
 
             obs_out = self._obs_Outs[i](
@@ -253,14 +250,8 @@ class _TransformerFeatures(nn.Module):
                 out_dict['attn_'+k+'_demo'], out_dict['attn_'+k +
                                                       '_img'] = normalized.split([demo_T, obs_T], dim=1)
 
-        # activation_map = None
-        # if compute_activation_map:
-        #     activation_map = return_activation_map(
-        #         model=self,
-        #         features=out_dict['attn_features'][:, demo_T:, :, :, :],
-        #         images=images,
-        #         layer_name=None)
-        #     out_dict['activation_map'] = activation_map
+        if compute_activation_map:
+            demo_fm, img_fm = features.split([demo_T, obs_T], dim=1)
 
         out_dict['linear_embed'] = self._linear_embed(
             rearrange(features, 'B T d H W -> B T (d H W)'))
@@ -649,9 +640,6 @@ class VideoImitation(nn.Module):
 
         out = self.get_action(
             embed_out=embed_out, target_obj_embedding=target_obj_embedding, ret_dist=ret_dist, states=states, eval=eval)
-
-        # if compute_activation_map:
-        #     out['activation_map'] = embed_out['activation_map']
 
         if self._concat_target_obj_embedding:
             out["target_obj_embedding"] = target_obj_embedding

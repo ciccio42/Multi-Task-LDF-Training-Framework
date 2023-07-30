@@ -1,14 +1,13 @@
 #!/bin/sh
-export MUJOCO_PY_MUJOCO_PATH="/user/frosa/.mujoco/mujoco210"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
+export MUJOCO_PY_MUJOCO_PATH="/home/frosa_loc/.mujoco/mujoco210"
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 export HYDRA_FULL_ERROR=1
-export WANDB_CACHE_DIR=/user/frosa
-export TMPDIR=/user/frosa/tmp
 
-EXPERT_DATA=/mnt/sdc1/frosa/ur_baseline_dataset/
-SAVE_PATH=/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/TARGET_OBJ_DETECTOR_SLOT
+
+EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
+SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/TARGET_OBJ_DETECTOR_SLOT
 POLICY='${cond_policy}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
 
@@ -21,7 +20,7 @@ EXP_NAME=1Task-Pick-Place-Cond-Target-Obj-Detector-Policy
 PROJECT_NAME="pick_place_cond_target_obj_detector_policy"
 
 TASK_str=pick_place
-EPOCH=20
+EPOCH=60
 BSIZE=32 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 LOAD_ACTION=true
@@ -30,7 +29,7 @@ BC_MUL=1.0
 
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector.yaml
-LOADER_WORKERS=1
+LOADER_WORKERS=16
 BALANCING_POLICY=0
 SET_SAME_N=2
 OBS_T=7
@@ -44,11 +43,12 @@ SCHEDULER=None
 
 N_MIXTURES=6
 
-RESUME_PATH=null
-RESUME_STEP=-1
+RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/TARGET_OBJ_DETECTOR_SLOT/1Task-Pick-Place-Cond-Target-Obj-Detector-Policy-Batch32
+RESUME_STEP=162000
+RESUME=true
 
 COND_TARGET_OBJ_DETECTOR_PRE_TRAINED=true
-COND_TARGET_OBJ_DETECTOR_WEIGHTS="/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/TARGET_OBJ_DETECTOR_SLOT/1Task-Pick-Place-Cond-Target-Obj-Detector-Batch32"
+COND_TARGET_OBJ_DETECTOR_WEIGHTS="/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/TARGET_OBJ_DETECTOR_SLOT/1Task-Pick-Place-Cond-Target-Obj-Detector-Batch32"
 COND_TARGET_OBJ_DETECTOR_STEP=72900
 
 
@@ -89,7 +89,7 @@ python ../training/train_scripts/train_any.py \
     train_cfg.lr=${LR} \
     train_cfg.weight_decay=${WEIGHT_DECAY} \
     train_cfg.lr_schedule=${SCHEDULER} \
-    debug=true \
-    wandb_log=false \
-    resume=false \
+    debug=false \
+    wandb_log=true \
+    resume=${RESUME} \
     loader_workers=${LOADER_WORKERS}

@@ -169,7 +169,10 @@ class CondPolicy(nn.Module):
         print("\n\n---- Complete model ----\n")
         summary(self)
 
-    def forward(self, inputs: dict, inference: bool = False):
+    def get_scale_factors(self):
+        return self.cond_target_obj_detector.get_scale_factors()
+
+    def forward(self, inputs: dict, inference: bool = False, oracle: bool = False, bb_queue: list = []):
         out = dict()
 
         # get target object prediction
@@ -179,6 +182,9 @@ class CondPolicy(nn.Module):
         # Reshape BBs B*T, 4 to B,T,4
         bbs = torch.stack(prediction_target_obj_detector['proposals'])
         B, T, _, _, _ = inputs['images'].shape
+        if inference == True and prediction_target_obj_detector['conf_scores_final'][0] == -1:
+            bbs = bb_queue[0][0][None]
+            prediction_target_obj_detector['proposals'] = bb_queue[0][0][None]
         bbs = rearrange(bbs, '(B T) N -> B T N', B=B, T=T, N=4)
 
         # 1. Get last layer feature maps
@@ -203,8 +209,18 @@ class CondPolicy(nn.Module):
         # reshape states
         states = inputs['states']
         # get the bb with the highest conf score
+        bb = None
+        if oracle:
+            bb = project_bboxes(bboxes=inputs['gt_bb'].float(),
+                                width_scale_factor=self.get_scale_factors()[0],
+                                height_scale_factor=self.get_scale_factors()[
+                1],
+                mode='p2a')[0]
+        else:
+            bb = bbs
+
         action_in = torch.concat(
-            [spatial_softmax_out_flat, states, bbs], dim=2).to(torch.float32)
+            [spatial_softmax_out_flat, states, bb], dim=2).to(torch.float32)
         action_in = F.normalize(action_in, dim=2).to(torch.float32)
         # 6. Infer action embedding
         ac_pred = self.action_module(action_in)

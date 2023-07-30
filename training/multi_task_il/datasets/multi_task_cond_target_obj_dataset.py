@@ -14,7 +14,7 @@ import copy
 
 from multi_task_il.utils import normalize_action
 from multi_task_il.datasets.utils import *
-DEBUG = False
+DEBUG = True
 
 
 class CondTargetObjDetectorDataset(Dataset):

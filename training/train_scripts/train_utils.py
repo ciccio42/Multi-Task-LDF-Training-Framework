@@ -501,7 +501,7 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
         all_losses["l_bc"] = train_cfg.bc_loss_mult * \
             torch.mean(act_prob, dim=-1)
 
-        if 'inverse_distribution' in out.keys():
+        if 'inverse_distrib' in out.keys():
             # compute inverse model density
             inv_distribution = DiscreteMixLogistic(*out['inverse_distrib'])
             inv_prob = rearrange(- inv_distribution.log_prob(actions),
@@ -536,8 +536,8 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
             pass
 
         loss_sum = 0
-        for loss in all_losses.keys():
-            loss_sum += all_losses[loss]
+        for loss_key in ['l_bc', 'l_inv', 'rep_loss']:
+            loss_sum += all_losses[loss_key] if loss_key in all_losses.keys() else 0.0
         all_losses["loss_sum"] = loss_sum
 
         all_losses["loss_sum"] = all_losses["loss_sum"] + \
@@ -768,9 +768,7 @@ class Trainer:
                         all_val_losses = {task: defaultdict(
                             list) for task in task_names}
                         val_iter = iter(self._val_loader)
-                        import time
                         for i, val_inputs in enumerate(val_iter):
-                            start = time.time()
                             use_daml = self.config.get("use_daml", False)
                             if use_daml:  # allow grad!
                                 val_task_losses = loss_function(
@@ -783,9 +781,7 @@ class Trainer:
                             for task, losses in val_task_losses.items():
                                 for k, v in losses.items():
                                     all_val_losses[task][k].append(v)
-                            # your code...
-                            end = time.time()
-                            print(end - start)  # time in seconds
+
                         # take average across all batches in the val loader
                         avg_losses = dict()
                         for task, losses in all_val_losses.items():
@@ -914,7 +910,6 @@ class Trainer:
 
         # when all epochs are done, save model one last time
         self.save_checkpoint(model, optimizer, weights_fn, save_fn)
-        print(self._train_loader.dataset._selected_target_frame_distribution_task_object_target_position)
 
     def save_checkpoint(self, model, optimizer, weights_fn=None, save_fn=None):
         if save_fn is not None:

@@ -1,24 +1,29 @@
-import hydra
 # from multi_task_test.eval_functions import *
-
-import random
-import copy
 import os
-from collections import defaultdict
 import torch
 import numpy as np
-import pickle as pkl
-import imageio
-import functools
-from torch.multiprocessing import Pool, set_start_method
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
+from torch.multiprocessing import set_start_method
 import json
 import cv2
-import random
+import robosuite.utils.transform_utils as T
+from collections import deque
 from tokenizers import Tokenizer
 from tokenizers import AddedToken
-from einops import rearrange, repeat
+from einops import rearrange
+from multi_task_il.datasets.savers import Trajectory
+import json
+import multi_task_robosuite_env as mtre
+from multi_task_il.utils import denormalize_action
+from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
+from torchvision.ops import box_iou
+
+DEBUG = False
+
+commad_path = os.path.join(os.path.dirname(
+    mtre.__file__), "../collect_data/command.json")
+with open(commad_path) as f:
+    TASK_COMMAND = json.load(f)
+
 
 set_start_method('forkserver', force=True)
 
@@ -41,6 +46,7 @@ tokenizer.add_tokens(PLACEHOLDER_TOKENS)
 ENV_OBJECTS = {
     'pick_place': {
         'obj_names': ['greenbox', 'yellowbox', 'bluebox', 'redbox', 'bin'],
+        'ranges': [[-0.255, -0.195], [-0.105, -0.045], [0.045, 0.105], [0.195, 0.255]],
         'splitted_obj_names': ['green box', 'yellow box', 'blue box', 'red box'],
         'bin_position': [0.18, 0.00, 0.75],
         'obj_dim': {'greenbox': [0.05, 0.055, 0.045],  # W, H, D
@@ -375,3 +381,291 @@ def prepare_obs(env, obs, views, task_name):
     # obs = any_transpose_first_two_axes(obs)
 
     return obs
+
+
+def get_action(model, target_obj_dec, states, images, context, gpu_id, n_steps, max_T=80, baseline=None, action_ranges=[], target_obj_embedding=None):
+    s_t = torch.from_numpy(np.concatenate(states, 0).astype(np.float32))[None]
+    if isinstance(images[-1], np.ndarray):
+        i_t = torch.from_numpy(np.concatenate(
+            images, 0).astype(np.float32))[None]
+    else:
+        i_t = images[0][None]
+    s_t, i_t = s_t.float().cuda(gpu_id), i_t.float().cuda(gpu_id)
+
+    predicted_prob = None
+
+    if baseline == 'daml':
+        learner = model.clone()
+        # Perform adaptation
+        learner.adapt(
+            learner(None, context[0], learned_loss=True)['learned_loss'], allow_nograd=True, allow_unused=True)
+        out = model(states=s_t[0], images=i_t[0], ret_dist=True)
+        action = out['action_dist'].sample()[-1].cpu().detach().numpy()
+    else:
+        with torch.no_grad():
+            out = model(states=s_t, images=i_t, context=context, eval=True,
+                        target_obj_embedding=target_obj_embedding, compute_activation_map=True)  # to avoid computing ATC loss
+            try:
+                target_obj_embedding = out['target_obj_embedding']
+            except:
+                pass
+
+            action = out['bc_distrib'].sample()[0, -1].cpu().numpy()
+            if target_obj_dec is not None:
+                target_obj_position = target_obj_dec(i_t, context, eval=True)
+                predicted_prob = torch.nn.Softmax(dim=2)(
+                    target_obj_position['target_obj_pred']).to('cpu').tolist()
+            else:
+                predicted_prob = None
+    # action[3:7] = [1.0, 1.0, 0.0, 0.0]
+    action = denormalize_action(action, action_ranges)
+    action[-1] = 1 if action[-1] > 0 and n_steps < max_T - 1 else -1
+    return action, predicted_prob, target_obj_embedding, out.get('activation_map', None)
+
+
+def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None, bb_flag=False):
+
+    done, states, images = False, [], []
+    if baseline is None:
+        states = deque(states, maxlen=1)
+        images = deque(images, maxlen=1)  # NOTE: always use only one frame
+        if bb_flag:
+            bb = deque([], maxlen=1)
+            gt_classes = deque([], maxlen=1)
+    context = context.cuda(gpu_id).float()
+
+    while True:
+        try:
+            obs = env.reset()
+            # make a "null step" to stabilize all objects
+            current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
+            current_gripper_orientation = T.quat2axisangle(T.mat2quat(np.reshape(
+                env.sim.data.site_xmat[env.robots[0].eef_site_id], (3, 3))))
+            current_gripper_pose = np.concatenate(
+                (current_gripper_position, current_gripper_orientation, np.array([-1])), axis=-1)
+            obs, reward, env_done, info = env.step(current_gripper_pose)
+            break
+        except:
+            pass
+
+    gt_obs = None
+    if gt_env != None:
+        while True:
+            try:
+                gt_obs = gt_env.reset()
+                for obj_name in env.object_to_id.keys():
+                    gt_obj = gt_env.objects[env.object_to_id[obj_name]]
+                    # set object position based on trajectory file
+                    obj_pos = obs[f"{obj_name}_pos"]
+                    obj_quat = obs[f"{obj_name}_quat"]
+                    gt_env.env.sim.data.set_joint_qpos(
+                        gt_obj.joints[0], np.concatenate([obj_pos, obj_quat]))
+
+                # make a "null step" to stabilize all objects
+                current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
+                current_gripper_orientation = T.quat2axisangle(T.mat2quat(np.reshape(
+                    env.sim.data.site_xmat[env.robots[0].eef_site_id], (3, 3))))
+                current_gripper_pose = np.concatenate(
+                    (current_gripper_position, current_gripper_orientation, np.array([-1])), axis=-1)
+                gt_obs, gt_reward, gt_env_done, gt_info = env.step(
+                    current_gripper_pose)
+                break
+            except:
+                pass
+
+    traj = Trajectory()
+    traj.append(obs)
+    tasks = {'success': False, 'reached': False,
+             'picked': False, 'variation_id': variation_id}
+    if bb_flag:
+        return done, states, images, context, obs, traj, tasks, bb, gt_classes, gt_obs
+    else:
+        return done, states, images, context, obs, traj, tasks, gt_obs
+
+
+def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None, action_ranges=[]):
+
+    done, states, images, context, obs, traj, tasks, bb, gt_classes, _ = \
+        startup_env(model=model,
+                    env=env,
+                    gt_env=None,
+                    context=context,
+                    gpu_id=gpu_id,
+                    variation_id=variation_id,
+                    baseline=baseline,
+                    bb_flag=True)
+    n_steps = 0
+    iou = 0
+    while not done:
+
+        # Get GT Bounding Box
+        agent_target_obj_id = traj.get(0)['obs']['target-object']
+        for id, obj_name in enumerate(ENV_OBJECTS['pick_place']['obj_names']):
+            if id == agent_target_obj_id:
+                top_left_x = traj.get(
+                    n_steps)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][agent_target_obj_id]]['bottom_right_corner'][0]
+                top_left_y = traj.get(
+                    n_steps)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][agent_target_obj_id]]['bottom_right_corner'][1]
+                # print(f"Top-Left X {top_left_x} - Top-Left Y {top_left_y}")
+                bottom_right_x = traj.get(
+                    n_steps)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][agent_target_obj_id]]['upper_left_corner'][0]
+                bottom_right_y = traj.get(
+                    n_steps)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][agent_target_obj_id]]['upper_left_corner'][1]
+                bb_t = np.array(
+                    [[top_left_x, top_left_y, bottom_right_x, bottom_right_y]])
+                gt_t = np.array(1)
+
+        if baseline and len(states) >= 5:
+            states, images = [], []
+        states.append(np.concatenate(
+            (obs['joint_pos'], obs['joint_vel'])).astype(np.float32)[None])
+
+        # convert observation from BGR to RGB
+        formatted_img, bb_t = img_formatter(
+            obs['camera_front_image'][:, :, ::-1], bb_t)
+
+        model_input = dict()
+        model_input['demo'] = context.to(device=gpu_id)
+        model_input['images'] = formatted_img[None][None].to(device=gpu_id)
+        model_input['gt_bb'] = torch.from_numpy(
+            bb_t[None][None]).to(device=gpu_id)
+        model_input['gt_classes'] = torch.from_numpy(
+            gt_t[None][None][None]).to(device=gpu_id)
+        model_input['states'] = torch.from_numpy(
+            np.array(states)).to(device=gpu_id)
+
+        with torch.no_grad():
+            # Perform  detection
+            prediction = model(model_input,
+                               inference=True,
+                               oracle=True)
+
+        if controller is not None:
+            prediction = prediction
+        else:
+            bc_distrib = prediction['bc_distrib']
+            prediction = prediction['prediction_target_obj_detector']
+
+        # Project bb over image
+        if prediction['conf_scores_final'][0] != -1:
+            scale_factor = model.get_scale_factors()
+            predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None],
+                                          width_scale_factor=scale_factor[0],
+                                          height_scale_factor=scale_factor[1],
+                                          mode='a2p')
+            try:
+                max_conf_score_indx = torch.argmax(
+                    prediction['conf_scores_final'][0])
+            except:
+                print("Argmax error")
+            predicted_bb = predicted_bb[max_conf_score_indx]
+            if True:
+                image = np.array(np.moveaxis(
+                    formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+
+                image = cv2.rectangle(np.ascontiguousarray(image),
+                                      (int(predicted_bb[0]),
+                                       int(predicted_bb[1])),
+                                      (int(predicted_bb[2]),
+                                       int(predicted_bb[3])),
+                                      color=(0, 0, 255), thickness=1)
+                image = cv2.rectangle(np.ascontiguousarray(image),
+                                      (int(bb_t[0][0]),
+                                       int(bb_t[0][1])),
+                                      (int(bb_t[0][2]),
+                                       int(bb_t[0][3])),
+                                      color=(0, 255, 0), thickness=1)
+                cv2.imwrite("predicted_bb.png", image)
+            obs['predicted_bb'] = predicted_bb.cpu().numpy()
+            obs['gt_bb'] = bb_t
+            # compute IoU over time
+            iou_t = box_iou(boxes1=torch.from_numpy(
+                bb_t).to(device=gpu_id), boxes2=predicted_bb[None])
+            obs['iou'] = iou_t[0][0].cpu().numpy()
+            iou += iou_t[0][0].cpu().numpy()
+            traj.append(obs)
+        else:
+            obs['predicted_bb'] = predicted_bb.cpu().numpy()
+            obs['gt_bb'] = bb_t
+            obs['iou'] = 0
+            traj.append(obs)
+
+        if controller is not None:
+            # compute the action for the current state
+            action, status = controller.act(obs)
+        else:
+            action = bc_distrib.sample()[0, -1].cpu().numpy()
+            action = denormalize_action(action,
+                                        action_ranges)
+
+        obs, reward, env_done, info = env.step(action)
+        cv2.imwrite(
+            f"step_test.png", obs['camera_front_image'][:, :, ::-1])
+
+        n_steps += 1
+        if n_steps > max_T or env_done or reward:
+            done = True
+
+    env.close()
+    tasks['avg_iou'] = iou/(n_steps-1)
+    del env
+    del states
+    del images
+    del model
+
+    return traj, tasks
+
+
+def select_random_frames(frames, n_select, sample_sides=True, random_frames=True):
+    selected_frames = []
+    def clip(x): return int(max(0, min(x, len(frames) - 1)))
+    per_bracket = max(len(frames) / n_select, 1)
+
+    if random_frames:
+        for i in range(n_select):
+            n = clip(np.random.randint(
+                int(i * per_bracket), int((i + 1) * per_bracket)))
+            if sample_sides and i == n_select - 1:
+                n = len(frames) - 1
+            elif sample_sides and i == 0:
+                n = 1
+            selected_frames.append(n)
+    else:
+        for i in range(n_select):
+            # get first frame
+            if i == 0:
+                n = 1
+            # get the last frame
+            elif i == n_select - 1:
+                n = len(frames) - 1
+            elif i == 1:
+                obj_in_hand = 0
+                # get the first frame with obj_in_hand and the gripper is closed
+                for t in range(1, len(frames)):
+                    state = frames.get(t)['info']['status']
+                    trj_t = frames.get(t)
+                    gripper_act = trj_t['action'][-1]
+                    if state == 'obj_in_hand' and gripper_act == 1:
+                        obj_in_hand = t
+                        n = t
+                        break
+            elif i == 2:
+                # get the middle moving frame
+                start_moving = 0
+                end_moving = 0
+                for t in range(obj_in_hand, len(frames)):
+                    state = frames.get(t)['info']['status']
+                    if state == 'moving' and start_moving == 0:
+                        start_moving = t
+                    elif state != 'moving' and start_moving != 0 and end_moving == 0:
+                        end_moving = t
+                        break
+                n = start_moving + int((end_moving-start_moving)/2)
+            selected_frames.append(n)
+
+    if isinstance(frames, (list, tuple)):
+        return [frames[i] for i in selected_frames]
+    elif isinstance(frames, Trajectory):
+        return [frames[i]['obs']['camera_front_image'] for i in selected_frames]
+        # return [frames[i]['obs']['image-state'] for i in selected_frames]
+    return frames[selected_frames]

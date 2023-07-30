@@ -579,6 +579,9 @@ class CondTargetObjectDetector(nn.Module):
         # print(agent_emb.shape)
         return ret_dict
 
+    def get_scale_factors(self):
+        return [self._agent_backone.width_scale_factor, self._agent_backone.height_scale_factor]
+
 
 @hydra.main(
     version_base=None,

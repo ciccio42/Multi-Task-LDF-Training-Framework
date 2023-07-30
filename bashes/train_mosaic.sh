@@ -1,24 +1,22 @@
 #!/bin/sh
-export MUJOCO_PY_MUJOCO_PATH="/user/frosa/.mujoco/mujoco210"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
+export MUJOCO_PY_MUJOCO_PATH="/home/frosa_loc/.mujoco/mujoco210"
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
-export WANDB_CACHE_DIR=/user/frosa
-export TMPDIR=/user/frosa/tmp
 
-EXPERT_DATA=/mnt/sdc1/frosa/ur_baseline_dataset/
-SAVE_PATH=/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/MOSAIC
+EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
+SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/MOSAIC
 POLICY='${mosaic}'
 
-SAVE_FREQ=0
+SAVE_FREQ=4050
 LOG_FREQ=100
 VAL_FREQ=4050
 
 EXP_NAME=1Task-Pick-Place-100-180
 PROJECT_NAME="ur_pick_place_100_180"
 TASK_str=pick_place
-ROLLOUT=true
+ROLLOUT=false
 EPOCH=40
 BSIZE=32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
@@ -27,7 +25,7 @@ BALANCING_POLICY=0
 SET_SAME_N=2
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=8
+LOADER_WORKERS=16
 NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=true
@@ -35,6 +33,7 @@ CONTRASTIVE_PRE=1.0
 CONTRASTIVE_POS=1.0
 MUL_INTM=0
 BC_MUL=1.0
+INV_MUL=1.0
 
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=13000
@@ -127,6 +126,7 @@ python ../training/train_scripts/train_any.py \
     simclr.mul_pos=${CONTRASTIVE_POS} \
     simclr.mul_intm=${MUL_INTM} \
     bc_mul=${BC_MUL} \
+    inv_mul=${INV_MUL} \
     debug=true \
     wandb_log=false \
     resume=${RESUME} \

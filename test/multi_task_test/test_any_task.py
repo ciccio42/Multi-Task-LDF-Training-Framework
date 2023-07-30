@@ -3,25 +3,12 @@ Evaluate each task for the same number of --eval_each_task times.
 """
 import warnings
 from robosuite import load_controller_config
-# [Decomment as you implement controllers]
-# from multi_task_robosuite_env.controllers.controllers.expert_basketball import \
-#     get_expert_trajectory as basketball_expert
 from multi_task_robosuite_env.controllers.controllers.expert_nut_assembly import \
     get_expert_trajectory as nut_expert
 from multi_task_robosuite_env.controllers.controllers.expert_pick_place import \
     get_expert_trajectory as place_expert
-# from multi_task_robosuite_env.controllers.controllers.expert_block_stacking import \
-#     get_expert_trajectory as stack_expert
-# from multi_task_robosuite_env.controllers.controllers.expert_drawer import \
-#     get_expert_trajectory as draw_expert
-# from multi_task_robosuite_env.controllers.controllers.expert_button import \
-#     get_expert_trajectory as press_expert
-# from multi_task_robosuite_env.controllers.controllers.expert_door import \
-#     get_expert_trajectory as door_expert
-from multi_task_test.eval_functions import *
-
+import cv2
 import random
-import copy
 import os
 from os.path import join
 from collections import defaultdict
@@ -29,25 +16,21 @@ import torch
 from multi_task_il.datasets import Trajectory
 import numpy as np
 import pickle as pkl
-import imageio
 import functools
 from torch.multiprocessing import Pool, set_start_method
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
 import json
 import wandb
 from collections import OrderedDict
 import hydra
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import OmegaConf
 from torchvision import transforms
-from torchvision.transforms import ToTensor, Normalize
-from torchvision.transforms import functional as TvF
+from torchvision.transforms import ToTensor
 from torchvision.transforms.functional import resized_crop
 import learn2learn as l2l
-from torchvision.transforms import RandomAffine, ToTensor, Normalize, \
-    RandomGrayscale, ColorJitter, RandomApply, RandomHorizontalFlip, GaussianBlur, RandomResizedCrop
-import torch.nn as nn
-import multi_task_il
+from torchvision.transforms import ToTensor
+from multi_task_test.nut_assembly import nut_assembly_eval
+from multi_task_test.pick_place import pick_place_eval
+from multi_task_test import select_random_frames
 
 set_start_method('forkserver', force=True)
 LOG_PATH = None
@@ -107,61 +90,6 @@ TASK_MAP = {
     # },
 
 }
-
-
-def select_random_frames(frames, n_select, sample_sides=True, random_frames=True):
-    selected_frames = []
-    def clip(x): return int(max(0, min(x, len(frames) - 1)))
-    per_bracket = max(len(frames) / n_select, 1)
-
-    if random_frames:
-        for i in range(n_select):
-            n = clip(np.random.randint(
-                int(i * per_bracket), int((i + 1) * per_bracket)))
-            if sample_sides and i == n_select - 1:
-                n = len(frames) - 1
-            elif sample_sides and i == 0:
-                n = 1
-            selected_frames.append(n)
-    else:
-        for i in range(n_select):
-            # get first frame
-            if i == 0:
-                n = 1
-            # get the last frame
-            elif i == n_select - 1:
-                n = len(frames) - 1
-            elif i == 1:
-                obj_in_hand = 0
-                # get the first frame with obj_in_hand and the gripper is closed
-                for t in range(1, len(frames)):
-                    state = frames.get(t)['info']['status']
-                    trj_t = frames.get(t)
-                    gripper_act = trj_t['action'][-1]
-                    if state == 'obj_in_hand' and gripper_act == 1:
-                        obj_in_hand = t
-                        n = t
-                        break
-            elif i == 2:
-                # get the middle moving frame
-                start_moving = 0
-                end_moving = 0
-                for t in range(obj_in_hand, len(frames)):
-                    state = frames.get(t)['info']['status']
-                    if state == 'moving' and start_moving == 0:
-                        start_moving = t
-                    elif state != 'moving' and start_moving != 0 and end_moving == 0:
-                        end_moving = t
-                        break
-                n = start_moving + int((end_moving-start_moving)/2)
-            selected_frames.append(n)
-
-    if isinstance(frames, (list, tuple)):
-        return [frames[i] for i in selected_frames]
-    elif isinstance(frames, Trajectory):
-        return [frames[i]['obs']['camera_front_image'] for i in selected_frames]
-        # return [frames[i]['obs']['image-state'] for i in selected_frames]
-    return frames[selected_frames]
 
 
 def build_tvf_formatter(config, env_name='stack'):
@@ -315,7 +243,7 @@ def build_env(ctr=0, env_name='nut', heights=100, widths=200, size=False, shape=
     return agent_env, variation
 
 
-def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights=100, widths=200, size=False, shape=False, color=False, gpu_id=0, variation=None, random_frames=True, controller_path=None):
+def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights=100, widths=200, size=False, shape=False, color=False, gpu_id=0, variation=None, random_frames=True, controller_path=None, ret_gt_env=False):
 
     # create_seed = random.Random(42)
     create_seed = random.getrandbits(32)
@@ -373,6 +301,15 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights
                            gpu_id=gpu_id,
                            object_set=TASK_MAP[env_name]['object_set'])
 
+        if ret_gt_env:
+            gt_env = env_fn(agent_name,
+                            controller_type=controller,
+                            task=variation,
+                            ret_env=True,
+                            seed=create_seed,
+                            gpu_id=gpu_id,
+                            object_set=TASK_MAP[env_name]['object_set'])
+
     assert isinstance(teacher_expert_rollout, Trajectory)
     context = select_random_frames(
         teacher_expert_rollout, T_context, sample_sides=True, random_frames=random_frames)
@@ -386,7 +323,10 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights
     else:
         context = torch.cat(context, dim=0)[None]
 
-    return agent_env, context, variation, teacher_expert_rollout
+    if ret_gt_env:
+        return agent_env, context, variation, teacher_expert_rollout, gt_env
+    else:
+        return agent_env, context, variation, teacher_expert_rollout
 
 
 def object_detection_inference(model, config, ctr, heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, model_name=None):
@@ -457,7 +397,11 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
         target_obj_dec = target_obj_dec.cuda(gpu_id)
 
     if "vima" not in model_name:
-        img_formatter = build_tvf_formatter(config, env_name)
+        if "CondPolicy" not in model_name:
+            img_formatter = build_tvf_formatter(config, env_name)
+        else:
+            img_formatter = build_tvf_formatter_obj_detector(config=config,
+                                                             env_name=env_name)
 
         T_context = config.train_cfg.dataset.get('T_context', None)
         random_frames = config.dataset_cfg.get('select_random_frames', False)
@@ -465,18 +409,19 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
             assert 'multi' in config.train_cfg.dataset._target_, config.train_cfg.dataset._target_
             T_context = config.train_cfg.dataset.demo_T
 
-        env, context, variation_id, expert_traj = build_env_context(img_formatter,
-                                                                    T_context=T_context,
-                                                                    ctr=ctr,
-                                                                    env_name=env_name,
-                                                                    heights=heights,
-                                                                    widths=widths,
-                                                                    size=size,
-                                                                    shape=shape,
-                                                                    color=color,
-                                                                    gpu_id=gpu_id,
-                                                                    variation=variation, random_frames=random_frames,
-                                                                    controller_path=controller_path)
+        env, context, variation_id, expert_traj, gt_env = build_env_context(img_formatter,
+                                                                            T_context=T_context,
+                                                                            ctr=ctr,
+                                                                            env_name=env_name,
+                                                                            heights=heights,
+                                                                            widths=widths,
+                                                                            size=size,
+                                                                            shape=shape,
+                                                                            color=color,
+                                                                            gpu_id=gpu_id,
+                                                                            variation=variation, random_frames=random_frames,
+                                                                            controller_path=controller_path,
+                                                                            ret_gt_env=True)
 
         build_task = TASK_MAP.get(env_name, None)
         assert build_task, 'Got unsupported task '+env_name
@@ -484,6 +429,7 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
         traj, info = eval_fn(model,
                              target_obj_dec,
                              env,
+                             gt_env,
                              context,
                              gpu_id,
                              variation_id,
@@ -494,7 +440,7 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
                              model_name=model_name)
         print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             ctr, variation_id, info['reached'], info['picked'], info['success']))
-        print(f"Avg prediction {info['avg_pred']}")
+        # print(f"Avg prediction {info['avg_pred']}")
         return traj, info, expert_traj, context
 
     else:
@@ -541,7 +487,7 @@ def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, sha
         print("Using previous results at {}. Loaded eval traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             json_name, n, task_success_flags['variation_id'], task_success_flags['reached'], task_success_flags['picked'], task_success_flags['success']))
     else:
-        if "cond_target_obj_detector" not in model_name:
+        if ("cond_target_obj_detector" not in model_name) or ("CondPolicy" in model_name):
             return_rollout = rollout_imitation(model,
                                                target_obj_dec,
                                                config,
@@ -687,7 +633,7 @@ if __name__ == '__main__':
     model_saved_step = model_saved_step[0][:-3]
     print("loading model from saved training step %s" % model_saved_step)
     results_dir = os.path.join(results_dir, 'step-'+model_saved_step)
-    # os.makedirs(results_dir, exist_ok=True)
+    os.makedirs(results_dir, exist_ok=True)
     print("Made new path for results at: %s" % results_dir)
     config_path = os.path.expanduser(args.config) if args.config else os.path.join(
         os.path.dirname(model_path), 'config.yaml')
