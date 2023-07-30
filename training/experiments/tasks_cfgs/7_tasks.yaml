@@ -44,12 +44,12 @@ button:
 
 pick_place:
   name:              'pick_place'
-  n_tasks:           16
+  n_tasks:           1 #16
   crop:              [20, 25, 80, 75] # Render: 200, 360 
   n_per_task:        2
-  task_ids:          [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+  task_ids:          [0] #,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
   loss_mul:          1
-  task_per_batch:    16
+  task_per_batch:    1 #16
   traj_per_subtask:  100
   demo_per_subtask:  100
 

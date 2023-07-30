@@ -4,12 +4,12 @@
 #                              stack_new_color, stack_new_shape]
 export CUDA_VISIBLE_DEVICES=0
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
 # export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libGLEW.so
 
 # path to folder where save trajectories
-BASEPATH=/home/frosa_loc/Multi-Task-LFD-Framework/
-PATH_TO_DATA=/home/frosa_loc/Multi-Task-LFD-Framework
+BASEPATH=/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework
+PATH_TO_DATA=/mnt/sdc1/frosa
 SUITE=${PATH_TO_DATA}/ur_multitask_dataset_obs_to_action
 echo ${SUITE}
 WORKERS=1 # number of workers

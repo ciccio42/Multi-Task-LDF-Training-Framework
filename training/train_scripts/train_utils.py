@@ -444,8 +444,8 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
         for key in input_keys:
             model_inputs[key].append(traj[key].to(device))
 
-        if 'points' in traj.keys():
-            model_inputs['points'].append(traj['points'].to(device).long())
+        # if 'points' in traj.keys():
+        #     model_inputs['points'].append(traj['points'].to(device).long())
 
         for key in inputs['demo_data'].keys():
             model_inputs[key].append(inputs['demo_data'][key].to(device))
@@ -511,13 +511,10 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
 
         if 'point_ll' in out:
             pnts = model_inputs['points']
-            point_ll = - train_cfg.pnt_loss_mult * out['point_ll'][range(pnts.shape[0]),
-                                                                   pnts[:, -1, 0], pnts[:, -1, 1]]
-            # l_point = train_cfg.pnt_loss_mult * \
-            #     torch.mean(-out['point_ll'][range(pnts.shape[0]),
-            #                                 pnts[:, -1, 0], pnts[:, -1, 1]], dim=-1)
+            l_point = train_cfg.pnt_loss_mult * out['point_ll'][range(pnts.shape[0]),
+                                                                pnts[:, -1, 0].long(), pnts[:, -1, 1].long()]
 
-            all_losses["point_loss"] = point_ll
+            all_losses["point_loss"] = l_point
 
         # NOTE: the model should output calculated rep-learning loss
         if hasattr(model, "_load_target_obj_detector") and hasattr(model, "_freeze_target_obj_detector"):
@@ -768,7 +765,7 @@ class Trainer:
                         all_val_losses = {task: defaultdict(
                             list) for task in task_names}
                         val_iter = iter(self._val_loader)
-                        for i, val_inputs in enumerate(val_iter):
+                        for i, val_inputs in tqdm(enumerate(self._val_loader), total=len(self._val_loader), leave=False):
                             use_daml = self.config.get("use_daml", False)
                             if use_daml:  # allow grad!
                                 val_task_losses = loss_function(

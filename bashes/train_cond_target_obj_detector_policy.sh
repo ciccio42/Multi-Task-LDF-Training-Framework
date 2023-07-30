@@ -4,6 +4,8 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 export CUDA_VISIBLE_DEVICES=1
 export HYDRA_FULL_ERROR=1
+# export WANDB_CACHE_DIR=/user/frosa
+# export TMPDIR=/user/frosa/tmp
 
 
 EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
