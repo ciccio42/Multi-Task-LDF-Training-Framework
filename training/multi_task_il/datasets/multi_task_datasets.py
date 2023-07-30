@@ -185,9 +185,25 @@ class MultiTaskPairedDataset(Dataset):
             images.append(processed)
             if self.aug_twice:
                 images_cp.append(self.frame_aug(task_name, image, True))
+
             if has_eef_point:
+
+                if DEBUG:
+                    image_point = np.array(
+                        step_t['obs']['camera_front_image'][:, :, ::-1], dtype=np.uint8)
+                    image_point = cv2.circle(cv2.UMat(image_point), (step_t['obs']['eef_point'][1], step_t['obs']['eef_point'][0]), radius=1, color=(
+                        0, 0, 255), thickness=1)
+                    cv2.imwrite("gt_point.png", cv2.UMat(image_point))
+
                 ret_dict['points'].append(np.array(
                     _adjust_points(step_t['obs']['eef_point'], image.shape[:2]))[None])
+
+                if DEBUG:
+                    image = np.array(np.moveaxis(
+                        processed.numpy()*255, 0, -1), dtype=np.uint8)
+                    image = cv2.circle(cv2.UMat(image), (ret_dict['points'][-1][0][1], ret_dict['points'][-1][0][0]), radius=1, color=(
+                        0, 0, 255), thickness=1)
+                    cv2.imwrite("adjusted_point.png", cv2.UMat(image))
 
             state = []
             for k in state_keys:

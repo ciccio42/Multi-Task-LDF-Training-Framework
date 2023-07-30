@@ -27,8 +27,6 @@ class _TransformerFeatures(nn.Module):
         self._resnet18 = get_model('resnet')(
             output_raw=True, drop_dim=2, use_resnet18=True, pretrained=False)
 
-        # self._cam_extractor = SmoothGradCAMpp(self._resnet18)
-
         ProcLayer = TempConvLayer if just_conv else NonLocalLayer
         self._temporal_process = nn.Sequential(ProcLayer(
             512, 512, attn_ff, dropout=dropout, n_heads=attn_heads), nn.Conv3d(512, 512, (context_T, 1, 1), 1))
@@ -55,20 +53,10 @@ class _TransformerFeatures(nn.Module):
             T_ctxt = context.shape[1]
             features = features[:, T_ctxt:]
 
-        activation_map = None
-        if compute_activation_map:
-            activation_map = return_activation_map(
-                model=self,
-                features=features,
-                images=images,
-                layer_name="_st_attn.1._norm.weight")
-
         spatial_embed = self._spatial_embed(features)
         embed = self._to_embed(spatial_embed)
-        if compute_activation_map:
-            return F.normalize(embed, dim=2), activation_map
-        else:
-            return F.normalize(embed, dim=2)
+
+        return F.normalize(embed, dim=2)
 
     def _spatial_embed(self, features):
         if not self._use_ss:
@@ -245,7 +233,7 @@ class InverseImitation(nn.Module):
 
     def forward(self, states, images, context, ret_dist=True, target_obj_embedding=None, eval=False, compute_activation_map=False):
 
-        img_embed, activation_map = self._embed(
+        img_embed = self._embed(
             images, context, False, compute_activation_map=compute_activation_map)
 
         pred_latent, goal_embed = self._pred_goal(images[:, :1], context)
@@ -268,7 +256,6 @@ class InverseImitation(nn.Module):
         mu_bc, scale_bc, logit_bc = self._action_dist(ac_pred)
 
         out = {}
-        out['activation_map'] = activation_map
         # package distribution in objects or as tensors
         if ret_dist:
             out['bc_distrib'] = DiscreteMixLogistic(mu_bc, scale_bc, logit_bc)

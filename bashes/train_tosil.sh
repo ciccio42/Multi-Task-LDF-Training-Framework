@@ -1,42 +1,43 @@
 #!/bin/sh
-export MUJOCO_PY_MUJOCO_PATH="/home/frosa_loc/.mujoco/mujoco210"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
+export MUJOCO_PY_MUJOCO_PATH="/user/frosa/.mujoco/mujoco210"
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
-SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline
+EXPERT_DATA=/mnt/sdc1/frosa/ur_baseline_dataset/
+SAVE_PATH=/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/TOSIL
 POLICY='${tosil}'
 
-SAVE_FREQ=8100
+SAVE_FREQ=4050
 LOG_FREQ=100
 VAL_FREQ=4050
 
 # Pick-Place
-# EXP_NAME=1Task-Pick-Place-Tosil-cropped-no-normalized
-# TASK_str=pick_place
-# PROJECT_NAME="ur_tosil_pick_place"
-# EPOCH=40
-# BSIZE=32 #128 #64 #32
-# SET_SAME_N=2
-# N_MIXTURES=5
+EXP_NAME=1Task-Pick-Place-Tosil
+TASK_str=pick_place
+PROJECT_NAME="ur_tosil_pick_place"
+EPOCH=40
+BSIZE=32 #128 #64 #32
+SET_SAME_N=2
+N_MIXTURES=6
 
 # Nut-Assembly
-EXP_NAME=1Task-Nut-Assembly-Tosil-cropped-no-normalized
-TASK_str=nut_assembly
-PROJECT_NAME="ur_tosil_nut_assembly"
-EPOCH=40
-BSIZE=27 #128 #64 #32
-SET_SAME_N=3
-N_MIXTURES=5 #3
+# EXP_NAME=1Task-Nut-Assembly-Tosil-cropped-no-normalized
+# TASK_str=nut_assembly
+# PROJECT_NAME="ur_tosil_nut_assembly"
+# EPOCH=40
+# BSIZE=27 #128 #64 #32
+# SET_SAME_N=3
+# N_MIXTURES=5 #3
 
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=8
+LOADER_WORKERS=16
+
 NORMALIZE_ACTION=true
 PRETRAINED=false
 LOAD_TARGET_OBJ_DETECTOR=false
@@ -47,6 +48,10 @@ CONCAT_STATE=false
 
 ACTION_DIM=7
 
+BC_MUL=1.0
+INV_MUL=1.0
+PNT_MUL=0.1
+
 EARLY_STOPPING_PATIECE=-1
 OPTIMIZER='AdamW'
 LR=0.0005
@@ -55,7 +60,7 @@ SCHEDULER=ReduceLROnPlateau
 
 RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Nut-Assembly-Tosil-cropped-no-normalized-Batch27
 RESUME_STEP=105300
-RESUME=true
+RESUME=false
 
 python ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
@@ -91,6 +96,9 @@ python ../training/train_scripts/train_any.py \
     train_cfg.weight_decay=${WEIGHT_DECAY} \
     train_cfg.lr_schedule=${SCHEDULER} \
     attn.img_cfg.pretrained=${PRETRAINED} \
+    bc_mul=${BC_MUL} \
+    inv_mul=${INV_MUL} \
+    pnt_mul=${PNT_MUL} \
     debug=false \
     wandb_log=true \
     resume=${RESUME} \

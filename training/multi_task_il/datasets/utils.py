@@ -401,9 +401,10 @@ def create_data_aug(dataset_loader=object):
                            box_h=box_h)
 
         # ---- Horizontal Flip ----#
-        obs, bb = horizontal_flip(obs=obs,
-                                  bb=bb,
-                                  p=dataset_loader.data_augs.get("p", 0.1))
+        if not dataset_loader.data_augs.get('old_aug', True):
+            obs, bb = horizontal_flip(obs=obs,
+                                      bb=bb,
+                                      p=dataset_loader.data_augs.get("p", 0.1))
 
         # ---- Augmentation ----#
         if dataset_loader.use_strong_augs and second:
