@@ -481,7 +481,8 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
         elif "CondPolicy" in config.policy._target_:
             out = model(
                 inputs=model_inputs,
-                inference=False)
+                inference=False,
+                oracle=F)
         else:  # other baselines
             out = model(
                 images=model_inputs['images'],
@@ -491,12 +492,19 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
 
         # forward & backward action pred
         actions = model_inputs['actions']
-        # mu_bc.shape: B, 7, 8, 4]) but actions.shape: B, 6, 8
-        mu_bc, scale_bc, logit_bc = out['bc_distrib']
-        action_distribution = DiscreteMixLogistic(
-            mu_bc[:, :-1], scale_bc[:, :-1], logit_bc[:, :-1])
-        act_prob = rearrange(- action_distribution.log_prob(actions),
-                             'B n_mix act_dim -> B (n_mix act_dim)')
+        if "CondPolicy" not in config.policy._target_:
+            # mu_bc.shape: B, 7, 8, 4]) but actions.shape: B, 6, 8
+            mu_bc, scale_bc, logit_bc = out['bc_distrib']
+            action_distribution = DiscreteMixLogistic(
+                mu_bc[:, :-1], scale_bc[:, :-1], logit_bc[:, :-1])
+
+        else:
+            actions = rearrange(actions, 'B T act_dim -> (B T) act_dim')
+            act_prob = - out['bc_distrib'].log_prob(actions)
+            act_prob = rearrange(
+                act_prob, '(B T) -> B T',
+                B=model_inputs['images'].shape[0],
+                T=model_inputs['images'].shape[1])
 
         all_losses["l_bc"] = train_cfg.bc_loss_mult * \
             torch.mean(act_prob, dim=-1)
@@ -692,7 +700,6 @@ class Trainer:
         summary(model)
         model = model.train()
         model = model.to(self._device)
-        best_avg_success = 0
 
         for e in range(epochs):
             frac = e / epochs
@@ -819,15 +826,15 @@ class Trainer:
                         from torch.multiprocessing import Pool
                         target_obj_dec = None
                         controller_path = "/home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json"
-                        if 'mosaic' in self.config.policy._target_:
-                            model_name = 'mosaic'
-                        else:
-                            model_name = 'tosil'
+                        model_name = self.config.policy._target_
                         for task in self.tasks:
+                            import random
                             task_name = task['name']
-                            results_dir = os.path.join(os.path.dirname(
-                                self.save_dir), 'results_{}/'.format(task_name))
+                            results_dir = os.path.join(
+                                self.save_dir, 'results_{}_{}/'.format(task_name, i))
                             os.makedirs(results_dir, exist_ok=True)
+                            best_fp = np.inf
+                            best_avg_success = 0
                             f = functools.partial(_proc,
                                                   model,
                                                   target_obj_dec,
@@ -841,15 +848,32 @@ class Trainer:
                                                   task_name,
                                                   None,
                                                   None,
-                                                  None,
                                                   70,
                                                   controller_path,
                                                   model_name,
-                                                  0,
+                                                  self.device,
                                                   False)
-                            with Pool(5) as p:
-                                task_success_flags = p.map(f, range(80))
-
+                            random.seed(42)
+                            np.random.seed(42)
+                            n_run = task['n_tasks']*2
+                            seeds = [(random.getrandbits(32), i)
+                                     for i in range(n_run)]
+                            with Pool(10) as p:
+                                task_success_flags = p.starmap(f, seeds)
+                            if "CondTargetObjectDetector" in self.config.policy._target_:
+                                all_mean_iou = [t['avg_iou']
+                                                for t in task_success_flags]
+                                all_fp = [t['num_false_positive']
+                                          for t in task_success_flags]
+                                tolog['avg_iou'] = np.mean(all_mean_iou)
+                                tolog['fp'] = np.mean(all_fp)
+                                if tolog['fp'] <= best_fp:
+                                    print(
+                                        f"Saving best model, from {best_fp} to {tolog['fp']}")
+                                    best_fp = tolog['fp']
+                                    self.save_checkpoint(
+                                        model, optimizer, weights_fn, save_fn)
+                            else:
                                 all_succ_flags = [t['success']
                                                   for t in task_success_flags]
                                 all_reached_flags = [t['reached']
@@ -866,12 +890,12 @@ class Trainer:
                                 tolog['avg_prediction'] = np.mean(
                                     all_avg_pred)
 
-                            if best_avg_success <= tolog['avg_success']:
-                                print(
-                                    f"Save model best_avg_success from {best_avg_success} to {tolog['avg_success']}")
-                                best_avg_success = tolog['avg_success']
-                                self.save_checkpoint(
-                                    model, optimizer, weights_fn, save_fn)
+                                if best_avg_success <= tolog['avg_success']:
+                                    print(
+                                        f"Save model best_avg_success from {best_avg_success} to {tolog['avg_success']}")
+                                    best_avg_success = tolog['avg_success']
+                                    self.save_checkpoint(
+                                        model, optimizer, weights_fn, save_fn)
 
                             if self.config.wandb_log:
                                 wandb.log(tolog)

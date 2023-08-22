@@ -13,7 +13,6 @@ import os
 import hydra
 from omegaconf import DictConfig, OmegaConf
 from torchsummary import summary
-from multi_task_il.models import return_activation_map
 
 
 class _StackedAttnLayers(nn.Module):
@@ -250,8 +249,26 @@ class _TransformerFeatures(nn.Module):
                 out_dict['attn_'+k+'_demo'], out_dict['attn_'+k +
                                                       '_img'] = normalized.split([demo_T, obs_T], dim=1)
 
-        if compute_activation_map:
-            demo_fm, img_fm = features.split([demo_T, obs_T], dim=1)
+        # if True:
+        #     demo_fm, img_fm = features.split([demo_T, obs_T], dim=1)
+        #     import matplotlib.pyplot as plt
+        #     # Squeeze the tensor to remove the batch dimension (1)
+        #     img_fm = img_fm.squeeze()
+
+        #     # Combine channels into a single heatmap
+        #     heatmap = torch.sum(img_fm, dim=0)
+
+        #     # Normalize the heatmap values between 0 and 1
+        #     heatmap = (heatmap - heatmap.min()) / \
+        #         (heatmap.max() - heatmap.min())
+
+        #     # Convert the PyTorch tensor to a NumPy array for visualization
+        #     heatmap_np = heatmap.numpy()
+
+        #     # Plot the overlayed heatmap
+        #     plt.imshow(heatmap_np, cmap='viridis')
+        #     plt.colorbar()  # To add a colorbar for better understanding of the values
+        #     plt.imsave("activation_map.png")
 
         out_dict['linear_embed'] = self._linear_embed(
             rearrange(features, 'B T d H W -> B T (d H W)'))

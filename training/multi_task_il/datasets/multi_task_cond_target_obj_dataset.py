@@ -14,7 +14,9 @@ import copy
 
 from multi_task_il.utils import normalize_action
 from multi_task_il.datasets.utils import *
-DEBUG = True
+import robosuite.utils.transform_utils as T
+
+DEBUG = False
 
 
 class CondTargetObjDetectorDataset(Dataset):
@@ -46,7 +48,8 @@ class CondTargetObjDetectorDataset(Dataset):
             normalize_action=True,
             normalization_ranges=[],
             n_action_bin=256,
-            first_frame=False,
+            first_frames=False,
+            only_first_frame=True,
             ** params):
 
         self.task_crops = OrderedDict()
@@ -67,7 +70,8 @@ class CondTargetObjDetectorDataset(Dataset):
         self._normalize_action = normalize_action
         self._normalization_ranges = np.array(normalization_ranges)
         self._n_action_bin = n_action_bin
-        self._first_frame = first_frame
+        self._first_frames = first_frames
+        self._only_first_frame = only_first_frame
 
         self.select_random_frames = select_random_frames
         self.compute_obj_distribution = compute_obj_distribution
@@ -128,23 +132,25 @@ class CondTargetObjDetectorDataset(Dataset):
         for j, t in enumerate(chosen_t):
             t = t.item()
             step_t = traj.get(t)
-            image = copy.copy(
-                step_t['obs']['camera_front_image'][:, :, ::-1])
 
-            # Create GT BB
-            bb_frame, class_frame = self._create_gt_bb(traj=traj,
-                                                       t=t,
-                                                       task_name=task_name)
-            # Append bb, obj classes and images
-            processed, bb_aug, class_frame = self.frame_aug(
-                task_name, image, False, bb_frame, class_frame)
-            bb.append(torch.from_numpy(bb_aug))
-            obj_classes.append((torch.from_numpy(class_frame)))
-            images.append(processed)
+            if j < len(chosen_t)-1:
+                image = copy.copy(
+                    step_t['obs']['camera_front_image'][:, :, ::-1])
 
-            if self.aug_twice:
-                image_cp = self.frame_aug(task_name, image, True)
-                images_cp.append(image_cp)
+                # Create GT BB
+                bb_frame, class_frame = self._create_gt_bb(traj=traj,
+                                                           t=t,
+                                                           task_name=task_name)
+                # Append bb, obj classes and images
+                processed, bb_aug, class_frame = self.frame_aug(
+                    task_name, image, False, bb_frame, class_frame)
+                bb.append(torch.from_numpy(bb_aug))
+                obj_classes.append((torch.from_numpy(class_frame)))
+                images.append(processed)
+
+                if self.aug_twice:
+                    image_cp = self.frame_aug(task_name, image, True)
+                    images_cp.append(image_cp)
 
             if load_action and j >= 1:
                 # Load action
@@ -152,11 +158,23 @@ class CondTargetObjDetectorDataset(Dataset):
                     action=step_t['action'], n_action_bin=self._n_action_bin, action_ranges=self._normalization_ranges)
                 actions.append(action)
 
-            if load_state:
+            if load_state and j < len(chosen_t)-1:
                 state = []
                 # Load states
                 for k in self._state_spec:
-                    state.append(step_t['obs'][k])
+                    if k == "ee_aa":
+                        state_component = normalize_action(
+                            action=step_t['obs'][k],
+                            n_action_bin=self._n_action_bin,
+                            action_ranges=self._normalization_ranges)
+                    elif k == 'action':
+                        state_component = normalize_action(
+                            action=step_t['action'],
+                            n_action_bin=self._n_action_bin,
+                            action_ranges=self._normalization_ranges)
+                    else:
+                        state_component = step_t['obs'][k]
+                    state.append(state_component)
                 states.append(np.concatenate(state))
 
             # test GT
@@ -179,23 +197,33 @@ class CondTargetObjDetectorDataset(Dataset):
         # get the first frame from the trajectory
         ret_dict = {}
         # print(f"Command {command}")
+        take_first_frames = False
+        assert not self._first_frames or not self._only_first_frame, f"First frames and only first frames cannot be both True"
+        if self._first_frames and not self._only_first_frame:
+            take_first_frames = random.choices(
+                [True, False], weights=[0.6, 0.40])
 
-        if self.non_sequential and self._obs_T > 1:
-            end = len(traj)
-            chosen_t = torch.randperm(end)
-            chosen_t = chosen_t[chosen_t != 0][:self._obs_T]
+        if not take_first_frames:
+            if self.non_sequential and self._obs_T > 1:
+                end = len(traj)
+                chosen_t = torch.randperm(end)
+                chosen_t = chosen_t[chosen_t != 0][:self._obs_T]
 
-        elif not self.non_sequential and self._obs_T > 1:
-            end = len(traj)
-            start = torch.randint(low=1, high=max(
-                1, end - self._obs_T + 1), size=(1,))
-            chosen_t = [j + start for j in range(self._obs_T)]
+            elif not self.non_sequential and not self._only_first_frame:
+                end = len(traj)
+                start = self._obs_T if self._first_frames else 1
+                start = torch.randint(low=1, high=max(
+                    1, end - self._obs_T - 1), size=(1,))
+                chosen_t = [j + start for j in range(self._obs_T+1)]
 
+            elif self._only_first_frame:
+                end = self._obs_T
+                start = torch.Tensor([1]).int()
+                chosen_t = [j + start for j in range(self._obs_T+1)]
         else:
-            chosen_t = [1]
-
-        if self._first_frame:
-            chosen_t.insert(0, torch.tensor([1]))
+            end = self._obs_T
+            start = torch.Tensor([1]).int()
+            chosen_t = [j + start for j in range(self._obs_T+1)]
 
         images, images_cp, bb, obj_classes, action, states = self._create_sample(traj=traj,
                                                                                  chosen_t=chosen_t,

@@ -122,10 +122,10 @@ augs:
   grayscale:         1 # 0.1 Mosaic; 1 Tosil
   blur:              [0.1, 2.0] 
   flip:              0.05   # only flip for the strong augs
-  weak_crop_scale:   [0.99, 1.0] # [0.8, 1.0] Mosaic; [0.99, 1.0] Tosil
-  strong_crop_scale: [0.99, 1.0] # [0.8, 1.0] Mosaic; [0.99, 1.0] Tosil
-  weak_crop_ratio:   [1.0, 1.0] # [1.8, 1.8] Mosaic; [1.0, 1.0] Tosil
-  strong_crop_ratio: [1.0, 1.0] # [1.8, 1.8] Mosaic; [1.0, 1.0] Tosil
+  weak_crop_scale:   [0.8, 1.0]  # [0.8, 1.0] Mosaic; [0.99, 1.0] Tosil
+  strong_crop_scale: [0.8, 1.0] # [0.8, 1.0] Mosaic; [0.99, 1.0] Tosil
+  weak_crop_ratio:   [1.8, 1.8] # [1.8, 1.8] Mosaic; [1.0, 1.0] Tosil
+  strong_crop_ratio: [1.8, 1.8] # [1.8, 1.8] Mosaic; [1.0, 1.0] Tosil
   use_affine:        False  
   rand_trans:        0.1
 

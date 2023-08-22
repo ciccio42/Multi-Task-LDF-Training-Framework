@@ -198,8 +198,8 @@ def build_tvf_formatter_obj_detector(config, env_name):
 
 def build_env(ctr=0, env_name='nut', heights=100, widths=200, size=False, shape=False, color=False, gpu_id=0, variation=None, controller_path=None):
 
-    create_seed = random.Random(None)
-    create_seed = create_seed.getrandbits(32)
+    # create_seed = random.Random(None)
+    # create_seed = create_seed.getrandbits(32)
     if controller_path == None:
         controller = load_controller_config(default_controller='IK_POSE')
     else:
@@ -243,10 +243,9 @@ def build_env(ctr=0, env_name='nut', heights=100, widths=200, size=False, shape=
     return agent_env, variation
 
 
-def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights=100, widths=200, size=False, shape=False, color=False, gpu_id=0, variation=None, random_frames=True, controller_path=None, ret_gt_env=False):
+def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights=100, widths=200, size=False, shape=False, color=False, gpu_id=0, variation=None, random_frames=True, controller_path=None, ret_gt_env=False, seed=42):
 
-    # create_seed = random.Random(42)
-    create_seed = random.getrandbits(32)
+    print(f"Seed: {seed}")
     if controller_path == None:
         controller = load_controller_config(default_controller='IK_POSE')
     else:
@@ -272,7 +271,7 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights
                                         size=size,
                                         shape=shape,
                                         color=color,
-                                        seed=create_seed,
+                                        seed=seed,
                                         gpu_id=gpu_id,
                                         object_set=TASK_MAP[env_name]['object_set'])
         agent_env = env_fn(agent_name,
@@ -282,14 +281,14 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights
                            controller_type=controller,
                            task=variation,
                            ret_env=True,
-                           seed=create_seed,
+                           seed=seed,
                            gpu_id=gpu_id,
                            object_set=TASK_MAP[env_name]['object_set'])
     else:
         teacher_expert_rollout = env_fn(teacher_name,
                                         controller_type=controller,
                                         task=variation,
-                                        seed=create_seed,
+                                        seed=seed,
                                         gpu_id=gpu_id,
                                         object_set=TASK_MAP[env_name]['object_set'])
 
@@ -297,7 +296,7 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights
                            controller_type=controller,
                            task=variation,
                            ret_env=True,
-                           seed=create_seed,
+                           seed=seed,
                            gpu_id=gpu_id,
                            object_set=TASK_MAP[env_name]['object_set'])
 
@@ -306,7 +305,7 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights
                             controller_type=controller,
                             task=variation,
                             ret_env=True,
-                            seed=create_seed,
+                            seed=seed,
                             gpu_id=gpu_id,
                             object_set=TASK_MAP[env_name]['object_set'])
 
@@ -329,7 +328,7 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights
         return agent_env, context, variation, teacher_expert_rollout
 
 
-def object_detection_inference(model, config, ctr, heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, model_name=None):
+def object_detection_inference(model, config, ctr, heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None):
 
     if gpu_id == -1:
         gpu_id = int(ctr % torch.cuda.device_count())
@@ -357,26 +356,29 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
                                                                 color=color,
                                                                 gpu_id=gpu_id,
                                                                 variation=variation, random_frames=random_frames,
-                                                                controller_path=controller_path)
+                                                                controller_path=controller_path,
+                                                                seed=seed)
     build_task = TASK_MAP.get(env_name, None)
     assert build_task, 'Got unsupported task '+env_name
     eval_fn = build_task['eval_fn']
     target_obj_dec = None
-    traj, info = eval_fn(model,
-                         target_obj_dec,
-                         env,
-                         context,
-                         gpu_id,
-                         variation_id,
-                         img_formatter,
+
+    traj, info = eval_fn(model=model,
+                         target_obj_dec=target_obj_dec,
+                         env=env,
+                         gt_env=None,
+                         context=context,
+                         gpu_id=gpu_id,
+                         variation_id=variation_id,
+                         img_formatter=img_formatter,
                          baseline=baseline,
                          max_T=max_T,
-                         action_ranges=None,
+                         action_ranges=action_ranges,
                          model_name=model_name,
                          task_name=env_name)
     if "cond_target_obj_detector" in model_name:
-        print("Evaluated traj #{}, task #{}, Avg IOU {}".format(
-            ctr, variation_id, info['avg_iou']))
+        print("Evaluated traj #{}, task #{}, Avg IOU {}, number false positive {}".format(
+            ctr, variation_id, info['avg_iou'], info['num_false_positive']))
     else:
         print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             ctr, variation_id, info['reached'], info['picked'], info['success']))
@@ -421,7 +423,8 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
                                                                             gpu_id=gpu_id,
                                                                             variation=variation, random_frames=random_frames,
                                                                             controller_path=controller_path,
-                                                                            ret_gt_env=True)
+                                                                            ret_gt_env=True,
+                                                                            seed=seed)
 
         build_task = TASK_MAP.get(env_name, None)
         assert build_task, 'Got unsupported task '+env_name
@@ -478,7 +481,7 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
         return traj, info
 
 
-def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, seed, max_T, controller_path, model_name, gpu_id, save, n):
+def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, seed, n):
     json_name = results_dir + '/traj{}.json'.format(n)
     pkl_name = results_dir + '/traj{}.pkl'.format(n)
     if os.path.exists(json_name) and os.path.exists(pkl_name):
@@ -523,6 +526,8 @@ def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, sha
                                                         variation=variation,
                                                         controller_path=controller_path,
                                                         seed=seed,
+                                                        action_ranges=np.array(
+                                                            config.dataset_cfg.get('normalization_ranges', [])),
                                                         model_name=model_name,
                                                         gpu_id=gpu_id)
 
@@ -589,9 +594,6 @@ if __name__ == '__main__':
     parser.add_argument('--gpu_id', default=-1, type=int)
 
     args = parser.parse_args()
-
-    random.seed(42)
-    np.random.seed(42)
 
     if args.debug:
         import debugpy
@@ -722,7 +724,6 @@ if __name__ == '__main__':
 
     model_name = config.policy._target_
     print(f"---- Testing model {model_name} ----")
-
     f = functools.partial(_proc,
                           model,
                           target_obj_dec,
@@ -736,18 +737,21 @@ if __name__ == '__main__':
                           args.env,
                           args.baseline,
                           variation,
-                          seed,
                           max_T,
                           args.controller_path,
                           model_name,
                           args.gpu_id,
                           True)
 
+    random.seed(42)
+    np.random.seed(42)
+    seeds = [(random.getrandbits(32), i) for i in range(args.N)]
     if parallel:
         with Pool(args.num_workers) as p:
-            task_success_flags = p.map(f, range(args.N))
+            task_success_flags = p.starmap(f, seeds)
     else:
-        task_success_flags = [f(n) for n in range(args.N)]
+        task_success_flags = [f(seeds[i][0], seeds[i][1])
+                              for i, n in enumerate(range(args.N))]
 
     if args.wandb_log:
 

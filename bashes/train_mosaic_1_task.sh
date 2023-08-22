@@ -13,11 +13,11 @@ SAVE_FREQ=253
 LOG_FREQ=100
 VAL_FREQ=253
 
-EXP_NAME=1Task-Pick-Place-100-180
-PROJECT_NAME="ur_pick_place_100_180"
+EXP_NAME=1Task-Pick-Place-100-180-only-1-task-Batch32
+PROJECT_NAME="ur_pick_place_100_180_only_1_task"
 TASK_str=pick_place
 ROLLOUT=false
-EPOCH=40
+EPOCH=80
 BSIZE=32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
@@ -66,9 +66,9 @@ DIM_W=12 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 HEIGHT=100
 WIDTH=180
 
-RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Target-Slot-Mosaic-200-360-Batch32
-RESUME_STEP=10000
-RESUME=false
+RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/MOSAIC/1Task-Pick-Place-100-180-only-1-task-Batch32
+RESUME_STEP=15180
+RESUME=true
 
 COSINE_ANNEALING=false
 
@@ -127,8 +127,8 @@ python ../training/train_scripts/train_any.py \
     simclr.mul_intm=${MUL_INTM} \
     bc_mul=${BC_MUL} \
     inv_mul=${INV_MUL} \
-    debug=true \
-    wandb_log=false \
+    debug=false \
+    wandb_log=true \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS} \
     cosine_annealing=${COSINE_ANNEALING}

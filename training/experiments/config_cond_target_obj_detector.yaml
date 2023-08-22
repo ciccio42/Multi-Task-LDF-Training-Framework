@@ -33,7 +33,7 @@ rep_muls:
   simclr_pre:         ${simclr.mul_pre}
   simclr_post:        ${simclr.mul_pos}
   simclr_intm:        ${simclr.mul_intm}
-
+rollout: false
 train_cfg:
   batch_size:           ${bsize}
   val_size:             ${vsize}
@@ -105,7 +105,7 @@ dataset_cfg:
   demo_name: 'panda'
   load_action: false
   load_state: false
-  state_spec: [joint_pos, joint_vel]
+  state_spec: [action]
   action_spec: 'action'
   normalize_action: True
   # x, y, z, e_x, e_y, e_z
@@ -116,7 +116,8 @@ dataset_cfg:
                         [-3.14911766, 3.14911766],
                         [-3.14911766,  3.14911766]]
   n_action_bin: 256
-  first_frame: False
+  first_frames: False
+  only_first_frame: False
 
 augs:
   old_aug: false
@@ -158,9 +159,9 @@ cond_target_obj_detector_cfg:
 
 actions:
   adim: 7
-  sdim: 12
+  sdim: 7
   action_cfg: 6
-  n_mixtures: 2
+  n_mixtures: 7
   const_var: False
   sep_var: True
 
@@ -173,6 +174,7 @@ cond_policy:
   freeze_target_detector: True
   concat_state: True
   concat_bb: True
-  mlp_layers: [512, 256, 128]
+  mlp_layers: [1024, 512, 256]
   pooling: True
-  avg_pooling: True
+  spatial_softmax: True
+  min_std: [0.3236332,  0.41879308,  0.14637606,  0.00677641, 0.06317256, 0.00703644, 0.976691]

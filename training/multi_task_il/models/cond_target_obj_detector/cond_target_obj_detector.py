@@ -358,8 +358,8 @@ class AgentModule(nn.Module):
             self.pos_thresh = 0.7
             self.neg_thresh = 0.3
 
-            self.conf_thresh = 0.5
-            self.nms_thresh = 0.7
+            self.conf_thresh = 0.8
+            self.nms_thresh = 0.9
 
             self.proposal_module = ProposalModule(
                 self.out_channels_backbone, n_anchors=self.n_anc_boxes)
@@ -507,14 +507,16 @@ class AgentModule(nn.Module):
                             proposals_pos, conf_scores_pos, self.nms_thresh)
 
                         try:
-                            conf_scores_pos = conf_scores_pos[nms_idx][0]
-                            proposals_pos = proposals_pos[nms_idx][0]
+                            max_indx = torch.argmax(
+                                conf_scores_pos[nms_idx])
+                            conf_scores_pos = conf_scores_pos[nms_idx][max_indx]
+                            proposals_pos = proposals_pos[nms_idx][max_indx]
                         except:
                             print("No bb found")
                             conf_scores_pos = torch.tensor(
                                 -1).to(agent_obs.get_device())
                             proposals_pos = torch.tensor(
-                                [-1, -1, -1, -1])[None].to(
+                                [-1, -1, -1, -1]).to(
                                 agent_obs.get_device())
                         proposals_final.append(proposals_pos)
                         conf_scores_final.append(conf_scores_pos)

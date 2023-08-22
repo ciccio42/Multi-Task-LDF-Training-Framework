@@ -9,8 +9,8 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
 
 # path to folder where save trajectories
 BASEPATH=/user/frosa/multi_task_lfd/Multi-Task-LFD-Framework
-PATH_TO_DATA=/mnt/sdc1/frosa
-SUITE=${PATH_TO_DATA}/ur_multitask_dataset_obs_to_action
+PATH_TO_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/multitask_dataset
+SUITE=${PATH_TO_DATA}/dataset_prova
 echo ${SUITE}
 WORKERS=1 # number of workers
 GPU_ID_INDX=0

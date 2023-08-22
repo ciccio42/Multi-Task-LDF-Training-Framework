@@ -2,28 +2,28 @@
 export MUJOCO_PY_MUJOCO_PATH="/home/frosa_loc/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 # export WANDB_CACHE_DIR=/user/frosa
 # export TMPDIR=/user/frosa/tmp
 
-
+ROLLOUT=false
 EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
 SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/TARGET_OBJ_DETECTOR_SLOT
 POLICY='${cond_policy}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
 
-SAVE_FREQ=4050
+SAVE_FREQ=2025
 LOG_FREQ=100
-VAL_FREQ=4050
+VAL_FREQ=2025
 PRINT_FREQ=100
 
 EXP_NAME=1Task-Pick-Place-Cond-Target-Obj-Detector-Policy
 PROJECT_NAME="pick_place_cond_target_obj_detector_policy"
 
 TASK_str=pick_place
-EPOCH=60
-BSIZE=32 #64 #32
+EPOCH=40
+BSIZE=64 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 LOAD_ACTION=true
 LOAD_STATE=true
@@ -31,9 +31,9 @@ BC_MUL=1.0
 
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector.yaml
-LOADER_WORKERS=16
+LOADER_WORKERS=32
 BALANCING_POLICY=0
-SET_SAME_N=2
+SET_SAME_N=4
 OBS_T=7
 AUG_TWICE=false
 
@@ -46,12 +46,12 @@ SCHEDULER=None
 N_MIXTURES=6
 
 RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/TARGET_OBJ_DETECTOR_SLOT/1Task-Pick-Place-Cond-Target-Obj-Detector-Policy-Batch32
-RESUME_STEP=162000
-RESUME=true
+RESUME_STEP=238950
+RESUME=false
 
 COND_TARGET_OBJ_DETECTOR_PRE_TRAINED=true
-COND_TARGET_OBJ_DETECTOR_WEIGHTS="/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/TARGET_OBJ_DETECTOR_SLOT/1Task-Pick-Place-Cond-Target-Obj-Detector-Batch32"
-COND_TARGET_OBJ_DETECTOR_STEP=72900
+COND_TARGET_OBJ_DETECTOR_WEIGHTS="/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/TARGET_OBJ_DETECTOR_SLOT/1Task-Pick-Place-Cond-Target-Obj-Detector-First-Frame-Batch64"
+COND_TARGET_OBJ_DETECTOR_STEP=32400
 
 
 python ../training/train_scripts/train_any.py \
@@ -66,6 +66,7 @@ python ../training/train_scripts/train_any.py \
     val_freq=${VAL_FREQ} \
     print_freq=${PRINT_FREQ} \
     dataset_target=${DATASET_TARGET} \
+    rollout=${ROLLOUT} \
     bsize=${BSIZE} \
     vsize=${BSIZE} \
     epochs=${EPOCH} \

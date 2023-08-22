@@ -8,7 +8,7 @@ from multi_task_test import make_prompt, prepare_obs
 from einops import rearrange
 from multi_task_il.models.vima.utils import *
 import robosuite.utils.transform_utils as T
-from multi_task_test import ENV_OBJECTS, TASK_COMMAND, startup_env, get_action, object_detection_inference
+from multi_task_test import ENV_OBJECTS, TASK_COMMAND, startup_env, get_action, object_detection_inference, check_pick, check_reach
 from multi_task_test.primitive import *
 
 
@@ -224,8 +224,7 @@ def pick_place_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None, 
 
 
 def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], gt_env=None, controller=None):
-
-    done, states, images, context, obs, traj, tasks, gt_obs = \
+    done, states, images, context, obs, traj, tasks, gt_obs, _ = \
         startup_env(model=model,
                     env=env,
                     gt_env=gt_env,
@@ -261,10 +260,17 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
 
     while not done:
 
-        tasks['reached'] = tasks['reached'] or np.linalg.norm(
-            obs[obj_delta_key][:2]) < 0.03
-        tasks['picked'] = tasks['picked'] or (
-            tasks['reached'] and obs[obj_key][2] - start_z > 0.05)
+        tasks['reached'] = check_reach(threshold=0.03,
+                                       obj_distance=obs[obj_delta_key][:2],
+                                       current_reach=tasks['reached']
+                                       )
+
+        tasks['picked'] = check_pick(threshold=0.05,
+                                     obj_z=obs[obj_key][2],
+                                     start_z=start_z,
+                                     reached=tasks['reached'],
+                                     picked=tasks['picked'])
+
         if baseline and len(states) >= 5:
             states, images = [], []
 
@@ -344,8 +350,10 @@ def pick_place_eval(model, target_obj_dec, env, gt_env, context, gpu_id, variati
                 tries=[],
                 ranges=[],
                 object_set=2)
+            policy = False
         else:
             controller = None
+            policy = True
         return object_detection_inference(model=model,
                                           env=env,
                                           context=context,
@@ -355,7 +363,8 @@ def pick_place_eval(model, target_obj_dec, env, gt_env, context, gpu_id, variati
                                           max_T=max_T,
                                           baseline=baseline,
                                           controller=controller,
-                                          action_ranges=action_ranges
+                                          action_ranges=action_ranges,
+                                          policy=policy
                                           )
     else:
         # Instantiate Controller

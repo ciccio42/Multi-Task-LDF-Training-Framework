@@ -13,7 +13,7 @@ from einops import rearrange
 from multi_task_il.datasets.savers import Trajectory
 import json
 import multi_task_robosuite_env as mtre
-from multi_task_il.utils import denormalize_action
+from multi_task_il.utils import normalize_action, denormalize_action
 from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
 from torchvision.ops import box_iou
 
@@ -478,14 +478,14 @@ def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None
     tasks = {'success': False, 'reached': False,
              'picked': False, 'variation_id': variation_id}
     if bb_flag:
-        return done, states, images, context, obs, traj, tasks, bb, gt_classes, gt_obs
+        return done, states, images, context, obs, traj, tasks, bb, gt_classes, gt_obs, current_gripper_pose
     else:
-        return done, states, images, context, obs, traj, tasks, gt_obs
+        return done, states, images, context, obs, traj, tasks, gt_obs, current_gripper_pose
 
 
-def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None, action_ranges=[]):
+def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None, action_ranges=[], policy=True):
 
-    done, states, images, context, obs, traj, tasks, bb, gt_classes, _ = \
+    done, states, images, context, obs, traj, tasks, bb, gt_classes, _, prev_action = \
         startup_env(model=model,
                     env=env,
                     gt_env=None,
@@ -496,29 +496,51 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                     bb_flag=True)
     n_steps = 0
     iou = 0
+    false_positive_cnt = 0
+    prev_action = normalize_action(
+        action=prev_action,
+        n_action_bin=256,
+        action_ranges=action_ranges,
+        continous=False)
+
+    object_name = env.objects[env.object_id].name
+    obj_delta_key = object_name + '_to_robot0_eef_pos'
+    obj_key = object_name + '_pos'
+
+    start_z = obs[obj_key][2]
+    bb_queue = []
     while not done:
+
+        tasks['reached'] = check_reach(threshold=0.03,
+                                       obj_distance=obs[obj_delta_key][:2],
+                                       current_reach=tasks['reached'])
+
+        tasks['picked'] = check_pick(threshold=0.05,
+                                     obj_z=obs[obj_key][2],
+                                     start_z=start_z,
+                                     reached=tasks['reached'],
+                                     picked=tasks['picked'])
 
         # Get GT Bounding Box
         agent_target_obj_id = traj.get(0)['obs']['target-object']
         for id, obj_name in enumerate(ENV_OBJECTS['pick_place']['obj_names']):
             if id == agent_target_obj_id:
-                top_left_x = traj.get(
-                    n_steps)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][agent_target_obj_id]]['bottom_right_corner'][0]
-                top_left_y = traj.get(
-                    n_steps)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][agent_target_obj_id]]['bottom_right_corner'][1]
+                top_left_x = obs['obj_bb']["camera_front"][ENV_OBJECTS[task_name]
+                                                           ['obj_names'][agent_target_obj_id]]['bottom_right_corner'][0]
+                top_left_y = obs['obj_bb']["camera_front"][ENV_OBJECTS[task_name]
+                                                           ['obj_names'][agent_target_obj_id]]['bottom_right_corner'][1]
                 # print(f"Top-Left X {top_left_x} - Top-Left Y {top_left_y}")
-                bottom_right_x = traj.get(
-                    n_steps)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][agent_target_obj_id]]['upper_left_corner'][0]
-                bottom_right_y = traj.get(
-                    n_steps)['obs']['obj_bb']["camera_front"][ENV_OBJECTS[task_name]['obj_names'][agent_target_obj_id]]['upper_left_corner'][1]
+                bottom_right_x = obs['obj_bb']["camera_front"][ENV_OBJECTS[task_name]
+                                                               ['obj_names'][agent_target_obj_id]]['upper_left_corner'][0]
+                bottom_right_y = obs['obj_bb']["camera_front"][ENV_OBJECTS[task_name]
+                                                               ['obj_names'][agent_target_obj_id]]['upper_left_corner'][1]
                 bb_t = np.array(
                     [[top_left_x, top_left_y, bottom_right_x, bottom_right_y]])
                 gt_t = np.array(1)
 
         if baseline and len(states) >= 5:
             states, images = [], []
-        states.append(np.concatenate(
-            (obs['joint_pos'], obs['joint_vel'])).astype(np.float32)[None])
+        states.append(prev_action.astype(np.float32)[None])
 
         # convert observation from BGR to RGB
         formatted_img, bb_t = img_formatter(
@@ -536,29 +558,32 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
 
         with torch.no_grad():
             # Perform  detection
-            prediction = model(model_input,
-                               inference=True,
-                               oracle=True)
+            if policy:
+                prediction = model(model_input,
+                                   inference=True,
+                                   oracle=True,
+                                   bb_queue=bb_queue)
+            else:
+                prediction = model(model_input,
+                                   inference=True)
 
-        if controller is not None:
+        if controller is not None and not policy:
             prediction = prediction
         else:
             bc_distrib = prediction['bc_distrib']
+            bb_queue = prediction['prediction_target_obj_detector']['proposals']
             prediction = prediction['prediction_target_obj_detector']
 
         # Project bb over image
         if prediction['conf_scores_final'][0] != -1:
             scale_factor = model.get_scale_factors()
-            predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None],
+            image = np.array(np.moveaxis(
+                formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+
+            predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
                                           width_scale_factor=scale_factor[0],
                                           height_scale_factor=scale_factor[1],
-                                          mode='a2p')
-            try:
-                max_conf_score_indx = torch.argmax(
-                    prediction['conf_scores_final'][0])
-            except:
-                print("Argmax error")
-            predicted_bb = predicted_bb[max_conf_score_indx]
+                                          mode='a2p')[0][0]
             if True:
                 image = np.array(np.moveaxis(
                     formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
@@ -582,19 +607,34 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
             iou_t = box_iou(boxes1=torch.from_numpy(
                 bb_t).to(device=gpu_id), boxes2=predicted_bb[None])
             obs['iou'] = iou_t[0][0].cpu().numpy()
+            if obs['iou'] < 0.5:
+                obs['true_positive'] = False
+                false_positive_cnt += 1
+            else:
+                obs['true_positive'] = True
+
             iou += iou_t[0][0].cpu().numpy()
             traj.append(obs)
         else:
+            scale_factor = model.get_scale_factors()
+            predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None].float(),
+                                          width_scale_factor=scale_factor[0],
+                                          height_scale_factor=scale_factor[1],
+                                          mode='a2p')[0]
             obs['predicted_bb'] = predicted_bb.cpu().numpy()
             obs['gt_bb'] = bb_t
             obs['iou'] = 0
+            iou += 0
+            obs['true_positive'] = False
+            false_positive_cnt += 1
             traj.append(obs)
 
         if controller is not None:
             # compute the action for the current state
             action, status = controller.act(obs)
         else:
-            action = bc_distrib.sample()[0, -1].cpu().numpy()
+            action = bc_distrib.sample().cpu().numpy()[0]
+            prev_action = action
             action = denormalize_action(action,
                                         action_ranges)
 
@@ -603,11 +643,12 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
             f"step_test.png", obs['camera_front_image'][:, :, ::-1])
 
         n_steps += 1
-        if n_steps > max_T or env_done or reward:
+        if n_steps >= 1 or env_done or reward:
             done = True
 
     env.close()
-    tasks['avg_iou'] = iou/(n_steps-1)
+    tasks['avg_iou'] = iou/(n_steps)
+    tasks['num_false_positive'] = false_positive_cnt
     del env
     del states
     del images
@@ -669,3 +710,12 @@ def select_random_frames(frames, n_select, sample_sides=True, random_frames=True
         return [frames[i]['obs']['camera_front_image'] for i in selected_frames]
         # return [frames[i]['obs']['image-state'] for i in selected_frames]
     return frames[selected_frames]
+
+
+def check_pick(threshold: float, obj_z: float, start_z: float, reached: bool, picked: bool):
+    return picked or (reached and obj_z - start_z > threshold)
+
+
+def check_reach(threshold: float, obj_distance: np.array, current_reach: bool):
+    return current_reach or np.linalg.norm(
+        obj_distance) < threshold

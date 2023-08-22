@@ -20,14 +20,22 @@ NORMALIZATION_RANGES = np.array([[-0.35,  0.35],
                                  [-3.14911766,  3.14911766]])
 
 
-def normalize_action(action, n_action_bin, action_ranges):
+def normalize_action(action, n_action_bin, action_ranges, continous=False):
     half_action_bin = int(n_action_bin/2)
     norm_action = action.copy()
     # normalize between [-1 , 1]
-    norm_action[:-1] = (2 * (norm_action[:-1] - action_ranges[:, 0]) /
-                        (action_ranges[:, 1] - action_ranges[:, 0])) - 1
-    # action discretization
-    return (norm_action * half_action_bin).astype(np.int32).astype(np.float32) / half_action_bin
+    if action.shape[0] == 7:
+        norm_action[:-1] = (2 * (norm_action[:-1] - action_ranges[:, 0]) /
+                            (action_ranges[:, 1] - action_ranges[:, 0])) - 1
+
+    else:
+        norm_action = (2 * (norm_action - action_ranges[:, 0]) /
+                       (action_ranges[:, 1] - action_ranges[:, 0])) - 1
+    if continous:
+        return norm_action
+    else:
+        # action discretization
+        return (norm_action * half_action_bin).astype(np.int32).astype(np.float32) / half_action_bin
 
 
 def denormalize_action(norm_action, action_ranges):
