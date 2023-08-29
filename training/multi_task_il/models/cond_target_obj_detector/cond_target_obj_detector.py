@@ -13,6 +13,7 @@ import torch
 from torch.autograd import Variable
 from torchvision import ops
 from multi_task_il.models.cond_target_obj_detector.utils import *
+from torchvision.models.video import r2plus1d_18, R2Plus1D_18_Weights
 import cv2
 
 DEBUG = False
@@ -21,9 +22,13 @@ DEBUG = False
 def get_backbone(backbone_name="slow_r50", video_backbone=True, pretrained=False, conv_drop_dim=3):
     if video_backbone:
         print(f"Loading video backbone {backbone_name}.....")
-        return torch.hub.load("facebookresearch/pytorchvideo",
-                              model=backbone_name,
-                              pretrained=pretrained)
+        if backbone_name == "r2plus1d_18":
+            if not pretrained:
+                weights = None
+            else:
+                weights = R2Plus1D_18_Weights
+
+            return nn.Sequential(*list(r2plus1d_18(weights=weights).children())[:-1])
     else:
         print(f"Loading  backbone {backbone_name}.....")
         if backbone_name == "resnet18":
@@ -279,12 +284,12 @@ class CondModule(nn.Module):
                     nn.Conv3d(input_dim[i], output_dim[i], (depth_dim, 1, 1), bias=False))
 
             self._3d_conv = nn.Sequential(*conv_layer)
+            linear_input = demo_ff_dim[-1] * demo_W * demo_H
         else:
             # [TODO] Implement ff for video backbone
-            pass
+            linear_input = 512
 
         # MLP encoder
-        linear_input = demo_ff_dim[-1] * demo_W * demo_H
         mlp_encoder = []
         for indx, layer_dim in enumerate(demo_linear_dim):
             if indx == 0:
@@ -300,15 +305,23 @@ class CondModule(nn.Module):
     def forward(self, input):
         # 1. Compute features for each frame in the batch
         sizes = parse_shape(input, 'B T _ _ _')
-        backbone_input = rearrange(input, 'B T C H W -> (B T) C H W')
-        backbone_out = self._backbone(backbone_input)
-        backbone_out = rearrange(
-            backbone_out, '(B T) C H W -> B T C H W', **sizes)
-        backbone_out = rearrange(backbone_out, 'B T C H W -> B C T H W')
-        temp_conv_out = self._3d_conv(backbone_out)
-        temp_conv_out = rearrange(temp_conv_out, 'B C T H W -> B T C H W')
-        linear_input = torch.flatten(temp_conv_out, start_dim=1)
-        task_embedding = self._mlp_encoder(linear_input)
+        if not self._cond_video:
+            backbone_input = rearrange(input, 'B T C H W -> (B T) C H W')
+            backbone_out = self._backbone(backbone_input)
+            backbone_out = rearrange(
+                backbone_out, '(B T) C H W -> B T C H W', **sizes)
+            backbone_out = rearrange(backbone_out, 'B T C H W -> B C T H W')
+            temp_conv_out = self._3d_conv(backbone_out)
+            temp_conv_out = rearrange(temp_conv_out, 'B C T H W -> B T C H W')
+            linear_input = torch.flatten(temp_conv_out, start_dim=1)
+            task_embedding = self._mlp_encoder(linear_input)
+        else:
+            backbone_input = rearrange(input, 'B T C H W -> B C T H W')
+            backbone_out = rearrange(self._backbone(
+                backbone_input), 'B C T H W -> B (C T H W)')
+            task_embedding = backbone_out
+            # task_embedding = self._mlp_encoder(linear_input)
+
         # print(task_embedding.shape)
         return task_embedding
 
@@ -550,7 +563,9 @@ class CondTargetObjectDetector(nn.Module):
                                          cond_video=cond_target_obj_detector_cfg.cond_video,
                                          demo_H=cond_target_obj_detector_cfg.dim_H,
                                          demo_W=cond_target_obj_detector_cfg.dim_W,
-                                         conv_drop_dim=cond_target_obj_detector_cfg.conv_drop_dim
+                                         conv_drop_dim=cond_target_obj_detector_cfg.conv_drop_dim,
+                                         demo_ff_dim=cond_target_obj_detector_cfg.demo_ff_dim,
+                                         demo_linear_dim=cond_target_obj_detector_cfg.demo_linear_dim
                                          )
 
         self._agent_backone = AgentModule(height=cond_target_obj_detector_cfg.height,
@@ -560,7 +575,8 @@ class CondTargetObjectDetector(nn.Module):
                                           pretrained=cond_target_obj_detector_cfg.pretrained,
                                           dim_H=cond_target_obj_detector_cfg.dim_H,
                                           dim_W=cond_target_obj_detector_cfg.dim_W,
-                                          conv_drop_dim=cond_target_obj_detector_cfg.conv_drop_dim)
+                                          conv_drop_dim=cond_target_obj_detector_cfg.conv_drop_dim,
+                                          task_embedding_dim=cond_target_obj_detector_cfg.task_embedding_dim)
 
         summary(self)
 
@@ -588,7 +604,7 @@ class CondTargetObjectDetector(nn.Module):
 @hydra.main(
     version_base=None,
     config_path="../../../experiments",
-    config_name="target_object_detector_config.yaml")
+    config_name="config_cond_target_obj_detector.yaml")
 def main(cfg):
     import debugpy
     debugpy.listen(('0.0.0.0', 5678))
@@ -606,14 +622,10 @@ def main(cfg):
         (1, 3, height, width),  dtype=torch.float).to('cuda:0')[None]  # B, T, C, W, H
 
     module = CondTargetObjectDetector(
-        width=width,
-        height=height,
-        demo_T=demo_T,
-        cond_backbone_name="resnet18",
-        cond_video=False)
+        cond_target_obj_detector_cfg=cfg.cond_target_obj_detector_cfg)
 
     module.to('cuda:0')
-    module(inputs, validation=True)
+    module(inputs, inference=True)
 
 
 if __name__ == '__main__':

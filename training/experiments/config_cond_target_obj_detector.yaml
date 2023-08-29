@@ -118,6 +118,11 @@ dataset_cfg:
   n_action_bin: 256
   first_frames: False
   only_first_frame: False
+  
+  task_id: False
+  tasks: {}
+  n_tasks: 16
+  perform_augs: False
 
 augs:
   old_aug: false
@@ -147,15 +152,18 @@ cond_target_obj_detector_cfg:
   width: 224
   demo_T: ${dataset_cfg.demo_T}
   obs_T: ${dataset_cfg.obs_T}
-  cond_backbone_name: resnet18
+  cond_backbone_name: r2plus1d_18
   agent_backbone_name: resnet18
-  cond_video: False
+  cond_video: True
   pretrained: False
   dim_H: 7 
   dim_W: 7
   n_channels: 512
   conv_drop_dim: 2
   gpu_id: 0
+  demo_ff_dim: [128, 64, 32]
+  demo_linear_dim: [256, 128] #[512, 256, 128]
+  task_embedding_dim: 512
 
 actions:
   adim: 7
@@ -175,6 +183,7 @@ cond_policy:
   concat_state: True
   concat_bb: True
   mlp_layers: [1024, 512, 256]
-  pooling: True
-  spatial_softmax: True
-  min_std: [0.3236332,  0.41879308,  0.14637606,  0.00677641, 0.06317256, 0.00703644, 0.976691]
+  spatial_softmax: False
+  gt_bb: False
+  n_tasks: [16]
+  min_std: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]

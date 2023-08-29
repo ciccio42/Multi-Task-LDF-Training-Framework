@@ -18,12 +18,12 @@ LOG_FREQ=100
 VAL_FREQ=2025
 PRINT_FREQ=100
 
-EXP_NAME=1Task-Pick-Place-Cond-Target-Obj-Detector-Policy
-PROJECT_NAME="pick_place_cond_target_obj_detector_policy"
+EXP_NAME=1Task-Pick-Place-Cond-Target-Obj-Detector-Policy-GT-BB-Low-Variance
+PROJECT_NAME="pick_place_cond_target_obj_detector_policy_gt_bb"
 
 TASK_str=pick_place
 EPOCH=40
-BSIZE=64 #64 #32
+BSIZE=64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 LOAD_ACTION=true
 LOAD_STATE=true
@@ -31,7 +31,7 @@ BC_MUL=1.0
 
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector.yaml
-LOADER_WORKERS=32
+LOADER_WORKERS=16
 BALANCING_POLICY=0
 SET_SAME_N=4
 OBS_T=7
@@ -39,7 +39,7 @@ AUG_TWICE=false
 
 EARLY_STOPPING_PATIECE=-1
 OPTIMIZER='AdamW'
-LR=0.0001
+LR=0.000001
 WEIGHT_DECAY=0
 SCHEDULER=None
 
@@ -52,6 +52,8 @@ RESUME=false
 COND_TARGET_OBJ_DETECTOR_PRE_TRAINED=true
 COND_TARGET_OBJ_DETECTOR_WEIGHTS="/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/TARGET_OBJ_DETECTOR_SLOT/1Task-Pick-Place-Cond-Target-Obj-Detector-First-Frame-Batch64"
 COND_TARGET_OBJ_DETECTOR_STEP=32400
+SPATIAL_SOFTMAX=false
+GT_BB=true
 
 
 python ../training/train_scripts/train_any.py \
@@ -75,6 +77,8 @@ python ../training/train_scripts/train_any.py \
     cond_policy.cond_target_obj_detector_pretrained=${COND_TARGET_OBJ_DETECTOR_PRE_TRAINED} \
     cond_policy.cond_target_obj_detector_weights=${COND_TARGET_OBJ_DETECTOR_WEIGHTS} \
     cond_policy.cond_target_obj_detector_step=${COND_TARGET_OBJ_DETECTOR_STEP} \
+    cond_policy.spatial_softmax=${SPATIAL_SOFTMAX} \
+    cond_policy.gt_bb=${GT_BB} \
     dataset_cfg.obs_T=${OBS_T} \
     dataset_cfg.select_random_frames=true \
     dataset_cfg.compute_obj_distribution=${COMPUTE_OBJ_DISTRIBUTION} \

@@ -375,7 +375,8 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
                          max_T=max_T,
                          action_ranges=action_ranges,
                          model_name=model_name,
-                         task_name=env_name)
+                         task_name=env_name,
+                         config=config)
     if "cond_target_obj_detector" in model_name:
         print("Evaluated traj #{}, task #{}, Avg IOU {}, number false positive {}".format(
             ctr, variation_id, info['avg_iou'], info['num_false_positive']))
@@ -440,7 +441,8 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
                              baseline=baseline,
                              max_T=max_T,
                              action_ranges=action_ranges,
-                             model_name=model_name)
+                             model_name=model_name,
+                             config=config)
         print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             ctr, variation_id, info['reached'], info['picked'], info['success']))
         # print(f"Avg prediction {info['avg_pred']}")
@@ -723,6 +725,7 @@ if __name__ == '__main__':
     parallel = args.num_workers > 1
 
     model_name = config.policy._target_
+
     print(f"---- Testing model {model_name} ----")
     f = functools.partial(_proc,
                           model,

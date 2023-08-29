@@ -16,6 +16,7 @@ import multi_task_robosuite_env as mtre
 from multi_task_il.utils import normalize_action, denormalize_action
 from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
 from torchvision.ops import box_iou
+import copy
 
 DEBUG = False
 
@@ -483,7 +484,7 @@ def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None
         return done, states, images, context, obs, traj, tasks, gt_obs, current_gripper_pose
 
 
-def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None, action_ranges=[], policy=True):
+def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None, action_ranges=[], policy=True, perform_augs=False, config=None):
 
     done, states, images, context, obs, traj, tasks, bb, gt_classes, _, prev_action = \
         startup_env(model=model,
@@ -500,8 +501,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
     prev_action = normalize_action(
         action=prev_action,
         n_action_bin=256,
-        action_ranges=action_ranges,
-        continous=False)
+        action_ranges=action_ranges)
 
     object_name = env.objects[env.object_id].name
     obj_delta_key = object_name + '_to_robot0_eef_pos'
@@ -543,25 +543,36 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
         states.append(prev_action.astype(np.float32)[None])
 
         # convert observation from BGR to RGB
-        formatted_img, bb_t = img_formatter(
-            obs['camera_front_image'][:, :, ::-1], bb_t)
+        if perform_augs:
+            formatted_img, bb_t = img_formatter(
+                obs['camera_front_image'][:, :, ::-1], bb_t)
+        else:
+            formatted_img = torch.from_numpy(
+                np.array(obs['camera_front_image'][:, :, ::-1]))
 
         model_input = dict()
         model_input['demo'] = context.to(device=gpu_id)
         model_input['images'] = formatted_img[None][None].to(device=gpu_id)
         model_input['gt_bb'] = torch.from_numpy(
-            bb_t[None][None]).to(device=gpu_id)
+            bb_t[None][None]).float().to(device=gpu_id)
         model_input['gt_classes'] = torch.from_numpy(
             gt_t[None][None][None]).to(device=gpu_id)
         model_input['states'] = torch.from_numpy(
             np.array(states)).to(device=gpu_id)
+
+        if task_name in config.dataset_cfg.get("tasks").keys():
+            task_one_hot = np.zeros((1, config.dataset_cfg.n_tasks))
+            task_one_hot[0][config.dataset_cfg.tasks[task_name]
+                            [0]+variation_id] = 1
+            model_input['task_id'] = torch.from_numpy(
+                np.array(task_one_hot)).to(device=gpu_id)
 
         with torch.no_grad():
             # Perform  detection
             if policy:
                 prediction = model(model_input,
                                    inference=True,
-                                   oracle=True,
+                                   oracle=False,
                                    bb_queue=bb_queue)
             else:
                 prediction = model(model_input,
@@ -576,17 +587,19 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
 
         # Project bb over image
         if prediction['conf_scores_final'][0] != -1:
-            scale_factor = model.get_scale_factors()
-            image = np.array(np.moveaxis(
-                formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
-
-            predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
-                                          width_scale_factor=scale_factor[0],
-                                          height_scale_factor=scale_factor[1],
-                                          mode='a2p')[0][0]
-            if True:
+            if perform_augs:
+                scale_factor = model.get_scale_factors()
                 image = np.array(np.moveaxis(
                     formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+                predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
+                                              width_scale_factor=scale_factor[0],
+                                              height_scale_factor=scale_factor[1],
+                                              mode='a2p')[0][0]
+            else:
+                image = formatted_img.cpu().numpy()
+                predicted_bb = prediction['proposals'][0]
+
+            if True:
 
                 image = cv2.rectangle(np.ascontiguousarray(image),
                                       (int(predicted_bb[0]),
@@ -631,19 +644,25 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
 
         if controller is not None:
             # compute the action for the current state
-            action, status = controller.act(obs)
+            action_gt, status = controller.act(obs)
+            action = action_gt
+            # action_norm = bc_distrib.sample().cpu().numpy()[0]
+            # prev_action = action_norm
+            # action = denormalize_action(action_norm,
+            #                             action_ranges)
         else:
             action = bc_distrib.sample().cpu().numpy()[0]
             prev_action = action
             action = denormalize_action(action,
                                         action_ranges)
 
+            # action = clip_action(action)
         obs, reward, env_done, info = env.step(action)
         cv2.imwrite(
             f"step_test.png", obs['camera_front_image'][:, :, ::-1])
 
         n_steps += 1
-        if n_steps >= 1 or env_done or reward:
+        if n_steps >= max_T or env_done or reward:
             done = True
 
     env.close()
@@ -719,3 +738,18 @@ def check_pick(threshold: float, obj_z: float, start_z: float, reached: bool, pi
 def check_reach(threshold: float, obj_distance: np.array, current_reach: bool):
     return current_reach or np.linalg.norm(
         obj_distance) < threshold
+
+
+def clip_action(action, prev_action):
+    prev_pos = prev_action[:3]
+    current_action = copy.deepcopy(action)
+    delta = prev_pos - current_action[:3]
+
+    for i, delta_component in enumerate(delta):
+        if abs(delta_component) > 0.02:
+            if prev_pos[i] > current_action[i]:
+                current_action[i] = prev_action[i] - 0.02
+            else:
+                current_action[i] = prev_action[i] + 0.02
+
+    return current_action

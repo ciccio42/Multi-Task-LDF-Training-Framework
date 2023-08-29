@@ -173,7 +173,8 @@ class GMM(nn.Module):
         # parameters specific to GMM actor
         self.num_modes = num_modes
         self.ac_dim = ac_dim
-        self.min_std = torch.from_numpy(np.array(min_std)).to("cuda:0")
+        self.min_std = torch.from_numpy(
+            np.array(min_std))[None, None].repeat((1, num_modes, 1)).to("cuda:0")
         self.low_noise_eval = low_noise_eval
         self.use_tanh = use_tanh
 
@@ -236,6 +237,7 @@ class GMM(nn.Module):
             # post-process the scale accordingly
             scales = self.activations[self.std_activation](
                 scales) + self.min_std
+        # log_scales = scales.log()
 
         # mixture components - make sure that `batch_shape` for the distribution is equal
         # to (batch_size, num_modes) since MixtureSameFamily expects this shape
@@ -253,6 +255,9 @@ class GMM(nn.Module):
         if self.use_tanh:
             # Wrap distribution with Tanh
             dist = TanhWrappedDistribution(base_dist=dist, scale=1.)
+
+        # dist = DiscreteMixLogistic(
+        #     mean=means, log_scale=log_scales, logit_probs=logits, num_classes=256)
 
         return dist
 
@@ -414,15 +419,18 @@ class CondPolicy(nn.Module):
                  action_cfg=None,
                  concat_bb=True,
                  mlp_layers=[128, 64, 32],
-                 pooling=False,
                  spatial_softmax=False,
+                 gt_bb=False,
                  min_std=[0.3236332, 0.41879308, 0.14637606,
                           0.00677641, 0.06317256, 0.00703644, 0.976691],
+                 n_tasks=[16],
                  ):
 
         super().__init__()
 
         # 1. Istantiate cond_target_obj_detector
+        self._gt_bb = gt_bb
+        self._n_tasks = n_tasks
 
         # Load configuration file
         conf_file = OmegaConf.load(os.path.join(
@@ -449,6 +457,8 @@ class CondPolicy(nn.Module):
                     param.requires_grad = False
 
         # Create Policy NN
+        latent_dim = 0
+        print(f"---- Spatial softmax {spatial_softmax}, GT BB {gt_bb}----")
         if spatial_softmax:
             self.spatial_softmax = SpatialSoftmax(input_shape=(512, 7, 7),
                                                   num_kp=16,
@@ -458,10 +468,13 @@ class CondPolicy(nn.Module):
                                                   noise_std=0.0)
             latent_dim = self.spatial_softmax.output_shape(
                 input_shape=(512, 7, 7))
+            latent_dim = np.prod(latent_dim)
+        elif self._gt_bb:
+            latent_dim = np.sum(self._n_tasks)
 
         # Create action module
         action_module_input = int(
-            np.prod(latent_dim) + float(concat_state) * action_cfg.sdim + float(concat_bb) * 4)
+            latent_dim + float(concat_state) * action_cfg.sdim + float(concat_bb) * 4)
 
         self.action_module = GMM(input_dim=action_module_input,
                                  ac_dim=action_cfg.adim,
@@ -484,77 +497,90 @@ class CondPolicy(nn.Module):
     def forward(self, inputs: dict, inference: bool = False, oracle: bool = False, bb_queue: list = [], plot_activation=False):
         out = dict()
 
-        # get target object prediction
-        prediction_target_obj_detector = self.cond_target_obj_detector(inputs=inputs,
-                                                                       inference=True)
+        task_emb = None
+        prediction_target_obj_detector = dict()
+        if not self._gt_bb:
+            # get target object prediction
+            prediction_target_obj_detector = self.cond_target_obj_detector(inputs=inputs,
+                                                                           inference=True)
 
-        # Reshape BBs B*T, 4 to B,T,4
-        bbs = torch.stack(prediction_target_obj_detector['proposals'])
-        B, T, _, _, _ = inputs['images'].shape
-        if inference == True and prediction_target_obj_detector['conf_scores_final'][0] == -1:
-            bbs = bb_queue[0][None]
-            prediction_target_obj_detector['proposals'] = [bb_queue[0]]
-        bbs = rearrange(bbs, '(B T) N -> B T N', B=B, T=T, N=4)
+            # Reshape BBs B*T, 4 to B,T,4
+            bbs = torch.stack(prediction_target_obj_detector['proposals'])
+            B, T, _, _, _ = inputs['images'].shape
+            if inference == True and prediction_target_obj_detector['conf_scores_final'][0] == -1:
+                bbs = bb_queue[0][None]
+                prediction_target_obj_detector['proposals'] = [bb_queue[0]]
+            bbs = rearrange(bbs, '(B T) N -> B T N', B=B, T=T, N=4)
 
-        # 1. Get last layer feature maps
-        # B*T, 512, 7, 7
-        last_layer_feature = prediction_target_obj_detector['feature_map']
+            # 1. Get last layer feature maps
+            # B*T, 512, 7, 7
+            last_layer_feature = prediction_target_obj_detector['feature_map']
 
-        if not self.training and plot_activation:
-            # convert from tensor to numpy
-            last_layer_feature_np = rearrange(
-                last_layer_feature, '(B T) C H W -> B T H W C', B=B, T=T).cpu().numpy()
-            input_image_np = np.array(rearrange(
-                inputs['images'], 'B T C H W -> B T H W C', B=B, T=T).cpu().numpy()*255, dtype=np.uint8)
-            cam_img, output_image = get_class_activation_map(feature_map=last_layer_feature_np[0][0],
-                                                             input_image=input_image_np[0][0])
-            out['cam_img'] = cam_img
-            out['output_image'] = output_image
+            if not self.training and plot_activation:
+                # convert from tensor to numpy
+                last_layer_feature_np = rearrange(
+                    last_layer_feature, '(B T) C H W -> B T H W C', B=B, T=T).cpu().numpy()
+                input_image_np = np.array(rearrange(
+                    inputs['images'], 'B T C H W -> B T H W C', B=B, T=T).cpu().numpy()*255, dtype=np.uint8)
+                cam_img, output_image = get_class_activation_map(feature_map=last_layer_feature_np[0][0],
+                                                                 input_image=input_image_np[0][0])
+                out['cam_img'] = cam_img
+                out['output_image'] = output_image
 
-        # 2. Compute spatial softmax
-        spatial_softmax_out = self.spatial_softmax(last_layer_feature)
+            # 2. Compute spatial softmax
+            spatial_softmax_out = self.spatial_softmax(last_layer_feature)
 
-        if not self.training and plot_activation:
-            # convert from tensor to numpy
-            spatial_softmax_out_np = rearrange(
-                spatial_softmax_out, '(B T) C H W -> B T H W C', B=B, T=T).cpu().numpy()
-            input_image_np = np.array(rearrange(
-                inputs['images'], 'B T C H W -> B T H W C', B=B, T=T).cpu().numpy()*255, dtype=np.uint8)
-            cam_img, output_image = get_class_activation_map(feature_map=spatial_softmax_out_np[0][0],
-                                                             input_image=input_image_np[0][0])
-            out['cam_img'] = cam_img
-            out['output_image'] = output_image
+            if not self.training and plot_activation:
+                # convert from tensor to numpy
+                spatial_softmax_out_np = rearrange(
+                    spatial_softmax_out, '(B T) C H W -> B T H W C', B=B, T=T).cpu().numpy()
+                input_image_np = np.array(rearrange(
+                    inputs['images'], 'B T C H W -> B T H W C', B=B, T=T).cpu().numpy()*255, dtype=np.uint8)
+                cam_img, output_image = get_class_activation_map(feature_map=spatial_softmax_out_np[0][0],
+                                                                 input_image=input_image_np[0][0])
+                out['cam_img'] = cam_img
+                out['output_image'] = output_image
 
-        # 4. Flat the vector
-        # B*T, 1, 7, 7 -> B*T, 49
-        spatial_softmax_out_flat = torch.flatten(
-            spatial_softmax_out, start_dim=1)
-        spatial_softmax_out_flat = rearrange(spatial_softmax_out_flat,
-                                             '(B T) N -> B T N', B=B, T=T)
+            # 4. Flat the vector
+            # B*T, 1, 7, 7 -> B*T, 49
+            task_emb = torch.flatten(
+                spatial_softmax_out, start_dim=1)
+            task_emb = rearrange(task_emb,
+                                 '(B T) N -> B T N', B=B, T=T)
 
         # 5. Create action_in vector
         # reshape states
         states = inputs['states']
         # get the bb with the highest conf score
         bb = None
-        if oracle:
-            bb = project_bboxes(bboxes=inputs['gt_bb'].float(),
-                                width_scale_factor=self.get_scale_factors()[0],
-                                height_scale_factor=self.get_scale_factors()[
-                1],
-                mode='p2a')[:, :, 0, :]
+        if oracle or self._gt_bb:
+            bb = inputs['gt_bb'].float()[:, :, 0, :]
+            if oracle:
+                bb = project_bboxes(bboxes=inputs['gt_bb'].float(),
+                                    width_scale_factor=self.get_scale_factors()[
+                    0],
+                    height_scale_factor=self.get_scale_factors()[
+                    1],
+                    mode='p2a')[:, :, 0, :]
             prediction_target_obj_detector['proposals'] = [bb[0, 0, :]]
+            prediction_target_obj_detector['conf_scores_final'] = [1.0]
+
         else:
             bb = bbs
 
+        if task_emb is None:
+            task_emb = inputs['task_id'].repeat(
+                1, inputs['gt_bb'].shape[1], 1)
+
         action_in = torch.concat(
-            [spatial_softmax_out_flat, states, bb], dim=2).to(torch.float32)
+            [task_emb, states, bb], dim=2).to(torch.float32)
         # 6. Infer action embedding
         action_in = rearrange(action_in, "B T D -> (B T) D")
         ac_dist = self.action_module(action_in)
 
         out['bc_distrib'] = ac_dist
         out['prediction_target_obj_detector'] = prediction_target_obj_detector
+
         return out
 
 

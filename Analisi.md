@@ -19,6 +19,4 @@ Su questo checkpoint si osserva come il robot ad eseguire il reaching e il picki
 Il problema principale è dato dai falsi positivi che si verificano soprattutto tra i primi frame. 
 Infatti si raggiunge un tasso di raggiungimento pari al **23.07%**, però dai video si vede come il robot è in grado di eseguire il pick dell'oggetto.
 
-
-# First Iteration
-# Target Obj Detector Addestrato solo sul primo frame
+## Test 3 - Policy trained and tested on GT-bb
