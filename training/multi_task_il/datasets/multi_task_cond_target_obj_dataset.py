@@ -215,7 +215,7 @@ class CondTargetObjDetectorDataset(Dataset):
             t = t.item()
             step_t = traj.get(t)
 
-            if j < len(chosen_t)-1:
+            if j < len(chosen_t)-1 or len(chosen_t) == 1:
                 image = copy.copy(
                     step_t['obs']['camera_front_image'][:, :, ::-1])
 

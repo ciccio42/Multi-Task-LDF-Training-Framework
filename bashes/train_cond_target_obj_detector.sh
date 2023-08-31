@@ -2,7 +2,7 @@
 export MUJOCO_PY_MUJOCO_PATH="/home/frosa_loc/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 # export WANDB_CACHE_DIR=/mnt/sdc1/frosa/wandb
 # export TMPDIR=/mnt/sdc1/frosa/tmp
@@ -21,14 +21,14 @@ EXP_NAME=1Task-Pick-Place-Cond-Target-Obj-Detector-3D-Resnet_only_first_frame
 PROJECT_NAME="pick_place_cond_target_obj_detector_3d_resnet_only_first_frame"
 TASK_str=pick_place
 EPOCH=30 # start from 16
-BSIZE=16 #16 #32
+BSIZE=32 #16 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector.yaml
 LOADER_WORKERS=32
 BALANCING_POLICY=0
-SET_SAME_N=1
-OBS_T=3
+SET_SAME_N=2
+OBS_T=0
 
 EARLY_STOPPING_PATIECE=10
 OPTIMIZER='AdamW'

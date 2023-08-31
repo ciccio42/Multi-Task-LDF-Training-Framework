@@ -662,7 +662,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
             f"step_test.png", obs['camera_front_image'][:, :, ::-1])
 
         n_steps += 1
-        if n_steps >= max_T or env_done or reward:
+        if n_steps >= 1 or env_done or reward:
             done = True
 
     env.close()

@@ -191,10 +191,11 @@ def make_demo(dataset, traj, task_name):
             # convert from BGR to RGB and scale to 0-1 range
             obs = copy.copy(
                 traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
-            processed = dataset.frame_aug(task_name, obs)
+            processed = dataset.frame_aug(task_name, obs, perform_aug=False)
             frames.append(processed)
             if dataset.aug_twice:
-                cp_frames.append(dataset.frame_aug(task_name, obs, True))
+                cp_frames.append(dataset.frame_aug(
+                    task_name, obs, True, perform_aug=False))
     else:
         frames = []
         cp_frames = []
@@ -233,10 +234,11 @@ def make_demo(dataset, traj, task_name):
             obs = copy.copy(
                 traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
 
-            processed = dataset.frame_aug(task_name, obs)
+            processed = dataset.frame_aug(task_name, obs, perform_aug=False)
             frames.append(processed)
             if dataset.aug_twice:
-                cp_frames.append(dataset.frame_aug(task_name, obs, True))
+                cp_frames.append(dataset.frame_aug(
+                    task_name, obs, True, perform_aug=False))
 
     ret_dict = dict()
     ret_dict['demo'] = torch.stack(frames)
@@ -372,7 +374,7 @@ def create_data_aug(dataset_loader=object):
                     bb[obj_indx] = np.array([[x1_new, y1, x2_new, y2]])
         return obs, bb
 
-    def frame_aug(task_name, obs, second=False, bb=None, class_frame=None):
+    def frame_aug(task_name, obs, second=False, bb=None, class_frame=None, perform_aug=True):
 
         img_height, img_width = obs.shape[:2]
         """applies to every timestep's RGB obs['camera_front_image']"""
@@ -413,7 +415,10 @@ def create_data_aug(dataset_loader=object):
                 cv2.imwrite("strong_augmented.png", np.moveaxis(
                     augmented.numpy()*255, 0, -1))
         else:
-            augmented = dataset_loader.transforms(obs)
+            if perform_aug:
+                augmented = dataset_loader.transforms(obs)
+            else:
+                augmented = obs
             if DEBUG:
                 cv2.imwrite("weak_augmented.png", np.moveaxis(
                     augmented.numpy()*255, 0, -1))

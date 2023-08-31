@@ -251,8 +251,10 @@ def loss_func_bb(config, train_cfg, device, model, inputs, w_conf=1, w_reg=5):
     all_losses = dict()
 
     model = model.to(device)
-    predictions_dict = model(model_inputs, inference=False)
-
+    if model.training:
+        predictions_dict = model(model_inputs, inference=False)
+    else:
+        pass
     # compute detection loss
     cls_loss = calc_cls_loss(predictions_dict['conf_scores_pos'],
                              predictions_dict['conf_scores_neg'],

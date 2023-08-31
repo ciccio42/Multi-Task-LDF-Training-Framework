@@ -152,18 +152,18 @@ def build_tvf_formatter_obj_detector(config, env_name):
         # ---- Resized crop ----#
         img = resized_crop(img, top=top, left=left, height=box_h,
                            width=box_w, size=(config.dataset_cfg.height, config.dataset_cfg.width))
-        # transforms_pipe = transforms.Compose([
-        #     transforms.ColorJitter(
-        #         brightness=list(config.augs.get(
-        #             "brightness", [0.875, 1.125])),
-        #         contrast=list(config.augs.get(
-        #             "contrast", [0.5, 1.5])),
-        #         saturation=list(config.augs.get(
-        #             "contrast", [0.5, 1.5])),
-        #         hue=list(config.augs.get("hue", [-0.05, 0.05]))
-        #     ),
-        # ])
-        # img = transforms_pipe(img)
+        transforms_pipe = transforms.Compose([
+            transforms.ColorJitter(
+                brightness=list(config.augs.get(
+                    "brightness", [0.875, 1.125])),
+                contrast=list(config.augs.get(
+                    "contrast", [0.5, 1.5])),
+                saturation=list(config.augs.get(
+                    "contrast", [0.5, 1.5])),
+                hue=list(config.augs.get("hue", [-0.05, 0.05]))
+            ),
+        ])
+        img = transforms_pipe(img)
 
         cv2.imwrite("resized_target_obj.png", np.moveaxis(
             img.numpy()*255, 0, -1))

@@ -233,7 +233,7 @@ def get_req_anchors(anc_boxes_all, gt_bboxes_all, gt_classes_all, pos_thresh=0.7
 
     # condition 1: the anchor box with the max iou for every gt bbox
     positive_anc_mask = torch.logical_and(
-        iou_mat == max_iou_per_gt_box, max_iou_per_gt_box > 0)
+        iou_mat == max_iou_per_gt_box, max_iou_per_gt_box > pos_thresh)
     # condition 2: anchor boxes with iou above a threshold with any of the gt bboxes
     positive_anc_mask = torch.logical_or(
         positive_anc_mask, iou_mat > pos_thresh)

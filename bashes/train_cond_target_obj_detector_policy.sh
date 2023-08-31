@@ -97,6 +97,6 @@ python ../training/train_scripts/train_any.py \
     train_cfg.weight_decay=${WEIGHT_DECAY} \
     train_cfg.lr_schedule=${SCHEDULER} \
     debug=false \
-    wandb_log=true \
+    wandb_log=false \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS}

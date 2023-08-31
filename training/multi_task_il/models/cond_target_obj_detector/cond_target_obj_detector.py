@@ -16,7 +16,7 @@ from multi_task_il.models.cond_target_obj_detector.utils import *
 from torchvision.models.video import r2plus1d_18, R2Plus1D_18_Weights
 import cv2
 
-DEBUG = False
+DEBUG = True
 
 
 def get_backbone(backbone_name="slow_r50", video_backbone=True, pretrained=False, conv_drop_dim=3):
@@ -363,13 +363,13 @@ class AgentModule(nn.Module):
             self.height_scale_factor = self.img_height // self.out_h
 
             # scales and ratios for anchor boxes
-            self.anc_scales = [0.5, 1]  # [0.5, 1]
-            self.anc_ratios = [0.5, 1]  # [0.5, 1, 1.5]
+            self.anc_scales = [1, 1.5, 2]  # [0.5, 1]
+            self.anc_ratios = [0.5, 1.5, 2]  # [0.5, 1, 1.5]
             self.n_anc_boxes = len(self.anc_scales) * len(self.anc_ratios)
 
             # IoU thresholds for +ve and -ve anchors
-            self.pos_thresh = 0.7
-            self.neg_thresh = 0.3
+            self.pos_thresh = 0.5
+            self.neg_thresh = 0.5
 
             self.conf_thresh = 0.8
             self.nms_thresh = 0.9
