@@ -1,20 +1,20 @@
 #!/bin/sh
-export MUJOCO_PY_MUJOCO_PATH="/home/frosa_loc/.mujoco/mujoco210"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_loc/.mujoco/mujoco210/bin
+export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/home/frosa_loc/Multi-Task-LFD-Framework/ur_multitask_dataset
-SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/MOSAIC
+EXPERT_DATA=/raid/home/frosa_Loc/ur_multitask_dataset
+SAVE_PATH=/raid/home/frosa_Loc/checkpoint_save_folder
 POLICY='${mosaic}'
 
 SAVE_FREQ=4050
 LOG_FREQ=100
 VAL_FREQ=4050
 
-EXP_NAME=1Task-Pick-Place-100-180
-PROJECT_NAME="ur_pick_place_100_180"
+EXP_NAME=1Task-Pick-Place-100-180-BB
+PROJECT_NAME="ur_pick_place_100_180_bb"
 TASK_str=pick_place
 ROLLOUT=false
 EPOCH=40
@@ -127,8 +127,8 @@ python ../training/train_scripts/train_any.py \
     simclr.mul_intm=${MUL_INTM} \
     bc_mul=${BC_MUL} \
     inv_mul=${INV_MUL} \
-    debug=true \
-    wandb_log=false \
+    debug=false \
+    wandb_log=true \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS} \
     cosine_annealing=${COSINE_ANNEALING}

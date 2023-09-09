@@ -482,6 +482,7 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
                 context=model_inputs['demo'],
                 context_cp=model_inputs['demo_cp'],
                 states=model_inputs['states'],
+                bb=model_inputs['gt_bb'],
                 ret_dist=False,
                 actions=model_inputs['actions'])
         elif "CondPolicy" in config.policy._target_:
@@ -643,7 +644,7 @@ class Trainer:
         self._train_loader, self._val_loader = make_data_loaders(
             self.config, self.train_cfg.dataset)
         # wrap model in DataParallel if needed and transfer to correct device
-        print('Training stage\nFound {} GPU devices \n'.format(self.device_count))
+        print('\n-------------------\nTraining stage\nFound {} GPU devices \n'.format(self.device_count))
         model = model.to(self._device)
         if self.device_count > 1 and not isinstance(model, nn.DataParallel):
             print("Training stage \n Device list: {}".format(self.device_list))
@@ -712,9 +713,9 @@ class Trainer:
             print(
                 f"Training for {epochs} epochs train dataloader has length {len(self._train_loader)}")
 
-        summary(model)
         model = model.train()
         model = model.to(self._device)
+        # summary(model)
 
         for e in range(epochs):
             frac = e / epochs

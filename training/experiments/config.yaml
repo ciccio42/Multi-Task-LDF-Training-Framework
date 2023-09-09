@@ -95,6 +95,7 @@ dataset_cfg:
   demo_T:           4
   obs_T:            7
   normalize_action: True
+  load_bb: True
   # x, y, z, e_x, e_y, e_z
   normalization_ranges: [[-0.35,  0.35],
                         [-0.35,  0.35],
@@ -115,19 +116,36 @@ dataset_cfg:
   compute_obj_distribution: False
   agent_name: 'ur5e'
   demo_name: 'panda'
+  perform_augs: True
 
 augs:
-  strong_jitter:     1  
-  weak_jitter:       1 # 0.1 Mosaic; 1 Tosil 
-  grayscale:         1 # 0.1 Mosaic; 1 Tosil
-  blur:              [0.1, 2.0] 
-  flip:              0.05   # only flip for the strong augs
-  weak_crop_scale:   [0.8, 1.0]  # [0.8, 1.0] Mosaic; [0.99, 1.0] Tosil
-  strong_crop_scale: [0.8, 1.0] # [0.8, 1.0] Mosaic; [0.99, 1.0] Tosil
-  weak_crop_ratio:   [1.8, 1.8] # [1.8, 1.8] Mosaic; [1.0, 1.0] Tosil
-  strong_crop_ratio: [1.8, 1.8] # [1.8, 1.8] Mosaic; [1.0, 1.0] Tosil
-  use_affine:        False  
-  rand_trans:        0.1
+  # strong_jitter:     1  
+  # weak_jitter:       1 # 0.1 Mosaic; 1 Tosil 
+  # grayscale:         1 # 0.1 Mosaic; 1 Tosil
+  # blur:              [0.1, 2.0] 
+  # flip:              0.05   # only flip for the strong augs
+  # weak_crop_scale:   [0.8, 1.0]  # [0.8, 1.0] Mosaic; [0.99, 1.0] Tosil
+  # strong_crop_scale: [0.8, 1.0] # [0.8, 1.0] Mosaic; [0.99, 1.0] Tosil
+  # weak_crop_ratio:   [1.8, 1.8] # [1.8, 1.8] Mosaic; [1.0, 1.0] Tosil
+  # strong_crop_ratio: [1.8, 1.8] # [1.8, 1.8] Mosaic; [1.0, 1.0] Tosil
+  # use_affine:        False  
+  # rand_trans:        0.1
+
+  old_aug: false
+  brightness: [0.9, 1.1]
+  contrast: [0.9, 1.1]
+  saturation: [0.9, 1.1]
+  hue: [0.0, 0.0]
+  p: 0.1 
+  horizontal_flip_p: 0.1
+  
+  brightness_strong: [0.875, 1.125]
+  contrast_strong: [0.5, 1.5]
+  saturation_strong: [0.5, 1.5]
+  hue_strong: [-0.05, 0.05]
+  p_strong: 0.5 
+  horizontal_flip_p_strong: 0.5
+  
 
 simclr:
   demo_T:           ${train_cfg.dataset.demo_T}

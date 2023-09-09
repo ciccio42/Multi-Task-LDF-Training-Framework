@@ -359,6 +359,7 @@ class VideoImitation(nn.Module):
         remove_class_layers=True,
         load_contrastive=True,
         concat_target_obj_embedding=True,
+        concat_bb=True,
         height=120,
         width=160,
         demo_T=4,
@@ -379,6 +380,7 @@ class VideoImitation(nn.Module):
     ):
         super().__init__()
         self._remove_class_layers = remove_class_layers
+        self._concat_bb = concat_bb
         if not load_target_obj_detector:
             self._embed = _TransformerFeatures(
                 latent_dim=latent_dim, demo_T=demo_T, dim_H=dim_H, dim_W=dim_W, **attn_cfg)
@@ -456,7 +458,7 @@ class VideoImitation(nn.Module):
                             float(concat_demo_act) * latent_dim + float(concat_state) * sdim)
         else:
             ac_in_dim = int(latent_dim + float(concat_demo_act)
-                            * latent_dim + float(concat_state) * sdim)
+                            * latent_dim + float(concat_bb) * 4 + float(concat_state) * sdim)
 
         inv_input_dim = int(2*ac_in_dim)
 
@@ -492,7 +494,7 @@ class VideoImitation(nn.Module):
         params = sum([np.prod(p.size()) for p in model_parameters])
         print('Total params in Imitation module:', params)
         print("\n---- Complete model ----\n")
-        summary(self)
+        # summary(self)
 
     def _load_model(self, model_path=None, step=0, conf_file=None, remove_class_layers=True, freeze=True):
         if model_path:
@@ -544,7 +546,7 @@ class VideoImitation(nn.Module):
         self.conv_layer_ref = self.get_conv_layer_reference(model=model)
         print(self.conv_layer_ref)
 
-    def get_action(self, embed_out, target_obj_embedding=None, ret_dist=True, states=None, eval=False):
+    def get_action(self, embed_out, target_obj_embedding=None, bb=None, ret_dist=True, states=None, eval=False):
         """directly modifies output dict to put action outputs inside"""
         out = dict()
         # single-head case
@@ -582,8 +584,13 @@ class VideoImitation(nn.Module):
             img_embed = torch.cat((img_embed, target_obj_embedding), dim=2)
 
         if self.concat_demo_act:  # for action model
-            ac_in = torch.cat((img_embed, demo_embed), dim=2)
+            if self._concat_bb:
+                bb = rearrange(bb, 'B T O D -> B T (O D)')
+                ac_in = torch.cat((img_embed, demo_embed, bb), dim=2)
+            else:
+                ac_in = torch.cat((img_embed, demo_embed), dim=2)
             ac_in = F.normalize(ac_in, dim=2)
+
         ac_in = torch.cat((ac_in, states), 2) if self._concat_state else ac_in
 
         # predict behavior cloning distribution
@@ -602,7 +609,7 @@ class VideoImitation(nn.Module):
         return out
 
     def _compute_target_obj_embedding(self, embed_out):
-        # 1. Take embedding computed from the demo and the agent
+        # 1. Take embedding computed from the demo and the  agent
         # Take only the first frame for the agent scene
         demo_embed, img_embed = embed_out['demo_embed'], embed_out['img_embed'][:, 0, :][:, None, :]
 
@@ -625,6 +632,7 @@ class VideoImitation(nn.Module):
         self,
         images,
         context,
+        bb=None,
         states=None,
         ret_dist=True,
         eval=False,
@@ -656,7 +664,12 @@ class VideoImitation(nn.Module):
                 target_obj_embedding_in)
 
         out = self.get_action(
-            embed_out=embed_out, target_obj_embedding=target_obj_embedding, ret_dist=ret_dist, states=states, eval=eval)
+            embed_out=embed_out,
+            target_obj_embedding=target_obj_embedding,
+            bb=bb,
+            ret_dist=ret_dist,
+            states=states,
+            eval=eval)
 
         if self._concat_target_obj_embedding:
             out["target_obj_embedding"] = target_obj_embedding
@@ -689,15 +702,17 @@ class VideoImitation(nn.Module):
         # B, T_im-1, d * 2
         inv_in = torch.cat((img_embed[:, :-1], img_embed[:, 1:]), 2)
         if self.concat_demo_act:
-            inv_in = torch.cat(
-                (
-                    F.normalize(
-                        torch.cat((img_embed[:, :-1], demo_embed[:, :-1]), dim=2), dim=2),
-                    F.normalize(
-                        torch.cat((img_embed[:,  1:], demo_embed[:, :-1]), dim=2), dim=2),
-                ),
-                dim=2)
-            if self._concat_target_obj_embedding:
+            if self._concat_bb:
+                bb = rearrange(bb, 'B T O D -> B T (O D)')
+                inv_in = torch.cat(
+                    (
+                        F.normalize(
+                            torch.cat((img_embed[:, :-1], demo_embed[:, :-1], bb[:, :-1]), dim=2), dim=2),
+                        F.normalize(
+                            torch.cat((img_embed[:,  1:], demo_embed[:, :-1], bb[:, 1:]), dim=2), dim=2),
+                    ),
+                    dim=2)
+            elif self._concat_target_obj_embedding:
                 target_obj_embedding_inv = target_obj_embedding.repeat(
                     1, inv_in.size(dim=1), 1)
                 inv_in = torch.cat(
@@ -706,6 +721,15 @@ class VideoImitation(nn.Module):
                             (img_embed[:, :-1], demo_embed[:, :-1], target_obj_embedding_inv), dim=2), dim=2),
                         F.normalize(torch.cat(
                             (img_embed[:,  1:], demo_embed[:, :-1], target_obj_embedding_inv), dim=2), dim=2),
+                    ),
+                    dim=2)
+            else:
+                inv_in = torch.cat(
+                    (
+                        F.normalize(
+                            torch.cat((img_embed[:, :-1], demo_embed[:, :-1]), dim=2), dim=2),
+                        F.normalize(
+                            torch.cat((img_embed[:,  1:], demo_embed[:, :-1]), dim=2), dim=2),
                     ),
                     dim=2)
 

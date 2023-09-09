@@ -45,6 +45,7 @@ class MultiTaskPairedDataset(Dataset):
             normalize_action=True,
             normalization_ranges=[],
             n_action_bin=256,
+            perform_augs=True,
             ** params):
 
         self.task_crops = OrderedDict()
@@ -71,6 +72,8 @@ class MultiTaskPairedDataset(Dataset):
         self._normalize_action = normalize_action
         self._normalization_ranges = np.array(normalization_ranges)
         self._n_action_bin = n_action_bin
+        self._perform_augs = perform_augs
+        self._state_spec = state_spec
 
         # Frame distribution for each trajectory
         self._frame_distribution = OrderedDict()
@@ -119,43 +122,17 @@ class MultiTaskPairedDataset(Dataset):
 
         demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
         demo_data = make_demo(self, demo_traj[0], task_name)
-        traj = self._make_traj(agent_traj[0], task_name, agent_file)
+        traj = self._make_traj(
+            agent_traj[0],
+            agent_traj[1],
+            task_name,
+            sub_task_id)
         return {'demo_data': demo_data, 'traj': traj, 'task_name': task_name, 'task_id': sub_task_id}
 
-    def _make_traj(self, traj, task_name, agent_file):
-        crop_params = self.task_crops.get(task_name, [0, 0, 0, 0])
+    def _make_traj(self, traj, command, task_name, sub_task_id):
 
-        def _adjust_points(points, frame_dims):
-            h = np.clip(points[0] - crop_params[0], 0,
-                        frame_dims[0] - crop_params[1])
-            w = np.clip(points[1] - crop_params[2], 0,
-                        frame_dims[1] - crop_params[3])
-            h = float(
-                h) / (frame_dims[0] - crop_params[0] - crop_params[1]) * self.height
-            w = float(
-                w) / (frame_dims[1] - crop_params[2] - crop_params[3]) * self.width
-            return tuple([int(min(x, d - 1)) for x, d in zip([h, w], (self.height, self.width))])
+        ret_dict = {}
 
-        def _get_tensor(k, step_t):
-            if k == 'action':
-                return step_t['action']
-            elif k == 'grip_action':
-                return [step_t['action'][-1]]
-            o = step_t['obs']
-            if k == 'ee_aa' and 'ee_aa' not in o:
-                ee, axis_angle = o['ee_pos'][:3], o['axis_angle']
-                if axis_angle[0] < 0:
-                    axis_angle[0] += 2
-                o = np.concatenate((ee, axis_angle)).astype(np.float32)
-            else:
-                o = o[k]
-            return o
-
-        state_keys, action_keys = self._state_action_spec
-        ret_dict = {'states': [], 'actions': []}
-        has_eef_point = 'eef_point' in traj.get(0, False)['obs']
-        if has_eef_point:
-            ret_dict['points'] = []
         end = len(traj)
         start = torch.randint(low=1, high=max(
             1, end - self._obs_T + 1), size=(1,))
@@ -169,69 +146,32 @@ class MultiTaskPairedDataset(Dataset):
         if self.non_sequential:
             chosen_t = torch.randperm(end)
             chosen_t = chosen_t[chosen_t != 0][:self._obs_T]
-        images = []
-        images_cp = []
 
-        for j, t in enumerate(chosen_t):
-
-            # self._frame_distribution[agent_file][t] = self._frame_distribution[agent_file][t]
-
-            t = t.item()
-
-            step_t = traj.get(t)
-            image = copy.copy(
-                step_t['obs']['camera_front_image'][:, :, ::-1])
-            processed = self.frame_aug(task_name, image)
-            images.append(processed)
-            if self.aug_twice:
-                images_cp.append(self.frame_aug(task_name, image, True))
-
-            if has_eef_point:
-
-                if DEBUG:
-                    image_point = np.array(
-                        step_t['obs']['camera_front_image'][:, :, ::-1], dtype=np.uint8)
-                    image_point = cv2.circle(cv2.UMat(image_point), (step_t['obs']['eef_point'][1], step_t['obs']['eef_point'][0]), radius=1, color=(
-                        0, 0, 255), thickness=1)
-                    cv2.imwrite("gt_point.png", cv2.UMat(image_point))
-
-                ret_dict['points'].append(np.array(
-                    _adjust_points(step_t['obs']['eef_point'], image.shape[:2]))[None])
-
-                if DEBUG:
-                    image = np.array(np.moveaxis(
-                        processed.numpy()*255, 0, -1), dtype=np.uint8)
-                    image = cv2.circle(cv2.UMat(image), (ret_dict['points'][-1][0][1], ret_dict['points'][-1][0][0]), radius=1, color=(
-                        0, 0, 255), thickness=1)
-                    cv2.imwrite("adjusted_point.png", cv2.UMat(image))
-
-            state = []
-            for k in state_keys:
-                state.append(_get_tensor(k, step_t))
-            ret_dict['states'].append(
-                np.concatenate(state).astype(np.float32)[None])
-
-            if (j >= 1 and not self._take_first_frame) or (self._take_first_frame and j >= 2):
-                action = []
-                for k in action_keys:
-                    action.append(_get_tensor(k, step_t))
-
-                if self._normalize_action:
-                    action = normalize_action(
-                        action=action[0],
-                        n_action_bin=self._n_action_bin,
-                        action_ranges=self._normalization_ranges
-                    )[None]
-
-                ret_dict['actions'].append(
-                    np.concatenate(action).astype(np.float32)[None])
-
-        for k, v in ret_dict.items():
-            ret_dict[k] = np.concatenate(v, 0).astype(np.float32)
+        images, images_cp, bb, obj_classes, action, states, points = create_sample(
+            dataset_loader=self,
+            traj=traj,
+            chosen_t=chosen_t,
+            task_name=task_name,
+            command=command,
+            load_action=True,
+            load_state=True)
 
         ret_dict['images'] = torch.stack(images)
+
         if self.aug_twice:
             ret_dict['images_cp'] = torch.stack(images_cp)
+
+        ret_dict['gt_bb'] = torch.stack(bb)
+        ret_dict['gt_classes'] = torch.stack(obj_classes)
+
+        ret_dict['states'] = []
+        ret_dict['states'] = np.array(states)
+
+        ret_dict['actions'] = []
+        ret_dict['actions'] = np.array(action)
+
+        ret_dict['points'] = []
+        ret_dict['points'] = np.array(points)
 
         if self.aux_pose:
             grip_close = np.array(

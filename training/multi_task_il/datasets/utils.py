@@ -441,6 +441,177 @@ def create_data_aug(dataset_loader=object):
     return frame_aug
 
 
+def create_gt_bb(dataset_loader, traj, t, task_name):
+    bb = []
+    cl = []
+    image_size = traj.get(
+        t)['obs']['camera_front_image'].shape
+
+    # 1. Get Target Object
+    target_obj_id = traj.get(
+        t)['obs']['target-object']
+    for obj_id, object_name in enumerate(traj.get(t)['obs']['obj_bb']['camera_front'].keys()):
+        if object_name != 'bin' and obj_id == target_obj_id:
+            # 2. Get stored BB
+            top_left_x = traj.get(
+                t)['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner'][0]
+            top_left_y = traj.get(
+                t)['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner'][1]
+            # print(f"Top-Left X {top_left_x} - Top-Left Y {top_left_y}")
+            bottom_right_x = traj.get(
+                t)['obs']['obj_bb']["camera_front"][object_name]['upper_left_corner'][0]
+            bottom_right_y = traj.get(
+                t)['obs']['obj_bb']["camera_front"][object_name]['upper_left_corner'][1]
+
+            # center_x
+            center_x = traj.get(
+                t)['obs']['obj_bb']["camera_front"][object_name]['center'][0]
+            # center_y
+            center_y = traj.get(
+                t)['obs']['obj_bb']["camera_front"][object_name]['center'][1]
+
+            # bounding-box
+            # right_x - left_x
+            width = bottom_right_x - top_left_x
+            # left_y - right_y
+            height = bottom_right_y - top_left_y
+            # test GT
+            if DEBUG:
+                image = cv2.rectangle(np.array(traj.get(
+                    t)['obs']['camera_front_image'][:, :, ::-1]),
+                    (int(top_left_x),
+                        int(top_left_y)),
+                    (int(bottom_right_x),
+                        int(bottom_right_y)),
+                    color=(0, 0, 255),
+                    thickness=1)
+                cv2.imwrite("GT_bb.png", image)
+
+            bb.append([top_left_x, top_left_y,
+                       bottom_right_x, bottom_right_y])
+            # [1] - Target object
+            # [0] - No target
+            if obj_id == target_obj_id:
+                cl.append(1)
+            else:
+                cl.append(0)
+    return np.array(bb), np.array(cl)
+
+
+def adjust_points(points, frame_dims, crop_params, height, width):
+
+    h = np.clip(points[0] - crop_params[0], 0,
+                frame_dims[0] - crop_params[1])
+    w = np.clip(points[1] - crop_params[2], 0,
+                frame_dims[1] - crop_params[3])
+    h = float(
+        h) / (frame_dims[0] - crop_params[0] - crop_params[1]) * height
+    w = float(
+        w) / (frame_dims[1] - crop_params[2] - crop_params[3]) * width
+    return tuple([int(min(x, d - 1)) for x, d in zip([h, w], (height, width))])
+
+
+def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_action=False, load_state=False):
+
+    images = []
+    images_cp = []
+    bb = []
+    obj_classes = []
+    actions = []
+    states = []
+    points = []
+
+    has_eef_point = 'eef_point' in traj.get(0, False)['obs']
+    crop_params = dataset_loader.task_crops.get(task_name, [0, 0, 0, 0])
+
+    for j, t in enumerate(chosen_t):
+        t = t.item()
+        step_t = traj.get(t)
+
+        image = copy.copy(
+            step_t['obs']['camera_front_image'][:, :, ::-1])
+
+        # Create GT BB
+        bb_frame, class_frame = create_gt_bb(dataset_loader=dataset_loader,
+                                             traj=traj,
+                                             t=t,
+                                             task_name=task_name)
+
+        if dataset_loader._perform_augs:
+            # Append bb, obj classes and images
+            processed, bb_aug, class_frame = dataset_loader.frame_aug(
+                task_name, image, False, bb_frame, class_frame)
+            images.append(processed)
+        else:
+            bb_aug = bb_frame
+
+        bb.append(torch.from_numpy(bb_aug))
+        obj_classes.append((torch.from_numpy(class_frame)))
+
+        if dataset_loader.aug_twice:
+            image_cp = dataset_loader.frame_aug(task_name, image, True)
+            images_cp.append(image_cp)
+
+        if has_eef_point:
+
+            if DEBUG:
+                image_point = np.array(
+                    step_t['obs']['camera_front_image'][:, :, ::-1], dtype=np.uint8)
+                image_point = cv2.circle(cv2.UMat(image_point), (step_t['obs']['eef_point'][1], step_t['obs']['eef_point'][0]), radius=1, color=(
+                    0, 0, 255), thickness=1)
+                cv2.imwrite("gt_point.png", cv2.UMat(image_point))
+
+            points.append(np.array(
+                adjust_points(step_t['obs']['eef_point'],
+                              image.shape[:2],
+                              crop_params=crop_params,
+                              height=dataset_loader.height,
+                              width=dataset_loader.width))[None])
+
+            if DEBUG:
+                image = np.array(np.moveaxis(
+                    processed.numpy()*255, 0, -1), dtype=np.uint8)
+                image = cv2.circle(cv2.UMat(image), (points[-1][0][1], points[-1][0][0]), radius=1, color=(
+                    0, 0, 255), thickness=1)
+                cv2.imwrite("adjusted_point.png", cv2.UMat(image))
+
+        if load_action and j >= 1:
+            # Load action
+            action = step_t['action'] if not dataset_loader._normalize_action else normalize_action(
+                action=step_t['action'], n_action_bin=dataset_loader._n_action_bin, action_ranges=dataset_loader._normalization_ranges)
+            actions.append(action)
+
+        if load_state:
+            state = []
+            # Load states
+            for k in dataset_loader._state_spec:
+                if k == 'action':
+                    state_component = normalize_action(
+                        action=step_t['action'],
+                        n_action_bin=dataset_loader._n_action_bin,
+                        action_ranges=dataset_loader._normalization_ranges)
+                else:
+                    state_component = step_t['obs'][k]
+                state.append(state_component)
+            states.append(np.concatenate(state))
+
+        # test GT
+        if DEBUG:
+            image = np.array(np.moveaxis(
+                images[j].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+            image = cv2.rectangle(np.ascontiguousarray(image),
+                                  (int(bb_frame[0][0]),
+                                   int(bb_frame[0][1])),
+                                  (int(bb_frame[0][2]),
+                                   int(bb_frame[0][3])),
+                                  color=(0, 0, 255),
+                                  thickness=1)
+            # print(f"Command {command}")
+            cv2.imwrite("GT_bb_after_aug.png", image)
+
+    return images, images_cp, bb, obj_classes, actions, states, points
+
+
 class DIYBatchSampler(Sampler):
     """
     Customize any possible combination of both task families and sub-tasks in a batch of data.
