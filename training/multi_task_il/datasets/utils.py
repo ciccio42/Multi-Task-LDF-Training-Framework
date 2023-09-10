@@ -402,6 +402,12 @@ def create_data_aug(dataset_loader=object):
                            box_w=box_w,
                            box_h=box_h)
 
+        if dataset_loader.data_augs.get('null_bb', False) and bb is not None:
+            bb[0][0] = 0.0
+            bb[0][1] = 0.0
+            bb[0][2] = 0.0
+            bb[0][3] = 0.0
+
         # ---- Horizontal Flip ----#
         # if not dataset_loader.data_augs.get('old_aug', True):
         #     obs, bb = horizontal_flip(obs=obs,

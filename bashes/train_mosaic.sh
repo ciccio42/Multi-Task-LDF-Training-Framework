@@ -13,8 +13,8 @@ SAVE_FREQ=4050
 LOG_FREQ=100
 VAL_FREQ=4050
 
-EXP_NAME=1Task-Pick-Place-100-180-BB
-PROJECT_NAME="ur_pick_place_100_180_bb"
+EXP_NAME=1Task-Pick-Place-100-180-BB-NULL
+PROJECT_NAME="ur_pick_place_100_180_bb_null"
 TASK_str=pick_place
 ROLLOUT=false
 EPOCH=40
@@ -52,6 +52,8 @@ HIDDEN_DIM=512 # 512     # 256              # 512
 CONCAT_DEMO_HEAD=false
 CONCAT_DEMO_ACT=true
 PRETRAINED=false
+CONCAT_BB=true
+NULL_BB=true
 
 EARLY_STOPPING_PATIECE=-1
 OPTIMIZER='AdamW'
@@ -98,8 +100,10 @@ python ../training/train_scripts/train_any.py \
     mosaic.remove_class_layers=${REMOVE_CLASS_LAYERS} \
     mosaic.dim_H=${DIM_H} \
     mosaic.dim_W=${DIM_W} \
+    mosaic.concat_bb=${CONCAT_BB} \
     mosaic.load_contrastive=${LOAD_CONTRASTIVE} \
     mosaic.concat_target_obj_embedding=${CONCAT_TARGET_OBJ_EMBEDDING} \
+    augs.null_bb=${NULL_BB} \
     attn.img_cfg.pretrained=${PRETRAINED} \
     actions.adim=${ACTION_DIM} \
     actions.n_mixtures=${N_MIXTURES} \
