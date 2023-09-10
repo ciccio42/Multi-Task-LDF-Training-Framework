@@ -384,7 +384,7 @@ def prepare_obs(env, obs, views, task_name):
     return obs
 
 
-def get_action(model, target_obj_dec, states, images, context, gpu_id, n_steps, max_T=80, baseline=None, action_ranges=[], target_obj_embedding=None):
+def get_action(model, target_obj_dec, bb, states, images, context, gpu_id, n_steps, max_T=80, baseline=None, action_ranges=[], target_obj_embedding=None):
     s_t = torch.from_numpy(np.concatenate(states, 0).astype(np.float32))[None]
     if isinstance(images[-1], np.ndarray):
         i_t = torch.from_numpy(np.concatenate(
@@ -393,19 +393,29 @@ def get_action(model, target_obj_dec, states, images, context, gpu_id, n_steps, 
         i_t = images[0][None]
     s_t, i_t = s_t.float().cuda(gpu_id), i_t.float().cuda(gpu_id)
 
+    if bb is not None:
+        bb = torch.from_numpy(bb[0]).float().cuda(gpu_id)
+
     predicted_prob = None
 
     if baseline == 'daml':
         learner = model.clone()
         # Perform adaptation
         learner.adapt(
-            learner(None, context[0], learned_loss=True)['learned_loss'], allow_nograd=True, allow_unused=True)
+            learner(None, context[0], learned_loss=True)['learned_loss'],
+            allow_nograd=True,
+            allow_unused=True)
         out = model(states=s_t[0], images=i_t[0], ret_dist=True)
         action = out['action_dist'].sample()[-1].cpu().detach().numpy()
     else:
         with torch.no_grad():
-            out = model(states=s_t, images=i_t, context=context, eval=True,
-                        target_obj_embedding=target_obj_embedding, compute_activation_map=True)  # to avoid computing ATC loss
+            out = model(states=s_t,
+                        images=i_t,
+                        context=context,
+                        bb=bb,
+                        eval=True,
+                        target_obj_embedding=target_obj_embedding,
+                        compute_activation_map=True)  # to avoid computing ATC loss
             try:
                 target_obj_embedding = out['target_obj_embedding']
             except:
@@ -484,6 +494,27 @@ def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None
         return done, states, images, context, obs, traj, tasks, gt_obs, current_gripper_pose
 
 
+def get_gt_bb(traj=None, obs=None, task_name=None):
+    # Get GT Bounding Box
+    agent_target_obj_id = traj.get(0)['obs']['target-object']
+    for id, obj_name in enumerate(ENV_OBJECTS['pick_place']['obj_names']):
+        if id == agent_target_obj_id:
+            top_left_x = obs['obj_bb']["camera_front"][ENV_OBJECTS[task_name]
+                                                       ['obj_names'][agent_target_obj_id]]['bottom_right_corner'][0]
+            top_left_y = obs['obj_bb']["camera_front"][ENV_OBJECTS[task_name]
+                                                       ['obj_names'][agent_target_obj_id]]['bottom_right_corner'][1]
+            # print(f"Top-Left X {top_left_x} - Top-Left Y {top_left_y}")
+            bottom_right_x = obs['obj_bb']["camera_front"][ENV_OBJECTS[task_name]
+                                                           ['obj_names'][agent_target_obj_id]]['upper_left_corner'][0]
+            bottom_right_y = obs['obj_bb']["camera_front"][ENV_OBJECTS[task_name]
+                                                           ['obj_names'][agent_target_obj_id]]['upper_left_corner'][1]
+            bb_t = np.array(
+                [[top_left_x, top_left_y, bottom_right_x, bottom_right_y]])
+            gt_t = np.array(1)
+
+    return bb_t, gt_t
+
+
 def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None, action_ranges=[], policy=True, perform_augs=False, config=None):
 
     done, states, images, context, obs, traj, tasks, bb, gt_classes, _, prev_action = \
@@ -521,22 +552,9 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                                      reached=tasks['reached'],
                                      picked=tasks['picked'])
 
-        # Get GT Bounding Box
-        agent_target_obj_id = traj.get(0)['obs']['target-object']
-        for id, obj_name in enumerate(ENV_OBJECTS['pick_place']['obj_names']):
-            if id == agent_target_obj_id:
-                top_left_x = obs['obj_bb']["camera_front"][ENV_OBJECTS[task_name]
-                                                           ['obj_names'][agent_target_obj_id]]['bottom_right_corner'][0]
-                top_left_y = obs['obj_bb']["camera_front"][ENV_OBJECTS[task_name]
-                                                           ['obj_names'][agent_target_obj_id]]['bottom_right_corner'][1]
-                # print(f"Top-Left X {top_left_x} - Top-Left Y {top_left_y}")
-                bottom_right_x = obs['obj_bb']["camera_front"][ENV_OBJECTS[task_name]
-                                                               ['obj_names'][agent_target_obj_id]]['upper_left_corner'][0]
-                bottom_right_y = obs['obj_bb']["camera_front"][ENV_OBJECTS[task_name]
-                                                               ['obj_names'][agent_target_obj_id]]['upper_left_corner'][1]
-                bb_t = np.array(
-                    [[top_left_x, top_left_y, bottom_right_x, bottom_right_y]])
-                gt_t = np.array(1)
+        bb_t, gt_t = get_gt_bb(traj=traj,
+                               obs=obs,
+                               task_name=task_name)
 
         if baseline and len(states) >= 5:
             states, images = [], []

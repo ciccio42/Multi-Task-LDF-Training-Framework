@@ -152,18 +152,18 @@ def build_tvf_formatter_obj_detector(config, env_name):
         # ---- Resized crop ----#
         img = resized_crop(img, top=top, left=left, height=box_h,
                            width=box_w, size=(config.dataset_cfg.height, config.dataset_cfg.width))
-        transforms_pipe = transforms.Compose([
-            transforms.ColorJitter(
-                brightness=list(config.augs.get(
-                    "brightness", [0.875, 1.125])),
-                contrast=list(config.augs.get(
-                    "contrast", [0.5, 1.5])),
-                saturation=list(config.augs.get(
-                    "contrast", [0.5, 1.5])),
-                hue=list(config.augs.get("hue", [-0.05, 0.05]))
-            ),
-        ])
-        img = transforms_pipe(img)
+        # transforms_pipe = transforms.Compose([
+        #     transforms.ColorJitter(
+        #         brightness=list(config.augs.get(
+        #             "brightness", [0.875, 1.125])),
+        #         contrast=list(config.augs.get(
+        #             "contrast", [0.5, 1.5])),
+        #         saturation=list(config.augs.get(
+        #             "contrast", [0.5, 1.5])),
+        #         hue=list(config.augs.get("hue", [-0.05, 0.05]))
+        #     ),
+        # ])
+        # img = transforms_pipe(img)
 
         cv2.imwrite("resized_target_obj.png", np.moveaxis(
             img.numpy()*255, 0, -1))
@@ -400,7 +400,7 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
         target_obj_dec = target_obj_dec.cuda(gpu_id)
 
     if "vima" not in model_name:
-        if "CondPolicy" not in model_name:
+        if "CondPolicy" not in model_name and config.augs.old_aug:
             img_formatter = build_tvf_formatter(config, env_name)
         else:
             img_formatter = build_tvf_formatter_obj_detector(config=config,
@@ -604,10 +604,10 @@ if __name__ == '__main__':
         debugpy.wait_for_client()
 
     try_path = args.model
-    if 'log' not in args.model and 'mosaic' not in args.model:
-        print("Appending dir to given exp_name: ", args.model)
-        try_path = join(LOG_PATH, args.model)
-        assert os.path.exists(try_path), f"Cannot find {try_path} anywhere"
+    # if 'log' not in args.model and 'mosaic' not in args.model:
+    #     print("Appending dir to given exp_name: ", args.model)
+    #     try_path = join(LOG_PATH, args.model)
+    #     assert os.path.exists(try_path), f"Cannot find {try_path} anywhere"
     if 'model_save' not in args.model:
         print("Appending saved step {}".format(args.saved_step))
         try_path = join(try_path, 'model_save-{}.pt'.format(args.saved_step))

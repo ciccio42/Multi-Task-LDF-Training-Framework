@@ -188,6 +188,7 @@ mosaic:
   latent_dim:         40
   sdim:               8
   concat_state:       True
+  concat_bb:       True
   height:             ${train_cfg.dataset.height}
   width:              ${train_cfg.dataset.width} 
   demo_T:             ${train_cfg.dataset.demo_T}

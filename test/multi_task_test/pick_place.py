@@ -8,7 +8,7 @@ from multi_task_test import make_prompt, prepare_obs
 from einops import rearrange
 from multi_task_il.models.vima.utils import *
 import robosuite.utils.transform_utils as T
-from multi_task_test import ENV_OBJECTS, TASK_COMMAND, startup_env, get_action, object_detection_inference, check_pick, check_reach
+from multi_task_test import ENV_OBJECTS, TASK_COMMAND, startup_env, get_action, object_detection_inference, check_pick, check_reach, get_gt_bb
 from multi_task_test.primitive import *
 
 
@@ -223,15 +223,23 @@ def pick_place_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None, 
     return traj, tasks
 
 
-def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], gt_env=None, controller=None):
-    done, states, images, context, obs, traj, tasks, gt_obs, _ = \
+def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None):
+
+    start_up_env_return = \
         startup_env(model=model,
                     env=env,
                     gt_env=gt_env,
                     context=context,
                     gpu_id=gpu_id,
                     variation_id=variation_id,
-                    baseline=baseline)
+                    baseline=baseline,
+                    bb_flag=concat_bb
+                    )
+    if concat_bb:
+        done, states, images, context, obs, traj, tasks, bb, gt_classes, gt_obs, current_gripper_pose = start_up_env_return
+    else:
+        done, states, images, context, obs, traj, tasks, gt_obs, current_gripper_pose = start_up_env_return
+
     n_steps = 0
 
     object_name = env.objects[env.object_id].name
@@ -252,6 +260,7 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
                     if pos[1] >= pos_range[0] and pos[1] <= pos_range[1]:
                         agent_target_obj_position = i
                 break
+
     # compute the average prediction over the whole trajectory
     avg_prediction = 0
     target_obj_emb = None
@@ -272,18 +281,32 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
                                      picked=tasks['picked'])
 
         if baseline and len(states) >= 5:
-            states, images = [], []
+            states, images, bb = [], [], []
 
         states.append(np.concatenate(
             (obs['ee_aa'], obs['gripper_qpos'])).astype(np.float32)[None])
+
+        # Get GT BB
+        if concat_bb:
+            bb_t, gt_t = get_gt_bb(traj=traj,
+                                   obs=obs,
+                                   task_name=task_name)
+
         # convert observation from BGR to RGB
-        images.append(img_formatter(
-            obs['camera_front_image'][:, :, ::-1])[None])
+        if config.augs.old_aug:
+            images.append(img_formatter(
+                obs['camera_front_image'][:, :, ::-1])[None])
+        else:
+            img_aug, bb_t_aug = img_formatter(
+                obs['camera_front_image'][:, :, ::-1], bb_t)
+            images.append(img_aug[None])
+            bb.append(bb_t_aug[None][None])
 
         action, target_pred, target_obj_emb, activation_map = get_action(
             model=model,
             target_obj_dec=target_obj_dec,
             states=states,
+            bb=bb,
             images=images,
             context=context,
             gpu_id=gpu_id,
@@ -398,6 +421,7 @@ def pick_place_eval(model, target_obj_dec, env, gt_env, context, gpu_id, variati
                 tries=[],
                 ranges=[],
                 object_set=2)
+
         return pick_place_eval_demo_cond(model=model,
                                          target_obj_dec=target_obj_dec,
                                          env=env,
@@ -409,4 +433,8 @@ def pick_place_eval(model, target_obj_dec, env, gt_env, context, gpu_id, variati
                                          img_formatter=img_formatter,
                                          max_T=max_T,
                                          baseline=baseline,
-                                         action_ranges=action_ranges)
+                                         action_ranges=action_ranges,
+                                         concat_bb=config.policy.concat_bb,
+                                         task_name=task_name,
+                                         config=config
+                                         )
