@@ -359,7 +359,7 @@ class VideoImitation(nn.Module):
         remove_class_layers=True,
         load_contrastive=True,
         concat_target_obj_embedding=True,
-        concat_bb=True,
+        concat_bb=False,
         height=120,
         width=160,
         demo_T=4,

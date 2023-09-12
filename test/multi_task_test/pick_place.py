@@ -239,6 +239,7 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
         done, states, images, context, obs, traj, tasks, bb, gt_classes, gt_obs, current_gripper_pose = start_up_env_return
     else:
         done, states, images, context, obs, traj, tasks, gt_obs, current_gripper_pose = start_up_env_return
+        bb = None
 
     n_steps = 0
 
@@ -293,7 +294,7 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
                                    task_name=task_name)
 
         # convert observation from BGR to RGB
-        if config.augs.old_aug:
+        if config.augs.get("old_aug", True):
             images.append(img_formatter(
                 obs['camera_front_image'][:, :, ::-1])[None])
         else:
@@ -434,7 +435,8 @@ def pick_place_eval(model, target_obj_dec, env, gt_env, context, gpu_id, variati
                                          max_T=max_T,
                                          baseline=baseline,
                                          action_ranges=action_ranges,
-                                         concat_bb=config.policy.concat_bb,
+                                         concat_bb=config.policy.get(
+                                             "concat_bb", False),
                                          task_name=task_name,
                                          config=config
                                          )

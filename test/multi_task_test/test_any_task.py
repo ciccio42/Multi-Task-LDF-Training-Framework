@@ -400,7 +400,7 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
         target_obj_dec = target_obj_dec.cuda(gpu_id)
 
     if "vima" not in model_name:
-        if "CondPolicy" not in model_name and config.augs.old_aug:
+        if "CondPolicy" not in model_name and config.augs.get("old_aug", True):
             img_formatter = build_tvf_formatter(config, env_name)
         else:
             img_formatter = build_tvf_formatter_obj_detector(config=config,
