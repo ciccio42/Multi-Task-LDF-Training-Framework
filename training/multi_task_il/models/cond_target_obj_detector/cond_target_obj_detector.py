@@ -16,7 +16,7 @@ from multi_task_il.models.cond_target_obj_detector.utils import *
 from torchvision.models.video import r2plus1d_18, R2Plus1D_18_Weights
 import cv2
 
-DEBUG = True
+DEBUG = False
 
 
 def get_backbone(backbone_name="slow_r50", video_backbone=True, pretrained=False, conv_drop_dim=3):
@@ -352,7 +352,7 @@ class AgentModule(nn.Module):
             self.out_channels_backbone = n_channels
             self._backbone = backbone
             print("---- Summary backbone with FiLM layer ----")
-            summary(self._backbone)
+            # summary(self._backbone)
 
             #### Create Region Proposal Network ####
             self.img_height, self.img_width = height, width
@@ -363,19 +363,20 @@ class AgentModule(nn.Module):
             self.height_scale_factor = self.img_height // self.out_h
 
             # scales and ratios for anchor boxes
-            self.anc_scales = [1, 1.5, 2]  # [0.5, 1]
-            self.anc_ratios = [0.5, 1.5, 2]  # [0.5, 1, 1.5]
+            self.anc_scales = [1]  # [0.5, 1]
+            self.anc_ratios = [0.5, 1, 1.5]  # [0.5, 1, 1.5] #height/width
             self.n_anc_boxes = len(self.anc_scales) * len(self.anc_ratios)
 
             # IoU thresholds for +ve and -ve anchors
-            self.pos_thresh = 0.5
-            self.neg_thresh = 0.5
+            self.pos_thresh = 0.2
+            self.neg_thresh = 0.1
 
-            self.conf_thresh = 0.8
+            self.conf_thresh = 0.5
             self.nms_thresh = 0.9
 
             self.proposal_module = ProposalModule(
-                self.out_channels_backbone, n_anchors=self.n_anc_boxes)
+                self.out_channels_backbone,
+                n_anchors=self.n_anc_boxes)
 
         self.load_film = load_film
 
@@ -523,14 +524,15 @@ class AgentModule(nn.Module):
                             max_indx = torch.argmax(
                                 conf_scores_pos[nms_idx])
                             conf_scores_pos = conf_scores_pos[nms_idx][max_indx]
-                            proposals_pos = proposals_pos[nms_idx][max_indx]
+                            proposals_pos = proposals_pos[nms_idx][max_indx].float(
+                            )
                         except:
-                            print("No bb found")
+                            # print("No bb found")
                             conf_scores_pos = torch.tensor(
                                 -1).to(agent_obs.get_device())
                             proposals_pos = torch.tensor(
                                 [-1, -1, -1, -1]).to(
-                                agent_obs.get_device())
+                                agent_obs.get_device()).float()
                         proposals_final.append(proposals_pos)
                         conf_scores_final.append(conf_scores_pos)
 
@@ -578,7 +580,10 @@ class CondTargetObjectDetector(nn.Module):
                                           conv_drop_dim=cond_target_obj_detector_cfg.conv_drop_dim,
                                           task_embedding_dim=cond_target_obj_detector_cfg.task_embedding_dim)
 
-        summary(self)
+        # summary(self)
+        model_parameters = filter(lambda p: p.requires_grad, self.parameters())
+        params = sum([np.prod(p.size()) for p in model_parameters])
+        print('Total params in Detection module:', params)
 
     def forward(self, inputs: dict, inference: bool = False):
         cond_video = inputs['demo']

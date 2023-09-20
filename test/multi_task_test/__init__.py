@@ -494,9 +494,9 @@ def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None
         return done, states, images, context, obs, traj, tasks, gt_obs, current_gripper_pose
 
 
-def get_gt_bb(traj=None, obs=None, task_name=None):
+def get_gt_bb(traj=None, obs=None, task_name=None, t=0):
     # Get GT Bounding Box
-    agent_target_obj_id = traj.get(0)['obs']['target-object']
+    agent_target_obj_id = traj.get(t)['obs']['target-object']
     for id, obj_name in enumerate(ENV_OBJECTS['pick_place']['obj_names']):
         if id == agent_target_obj_id:
             top_left_x = obs['obj_bb']["camera_front"][ENV_OBJECTS[task_name]
@@ -515,183 +515,266 @@ def get_gt_bb(traj=None, obs=None, task_name=None):
     return bb_t, gt_t
 
 
-def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None, action_ranges=[], policy=True, perform_augs=False, config=None):
+def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None, action_ranges=[], policy=True, perform_augs=False, config=None, gt_traj=None):
+    if gt_traj is None:
+        done, states, images, context, obs, traj, tasks, bb, gt_classes, _, prev_action = \
+            startup_env(model=model,
+                        env=env,
+                        gt_env=None,
+                        context=context,
+                        gpu_id=gpu_id,
+                        variation_id=variation_id,
+                        baseline=baseline,
+                        bb_flag=True)
+        n_steps = 0
+        iou = 0
+        false_positive_cnt = 0
+        prev_action = normalize_action(
+            action=prev_action,
+            n_action_bin=256,
+            action_ranges=action_ranges)
 
-    done, states, images, context, obs, traj, tasks, bb, gt_classes, _, prev_action = \
-        startup_env(model=model,
-                    env=env,
-                    gt_env=None,
-                    context=context,
-                    gpu_id=gpu_id,
-                    variation_id=variation_id,
-                    baseline=baseline,
-                    bb_flag=True)
-    n_steps = 0
-    iou = 0
-    false_positive_cnt = 0
-    prev_action = normalize_action(
-        action=prev_action,
-        n_action_bin=256,
-        action_ranges=action_ranges)
+        object_name = env.objects[env.object_id].name
+        obj_delta_key = object_name + '_to_robot0_eef_pos'
+        obj_key = object_name + '_pos'
 
-    object_name = env.objects[env.object_id].name
-    obj_delta_key = object_name + '_to_robot0_eef_pos'
-    obj_key = object_name + '_pos'
+        start_z = obs[obj_key][2]
+        bb_queue = []
+        while not done:
 
-    start_z = obs[obj_key][2]
-    bb_queue = []
-    while not done:
+            tasks['reached'] = check_reach(threshold=0.03,
+                                           obj_distance=obs[obj_delta_key][:2],
+                                           current_reach=tasks['reached'])
 
-        tasks['reached'] = check_reach(threshold=0.03,
-                                       obj_distance=obs[obj_delta_key][:2],
-                                       current_reach=tasks['reached'])
+            tasks['picked'] = check_pick(threshold=0.05,
+                                         obj_z=obs[obj_key][2],
+                                         start_z=start_z,
+                                         reached=tasks['reached'],
+                                         picked=tasks['picked'])
 
-        tasks['picked'] = check_pick(threshold=0.05,
-                                     obj_z=obs[obj_key][2],
-                                     start_z=start_z,
-                                     reached=tasks['reached'],
-                                     picked=tasks['picked'])
+            bb_t, gt_t = get_gt_bb(traj=traj,
+                                   obs=obs,
+                                   task_name=task_name)
 
-        bb_t, gt_t = get_gt_bb(traj=traj,
-                               obs=obs,
-                               task_name=task_name)
+            if baseline and len(states) >= 5:
+                states, images = [], []
+            states.append(prev_action.astype(np.float32)[None])
 
-        if baseline and len(states) >= 5:
-            states, images = [], []
-        states.append(prev_action.astype(np.float32)[None])
-
-        # convert observation from BGR to RGB
-        if perform_augs:
-            formatted_img, bb_t = img_formatter(
-                obs['camera_front_image'][:, :, ::-1], bb_t)
-        else:
-            formatted_img = torch.from_numpy(
-                np.array(obs['camera_front_image'][:, :, ::-1]))
-
-        model_input = dict()
-        model_input['demo'] = context.to(device=gpu_id)
-        model_input['images'] = formatted_img[None][None].to(device=gpu_id)
-        model_input['gt_bb'] = torch.from_numpy(
-            bb_t[None][None]).float().to(device=gpu_id)
-        model_input['gt_classes'] = torch.from_numpy(
-            gt_t[None][None][None]).to(device=gpu_id)
-        model_input['states'] = torch.from_numpy(
-            np.array(states)).to(device=gpu_id)
-
-        if task_name in config.dataset_cfg.get("tasks").keys():
-            task_one_hot = np.zeros((1, config.dataset_cfg.n_tasks))
-            task_one_hot[0][config.dataset_cfg.tasks[task_name]
-                            [0]+variation_id] = 1
-            model_input['task_id'] = torch.from_numpy(
-                np.array(task_one_hot)).to(device=gpu_id)
-
-        with torch.no_grad():
-            # Perform  detection
-            if policy:
-                prediction = model(model_input,
-                                   inference=True,
-                                   oracle=False,
-                                   bb_queue=bb_queue)
+            # convert observation from BGR to RGB
+            if perform_augs:
+                formatted_img, bb_t = img_formatter(
+                    obs['camera_front_image'][:, :, ::-1], bb_t)
             else:
+                formatted_img = torch.from_numpy(
+                    np.array(obs['camera_front_image'][:, :, ::-1]))
+
+            model_input = dict()
+            model_input['demo'] = context.to(device=gpu_id)
+            model_input['images'] = formatted_img[None][None].to(device=gpu_id)
+            model_input['gt_bb'] = torch.from_numpy(
+                bb_t[None][None]).float().to(device=gpu_id)
+            model_input['gt_classes'] = torch.from_numpy(
+                gt_t[None][None][None]).to(device=gpu_id)
+            model_input['states'] = torch.from_numpy(
+                np.array(states)).to(device=gpu_id)
+
+            if task_name in config.dataset_cfg.get("tasks").keys():
+                task_one_hot = np.zeros((1, config.dataset_cfg.n_tasks))
+                task_one_hot[0][config.dataset_cfg.tasks[task_name]
+                                [0]+variation_id] = 1
+                model_input['task_id'] = torch.from_numpy(
+                    np.array(task_one_hot)).to(device=gpu_id)
+
+            with torch.no_grad():
+                # Perform  detection
+                if policy:
+                    prediction = model(model_input,
+                                       inference=True,
+                                       oracle=False,
+                                       bb_queue=bb_queue)
+                else:
+                    prediction = model(model_input,
+                                       inference=True)
+
+            if controller is not None and not policy:
+                prediction = prediction
+            else:
+                bc_distrib = prediction['bc_distrib']
+                bb_queue = prediction['prediction_target_obj_detector']['proposals']
+                prediction = prediction['prediction_target_obj_detector']
+
+            # Project bb over image
+            if prediction['conf_scores_final'][0] != -1:
+                if perform_augs:
+                    scale_factor = model.get_scale_factors()
+                    image = np.array(np.moveaxis(
+                        formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+                    predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
+                                                  width_scale_factor=scale_factor[0],
+                                                  height_scale_factor=scale_factor[1],
+                                                  mode='a2p')[0][0]
+                else:
+                    image = formatted_img.cpu().numpy()
+                    predicted_bb = prediction['proposals'][0]
+
+                if True:
+
+                    image = cv2.rectangle(np.ascontiguousarray(image),
+                                          (int(predicted_bb[0]),
+                                           int(predicted_bb[1])),
+                                          (int(predicted_bb[2]),
+                                           int(predicted_bb[3])),
+                                          color=(0, 0, 255), thickness=1)
+                    image = cv2.rectangle(np.ascontiguousarray(image),
+                                          (int(bb_t[0][0]),
+                                           int(bb_t[0][1])),
+                                          (int(bb_t[0][2]),
+                                           int(bb_t[0][3])),
+                                          color=(0, 255, 0), thickness=1)
+                    cv2.imwrite("predicted_bb.png", image)
+                obs['predicted_bb'] = predicted_bb.cpu().numpy()
+                obs['gt_bb'] = bb_t
+                # compute IoU over time
+                iou_t = box_iou(boxes1=torch.from_numpy(
+                    bb_t).to(device=gpu_id), boxes2=predicted_bb[None])
+                obs['iou'] = iou_t[0][0].cpu().numpy()
+
+                if iou_t[0][0].cpu().numpy() < 0.5:
+                    fp += 1
+                    obs['fp'] = 1
+                else:
+                    tp += 1
+                    obs['tp'] = 1
+
+                iou += iou_t[0][0].cpu().numpy()
+                traj.append(obs)
+            else:
+                scale_factor = model.get_scale_factors()
+                predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None].float(),
+                                              width_scale_factor=scale_factor[0],
+                                              height_scale_factor=scale_factor[1],
+                                              mode='a2p')[0]
+                obs['predicted_bb'] = predicted_bb.cpu().numpy()
+                obs['gt_bb'] = bb_t
+                obs['iou'] = 0
+                iou += 0
+                fn += 1
+                obs['fn'] = 1
+                traj.append(obs)
+
+            if controller is not None:
+                # compute the action for the current state
+                action_gt, status = controller.act(obs)
+                action = action_gt
+                # action_norm = bc_distrib.sample().cpu().numpy()[0]
+                # prev_action = action_norm
+                # action = denormalize_action(action_norm,
+                #                             action_ranges)
+            else:
+                action = bc_distrib.sample().cpu().numpy()[0]
+                prev_action = action
+                action = denormalize_action(action,
+                                            action_ranges)
+
+                # action = clip_action(action)
+            obs, reward, env_done, info = env.step(action)
+            cv2.imwrite(
+                f"step_test.png", obs['camera_front_image'][:, :, ::-1])
+
+            n_steps += 1
+            if n_steps >= 1 or env_done or reward:
+                done = True
+
+        env.close()
+        tasks['avg_iou'] = iou/(n_steps)
+        tasks['avp_tp'] = tp/(n_steps)
+        tasks['avp_fp'] = fp/(n_steps)
+        tasks['avp_fn'] = fn/(n_steps)
+        del env
+        del states
+        del images
+        del model
+
+        return traj, tasks
+    else:
+        states = deque([], maxlen=1)
+        images = deque([], maxlen=1)
+        bb = deque([], maxlen=1)
+        gt_classes = deque([], maxlen=1)
+        fp = 0
+        tp = 0
+        fn = 0
+        iou = 0
+        info = {}
+        # take current observation
+        for t in range(len(gt_traj)):
+            if t == 1:
+                agent_obs = gt_traj[t]['obs']['camera_front_image']
+                bb_t, gt_t = get_gt_bb(traj=gt_traj,
+                                       obs=gt_traj[t]['obs'],
+                                       task_name=task_name,
+                                       t=t)
+                formatted_img, bb_t = img_formatter(
+                    agent_obs[:, :, ::-1], bb_t)
+
+                model_input = dict()
+                model_input['demo'] = context.to(device=gpu_id)
+                model_input['images'] = formatted_img[None][None].to(
+                    device=gpu_id)
+                model_input['gt_bb'] = torch.from_numpy(
+                    bb_t[None][None]).float().to(device=gpu_id)
+                model_input['gt_classes'] = torch.from_numpy(
+                    gt_t[None][None][None]).to(device=gpu_id)
+
                 prediction = model(model_input,
                                    inference=True)
 
-        if controller is not None and not policy:
-            prediction = prediction
-        else:
-            bc_distrib = prediction['bc_distrib']
-            bb_queue = prediction['prediction_target_obj_detector']['proposals']
-            prediction = prediction['prediction_target_obj_detector']
+                # Project bb over image
+                if prediction['conf_scores_final'][0] != -1:
+                    if perform_augs:
+                        scale_factor = model.get_scale_factors()
+                        image = np.array(np.moveaxis(
+                            formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+                        predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
+                                                      width_scale_factor=scale_factor[0],
+                                                      height_scale_factor=scale_factor[1],
+                                                      mode='a2p')[0][0]
+                    else:
+                        image = formatted_img.cpu().numpy()
+                        predicted_bb = prediction['proposals'][0]
 
-        # Project bb over image
-        if prediction['conf_scores_final'][0] != -1:
-            if perform_augs:
-                scale_factor = model.get_scale_factors()
-                image = np.array(np.moveaxis(
-                    formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
-                predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
-                                              width_scale_factor=scale_factor[0],
-                                              height_scale_factor=scale_factor[1],
-                                              mode='a2p')[0][0]
-            else:
-                image = formatted_img.cpu().numpy()
-                predicted_bb = prediction['proposals'][0]
+                    image = cv2.rectangle(np.ascontiguousarray(image),
+                                          (int(predicted_bb[0]),
+                                           int(predicted_bb[1])),
+                                          (int(predicted_bb[2]),
+                                           int(predicted_bb[3])),
+                                          color=(0, 0, 255), thickness=1)
+                    image = cv2.rectangle(np.ascontiguousarray(image),
+                                          (int(bb_t[0][0]),
+                                           int(bb_t[0][1])),
+                                          (int(bb_t[0][2]),
+                                           int(bb_t[0][3])),
+                                          color=(0, 255, 0), thickness=1)
+                    cv2.imwrite("predicted_bb.png", image)
 
-            if True:
+                    # compute IoU over time
+                    iou_t = box_iou(boxes1=torch.from_numpy(
+                        bb_t).to(device=gpu_id), boxes2=predicted_bb[None])
+                    iou += iou_t[0][0].cpu().numpy()
 
-                image = cv2.rectangle(np.ascontiguousarray(image),
-                                      (int(predicted_bb[0]),
-                                       int(predicted_bb[1])),
-                                      (int(predicted_bb[2]),
-                                       int(predicted_bb[3])),
-                                      color=(0, 0, 255), thickness=1)
-                image = cv2.rectangle(np.ascontiguousarray(image),
-                                      (int(bb_t[0][0]),
-                                       int(bb_t[0][1])),
-                                      (int(bb_t[0][2]),
-                                       int(bb_t[0][3])),
-                                      color=(0, 255, 0), thickness=1)
-                cv2.imwrite("predicted_bb.png", image)
-            obs['predicted_bb'] = predicted_bb.cpu().numpy()
-            obs['gt_bb'] = bb_t
-            # compute IoU over time
-            iou_t = box_iou(boxes1=torch.from_numpy(
-                bb_t).to(device=gpu_id), boxes2=predicted_bb[None])
-            obs['iou'] = iou_t[0][0].cpu().numpy()
-            if obs['iou'] < 0.5:
-                obs['true_positive'] = False
-                false_positive_cnt += 1
-            else:
-                obs['true_positive'] = True
+                    if iou_t[0][0].cpu().numpy() < 0.5:
+                        fp += 1
+                    else:
+                        tp += 1
 
-            iou += iou_t[0][0].cpu().numpy()
-            traj.append(obs)
-        else:
-            scale_factor = model.get_scale_factors()
-            predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None].float(),
-                                          width_scale_factor=scale_factor[0],
-                                          height_scale_factor=scale_factor[1],
-                                          mode='a2p')[0]
-            obs['predicted_bb'] = predicted_bb.cpu().numpy()
-            obs['gt_bb'] = bb_t
-            obs['iou'] = 0
-            iou += 0
-            obs['true_positive'] = False
-            false_positive_cnt += 1
-            traj.append(obs)
+                else:
+                    fn += 1
 
-        if controller is not None:
-            # compute the action for the current state
-            action_gt, status = controller.act(obs)
-            action = action_gt
-            # action_norm = bc_distrib.sample().cpu().numpy()[0]
-            # prev_action = action_norm
-            # action = denormalize_action(action_norm,
-            #                             action_ranges)
-        else:
-            action = bc_distrib.sample().cpu().numpy()[0]
-            prev_action = action
-            action = denormalize_action(action,
-                                        action_ranges)
-
-            # action = clip_action(action)
-        obs, reward, env_done, info = env.step(action)
-        cv2.imwrite(
-            f"step_test.png", obs['camera_front_image'][:, :, ::-1])
-
-        n_steps += 1
-        if n_steps >= 1 or env_done or reward:
-            done = True
-
-    env.close()
-    tasks['avg_iou'] = iou/(n_steps)
-    tasks['num_false_positive'] = false_positive_cnt
-    del env
-    del states
-    del images
-    del model
-
-    return traj, tasks
+        info["avg_iou"] = iou
+        info["avg_tp"] = tp  # /(len(gt_traj)-1)
+        info["avg_fp"] = fp  # /(len(gt_traj)-1)
+        info["avg_fn"] = fn  # /(len(gt_traj)-1)
+        return None, info
 
 
 def select_random_frames(frames, n_select, sample_sides=True, random_frames=True):

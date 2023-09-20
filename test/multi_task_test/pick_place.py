@@ -355,7 +355,7 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
     return traj, tasks
 
 
-def pick_place_eval(model, target_obj_dec, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None):
+def pick_place_eval(model, target_obj_dec, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None):
 
     if "vima" in model_name:
         return pick_place_eval_vima(model=model,
@@ -366,37 +366,40 @@ def pick_place_eval(model, target_obj_dec, env, gt_env, context, gpu_id, variati
                                     baseline=baseline,
                                     action_ranges=action_ranges)
     elif "cond_target_obj_detector" in model_name:
-        # Instantiate Controller
-        if task_name == "pick_place" and "CondPolicy" not in model_name:
-            from multi_task_robosuite_env.controllers.controllers.expert_pick_place import PickPlaceController
-            controller = PickPlaceController(
-                env=env.env,
-                tries=[],
-                ranges=[],
-                object_set=2)
-            policy = False
-        else:
-            controller = None
-            policy = True
-            # map between task and number of tasks
-            n_tasks = []
-            tasks = dict()
-            start = 0
-            for i, task in enumerate(config.tasks):
-                n_tasks.append(task['n_tasks'])
-                tasks[task['name']] = (start, task['n_tasks'])
-                start += task['n_tasks']
+        controller = None
+        policy = False
+        if gt_file is None:
+            # Instantiate Controller
+            if task_name == "pick_place" and "CondPolicy" not in model_name:
+                from multi_task_robosuite_env.controllers.controllers.expert_pick_place import PickPlaceController
+                controller = PickPlaceController(
+                    env=env.env,
+                    tries=[],
+                    ranges=[],
+                    object_set=2)
+                policy = False
+            else:
+                controller = None
+                policy = True
+                # map between task and number of tasks
+                n_tasks = []
+                tasks = dict()
+                start = 0
+                for i, task in enumerate(config.tasks):
+                    n_tasks.append(task['n_tasks'])
+                    tasks[task['name']] = (start, task['n_tasks'])
+                    start += task['n_tasks']
 
-            config.policy.n_tasks = n_tasks
-            config.dataset_cfg.tasks = tasks
-            config.dataset_cfg.n_tasks = int(np.sum(n_tasks))
+                config.policy.n_tasks = n_tasks
+                config.dataset_cfg.tasks = tasks
+                config.dataset_cfg.n_tasks = int(np.sum(n_tasks))
 
-            from multi_task_robosuite_env.controllers.controllers.expert_pick_place import PickPlaceController
-            controller = PickPlaceController(
-                env=env.env,
-                tries=[],
-                ranges=[],
-                object_set=2)
+                from multi_task_robosuite_env.controllers.controllers.expert_pick_place import PickPlaceController
+                controller = PickPlaceController(
+                    env=env.env,
+                    tries=[],
+                    ranges=[],
+                    object_set=2)
 
         return object_detection_inference(model=model,
                                           env=env,
@@ -411,7 +414,8 @@ def pick_place_eval(model, target_obj_dec, env, gt_env, context, gpu_id, variati
                                           policy=policy,
                                           perform_augs=config.dataset_cfg.get(
                                               'perform_augs', True),
-                                          config=config
+                                          config=config,
+                                          gt_traj=gt_file
                                           )
     else:
         # Instantiate Controller

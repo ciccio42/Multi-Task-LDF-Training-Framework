@@ -29,6 +29,9 @@ from torchsummary import summary
 from tqdm import tqdm
 from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
 import learn2learn as l2l
+from torchvision.ops import box_iou
+from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
+
 
 torch.autograd.set_detect_anomaly(True)
 # for visualization
@@ -227,6 +230,14 @@ def loss_func_bb(config, train_cfg, device, model, inputs, w_conf=1, w_reg=5):
                                 reduction='sum') * 1. / batch_size
         return loss
 
+    def compute_avg_prec(gt_bb=None, predicted_bb=None, thr=0.7):
+        # compute IoU over time
+        gt_bb = rearrange(gt_bb, 'B T N BB -> (B T) N BB')
+        predicted_bb = rearrange(predicted_bb, 'B T N BB -> (B T N) BB')
+        iou_t = box_iou(boxes1=gt_bb, boxes2=predicted_bb)  # (B T N) BB
+        tp = (torch.where(iou_t > thr, 1.0, 0.0) == 1.0).sum(dim=0)
+        return tp/gt_bb.shape[0]
+
     model_inputs = defaultdict(list)
     task_to_idx = dict()
     task_losses = OrderedDict()
@@ -251,10 +262,7 @@ def loss_func_bb(config, train_cfg, device, model, inputs, w_conf=1, w_reg=5):
     all_losses = dict()
 
     model = model.to(device)
-    if model.training:
-        predictions_dict = model(model_inputs, inference=False)
-    else:
-        pass
+    predictions_dict = model(model_inputs, inference=False)
     # compute detection loss
     cls_loss = calc_cls_loss(predictions_dict['conf_scores_pos'],
                              predictions_dict['conf_scores_neg'],
@@ -266,6 +274,32 @@ def loss_func_bb(config, train_cfg, device, model, inputs, w_conf=1, w_reg=5):
     all_losses["cls_loss"] = cls_loss
     all_losses["bb_reg_loss"] = bb_reg_loss
     all_losses["loss_sum"] = w_conf*cls_loss + w_reg*bb_reg_loss
+
+    # if model.training:
+    #     predictions_dict = model(model_inputs, inference=False)
+    #     # compute detection loss
+    #     cls_loss = calc_cls_loss(predictions_dict['conf_scores_pos'],
+    #                              predictions_dict['conf_scores_neg'],
+    #                              traj['images'].shape[0]*traj['images'].shape[1])
+    #     bb_reg_loss = calc_bbox_reg_loss(predictions_dict['GT_offsets'],
+    #                                      predictions_dict['offsets_pos'],
+    #                                      traj['images'].shape[0]*traj['images'].shape[1])
+
+    #     all_losses["cls_loss"] = cls_loss
+    #     all_losses["bb_reg_loss"] = bb_reg_loss
+    #     all_losses["loss_sum"] = w_conf*cls_loss + w_reg*bb_reg_loss
+    # else:
+    #     predictions_dict = model(model_inputs, inference=True)
+    #     proposals = torch.stack(predictions_dict['proposals'])[
+    #         :, None, None, :].to(model_inputs['gt_bb'].get_device())
+    #     # take the bounding box with the highest confidence-score and compute the IoU with
+    #     scale_factor = model.get_scale_factors()
+    #     proposals = project_bboxes(bboxes=proposals,
+    #                                width_scale_factor=scale_factor[0],
+    #                                height_scale_factor=scale_factor[1],
+    #                                mode='a2p')
+    #     all_losses["avg_prec"] = compute_avg_prec(gt_bb=model_inputs['gt_bb'],
+    #                                               predicted_bb=proposals)
 
     # flatten here to avoid headache
     for (task_name, idxs) in task_to_idx.items():

@@ -328,7 +328,7 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights
         return agent_env, context, variation, teacher_expert_rollout
 
 
-def object_detection_inference(model, config, ctr, heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None):
+def object_detection_inference(model, config, ctr, heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, gt_file=None):
 
     if gpu_id == -1:
         gpu_id = int(ctr % torch.cuda.device_count())
@@ -345,19 +345,49 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
     img_formatter = build_tvf_formatter_obj_detector(config, env_name)
 
     # Build environments
-    env, context, variation_id, expert_traj = build_env_context(img_formatter,
-                                                                T_context=T_context,
-                                                                ctr=ctr,
-                                                                env_name=env_name,
-                                                                heights=heights,
-                                                                widths=widths,
-                                                                size=size,
-                                                                shape=shape,
-                                                                color=color,
-                                                                gpu_id=gpu_id,
-                                                                variation=variation, random_frames=random_frames,
-                                                                controller_path=controller_path,
-                                                                seed=seed)
+    if gt_file is None:
+        env, context, variation_id, expert_traj = build_env_context(img_formatter,
+                                                                    T_context=T_context,
+                                                                    ctr=ctr,
+                                                                    env_name=env_name,
+                                                                    heights=heights,
+                                                                    widths=widths,
+                                                                    size=size,
+                                                                    shape=shape,
+                                                                    color=color,
+                                                                    gpu_id=gpu_id,
+                                                                    variation=variation, random_frames=random_frames,
+                                                                    controller_path=controller_path,
+                                                                    seed=seed)
+    else:
+        env = None
+        variation_id = None
+        expert_traj = None
+        # open context pk file
+        print(
+            f"Considering task {gt_file[1]} - context {gt_file[2].split('/')[-1]} - agent {gt_file[3].split('/')[-1]}")
+        import pickle
+        with open(gt_file[2], "rb") as f:
+            context_data = pickle.load(f)
+        with open(gt_file[3], "rb") as f:
+            traj_data = pickle.load(f)
+
+        traj_data_trj = traj_data['traj']
+        # create context data
+        context_data_trj = context_data['traj']
+        assert isinstance(context_data_trj, Trajectory)
+        context = select_random_frames(
+            context_data_trj, T_context, sample_sides=True, random_frames=random_frames)
+        # convert BGR context image to RGB and scale to 0-1
+        for i, img in enumerate(context):
+            cv2.imwrite(f"context_{i}.png", np.array(img[:, :, ::-1]))
+        context = [img_formatter(i[:, :, ::-1])[None] for i in context]
+        # assert len(context ) == 6
+        if isinstance(context[0], np.ndarray):
+            context = torch.from_numpy(np.concatenate(context, 0))[None]
+        else:
+            context = torch.cat(context, dim=0)[None]
+
     build_task = TASK_MAP.get(env_name, None)
     assert build_task, 'Got unsupported task '+env_name
     eval_fn = build_task['eval_fn']
@@ -376,10 +406,12 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
                          action_ranges=action_ranges,
                          model_name=model_name,
                          task_name=env_name,
-                         config=config)
+                         config=config,
+                         gt_file=traj_data_trj)
+
     if "cond_target_obj_detector" in model_name:
-        print("Evaluated traj #{}, task #{}, Avg IOU {}, number false positive {}".format(
-            ctr, variation_id, info['avg_iou'], info['num_false_positive']))
+        print("Evaluated traj #{}, task #{}, TP {}, FP {}, FN {}".format(
+            ctr, variation_id, info['avg_tp'], info['avg_fp'], info['avg_fn']))
     else:
         print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             ctr, variation_id, info['reached'], info['picked'], info['success']))
@@ -483,7 +515,7 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
         return traj, info
 
 
-def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, seed, n):
+def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, seed, n, gt_file):
     json_name = results_dir + '/traj{}.json'.format(n)
     pkl_name = results_dir + '/traj{}.pkl'.format(n)
     if os.path.exists(json_name) and os.path.exists(pkl_name):
@@ -531,7 +563,8 @@ def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, sha
                                                         action_ranges=np.array(
                                                             config.dataset_cfg.get('normalization_ranges', [])),
                                                         model_name=model_name,
-                                                        gpu_id=gpu_id)
+                                                        gpu_id=gpu_id,
+                                                        gt_file=gt_file)
 
         if "vima" not in model_name:
             rollout, task_success_flags, expert_traj, context = return_rollout
@@ -594,6 +627,9 @@ if __name__ == '__main__':
     parser.add_argument('--seed', default=None, type=int)
     parser.add_argument('--controller_path', default=None, type=str)
     parser.add_argument('--gpu_id', default=-1, type=int)
+    parser.add_argument('--save_path', default=None, type=str)
+    parser.add_argument('--test_gt', action='store_true')
+    parser.add_argument('--save_files', action='store_true')
 
     args = parser.parse_args()
 
@@ -618,12 +654,14 @@ if __name__ == '__main__':
 
     assert args.env in TASK_MAP.keys(), "Got unsupported environment {}".format(args.env)
 
-    if args.variation:
+    if args.variation and args.save_path is None:
         results_dir = os.path.join(
             os.path.dirname(model_path), 'results_{}_{}/'.format(args.env, args.variation))
-    else:
+    elif not args.variation and args.save_path is None:
         results_dir = os.path.join(os.path.dirname(
             model_path), 'results_{}/'.format(args.env))
+    elif args.save_path is not None:
+        results_dir = os.path.join(args.save_path)
 
     if args.env == 'stack_block':
         if (args.size or args.shape or args.color):
@@ -713,6 +751,7 @@ if __name__ == '__main__':
     # load target object detector
     model_path = config.policy.get('target_obj_detector_path', None)
     target_obj_dec = None
+    train_data_loader = None
     if model_path is not None and config.policy.load_target_obj_detector:
         # load config file
         conf_file = OmegaConf.load(os.path.join(model_path, "config.yaml"))
@@ -721,6 +760,17 @@ if __name__ == '__main__':
             model_path, f"model_save-{config.policy['target_obj_detector_step']}.pt"), map_location=torch.device('cpu'))
         target_obj_dec.load_state_dict(weights)
         target_obj_dec.eval()
+
+    dataset = None
+    if args.test_gt:
+        from hydra.utils import instantiate
+        from torch.utils.data import DataLoader
+        from multiprocessing import cpu_count
+        from multi_task_il.datasets.utils import DIYBatchSampler, collate_by_task
+        config.dataset_cfg.mode = "train"
+        dataset = instantiate(config.get('dataset_cfg', None))
+        # get list of pkl files
+        pkl_file_dict = dataset.all_file_pairs
 
     parallel = args.num_workers > 1
 
@@ -744,17 +794,53 @@ if __name__ == '__main__':
                           args.controller_path,
                           model_name,
                           args.gpu_id,
-                          True)
+                          args.save_files)
 
     random.seed(42)
     np.random.seed(42)
-    seeds = [(random.getrandbits(32), i) for i in range(args.N)]
+    if args.test_gt:
+        seeds = [(-1, i, list)
+                 for i, list in enumerate(pkl_file_dict.values())]
+    else:
+        seeds = [(random.getrandbits(32), i, None) for i in range(args.N)]
+
     if parallel:
         with Pool(args.num_workers) as p:
             task_success_flags = p.starmap(f, seeds)
     else:
-        task_success_flags = [f(seeds[i][0], seeds[i][1])
-                              for i, n in enumerate(range(args.N))]
+        if args.test_gt:
+            task_success_flags = [f(seeds[i][0], seeds[i][1], seeds[i][2])
+                                  for i, _ in enumerate(seeds)]
+        else:
+            task_success_flags = [f(seeds[i][0], seeds[i][1])
+                                  for i, n in enumerate(range(args.N))]
+
+    if "cond_target_obj_detector" not in model_name:
+        final_results = dict()
+        for k in ['reached', 'picked', 'success']:
+            n_success = sum([t[k] for t in task_success_flags])
+            print('Task {}, rate {}'.format(k, n_success / float(args.N)))
+            final_results[k] = n_success / float(args.N)
+        variation_ids = defaultdict(list)
+        for t in task_success_flags:
+            _id = t['variation_id']
+            variation_ids[_id].append(t['success'])
+        for _id in variation_ids.keys():
+            num_eval = len(variation_ids[_id])
+            rate = sum(variation_ids[_id]) / num_eval
+            final_results['task#'+str(_id)] = rate
+            print('Success rate on task#'+str(_id), rate)
+
+        final_results['N'] = int(args.N)
+        final_results['model_saved'] = model_saved_step
+        json.dump({k: v for k, v in final_results.items()}, open(
+            results_dir+'/test_across_{}trajs.json'.format(args.N), 'w'))
+    else:
+        all_avg_iou = np.mean([t['avg_iou'] for t in task_success_flags])
+        all_avg_tp = np.mean([t['avg_tp'] for t in task_success_flags])
+        all_avg_fp = np.mean([t['avg_fp'] for t in task_success_flags])
+        all_avg_fn = np.mean([t['avg_fn'] for t in task_success_flags])
+        print(f"TP {all_avg_tp} - FP {all_avg_fp} - FN {all_avg_fn}")
 
     if args.wandb_log:
 
@@ -779,27 +865,11 @@ if __name__ == '__main__':
                 'success_err': np.mean(all_succ_flags) / np.sqrt(args.N),
             })
         else:
-            all_avg_iou = [t['avg_iou'] for t in task_success_flags]
             wandb.log({
                 'avg_iou': np.mean(all_avg_iou)})
-
-    if "cond_target_obj_detector" not in model_name:
-        final_results = dict()
-        for k in ['reached', 'picked', 'success']:
-            n_success = sum([t[k] for t in task_success_flags])
-            print('Task {}, rate {}'.format(k, n_success / float(args.N)))
-            final_results[k] = n_success / float(args.N)
-        variation_ids = defaultdict(list)
-        for t in task_success_flags:
-            _id = t['variation_id']
-            variation_ids[_id].append(t['success'])
-        for _id in variation_ids.keys():
-            num_eval = len(variation_ids[_id])
-            rate = sum(variation_ids[_id]) / num_eval
-            final_results['task#'+str(_id)] = rate
-            print('Success rate on task#'+str(_id), rate)
-
-        final_results['N'] = int(args.N)
-        final_results['model_saved'] = model_saved_step
-        json.dump({k: v for k, v in final_results.items()}, open(
-            results_dir+'/test_across_{}trajs.json'.format(args.N), 'w'))
+            wandb.log({
+                'avg_tp': np.mean(all_avg_tp)})
+            wandb.log({
+                'avg_fp': np.mean(all_avg_fp)})
+            wandb.log({
+                'avg_fn': np.mean(all_avg_fn)})

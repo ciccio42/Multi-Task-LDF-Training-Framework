@@ -165,7 +165,7 @@ class CondTargetObjDetectorDataset(Dataset):
             start = torch.Tensor([1]).int()
             chosen_t = [j + start for j in range(self._obs_T+1)]
 
-        images, images_cp, bb, obj_classes, action, states = create_sample(
+        images, images_cp, bb, obj_classes, actions, states, points = create_sample(
             dataset_loader=self,
             traj=traj,
             chosen_t=chosen_t,
@@ -186,11 +186,10 @@ class CondTargetObjDetectorDataset(Dataset):
             ret_dict['states'] = np.array(states)
         if self._load_action:
             ret_dict['actions'] = []
-            ret_dict['actions'] = np.array(action)
+            ret_dict['actions'] = np.array(actions)
         if self._task_id:
             task_one_hot = np.zeros((1, self._n_tasks))
             task_one_hot[0][self._tasks[task_name]
                             [0]+sub_task_id] = 1
             ret_dict['task_id'] = np.array(task_one_hot)
         return ret_dict
-

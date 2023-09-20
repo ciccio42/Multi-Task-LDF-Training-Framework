@@ -9,20 +9,20 @@ EXPERT_DATA=/raid/home/frosa_Loc/ur_multitask_dataset
 SAVE_PATH=/raid/home/frosa_Loc/checkpoint_save_folder
 POLICY='${mosaic}'
 
-SAVE_FREQ=4050
+SAVE_FREQ=2700
 LOG_FREQ=100
-VAL_FREQ=4050
+VAL_FREQ=2700
 
-EXP_NAME=1Task-Pick-Place-100-180-BB-NULL
-PROJECT_NAME="ur_pick_place_100_180_bb_null"
-TASK_str=pick_place
+EXP_NAME=1Task-Nut-Assembly-100-180-BB
+PROJECT_NAME="ur_nut_assembly_100_180_bb"
+TASK_str=nut_assembly
 ROLLOUT=false
 EPOCH=40
-BSIZE=32 #128 #64 #32
+BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=2
+SET_SAME_N=3
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
 LOADER_WORKERS=16
@@ -44,7 +44,7 @@ CONCAT_TARGET_OBJ_EMBEDDING=false
 CONCAT_STATE=false
 
 ACTION_DIM=7
-N_MIXTURES=6 # 5       # Nut-Assembly 3 # Pick-place 6
+N_MIXTURES=3 # 5       # Nut-Assembly 3 # Pick-place 6
 OUT_DIM=128 # 128        # 64                  # 128
 ATTN_FF=256 # 256        # 128                 # 256
 COMPRESSOR_DIM=256 # 256 # 128          # 256
@@ -53,7 +53,7 @@ CONCAT_DEMO_HEAD=false
 CONCAT_DEMO_ACT=true
 PRETRAINED=false
 CONCAT_BB=true
-NULL_BB=true
+NULL_BB=false
 
 EARLY_STOPPING_PATIECE=-1
 OPTIMIZER='AdamW'
@@ -68,9 +68,9 @@ DIM_W=12 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 HEIGHT=100
 WIDTH=180
 
-RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Target-Slot-Mosaic-200-360-Batch32
-RESUME_STEP=10000
-RESUME=false
+RESUME_PATH=/raid/home/frosa_Loc/checkpoint_save_folder/1Task-Nut-Assembly-100-180-BB-Batch27
+RESUME_STEP=32400
+RESUME=true
 
 COSINE_ANNEALING=false
 
