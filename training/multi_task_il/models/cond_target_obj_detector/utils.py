@@ -9,6 +9,7 @@ import torch
 from torchvision import ops
 import torch.nn.functional as F
 import torch.optim as optim
+from einops import *
 
 # -------------- Data Untils -------------------
 
@@ -115,7 +116,6 @@ def project_bboxes(bboxes, width_scale_factor, height_scale_factor, mode='a2p'):
                                      1, 3]] / height_scale_factor).clone().detach().to(bboxes.device).float()
     # fill padded bboxes back with -1
     proj_bboxes.masked_fill_(invalid_bbox_mask, -1)
-    proj_bboxes.resize_as_(bboxes)
 
     return proj_bboxes
 
@@ -232,7 +232,7 @@ def get_req_anchors(anc_boxes_all, gt_bboxes_all, gt_classes_all, pos_thresh=0.7
     # get positive anchor boxes
 
     # condition 1: the anchor box with the max iou for every gt bbox
-    positive_anc_mask = iou_mat == max_iou_per_gt_box  # orch.logical_and(
+    positive_anc_mask = iou_mat == max_iou_per_gt_box  # torch.logical_and(
     #     iou_mat == max_iou_per_gt_box, max_iou_per_gt_box > pos_thresh)
     # condition 2: anchor boxes with iou above a threshold with any of the gt bboxes
     # positive_anc_mask = torch.logical_or(

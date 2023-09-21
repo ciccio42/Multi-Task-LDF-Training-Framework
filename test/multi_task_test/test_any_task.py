@@ -343,6 +343,7 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
 
     # Build pre-processing module
     img_formatter = build_tvf_formatter_obj_detector(config, env_name)
+    traj_data_trj = None
 
     # Build environments
     if gt_file is None:

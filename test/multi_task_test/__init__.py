@@ -40,9 +40,9 @@ _kwargs = {
 PLACEHOLDER_TOKENS = [
     AddedToken("{pick_object}", **_kwargs),
 ]
-PLACEHOLDERS = [token.content for token in PLACEHOLDER_TOKENS]
-tokenizer = Tokenizer.from_pretrained("t5-base")
-tokenizer.add_tokens(PLACEHOLDER_TOKENS)
+# PLACEHOLDERS = [token.content for token in PLACEHOLDER_TOKENS]
+# tokenizer = Tokenizer.from_pretrained("t5-base")
+# tokenizer.add_tokens(PLACEHOLDER_TOKENS)
 
 ENV_OBJECTS = {
     'pick_place': {
@@ -516,6 +516,7 @@ def get_gt_bb(traj=None, obs=None, task_name=None, t=0):
 
 
 def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None, action_ranges=[], policy=True, perform_augs=False, config=None, gt_traj=None):
+
     if gt_traj is None:
         done, states, images, context, obs, traj, tasks, bb, gt_classes, _, prev_action = \
             startup_env(model=model,
@@ -527,8 +528,10 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                         baseline=baseline,
                         bb_flag=True)
         n_steps = 0
+        fp = 0
+        tp = 0
+        fn = 0
         iou = 0
-        false_positive_cnt = 0
         prev_action = normalize_action(
             action=prev_action,
             n_action_bin=256,
@@ -687,9 +690,9 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
 
         env.close()
         tasks['avg_iou'] = iou/(n_steps)
-        tasks['avp_tp'] = tp/(n_steps)
-        tasks['avp_fp'] = fp/(n_steps)
-        tasks['avp_fn'] = fn/(n_steps)
+        tasks['avg_tp'] = tp/(n_steps)
+        tasks['avg_fp'] = fp/(n_steps)
+        tasks['avg_fn'] = fn/(n_steps)
         del env
         del states
         del images

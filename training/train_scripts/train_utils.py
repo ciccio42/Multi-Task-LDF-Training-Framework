@@ -37,6 +37,7 @@ torch.autograd.set_detect_anomaly(True)
 # for visualization
 MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32).reshape((1, 3, 1, 1))
 STD = np.array([0.229, 0.224, 0.225], dtype=np.float32).reshape((1, 3, 1, 1))
+DEBUG = False
 
 
 def loss_to_scalar(loss):
@@ -140,7 +141,7 @@ def collect_stats(step, task_losses, raw_stats, prefix='train'):
             raw_stats["step"] = [int(step)]
     tr_print = ""
     for i, task in enumerate(task_names):
-        tr_print += "[{0:<9}] l_tot: {1:.4f} l_bc: {2:.4f} l_inv: {3: 4f} l_rep: {4: 4f} l_pnt: {5:.4f} l_aux: {6:.4f} ".format(
+        tr_print += "[{0:<9}] l_tot: {1:.4f} l_bc: {2:.4f} l_inv: {3: 4f} l_rep: {4: 4f} l_pnt: {5:.4f} l_aux: {6:.4f} avg_prec {7:.4f}".format(
             task,
             raw_stats.get(f"{prefix}/{task}/loss_sum", [0])[-1],
             raw_stats.get(f"{prefix}/{task}/l_bc", [0])[-1],
@@ -148,6 +149,7 @@ def collect_stats(step, task_losses, raw_stats, prefix='train'):
             raw_stats.get(f"{prefix}/{task}/rep_loss", [0])[-1],
             raw_stats.get(f"{prefix}/{task}/point_loss", [0])[-1],
             raw_stats.get(f"{prefix}/{task}/l_aux", [0])[-1],
+            raw_stats.get(f"{prefix}/{task}/avg_prec", [0])[-1],
         )
         if i % 3 == 2:  # use two lines to print
             tr_print += "\n"
@@ -231,10 +233,12 @@ def loss_func_bb(config, train_cfg, device, model, inputs, w_conf=1, w_reg=5):
         return loss
 
     def compute_avg_prec(gt_bb=None, predicted_bb=None, thr=0.7):
+        from multi_task_il.models.cond_target_obj_detector.utils import get_iou_mat
         # compute IoU over time
-        gt_bb = rearrange(gt_bb, 'B T N BB -> (B T) N BB')
+        gt_bb = rearrange(gt_bb, 'B T N BB -> (B T N) BB')
         predicted_bb = rearrange(predicted_bb, 'B T N BB -> (B T N) BB')
-        iou_t = box_iou(boxes1=gt_bb, boxes2=predicted_bb)  # (B T N) BB
+        iou_t = torch.diagonal(
+            box_iou(boxes1=gt_bb, boxes2=predicted_bb))  # (B T N) BB
         tp = (torch.where(iou_t > thr, 1.0, 0.0) == 1.0).sum(dim=0)
         return tp/gt_bb.shape[0]
 
@@ -271,35 +275,54 @@ def loss_func_bb(config, train_cfg, device, model, inputs, w_conf=1, w_reg=5):
                                      predictions_dict['offsets_pos'],
                                      traj['images'].shape[0]*traj['images'].shape[1])
 
+    # all_losses["cls_loss"] = cls_loss
+    # all_losses["bb_reg_loss"] = bb_reg_loss
+    # all_losses["loss_sum"] = w_conf*cls_loss + w_reg*bb_reg_loss
+
+    predictions_dict = model(model_inputs, inference=False)
+    # compute detection loss
+    cls_loss = calc_cls_loss(predictions_dict['conf_scores_pos'],
+                             predictions_dict['conf_scores_neg'],
+                             traj['images'].shape[0]*traj['images'].shape[1])
+    bb_reg_loss = calc_bbox_reg_loss(predictions_dict['GT_offsets'],
+                                     predictions_dict['offsets_pos'],
+                                     traj['images'].shape[0]*traj['images'].shape[1])
+
     all_losses["cls_loss"] = cls_loss
     all_losses["bb_reg_loss"] = bb_reg_loss
     all_losses["loss_sum"] = w_conf*cls_loss + w_reg*bb_reg_loss
 
-    # if model.training:
-    #     predictions_dict = model(model_inputs, inference=False)
-    #     # compute detection loss
-    #     cls_loss = calc_cls_loss(predictions_dict['conf_scores_pos'],
-    #                              predictions_dict['conf_scores_neg'],
-    #                              traj['images'].shape[0]*traj['images'].shape[1])
-    #     bb_reg_loss = calc_bbox_reg_loss(predictions_dict['GT_offsets'],
-    #                                      predictions_dict['offsets_pos'],
-    #                                      traj['images'].shape[0]*traj['images'].shape[1])
+    # compute average precision
+    proposals = predictions_dict['proposals'][:, None, None, :]
+    # take the bounding box with the highest confidence-score and compute the IoU with
+    scale_factor = model.get_scale_factors()
+    proposals = project_bboxes(bboxes=proposals,
+                               width_scale_factor=scale_factor[0],
+                               height_scale_factor=scale_factor[1],
+                               mode='a2p')[:, None, :, :]
+    all_losses["avg_prec"] = compute_avg_prec(gt_bb=model_inputs['gt_bb'],
+                                              predicted_bb=proposals)
 
-    #     all_losses["cls_loss"] = cls_loss
-    #     all_losses["bb_reg_loss"] = bb_reg_loss
-    #     all_losses["loss_sum"] = w_conf*cls_loss + w_reg*bb_reg_loss
-    # else:
-    #     predictions_dict = model(model_inputs, inference=True)
-    #     proposals = torch.stack(predictions_dict['proposals'])[
-    #         :, None, None, :].to(model_inputs['gt_bb'].get_device())
-    #     # take the bounding box with the highest confidence-score and compute the IoU with
-    #     scale_factor = model.get_scale_factors()
-    #     proposals = project_bboxes(bboxes=proposals,
-    #                                width_scale_factor=scale_factor[0],
-    #                                height_scale_factor=scale_factor[1],
-    #                                mode='a2p')
-    #     all_losses["avg_prec"] = compute_avg_prec(gt_bb=model_inputs['gt_bb'],
-    #                                               predicted_bb=proposals)
+    if DEBUG:
+        import cv2
+        for indx in range(inputs['traj']['images'].shape[0]):
+            image = np.array(np.moveaxis(
+                inputs['traj']['images'][indx, 0, :, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+            proposal = proposals[indx].cpu()
+            bb_gt = inputs['traj']['gt_bb'][indx][0][0].cpu()
+            image = cv2.rectangle(np.ascontiguousarray(image),
+                                  (int(proposal[0, 0, 0]), int(
+                                      proposal[0, 0, 1])),
+                                  (int(proposal[0, 0, 2]), int(
+                                      proposal[0, 0, 3])),
+                                  color=(0, 0, 255), thickness=1)
+            image = cv2.rectangle(np.ascontiguousarray(image),
+                                  (int(bb_gt[0]), int(
+                                      bb_gt[1])),
+                                  (int(bb_gt[2]), int(
+                                      bb_gt[3])),
+                                  color=(0, 255, 0), thickness=1)
+            cv2.imwrite("prova_predictions_eval.png", image)
 
     # flatten here to avoid headache
     for (task_name, idxs) in task_to_idx.items():

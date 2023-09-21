@@ -38,6 +38,7 @@ FIRST_FRAMES=false
 ONLY_FIRST_FRAMES=true
 ROLLOUT=false
 PERFORM_AUGS=true
+NON_SEQUENTIAL=false
 
 RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/TARGET_OBJ_DETECTOR_SLOT/1Task-Pick-Place-Cond-Target-Obj-Detector-3D-Resnet-Batch16
 RESUME_STEP=2025
@@ -67,7 +68,7 @@ python ../training/train_scripts/train_any.py \
     vsize=${BSIZE} \
     epochs=${EPOCH} \
     dataset_cfg.obs_T=${OBS_T} \
-    dataset_cfg.select_random_frames=true \
+    dataset_cfg.non_sequential=${NON_SEQUENTIAL} \
     dataset_cfg.compute_obj_distribution=${COMPUTE_OBJ_DISTRIBUTION} \
     dataset_cfg.first_frames=${FIRST_FRAMES} \
     dataset_cfg.only_first_frame=${ONLY_FIRST_FRAMES} \
