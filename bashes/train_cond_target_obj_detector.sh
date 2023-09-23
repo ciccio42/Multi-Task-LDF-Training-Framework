@@ -31,7 +31,7 @@ OBS_T=0
 
 EARLY_STOPPING_PATIECE=-1
 OPTIMIZER='AdamW'
-LR=0.000001
+LR=0.00001
 WEIGHT_DECAY=5
 SCHEDULER='ReduceLROnPlateau'
 FIRST_FRAMES=false
@@ -44,10 +44,10 @@ RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/
 RESUME_STEP=2025
 RESUME=false
 
-DROP_DIM=3      # 2    # 3
-OUT_FEATURE=256 # 512 # 256
-DIM_H=7 #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
-DIM_W=12 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
+DROP_DIM=4      # 2    # 3
+OUT_FEATURE=128 # 512 # 256
+DIM_H=12 #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
+DIM_W=23 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 HEIGHT=100
 WIDTH=180
 

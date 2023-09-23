@@ -31,6 +31,7 @@ from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
 import learn2learn as l2l
 from torchvision.ops import box_iou
 from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
+from torchmetrics.classification import Accuracy
 
 
 torch.autograd.set_detect_anomaly(True)
@@ -149,7 +150,7 @@ def collect_stats(step, task_losses, raw_stats, prefix='train'):
             raw_stats.get(f"{prefix}/{task}/rep_loss", [0])[-1],
             raw_stats.get(f"{prefix}/{task}/point_loss", [0])[-1],
             raw_stats.get(f"{prefix}/{task}/l_aux", [0])[-1],
-            raw_stats.get(f"{prefix}/{task}/avg_prec", [0])[-1],
+            raw_stats.get(f"{prefix}/{task}/class_accuracy", [0])[-1],
         )
         if i % 3 == 2:  # use two lines to print
             tr_print += "\n"
@@ -222,15 +223,39 @@ def loss_func_bb(config, train_cfg, device, model, inputs, w_conf=1, w_reg=5):
         inputs = torch.cat((conf_scores_pos, conf_scores_neg))
 
         loss = F.binary_cross_entropy_with_logits(
-            inputs, target, reduction='sum') * 1. / batch_size
+            inputs, target, reduction='mean')
 
         return loss
 
     def calc_bbox_reg_loss(gt_offsets, reg_offsets_pos, batch_size):
         assert gt_offsets.size() == reg_offsets_pos.size()
         loss = F.smooth_l1_loss(reg_offsets_pos, gt_offsets,
-                                reduction='sum') * 1. / batch_size
+                                reduction='mean')
         return loss
+
+    def calc_classification_loss(cls_scores, gt_cls):
+        # compute cross entropy loss
+        # Prediction
+        # [1, 0] -> no-target
+        # [0, 1] -> target
+        # GT-Target
+        # 1 -> target
+        # 0 -> no-target
+        cls_loss = F.cross_entropy(cls_scores, gt_cls)
+        return cls_loss
+
+    def compute_classification_accuracy(cls_scores, gt_cls):
+        """Compute classification accuracy
+
+        Args:
+            cls_scores (torch.tensor): [N_positive_bb, 2] 
+            gt_cls (torch.tensor): [N_positive_bb] target class
+        """
+        # create target from scores
+        cls_prob = nn.Softmax(dim=-1)(cls_scores)
+        accuracy = Accuracy(task="multiclass", num_classes=cls_prob.shape[1], top_k=1).to(
+            cls_scores.get_device())
+        return accuracy(cls_prob, gt_cls)
 
     def compute_avg_prec(gt_bb=None, predicted_bb=None, thr=0.7):
         from multi_task_il.models.cond_target_obj_detector.utils import get_iou_mat
@@ -267,6 +292,7 @@ def loss_func_bb(config, train_cfg, device, model, inputs, w_conf=1, w_reg=5):
 
     model = model.to(device)
     predictions_dict = model(model_inputs, inference=False)
+
     # compute detection loss
     cls_loss = calc_cls_loss(predictions_dict['conf_scores_pos'],
                              predictions_dict['conf_scores_neg'],
@@ -275,54 +301,54 @@ def loss_func_bb(config, train_cfg, device, model, inputs, w_conf=1, w_reg=5):
                                      predictions_dict['offsets_pos'],
                                      traj['images'].shape[0]*traj['images'].shape[1])
 
-    # all_losses["cls_loss"] = cls_loss
-    # all_losses["bb_reg_loss"] = bb_reg_loss
-    # all_losses["loss_sum"] = w_conf*cls_loss + w_reg*bb_reg_loss
-
-    predictions_dict = model(model_inputs, inference=False)
-    # compute detection loss
-    cls_loss = calc_cls_loss(predictions_dict['conf_scores_pos'],
-                             predictions_dict['conf_scores_neg'],
-                             traj['images'].shape[0]*traj['images'].shape[1])
-    bb_reg_loss = calc_bbox_reg_loss(predictions_dict['GT_offsets'],
-                                     predictions_dict['offsets_pos'],
-                                     traj['images'].shape[0]*traj['images'].shape[1])
+    # compute classification loss
+    classification_loss = calc_classification_loss(predictions_dict['cls_scores'],
+                                                   predictions_dict['GT_class_pos']
+                                                   )
 
     all_losses["cls_loss"] = cls_loss
     all_losses["bb_reg_loss"] = bb_reg_loss
-    all_losses["loss_sum"] = w_conf*cls_loss + w_reg*bb_reg_loss
+    all_losses["classification_loss"] = classification_loss
+    all_losses["loss_sum"] = w_conf*cls_loss + \
+        w_reg*bb_reg_loss + classification_loss
 
-    # compute average precision
-    proposals = predictions_dict['proposals'][:, None, None, :]
-    # take the bounding box with the highest confidence-score and compute the IoU with
-    scale_factor = model.get_scale_factors()
-    proposals = project_bboxes(bboxes=proposals,
-                               width_scale_factor=scale_factor[0],
-                               height_scale_factor=scale_factor[1],
-                               mode='a2p')[:, None, :, :]
-    all_losses["avg_prec"] = compute_avg_prec(gt_bb=model_inputs['gt_bb'],
-                                              predicted_bb=proposals)
+    # compute acccuracy
+    class_accuracy = compute_classification_accuracy(
+        cls_scores=predictions_dict['cls_scores'],
+        gt_cls=predictions_dict['GT_class_pos'])
+    all_losses["class_accuracy"] = class_accuracy
 
-    if DEBUG:
-        import cv2
-        for indx in range(inputs['traj']['images'].shape[0]):
-            image = np.array(np.moveaxis(
-                inputs['traj']['images'][indx, 0, :, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
-            proposal = proposals[indx].cpu()
-            bb_gt = inputs['traj']['gt_bb'][indx][0][0].cpu()
-            image = cv2.rectangle(np.ascontiguousarray(image),
-                                  (int(proposal[0, 0, 0]), int(
-                                      proposal[0, 0, 1])),
-                                  (int(proposal[0, 0, 2]), int(
-                                      proposal[0, 0, 3])),
-                                  color=(0, 0, 255), thickness=1)
-            image = cv2.rectangle(np.ascontiguousarray(image),
-                                  (int(bb_gt[0]), int(
-                                      bb_gt[1])),
-                                  (int(bb_gt[2]), int(
-                                      bb_gt[3])),
-                                  color=(0, 255, 0), thickness=1)
-            cv2.imwrite("prova_predictions_eval.png", image)
+    # # compute average precision
+    # proposals = predictions_dict['proposals'][:, None, None, :]
+    # # take the bounding box with the highest confidence-score and compute the IoU with
+    # scale_factor = model.get_scale_factors()
+    # proposals = project_bboxes(bboxes=proposals,
+    #                            width_scale_factor=scale_factor[0],
+    #                            height_scale_factor=scale_factor[1],
+    #                            mode='a2p')[:, None, :, :]
+    # # all_losses["avg_prec"] = compute_avg_prec(gt_bb=model_inputs['gt_bb'],
+    # #                                           predicted_bb=proposals)
+
+    # if DEBUG:
+    #     import cv2
+    #     for indx in range(inputs['traj']['images'].shape[0]):
+    #         image = np.array(np.moveaxis(
+    #             inputs['traj']['images'][indx, 0, :, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+    #         proposal = proposals[indx].cpu()
+    #         bb_gt = inputs['traj']['gt_bb'][indx][0][0].cpu()
+    #         image = cv2.rectangle(np.ascontiguousarray(image),
+    #                               (int(proposal[0, 0, 0]), int(
+    #                                   proposal[0, 0, 1])),
+    #                               (int(proposal[0, 0, 2]), int(
+    #                                   proposal[0, 0, 3])),
+    #                               color=(0, 0, 255), thickness=1)
+    #         image = cv2.rectangle(np.ascontiguousarray(image),
+    #                               (int(bb_gt[0]), int(
+    #                                   bb_gt[1])),
+    #                               (int(bb_gt[2]), int(
+    #                                   bb_gt[3])),
+    #                               color=(0, 255, 0), thickness=1)
+    #         cv2.imwrite("prova_predictions_eval.png", image)
 
     # flatten here to avoid headache
     for (task_name, idxs) in task_to_idx.items():

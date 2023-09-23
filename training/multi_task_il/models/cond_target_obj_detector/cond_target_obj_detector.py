@@ -126,27 +126,41 @@ class ResBlock(nn.Module):
         return x
 
 
-class Classifier(nn.Module):
-    def __init__(self, prev_channels, n_classes):
-        super(Classifier, self).__init__()
+class ClassificationModule(nn.Module):
+    def __init__(self, out_channels, n_classes, roi_size, hidden_dim=512, p_dropout=0.3):
+        super().__init__()
+        self.roi_size = roi_size
+        # hidden network
+        self.avg_pool = nn.AvgPool2d(self.roi_size)
+        self.fc = nn.Linear(out_channels, hidden_dim)
+        self.dropout = nn.Dropout(p_dropout)
 
-        self.conv = nn.Conv2d(prev_channels, 512, 1, 1, 0)
-        self.relu = nn.ReLU(inplace=True)
-        self.global_max_pool = nn.AdaptiveMaxPool2d((1, 1))
-        self.model = nn.Sequential(nn.Linear(512, 1024),
-                                   nn.ReLU(inplace=True),
-                                   nn.Linear(1024, 1024),
-                                   nn.ReLU(inplace=True),
-                                   nn.Linear(1024, n_classes))
+        # define classification head
+        self.cls_head = nn.Linear(hidden_dim, n_classes)
 
-    def forward(self, x):
-        x = self.conv(x)
-        feature = x
-        x = self.global_max_pool(x)
-        x = x.view(x.size(0), x.size(1))
-        x = self.model(x)
+    def forward(self, feature_map, proposals_list, gt_classes=None):
 
-        return x, feature
+        # if gt_classes is None:
+        #     mode = 'eval'
+        # else:
+        #     mode = 'train'
+
+        # apply roi pooling on proposals followed by avg pooling
+        roi_out = ops.roi_pool(feature_map, proposals_list, self.roi_size)
+        roi_out = self.avg_pool(roi_out)
+
+        # flatten the output
+        roi_out = roi_out.squeeze(-1).squeeze(-1)
+
+        # pass the output through the hidden network
+        out = self.fc(roi_out)
+        # Number of positive bb, Embedding size
+        out = F.relu(self.dropout(out))
+
+        # get the classification scores
+        cls_scores = self.cls_head(out)  # Number of positive bb, Num classes
+
+        return cls_scores
 
 
 class FiLM(nn.Module):
@@ -165,8 +179,6 @@ class FiLM(nn.Module):
 
         for _ in range(n_res_blocks):
             self.res_blocks.append(ResBlock(n_channels + 2, n_channels))
-
-        self.classifier = Classifier(n_channels, n_classes)
 
         self.n_res_blocks = n_res_blocks
         self.n_channels = n_channels
@@ -201,7 +213,6 @@ class FiLM(nn.Module):
             x = res_block(x, beta, gamma)
 
         cond_feature = x
-        # x = self.classifier(x)
 
         return cond_feature
 
@@ -320,8 +331,7 @@ class CondModule(nn.Module):
             backbone_input = rearrange(input, 'B T C H W -> B C T H W')
             backbone_out = rearrange(self._backbone(
                 backbone_input), 'B C T H W -> B (C T H W)')
-            task_embedding = backbone_out
-            # task_embedding = self._mlp_encoder(linear_input)
+            task_embedding = self._mlp_encoder(backbone_out)
 
         # print(task_embedding.shape)
         return task_embedding
@@ -329,7 +339,7 @@ class CondModule(nn.Module):
 
 class AgentModule(nn.Module):
 
-    def __init__(self, height=120, width=160, obs_T=4, model_name="resnet18", pretrained=False, load_film=True, n_res_blocks=6, n_classes=1, task_embedding_dim=128, dim_H=7, dim_W=7, conv_drop_dim=3):
+    def __init__(self, height=120, width=160, obs_T=4, model_name="resnet18", pretrained=False, load_film=True, n_res_blocks=6, n_classes=2, task_embedding_dim=128, dim_H=7, dim_W=7, conv_drop_dim=3):
         super().__init__()
         if not load_film:
             self._module = get_backbone(backbone_name=model_name,
@@ -345,6 +355,8 @@ class AgentModule(nn.Module):
                 n_channels = 256
             elif conv_drop_dim == 2:
                 n_channels = 512
+            else:
+                n_channels = 128
             model_dict['n_channels'] = n_channels
             backbone = make_model(model_dict=model_dict,
                                   task_embedding_dim=task_embedding_dim,
@@ -364,13 +376,13 @@ class AgentModule(nn.Module):
             self.height_scale_factor = self.img_height // self.out_h
 
             # scales and ratios for anchor boxes
-            self.anc_scales = [0.5, 0.7]  # [0.5, 1]
-            self.anc_ratios = [0.5, 1, 1.5]  # [0.5, 1, 1.5] #height/width
+            self.anc_scales = [1.5, 2.0]  # [0.5, 1]
+            self.anc_ratios = [0.8, 1, 1.2]  # [0.5, 1, 1.5] #height/width
             self.n_anc_boxes = len(self.anc_scales) * len(self.anc_ratios)
 
             # IoU thresholds for +ve and -ve anchors
-            self.pos_thresh = 0.2
-            self.neg_thresh = 0.1
+            self.pos_thresh = 0.3
+            self.neg_thresh = 0.2
 
             self.conf_thresh = 0.5
             self.nms_thresh = 0.9
@@ -378,6 +390,11 @@ class AgentModule(nn.Module):
             self.proposal_module = ProposalModule(
                 self.out_channels_backbone,
                 n_anchors=self.n_anc_boxes)
+
+            self.classifier = ClassificationModule(
+                out_channels=self.out_channels_backbone,
+                n_classes=n_classes,
+                roi_size=(2, 2))
 
         self.load_film = load_film
 
@@ -423,8 +440,11 @@ class AgentModule(nn.Module):
                 # # Plot anchor boxes to image
                 for x, anc_x in enumerate(anc_pts_x_image.numpy()):
                     for y, anc_y in enumerate(anc_pts_y_image.numpy()):
-                        anc_boxes_proj = project_bboxes(
-                            anc_boxes_all, self.width_scale_factor, self.height_scale_factor, mode='a2p')
+                        anc_boxes_proj = rearrange(project_bboxes(
+                            anc_boxes_all, self.width_scale_factor, self.height_scale_factor, mode='a2p'), 'B (X Y Z) C -> B X Y Z C',
+                            X=anc_boxes_all.shape[1],
+                            Y=anc_boxes_all.shape[2],
+                            Z=anc_boxes_all.shape[3])
                         anc_boxes_proj_interest = anc_boxes_proj[0, x, y, :, :].cpu(
                         ).numpy()
                         image = np.array(np.moveaxis(
@@ -467,27 +487,43 @@ class AgentModule(nn.Module):
                     negative_anc_ind,
                     positive_anc_coords)
 
+                # get separate proposals for each sample
+                pos_proposals_list = []
+                class_positive_list = []
+                batch_size = B
+                for idx in range(batch_size):
+                    proposal_idxs = torch.where(positive_anc_ind_sep == idx)[0]
+                    proposals_sep = proposals[proposal_idxs].detach().clone()
+                    class_sep = GT_class_pos[proposal_idxs].detach().clone()
+                    pos_proposals_list.append(proposals_sep)
+                    class_positive_list.append(class_sep)
+
+                cls_scores = self.classifier(
+                    feature_map, pos_proposals_list, GT_class_pos)
+
                 ret_dict['feature_map'] = feature_map
                 ret_dict['proposals'] = proposals
                 ret_dict['GT_offsets'] = GT_offsets
                 ret_dict['offsets_pos'] = offsets_pos
                 ret_dict['conf_scores_pos'] = conf_scores_pos
                 ret_dict['conf_scores_neg'] = conf_scores_neg
+                ret_dict['cls_scores'] = cls_scores
+                ret_dict['GT_class_pos'] = GT_class_pos
 
-                if DEBUG:
-                    # test plot proposal
-                    proposal_projected = project_bboxes(
-                        proposals, self.width_scale_factor, self.height_scale_factor, mode='a2p').cpu().detach().numpy()
-                    for indx, bb_proposal in enumerate(proposal_projected):
-                        image = np.array(np.moveaxis(
-                            agent_obs[indx, :, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
-                        image = cv2.rectangle(np.ascontiguousarray(image),
-                                              (int(bb_proposal[0]), int(
-                                                  bb_proposal[1])),
-                                              (int(bb_proposal[2]), int(
-                                                  bb_proposal[3])),
-                                              color=(0, 0, 255), thickness=1)
-                        cv2.imwrite("prova_predictions_eval.png", image)
+                # if DEBUG:
+                #     # test plot proposal
+                #     proposal_projected = project_bboxes(
+                #         proposals, self.width_scale_factor, self.height_scale_factor, mode='a2p').cpu().detach().numpy()
+                #     for indx, bb_proposal in enumerate(proposal_projected):
+                #         image = np.array(np.moveaxis(
+                #             agent_obs[indx, :, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+                #         image = cv2.rectangle(np.ascontiguousarray(image),
+                #                               (int(bb_proposal[0]), int(
+                #                                   bb_proposal[1])),
+                #                               (int(bb_proposal[2]), int(
+                #                                   bb_proposal[3])),
+                #                               color=(0, 0, 255), thickness=1)
+                #         cv2.imwrite("prova_predictions_eval.png", image)
 
                 return ret_dict
             else:
@@ -521,25 +557,45 @@ class AgentModule(nn.Module):
                         nms_idx = ops.nms(
                             proposals_pos, conf_scores_pos, self.nms_thresh)
 
-                        try:
-                            max_indx = torch.argmax(
-                                conf_scores_pos[nms_idx])
-                            conf_scores_pos = conf_scores_pos[nms_idx][max_indx]
-                            proposals_pos = proposals_pos[nms_idx][max_indx].float(
-                            )
-                        except:
-                            # print("No bb found")
-                            conf_scores_pos = torch.tensor(
-                                -1).to(agent_obs.get_device())
-                            proposals_pos = torch.tensor(
-                                [-1, -1, -1, -1]).to(
-                                agent_obs.get_device()).float()
+                        proposals_pos = proposals_pos[nms_idx]
+
                         proposals_final.append(proposals_pos)
                         conf_scores_final.append(conf_scores_pos)
+
+                        # try:
+                        #     max_indx = torch.argmax(
+                        #         conf_scores_pos[nms_idx])
+                        #     conf_scores_pos = conf_scores_pos[nms_idx][max_indx]
+                        #     proposals_pos = proposals_pos[nms_idx][max_indx].float(
+                        #     )
+                        # except:
+                        #     # print("No bb found")
+                        #     conf_scores_pos = torch.tensor(
+                        #         -1).to(agent_obs.get_device())
+                        #     proposals_pos = torch.tensor(
+                        #         [-1, -1, -1, -1]).to(
+                        #         agent_obs.get_device()).float()
+                        # proposals_final.append(proposals_pos)
+                        # conf_scores_final.append(conf_scores_pos)
+
+                    cls_scores = self.classifier(feature_map, proposals_final)
+                    cls_probs = F.softmax(cls_scores, dim=-1)
+                    # get classes with highest probability
+                    classes_all = torch.argmax(cls_probs, dim=-1)
+
+                    classes_final = []
+                    # slice classes to map to their corresponding image
+                    c = 0
+                    for i in range(batch_size):
+                        # get the number of proposals for each image
+                        n_proposals = len(proposals_final[i])
+                        classes_final.append(classes_all[c: c+n_proposals])
+                        c += n_proposals
 
                     ret_dict['proposals'] = proposals_final
                     ret_dict['conf_scores_final'] = conf_scores_final
                     ret_dict['feature_map'] = feature_map
+                    ret_dict['classes_final'] = classes_final
 
                     return ret_dict
 
@@ -618,8 +674,8 @@ def main(cfg):
     debugpy.wait_for_client()
     inputs = dict()
 
-    width = 224
-    height = 224
+    width = 100
+    height = 180
     demo_T = 4
     inputs['demo'] = torch.rand(
         (4, 3, height, width),  dtype=torch.float).to('cuda:0')[None]  # B, T, C, W, H
@@ -627,6 +683,13 @@ def main(cfg):
     inputs['images'] = torch.rand(
         (1, 3, height, width),  dtype=torch.float).to('cuda:0')[None]  # B, T, C, W, H
 
+    inputs['gt_bb'] = torch.rand(
+        (1, 1, 1, 4),  dtype=torch.float).to('cuda:0')[None]
+
+    inputs['gt_classes'] = torch.rand(
+        (1, 1, 1, 1),  dtype=torch.float).to('cuda:0')[None]
+
+    cfg.cond_target_obj_detector_cfg.conv_drop_dim = 4
     module = CondTargetObjectDetector(
         cond_target_obj_detector_cfg=cfg.cond_target_obj_detector_cfg)
 

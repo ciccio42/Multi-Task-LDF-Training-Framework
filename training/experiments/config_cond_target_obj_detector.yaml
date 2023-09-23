@@ -163,7 +163,7 @@ cond_target_obj_detector_cfg:
   gpu_id: 0
   demo_ff_dim: [128, 64, 32]
   demo_linear_dim: [256, 128] #[512, 256, 128]
-  task_embedding_dim: 512
+  task_embedding_dim: 128
 
 actions:
   adim: 7

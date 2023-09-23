@@ -432,14 +432,16 @@ def create_data_aug(dataset_loader=object):
 
         if bb is not None:
             if DEBUG:
-                image = cv2.rectangle(np.ascontiguousarray(np.array(np.moveaxis(
-                    augmented.numpy()*255, 0, -1), dtype=np.uint8)),
-                    (int(bb[0][0]),
-                     int(bb[0][1])),
-                    (int(bb[0][2]),
-                     int(bb[0][3])),
-                    color=(0, 0, 255),
-                    thickness=1)
+                image = np.ascontiguousarray(np.array(np.moveaxis(
+                    augmented.numpy()*255, 0, -1), dtype=np.uint8))
+                for single_bb in bb:
+                    image = cv2.rectangle(image,
+                                          (int(single_bb[0]),
+                                           int(single_bb[1])),
+                                          (int(single_bb[2]),
+                                              int(single_bb[3])),
+                                          color=(0, 0, 255),
+                                          thickness=1)
                 cv2.imwrite("bb_cropped_after_aug.png", image)
             return augmented, bb, class_frame
         else:
@@ -456,8 +458,18 @@ def create_gt_bb(dataset_loader, traj, t, task_name):
     # 1. Get Target Object
     target_obj_id = traj.get(
         t)['obs']['target-object']
+
+    if task_name == 'pick_place':
+        num_objects = 3
+
+    # select randomly another object
+    no_target_obj_id = target_obj_id
+    while no_target_obj_id == target_obj_id:
+        no_target_obj_id = random.randint(
+            0, num_objects)
+
     for obj_id, object_name in enumerate(traj.get(t)['obs']['obj_bb']['camera_front'].keys()):
-        if object_name != 'bin' and obj_id == target_obj_id:
+        if object_name != 'bin' and (obj_id == target_obj_id or obj_id == no_target_obj_id):
             # 2. Get stored BB
             top_left_x = traj.get(
                 t)['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner'][0]
@@ -495,8 +507,9 @@ def create_gt_bb(dataset_loader, traj, t, task_name):
 
             bb.append([top_left_x, top_left_y,
                        bottom_right_x, bottom_right_y])
-            # [1] - Target object
-            # [0] - No target
+
+            # 1 Target
+            # 0 No-target
             if obj_id == target_obj_id:
                 cl.append(1)
             else:

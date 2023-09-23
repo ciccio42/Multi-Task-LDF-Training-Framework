@@ -634,6 +634,14 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                                           (int(bb_t[0][2]),
                                            int(bb_t[0][3])),
                                           color=(0, 255, 0), thickness=1)
+                    image = cv2.putText(image, "Score {:.2f}".format(prediction['conf_scores_final'][0]),
+                                        (int(predicted_bb[0]),
+                                         int(predicted_bb[1])),
+                                        cv2.FONT_HERSHEY_SIMPLEX,
+                                        0.3,
+                                        (0, 0, 255),
+                                        1,
+                                        cv2.LINE_AA)
                     cv2.imwrite("predicted_bb.png", image)
                 obs['predicted_bb'] = predicted_bb.cpu().numpy()
                 obs['gt_bb'] = bb_t
@@ -642,7 +650,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                     bb_t).to(device=gpu_id), boxes2=predicted_bb[None])
                 obs['iou'] = iou_t[0][0].cpu().numpy()
 
-                if iou_t[0][0].cpu().numpy() < 0.5:
+                if iou_t[0][0].cpu().numpy() < 0.4:
                     fp += 1
                     obs['fp'] = 1
                 else:
