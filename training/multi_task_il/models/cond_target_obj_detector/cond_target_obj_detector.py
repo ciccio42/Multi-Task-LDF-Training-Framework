@@ -558,7 +558,7 @@ class AgentModule(nn.Module):
                             proposals_pos, conf_scores_pos, self.nms_thresh)
 
                         proposals_pos = proposals_pos[nms_idx]
-
+                        conf_scores_pos = conf_scores_pos[nms_idx]
                         proposals_final.append(proposals_pos)
                         conf_scores_final.append(conf_scores_pos)
 
@@ -586,7 +586,7 @@ class AgentModule(nn.Module):
                     classes_final = []
                     # slice classes to map to their corresponding image
                     c = 0
-                    for i in range(batch_size):
+                    for i in range(B):
                         # get the number of proposals for each image
                         n_proposals = len(proposals_final[i])
                         classes_final.append(classes_all[c: c+n_proposals])

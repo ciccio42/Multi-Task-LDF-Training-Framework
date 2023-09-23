@@ -46,7 +46,7 @@ RESUME=false
 
 DROP_DIM=4      # 2    # 3
 OUT_FEATURE=128 # 512 # 256
-DIM_H=12 #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
+DIM_H=13 #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
 DIM_W=23 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 HEIGHT=100
 WIDTH=180
