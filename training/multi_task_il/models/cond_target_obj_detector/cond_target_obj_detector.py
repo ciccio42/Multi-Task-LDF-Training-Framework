@@ -381,11 +381,11 @@ class AgentModule(nn.Module):
             self.n_anc_boxes = len(self.anc_scales) * len(self.anc_ratios)
 
             # IoU thresholds for +ve and -ve anchors
-            self.pos_thresh = 0.3
-            self.neg_thresh = 0.2
+            self.pos_thresh = 0.4
+            self.neg_thresh = 0.3
 
-            self.conf_thresh = 0.5
-            self.nms_thresh = 0.9
+            self.conf_thresh = 0.7
+            self.nms_thresh = 0.5
 
             self.proposal_module = ProposalModule(
                 self.out_channels_backbone,

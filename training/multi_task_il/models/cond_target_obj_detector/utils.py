@@ -87,7 +87,7 @@ def calc_gt_offsets(pos_anc_coords, gt_bbox_mapping):
 def gen_anc_centers(out_size):
     out_h, out_w = out_size
 
-    anc_pts_x = torch.arange(0, out_w) + 1.0
+    anc_pts_x = torch.arange(0, out_w) + 0.5
     anc_pts_y = torch.arange(0, out_h) + 0.5
 
     return anc_pts_x, anc_pts_y

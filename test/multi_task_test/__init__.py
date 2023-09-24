@@ -653,18 +653,18 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                 obs['predicted_bb'] = predicted_bb.cpu().numpy()
                 obs['gt_bb'] = bb_t
                 # compute IoU over time
-                iou_t = box_iou(boxes1=torch.from_numpy(
-                    bb_t).to(device=gpu_id), boxes2=predicted_bb[None])
-                obs['iou'] = iou_t[0][0].cpu().numpy()
+                # iou_t = box_iou(boxes1=torch.from_numpy(
+                #     bb_t).to(device=gpu_id), boxes2=predicted_bb[None])
+                # obs['iou'] = iou_t[0][0].cpu().numpy()
 
-                if iou_t[0][0].cpu().numpy() < 0.4:
-                    fp += 1
-                    obs['fp'] = 1
-                else:
-                    tp += 1
-                    obs['tp'] = 1
+                # if iou_t[0][0].cpu().numpy() < 0.4:
+                #     fp += 1
+                #     obs['fp'] = 1
+                # else:
+                #     tp += 1
+                #     obs['tp'] = 1
 
-                iou += iou_t[0][0].cpu().numpy()
+                # iou += iou_t[0][0].cpu().numpy()
                 traj.append(obs)
             else:
                 scale_factor = model.get_scale_factors()
@@ -748,7 +748,13 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                                    inference=True)
 
                 # Project bb over image
-                if prediction['conf_scores_final'][0] != -1:
+                # 1. Get the index with target class
+                target_indx_flags = prediction['classes_final'][0] == 1
+                # 2. Get the confidence scores for the target predictions and the the max
+                target_max_score_indx = prediction['conf_scores_final'][0][target_indx_flags]
+                max_score_target = prediction['conf_scores_final'][0]
+
+                if max_score_target[0] != -1:
                     if perform_augs:
                         scale_factor = model.get_scale_factors()
                         image = np.array(np.moveaxis(
@@ -756,34 +762,49 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                         predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
                                                       width_scale_factor=scale_factor[0],
                                                       height_scale_factor=scale_factor[1],
-                                                      mode='a2p')[0][0]
+                                                      mode='a2p')[0][:10]
                     else:
                         image = formatted_img.cpu().numpy()
                         predicted_bb = prediction['proposals'][0]
 
-                    image = cv2.rectangle(np.ascontiguousarray(image),
-                                          (int(predicted_bb[0]),
-                                           int(predicted_bb[1])),
-                                          (int(predicted_bb[2]),
-                                           int(predicted_bb[3])),
-                                          color=(0, 0, 255), thickness=1)
-                    image = cv2.rectangle(np.ascontiguousarray(image),
-                                          (int(bb_t[0][0]),
-                                           int(bb_t[0][1])),
-                                          (int(bb_t[0][2]),
-                                           int(bb_t[0][3])),
-                                          color=(0, 255, 0), thickness=1)
-                    cv2.imwrite("predicted_bb.png", image)
+                    if True:
+                        for indx, bb in enumerate(predicted_bb):
+                            if prediction['classes_final'][0][indx] == 0:
+                                color = (255, 0, 0)
+                            else:
+                                color = (0, 0, 255)
+                            image = cv2.rectangle(np.ascontiguousarray(image),
+                                                  (int(bb[0]),
+                                                   int(bb[1])),
+                                                  (int(bb[2]),
+                                                   int(bb[3])),
+                                                  color=color, thickness=1)
+                            image = cv2.putText(image, "Score {:.2f}".format(max_score_target[indx]),
+                                                (int(bb[0]),
+                                                int(bb[1])),
+                                                cv2.FONT_HERSHEY_SIMPLEX,
+                                                0.3,
+                                                (0, 0, 255),
+                                                1,
+                                                cv2.LINE_AA)
+                        image = cv2.rectangle(np.ascontiguousarray(image),
+                                              (int(bb_t[0][0]),
+                                               int(bb_t[0][1])),
+                                              (int(bb_t[0][2]),
+                                               int(bb_t[0][3])),
+                                              color=(0, 255, 0), thickness=1)
 
-                    # compute IoU over time
-                    iou_t = box_iou(boxes1=torch.from_numpy(
-                        bb_t).to(device=gpu_id), boxes2=predicted_bb[None])
-                    iou += iou_t[0][0].cpu().numpy()
+                        cv2.imwrite("predicted_bb.png", image)
 
-                    if iou_t[0][0].cpu().numpy() < 0.5:
-                        fp += 1
-                    else:
-                        tp += 1
+                        # compute IoU over time
+                        # iou_t = box_iou(boxes1=torch.from_numpy(
+                        #     bb_t).to(device=gpu_id), boxes2=predicted_bb[None])
+                        # iou += iou_t[0][0].cpu().numpy()
+
+                        # if iou_t[0][0].cpu().numpy() < 0.5:
+                        #     fp += 1
+                        # else:
+                        #     tp += 1
 
                 else:
                     fn += 1

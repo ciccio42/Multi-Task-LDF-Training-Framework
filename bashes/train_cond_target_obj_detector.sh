@@ -7,7 +7,7 @@ export HYDRA_FULL_ERROR=1
 
 
 EXPERT_DATA=/raid/home/frosa_Loc/ur_multitask_dataset
-SAVE_PATH=/raid/home/frosa_Loc/checkpoint_save_folder
+SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/
 POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
 
@@ -40,9 +40,9 @@ ROLLOUT=false
 PERFORM_AUGS=true
 NON_SEQUENTIAL=false
 
-RESUME_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/TARGET_OBJ_DETECTOR_SLOT/1Task-Pick-Place-Cond-Target-Obj-Detector-3D-Resnet-Batch16
-RESUME_STEP=2025
-RESUME=false
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-Cond-Target-Obj-Detector-only-first-frame-Batch80
+RESUME_STEP=14580
+RESUME=true
 
 DROP_DIM=4      # 2    # 3
 OUT_FEATURE=128 # 512 # 256
