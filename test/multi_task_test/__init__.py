@@ -611,9 +611,9 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
             target_indx_flags = prediction['classes_final'][0] == 1
             # 2. Get the confidence scores for the target predictions and the the max
             target_max_score_indx = prediction['conf_scores_final'][0][target_indx_flags]
-            max_score_target = prediction['conf_scores_final'][0][target_indx_flags][:5]
+            max_score_target = prediction['conf_scores_final'][0][target_indx_flags][:1]
 
-            if max_score_target[0] != -1:
+            if max_score_target.shape[0] != 0:
                 if perform_augs:
                     scale_factor = model.get_scale_factors()
                     image = np.array(np.moveaxis(
@@ -621,7 +621,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                     predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
                                                   width_scale_factor=scale_factor[0],
                                                   height_scale_factor=scale_factor[1],
-                                                  mode='a2p')[0][target_indx_flags][:5]
+                                                  mode='a2p')[0][target_indx_flags][:1]
                 else:
                     image = formatted_img.cpu().numpy()
                     predicted_bb = prediction['proposals'][0]
@@ -651,28 +651,30 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
 
                     cv2.imwrite("predicted_bb.png", image)
                 obs['predicted_bb'] = predicted_bb.cpu().numpy()
+                obs['predicted_score'] = max_score_target.cpu().numpy()
                 obs['gt_bb'] = bb_t
                 # compute IoU over time
-                # iou_t = box_iou(boxes1=torch.from_numpy(
-                #     bb_t).to(device=gpu_id), boxes2=predicted_bb[None])
-                # obs['iou'] = iou_t[0][0].cpu().numpy()
+                iou_t = box_iou(boxes1=torch.from_numpy(
+                    bb_t).to(device=gpu_id), boxes2=predicted_bb)
+                obs['iou'] = iou_t[0][0].cpu().numpy()
 
-                # if iou_t[0][0].cpu().numpy() < 0.4:
-                #     fp += 1
-                #     obs['fp'] = 1
-                # else:
-                #     tp += 1
-                #     obs['tp'] = 1
+                # check if there are TP
+                if iou_t[0][0].cpu().numpy() < 0.5:
+                    fp += 1
+                    obs['fp'] = 1
+                else:
+                    tp += 1
+                    obs['tp'] = 1
 
-                # iou += iou_t[0][0].cpu().numpy()
+                iou += iou_t[0][0].cpu().numpy()
                 traj.append(obs)
             else:
-                scale_factor = model.get_scale_factors()
-                predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None].float(),
-                                              width_scale_factor=scale_factor[0],
-                                              height_scale_factor=scale_factor[1],
-                                              mode='a2p')[0]
-                obs['predicted_bb'] = predicted_bb.cpu().numpy()
+                # scale_factor = model.get_scale_factors()
+                # predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None].float(),
+                #                               width_scale_factor=scale_factor[0],
+                #                               height_scale_factor=scale_factor[1],
+                #                               mode='a2p')[0]
+                # obs['predicted_bb'] = predicted_bb.cpu().numpy()
                 obs['gt_bb'] = bb_t
                 obs['iou'] = 0
                 iou += 0
@@ -700,7 +702,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                 f"step_test.png", obs['camera_front_image'][:, :, ::-1])
 
             n_steps += 1
-            if n_steps >= 1 or env_done or reward:
+            if n_steps >= max_T or env_done or reward:
                 done = True
 
         env.close()

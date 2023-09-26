@@ -141,7 +141,7 @@ class CondTargetObjDetectorDataset(Dataset):
         assert not self._first_frames or not self._only_first_frame, f"First frames and only first frames cannot be both True"
         if self._first_frames and not self._only_first_frame:
             take_first_frames = random.choices(
-                [True, False], weights=[0.6, 0.40])
+                [True, False], weights=[0.5, 0.50])
 
         if not take_first_frames:
             if self.non_sequential and self._obs_T > 1:

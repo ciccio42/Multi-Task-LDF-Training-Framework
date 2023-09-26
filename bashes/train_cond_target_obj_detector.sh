@@ -2,7 +2,7 @@
 export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=3
 export HYDRA_FULL_ERROR=1
 
 
@@ -11,23 +11,23 @@ SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/
 POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
 
-SAVE_FREQ=1620
+SAVE_FREQ=4050
 LOG_FREQ=100
-VAL_FREQ=1620
+VAL_FREQ=4050
 PRINT_FREQ=100
 
-EXP_NAME=1Task-Pick-Place-Cond-Target-Obj-Detector-only-first-frame
-PROJECT_NAME="pick_place_cond_target_obj_detector_only_first_frame"
+EXP_NAME=1Task-Pick-Place-Cond-Target-Obj-Detector-random-frames
+PROJECT_NAME="pick_place_cond_target_obj_detector_random_frames"
 TASK_str=pick_place
 EPOCH=30 # start from 16
-BSIZE=80 #16 #32
+BSIZE=32 #16 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector.yaml
 LOADER_WORKERS=16
 BALANCING_POLICY=0
-SET_SAME_N=5
-OBS_T=0
+SET_SAME_N=2
+OBS_T=7
 
 EARLY_STOPPING_PATIECE=-1
 OPTIMIZER='AdamW'
@@ -35,14 +35,14 @@ LR=0.00001
 WEIGHT_DECAY=5
 SCHEDULER='ReduceLROnPlateau'
 FIRST_FRAMES=false
-ONLY_FIRST_FRAMES=true
+ONLY_FIRST_FRAMES=false
 ROLLOUT=false
 PERFORM_AUGS=true
-NON_SEQUENTIAL=false
+NON_SEQUENTIAL=true
 
 RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-Cond-Target-Obj-Detector-only-first-frame-Batch80
 RESUME_STEP=14580
-RESUME=true
+RESUME=false
 
 DROP_DIM=4      # 2    # 3
 OUT_FEATURE=128 # 512 # 256
