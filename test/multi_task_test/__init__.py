@@ -384,6 +384,30 @@ def prepare_obs(env, obs, views, task_name):
     return obs
 
 
+def adjust_bb(bb, crop_params=[20, 25, 80, 75]):
+
+    x1_old, y1_old, x2_old, y2_old = bb
+    x1_old = int(x1_old)
+    y1_old = int(y1_old)
+    x2_old = int(x2_old)
+    y2_old = int(y2_old)
+
+    top, left = crop_params[0], crop_params[2]
+    img_height, img_width = 200, 360
+    box_h, box_w = img_height - top - \
+        crop_params[1], img_width - left - crop_params[3]
+
+    # Modify bb based on computed resized-crop
+    # 1. Take into account crop and resize
+    x_scale = 180/box_w
+    y_scale = 100/box_h
+    x1 = int((x1_old/x_scale)+left)
+    x2 = int((x2_old/x_scale)+left)
+    y1 = int((y1_old/y_scale)+top)
+    y2 = int((y2_old/y_scale)+top)
+    return [x1, y1, x2, y2]
+
+
 def get_action(model, target_obj_dec, bb, states, images, context, gpu_id, n_steps, max_T=80, baseline=None, action_ranges=[], target_obj_embedding=None):
     s_t = torch.from_numpy(np.concatenate(states, 0).astype(np.float32))[None]
     if isinstance(images[-1], np.ndarray):
@@ -394,8 +418,10 @@ def get_action(model, target_obj_dec, bb, states, images, context, gpu_id, n_ste
     s_t, i_t = s_t.float().cuda(gpu_id), i_t.float().cuda(gpu_id)
 
     if bb is not None:
-        bb = torch.from_numpy(bb[0]).float().cuda(gpu_id)
-
+        if isinstance(bb[0], np.ndarray):
+            bb = torch.from_numpy(bb[0]).float().cuda(gpu_id)
+        else:
+            bb = bb[0][None]
     predicted_prob = None
 
     if baseline == 'daml':

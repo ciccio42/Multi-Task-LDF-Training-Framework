@@ -4,12 +4,13 @@ import numpy as np
 from multi_task_il.datasets import Trajectory
 import cv2
 from multi_task_il.utils import denormalize_action_vima
-from multi_task_test import make_prompt, prepare_obs
+from multi_task_test import make_prompt, prepare_obs, adjust_bb
 from einops import rearrange
 from multi_task_il.models.vima.utils import *
 import robosuite.utils.transform_utils as T
 from multi_task_test import ENV_OBJECTS, TASK_COMMAND, startup_env, get_action, object_detection_inference, check_pick, check_reach, get_gt_bb
 from multi_task_test.primitive import *
+from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
 
 
 def pick_place_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None, img_formatter=None, max_T=85, baseline=False, action_ranges=[]):
@@ -223,7 +224,7 @@ def pick_place_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None, 
     return traj, tasks
 
 
-def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None):
+def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None):
 
     start_up_env_return = \
         startup_env(model=model,
@@ -250,7 +251,7 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
     start_z = obs[obj_key][2]
 
     # Compute the target obj-slot
-    if target_obj_dec != None:
+    if object_detector != None:
         agent_target_obj_position = -1
         agent_target_obj_id = traj.get(0)['obs']['target-object']
         for id, obj_name in enumerate(ENV_OBJECTS['pick_place']['obj_names']):
@@ -292,6 +293,10 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
             bb_t, gt_t = get_gt_bb(traj=traj,
                                    obs=obs,
                                    task_name=task_name)
+            previous_predicted_bb = []
+            previous_predicted_bb.append(torch.tensor(
+                [.0, .0, .0, .0]).to(
+                device=gpu_id).float())
 
         # convert observation from BGR to RGB
         if config.augs.get("old_aug", True):
@@ -301,11 +306,45 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
             img_aug, bb_t_aug = img_formatter(
                 obs['camera_front_image'][:, :, ::-1], bb_t)
             images.append(img_aug[None])
-            bb.append(bb_t_aug[None][None])
+            # bb.append(bb_t_aug[None][None])
+
+        # Perform inference with object-detector
+        if object_detector is not None:
+            model_input = dict()
+            model_input['demo'] = context.to(device=gpu_id)
+            model_input['images'] = img_aug[None][None].to(device=gpu_id)
+            model_input['gt_bb'] = torch.from_numpy(
+                bb_t_aug[None][None]).float().to(device=gpu_id)
+            model_input['gt_classes'] = torch.from_numpy(
+                gt_t[None][None][None]).to(device=gpu_id)
+            model_input['states'] = torch.from_numpy(
+                np.array(states)).to(device=gpu_id)
+
+            prediction = object_detector(model_input,
+                                         inference=True)
+
+            # get predicted bb from prediction
+            # 1. Get the index with target class
+            target_indx_flags = prediction['classes_final'][0] == 1
+            # 2. Get the confidence scores for the target predictions and the the max
+            target_max_score_indx = torch.argmax(
+                prediction['conf_scores_final'][0][target_indx_flags])
+            max_score_target = prediction['conf_scores_final'][0][target_indx_flags][target_max_score_indx]
+            if max_score_target != -1:
+                scale_factor = object_detector.get_scale_factors()
+                predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
+                                              width_scale_factor=scale_factor[0],
+                                              height_scale_factor=scale_factor[1],
+                                              mode='a2p')[0][target_indx_flags][target_max_score_indx]
+                previous_predicted_bb[0] = predicted_bb
+                # replace bb
+                bb.append(predicted_bb[None][None].to(device=gpu_id))
+            else:
+                bb.append(previous_predicted_bb[None][None].to(device=gpu_id))
 
         action, target_pred, target_obj_emb, activation_map = get_action(
             model=model,
-            target_obj_dec=target_obj_dec,
+            target_obj_dec=None,
             states=states,
             bb=bb,
             images=images,
@@ -319,8 +358,18 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
         )
         try:
             obs, reward, env_done, info = env.step(action)
+            # adjust bb
+            adj_predicted_bb = adjust_bb(bb=predicted_bb,
+                                         crop_params=config.get('tasks_cfgs').get(task_name).get('crop'))
+            image = np.array(cv2.rectangle(
+                np.array(obs['camera_front_image'][:, :, ::-1]),
+                (int(adj_predicted_bb[0]),
+                 int(adj_predicted_bb[1])),
+                (int(adj_predicted_bb[2]),
+                 int(adj_predicted_bb[3])),
+                (0, 0, 255), 1))
             cv2.imwrite(
-                f"step_test.png", obs['camera_front_image'][:, :, ::-1])
+                f"step_test.png", image)
             if controller is not None and gt_env is not None:
                 gt_action, gt_status = controller.act(gt_obs)
                 gt_obs, gt_reward, gt_env_done, gt_info = gt_env.step(
@@ -329,15 +378,15 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
                     f"gt_step_test.png", gt_obs['camera_front_image'][:, :, ::-1])
         except:
             print("Exception during step")
-        if target_obj_dec is not None:
-            info['target_pred'] = target_pred
-            info['target_gt'] = agent_target_obj_position
-            if np.argmax(target_pred) == agent_target_obj_position:
-                avg_prediction += 1
+        # if target_obj_dec is not None:
+        #     info['target_pred'] = target_pred
+        #     info['target_gt'] = agent_target_obj_position
+        #     if np.argmax(target_pred) == agent_target_obj_position:
+        #         avg_prediction += 1
 
-        if activation_map is not None:
-            obs['activation_map'] = activation_map
-            cv2.imwrite("prova_activation_map.png", activation_map)
+        # if activation_map is not None:
+        #     obs['activation_map'] = activation_map
+        #     cv2.imwrite("prova_activation_map.png", activation_map)
 
         traj.append(obs, reward, done, info, action)
 
@@ -355,7 +404,7 @@ def pick_place_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, varia
     return traj, tasks
 
 
-def pick_place_eval(model, target_obj_dec, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None):
+def pick_place_eval(model, object_detector, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None):
 
     if "vima" in model_name:
         return pick_place_eval_vima(model=model,
@@ -428,7 +477,7 @@ def pick_place_eval(model, target_obj_dec, env, gt_env, context, gpu_id, variati
                 object_set=2)
 
         return pick_place_eval_demo_cond(model=model,
-                                         target_obj_dec=target_obj_dec,
+                                         object_detector=object_detector,
                                          env=env,
                                          gt_env=gt_env,
                                          controller=controller,

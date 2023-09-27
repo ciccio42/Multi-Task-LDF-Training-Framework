@@ -420,7 +420,7 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
     return traj, info, expert_traj, context
 
 
-def rollout_imitation(model, target_obj_dec, config, ctr,
+def rollout_imitation(model, object_detector, config, ctr,
                       heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None):
     if gpu_id == -1:
         gpu_id = int(ctr % torch.cuda.device_count())
@@ -429,8 +429,8 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
         model = model.cuda(gpu_id)
     except:
         print("Error")
-    if target_obj_dec is not None:
-        target_obj_dec = target_obj_dec.cuda(gpu_id)
+    if object_detector is not None:
+        object_detector = object_detector.cuda(gpu_id)
 
     if "vima" not in model_name:
         if "CondPolicy" not in model_name and config.augs.get("old_aug", True):
@@ -464,7 +464,7 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
         assert build_task, 'Got unsupported task '+env_name
         eval_fn = build_task['eval_fn']
         traj, info = eval_fn(model,
-                             target_obj_dec,
+                             object_detector,
                              env,
                              gt_env,
                              context,
@@ -516,7 +516,7 @@ def rollout_imitation(model, target_obj_dec, config, ctr,
         return traj, info
 
 
-def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, seed, n, gt_file):
+def _proc(model, object_detector, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, seed, n, gt_file):
     json_name = results_dir + '/traj{}.json'.format(n)
     pkl_name = results_dir + '/traj{}.pkl'.format(n)
     if os.path.exists(json_name) and os.path.exists(pkl_name):
@@ -527,7 +527,7 @@ def _proc(model, target_obj_dec, config, results_dir, heights, widths, size, sha
     else:
         if ("cond_target_obj_detector" not in model_name) or ("CondPolicy" in model_name):
             return_rollout = rollout_imitation(model,
-                                               target_obj_dec,
+                                               object_detector,
                                                config,
                                                n,
                                                heights,
@@ -750,17 +750,30 @@ if __name__ == '__main__':
     seed = args.seed
     max_T = 100
     # load target object detector
-    model_path = config.policy.get('target_obj_detector_path', None)
-    target_obj_dec = None
-    train_data_loader = None
-    if model_path is not None and config.policy.load_target_obj_detector:
-        # load config file
-        conf_file = OmegaConf.load(os.path.join(model_path, "config.yaml"))
-        target_obj_dec = hydra.utils.instantiate(conf_file.policy)
+    # model_path = config.policy.get('target_obj_detector_path', None)
+    # target_obj_dec = None
+    # train_data_loader = None
+    # if model_path is not None and config.policy.load_target_obj_detector:
+    #     # load config file
+    #     conf_file = OmegaConf.load(os.path.join(model_path, "config.yaml"))
+    #     target_obj_dec = hydra.utils.instantiate(conf_file.policy)
+    #     weights = torch.load(os.path.join(
+    #         model_path, f"model_save-{config.policy['target_obj_detector_step']}.pt"), map_location=torch.device('cpu'))
+    #     target_obj_dec.load_state_dict(weights)
+    #     target_obj_dec.eval()
+
+    # Load object detector
+    object_detector = None
+    if config.policy.get('concat_bb', False):
+        conf_file = OmegaConf.load(os.path.join(
+            config.policy.get('target_obj_detector_path', "/"), "config.yaml"))
+        object_detector = hydra.utils.instantiate(conf_file.policy)
         weights = torch.load(os.path.join(
-            model_path, f"model_save-{config.policy['target_obj_detector_step']}.pt"), map_location=torch.device('cpu'))
-        target_obj_dec.load_state_dict(weights)
-        target_obj_dec.eval()
+            os.path.join(config.policy.get('target_obj_detector_path', "/")),
+            f"model_save-{config.policy['target_obj_detector_step']}.pt"),
+            map_location=torch.device('cpu'))
+        object_detector.load_state_dict(weights)
+        object_detector.eval()
 
     dataset = None
     if args.test_gt:
@@ -780,7 +793,7 @@ if __name__ == '__main__':
     print(f"---- Testing model {model_name} ----")
     f = functools.partial(_proc,
                           model,
-                          target_obj_dec,
+                          object_detector,
                           config,
                           results_dir,
                           heights,
