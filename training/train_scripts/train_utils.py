@@ -566,6 +566,7 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
                 context_cp=model_inputs['demo_cp'],
                 states=model_inputs['states'],
                 bb=model_inputs['gt_bb'],
+                gt_classes=model_inputs['gt_classes'],
                 ret_dist=False,
                 actions=model_inputs['actions'])
         elif "CondPolicy" in config.policy._target_:

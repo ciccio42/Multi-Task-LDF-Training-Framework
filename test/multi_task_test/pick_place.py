@@ -336,11 +336,13 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
                                               width_scale_factor=scale_factor[0],
                                               height_scale_factor=scale_factor[1],
                                               mode='a2p')[0][target_indx_flags][target_max_score_indx]
-                previous_predicted_bb[0] = predicted_bb
+                previous_predicted_bb[0] = torch.round(predicted_bb).int()
                 # replace bb
-                bb.append(predicted_bb[None][None].to(device=gpu_id))
+                bb.append(torch.round(
+                    predicted_bb[None][None].to(device=gpu_id)).int())
             else:
-                bb.append(previous_predicted_bb[None][None].to(device=gpu_id))
+                bb.append(torch.round(previous_predicted_bb[None][None].to(
+                    device=gpu_id)).int())
 
         action, target_pred, target_obj_emb, activation_map = get_action(
             model=model,
@@ -358,6 +360,9 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
         )
         try:
             obs, reward, env_done, info = env.step(action)
+            obs['predicted_bb'] = torch.round(predicted_bb).cpu().numpy()
+            obs['predicted_score'] = max_score_target.cpu().numpy()
+            obs['gt_bb'] = bb_t
             # adjust bb
             adj_predicted_bb = adjust_bb(bb=predicted_bb,
                                          crop_params=config.get('tasks_cfgs').get(task_name).get('crop'))

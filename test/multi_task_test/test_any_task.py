@@ -748,7 +748,7 @@ if __name__ == '__main__':
     color = args.color
     variation = args.variation
     seed = args.seed
-    max_T = 100
+    max_T = 80
     # load target object detector
     # model_path = config.policy.get('target_obj_detector_path', None)
     # target_obj_dec = None

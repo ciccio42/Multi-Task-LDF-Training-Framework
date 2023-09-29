@@ -13,6 +13,7 @@ import os
 import hydra
 from omegaconf import DictConfig, OmegaConf
 from torchsummary import summary
+from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
 
 
 class _StackedAttnLayers(nn.Module):
@@ -384,6 +385,19 @@ class VideoImitation(nn.Module):
         if not load_target_obj_detector:
             self._embed = _TransformerFeatures(
                 latent_dim=latent_dim, demo_T=demo_T, dim_H=dim_H, dim_W=dim_W, **attn_cfg)
+
+            if self._concat_bb:
+                conf_file = OmegaConf.load(os.path.join(
+                    target_obj_detector_path, "config.yaml"))
+                self._object_detector = hydra.utils.instantiate(
+                    conf_file.policy)
+                weights = torch.load(os.path.join(
+                    target_obj_detector_path,
+                    f"model_save-{target_obj_detector_step}.pt"),
+                    map_location=torch.device('cpu'))
+                self._object_detector.load_state_dict(weights)
+                self._object_detector.to("cuda:0")
+                self._object_detector.eval()
         else:
             # load target object detector module
             conf_file = OmegaConf.load(os.path.join(
@@ -400,7 +414,6 @@ class VideoImitation(nn.Module):
             self._target_object_backbone = copy.deepcopy(self._embed)
             for param in self._target_object_backbone.parameters():
                 param.requires_grad = False
-
         if (not load_target_obj_detector or not freeze_target_obj_detector) and load_contrastive:
             self._target_embed = copy.deepcopy(self._embed)
             self._target_embed.load_state_dict(self._embed.state_dict())
@@ -633,6 +646,7 @@ class VideoImitation(nn.Module):
         images,
         context,
         bb=None,
+        gt_classes=None,
         states=None,
         ret_dist=True,
         eval=False,
@@ -663,13 +677,59 @@ class VideoImitation(nn.Module):
             target_obj_embedding = self._compute_target_obj_embedding(
                 target_obj_embedding_in)
 
+        if self._concat_bb:
+            # run inference for target object detector
+            model_input = dict()
+            model_input['demo'] = context
+            model_input['images'] = images
+            model_input['gt_bb'] = bb
+            model_input['gt_classes'] = gt_classes
+            prediction = self._object_detector(model_input,
+                                               inference=True)
+            if len(prediction['classes_final']) == B*obs_T:
+                predicted_bb_list = []
+                # check if there is a valid bounding box
+                # Project bb over image
+                # 1. Get the index with target class
+                for indx in range(len(prediction['classes_final'])):
+                    target_indx_flags = prediction['classes_final'][indx] == 1
+                    if torch.sum((target_indx_flags == True).int()) != 0:
+                        # 2. Get the confidence scores for the target predictions and the the max
+                        target_max_score_indx = torch.argmax(
+                            prediction['conf_scores_final'][indx][target_indx_flags])
+                        max_score_target = prediction['conf_scores_final'][indx][target_indx_flags][target_max_score_indx]
+                        # project bounding box
+                        scale_factor = self._object_detector.get_scale_factors()
+                        predicted_bb = project_bboxes(bboxes=prediction['proposals'][indx][None][None],
+                                                      width_scale_factor=scale_factor[0],
+                                                      height_scale_factor=scale_factor[1],
+                                                      mode='a2p')[0][target_indx_flags][target_max_score_indx]
+                        # cast predicted_bb to integer
+                        predicted_bb_list.append(
+                            torch.round(predicted_bb).int())
+                    else:
+                        print("No bb target for some frames")
+                        # Get index for target object
+                        predicted_bb_list.append(torch.zeros(4).to("cuda:0"))
+                predicted_bb = torch.stack(
+                    predicted_bb_list, dim=0)[:, None, :]
+                predicted_bb = rearrange(
+                    predicted_bb, "(B T) O D -> B T O D", B=B, T=obs_T)
+            else:
+                print("No bb for some frames")
+                # Get index for target object
+                target_index = gt_classes == 1
+                predicted_bb = bb[target_index, :]
+
         out = self.get_action(
             embed_out=embed_out,
             target_obj_embedding=target_obj_embedding,
-            bb=bb,
+            bb=predicted_bb,
             ret_dist=ret_dist,
             states=states,
             eval=eval)
+
+        out['target_obj_prediction'] = prediction
 
         if self._concat_target_obj_embedding:
             out["target_obj_embedding"] = target_obj_embedding
@@ -703,13 +763,13 @@ class VideoImitation(nn.Module):
         inv_in = torch.cat((img_embed[:, :-1], img_embed[:, 1:]), 2)
         if self.concat_demo_act:
             if self._concat_bb:
-                bb = rearrange(bb, 'B T O D -> B T (O D)')
+                predicted_bb = rearrange(predicted_bb, 'B T O D -> B T (O D)')
                 inv_in = torch.cat(
                     (
                         F.normalize(
-                            torch.cat((img_embed[:, :-1], demo_embed[:, :-1], bb[:, :-1]), dim=2), dim=2),
+                            torch.cat((img_embed[:, :-1], demo_embed[:, :-1], predicted_bb[:, :-1]), dim=2), dim=2),
                         F.normalize(
-                            torch.cat((img_embed[:,  1:], demo_embed[:, :-1], bb[:, 1:]), dim=2), dim=2),
+                            torch.cat((img_embed[:,  1:], demo_embed[:, :-1], predicted_bb[:, 1:]), dim=2), dim=2),
                     ),
                     dim=2)
             elif self._concat_target_obj_embedding:

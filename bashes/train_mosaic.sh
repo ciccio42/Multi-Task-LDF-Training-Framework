@@ -9,20 +9,20 @@ EXPERT_DATA=/raid/home/frosa_Loc/ur_multitask_dataset
 SAVE_PATH=/raid/home/frosa_Loc/checkpoint_save_folder
 POLICY='${mosaic}'
 
-SAVE_FREQ=2700
+SAVE_FREQ=4050
 LOG_FREQ=100
-VAL_FREQ=2700
+VAL_FREQ=4050
 
-EXP_NAME=1Task-Nut-Assembly-100-180-BB
-PROJECT_NAME="ur_nut_assembly_100_180_bb"
-TASK_str=nut_assembly
+EXP_NAME=1Task-Pick-Place-100-180-BB-inference
+PROJECT_NAME=${EXP_NAME}
+TASK_str=pick_place
 ROLLOUT=false
 EPOCH=40
-BSIZE=27 #32 #128 #64 #32
+BSIZE=32 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=3
+SET_SAME_N=2
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
 LOADER_WORKERS=16
@@ -36,8 +36,8 @@ BC_MUL=1.0
 INV_MUL=1.0
 
 LOAD_TARGET_OBJ_DETECTOR=false
-TARGET_OBJ_DETECTOR_STEP=13000
-TARGET_OBJ_DETECTOR_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur-baseline/1Task-Pick-Place-Mosaic-200-360-Target-Obj-Detector-Batch32-1gpu-Attn2ly128-Act2ly256mix4-headCat
+TARGET_OBJ_DETECTOR_STEP=68850
+TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-Cond-Target-Obj-Detector-random-frames-Batch32/
 FREEZE_TARGET_OBJ_DETECTOR=false
 REMOVE_CLASS_LAYERS=false
 CONCAT_TARGET_OBJ_EMBEDDING=false
@@ -70,7 +70,7 @@ WIDTH=180
 
 RESUME_PATH=/raid/home/frosa_Loc/checkpoint_save_folder/1Task-Nut-Assembly-100-180-BB-Batch27
 RESUME_STEP=32400
-RESUME=true
+RESUME=false
 
 COSINE_ANNEALING=false
 

@@ -637,7 +637,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
             target_indx_flags = prediction['classes_final'][0] == 1
             # 2. Get the confidence scores for the target predictions and the the max
             target_max_score_indx = prediction['conf_scores_final'][0][target_indx_flags]
-            max_score_target = prediction['conf_scores_final'][0][target_indx_flags][:1]
+            max_score_target = prediction['conf_scores_final'][0][target_indx_flags][target_max_score_indx]
 
             if max_score_target.shape[0] != 0:
                 if perform_augs:
@@ -647,7 +647,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                     predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
                                                   width_scale_factor=scale_factor[0],
                                                   height_scale_factor=scale_factor[1],
-                                                  mode='a2p')[0][target_indx_flags][:1]
+                                                  mode='a2p')[0][target_indx_flags][target_max_score_indx]
                 else:
                     image = formatted_img.cpu().numpy()
                     predicted_bb = prediction['proposals'][0]
