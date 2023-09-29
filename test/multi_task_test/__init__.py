@@ -408,7 +408,7 @@ def adjust_bb(bb, crop_params=[20, 25, 80, 75]):
     return [x1, y1, x2, y2]
 
 
-def get_action(model, target_obj_dec, bb, states, images, context, gpu_id, n_steps, max_T=80, baseline=None, action_ranges=[], target_obj_embedding=None):
+def get_action(model, target_obj_dec, bb, gt_classes, states, images, context, gpu_id, n_steps, max_T=80, baseline=None, action_ranges=[], target_obj_embedding=None):
     s_t = torch.from_numpy(np.concatenate(states, 0).astype(np.float32))[None]
     if isinstance(images[-1], np.ndarray):
         i_t = torch.from_numpy(np.concatenate(
@@ -439,6 +439,7 @@ def get_action(model, target_obj_dec, bb, states, images, context, gpu_id, n_ste
                         images=i_t,
                         context=context,
                         bb=bb,
+                        gt_classes=gt_classes,
                         eval=True,
                         target_obj_embedding=target_obj_embedding,
                         compute_activation_map=True)  # to avoid computing ATC loss
@@ -457,7 +458,7 @@ def get_action(model, target_obj_dec, bb, states, images, context, gpu_id, n_ste
     # action[3:7] = [1.0, 1.0, 0.0, 0.0]
     action = denormalize_action(action, action_ranges)
     action[-1] = 1 if action[-1] > 0 and n_steps < max_T - 1 else -1
-    return action, predicted_prob, target_obj_embedding, out.get('activation_map', None)
+    return action, predicted_prob, target_obj_embedding, out.get('activation_map', None), out.get('target_obj_prediction', None), out.get('predicted_bb', None)
 
 
 def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None, bb_flag=False):

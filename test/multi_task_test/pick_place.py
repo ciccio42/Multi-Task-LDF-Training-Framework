@@ -306,10 +306,12 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
             img_aug, bb_t_aug = img_formatter(
                 obs['camera_front_image'][:, :, ::-1], bb_t)
             images.append(img_aug[None])
-            # bb.append(bb_t_aug[None][None])
+            bb.append(bb_t_aug[None][None])
+            gt_classes.append(torch.from_numpy(
+                gt_t[None][None][None]).to(device=gpu_id))
 
         # Perform inference with object-detector
-        if object_detector is not None:
+        if object_detector is not None and model._object_detector is None:
             model_input = dict()
             model_input['demo'] = context.to(device=gpu_id)
             model_input['images'] = img_aug[None][None].to(device=gpu_id)
@@ -323,6 +325,23 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
             prediction = object_detector(model_input,
                                          inference=True)
 
+        action, target_pred, target_obj_emb, activation_map, prediction, predicted_bb = get_action(
+            model=model,
+            target_obj_dec=None,
+            states=states,
+            bb=bb,
+            gt_classes=gt_classes[0],
+            images=images,
+            context=context,
+            gpu_id=gpu_id,
+            n_steps=n_steps,
+            max_T=max_T,
+            baseline=baseline,
+            action_ranges=action_ranges,
+            target_obj_embedding=target_obj_emb
+        )
+        try:
+            obs, reward, env_done, info = env.step(action)
             # get predicted bb from prediction
             # 1. Get the index with target class
             target_indx_flags = prediction['classes_final'][0] == 1
@@ -344,22 +363,6 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
                 bb.append(torch.round(previous_predicted_bb[None][None].to(
                     device=gpu_id)).int())
 
-        action, target_pred, target_obj_emb, activation_map = get_action(
-            model=model,
-            target_obj_dec=None,
-            states=states,
-            bb=bb,
-            images=images,
-            context=context,
-            gpu_id=gpu_id,
-            n_steps=n_steps,
-            max_T=max_T,
-            baseline=baseline,
-            action_ranges=action_ranges,
-            target_obj_embedding=target_obj_emb
-        )
-        try:
-            obs, reward, env_done, info = env.step(action)
             obs['predicted_bb'] = torch.round(predicted_bb).cpu().numpy()
             obs['predicted_score'] = max_score_target.cpu().numpy()
             obs['gt_bb'] = bb_t
