@@ -345,26 +345,28 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
             # get predicted bb from prediction
             # 1. Get the index with target class
             target_indx_flags = prediction['classes_final'][0] == 1
-            # 2. Get the confidence scores for the target predictions and the the max
-            target_max_score_indx = torch.argmax(
-                prediction['conf_scores_final'][0][target_indx_flags])
-            max_score_target = prediction['conf_scores_final'][0][target_indx_flags][target_max_score_indx]
-            if max_score_target != -1:
-                scale_factor = object_detector.get_scale_factors()
-                predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
-                                              width_scale_factor=scale_factor[0],
-                                              height_scale_factor=scale_factor[1],
-                                              mode='a2p')[0][target_indx_flags][target_max_score_indx]
-                previous_predicted_bb[0] = torch.round(predicted_bb).int()
-                # replace bb
-                bb.append(torch.round(
-                    predicted_bb[None][None].to(device=gpu_id)).int())
-            else:
-                bb.append(torch.round(previous_predicted_bb[None][None].to(
-                    device=gpu_id)).int())
+            if torch.sum((target_indx_flags == True).int()) != 0:
+                # 2. Get the confidence scores for the target predictions and the the max
+                target_max_score_indx = torch.argmax(
+                    prediction['conf_scores_final'][0][target_indx_flags])
+                max_score_target = prediction['conf_scores_final'][0][target_indx_flags][target_max_score_indx]
+                if max_score_target != -1:
+                    scale_factor = object_detector.get_scale_factors()
+                    predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
+                                                  width_scale_factor=scale_factor[0],
+                                                  height_scale_factor=scale_factor[1],
+                                                  mode='a2p')[0][target_indx_flags][target_max_score_indx]
+                    previous_predicted_bb[0] = torch.round(predicted_bb).int()
+                    # replace bb
+                    bb.append(torch.round(
+                        predicted_bb[None][None].to(device=gpu_id)).int())
+                else:
+                    bb.append(torch.round(previous_predicted_bb[None][None].to(
+                        device=gpu_id)).int())
 
-            obs['predicted_bb'] = torch.round(predicted_bb).cpu().numpy()
-            obs['predicted_score'] = max_score_target.cpu().numpy()
+                obs['predicted_bb'] = torch.round(predicted_bb).cpu().numpy()
+                obs['predicted_score'] = max_score_target.cpu().numpy()
+
             obs['gt_bb'] = bb_t
             # adjust bb
             adj_predicted_bb = adjust_bb(bb=predicted_bb,
