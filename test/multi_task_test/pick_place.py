@@ -306,9 +306,10 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
             img_aug, bb_t_aug = img_formatter(
                 obs['camera_front_image'][:, :, ::-1], bb_t)
             images.append(img_aug[None])
-            bb.append(bb_t_aug[None][None])
-            gt_classes.append(torch.from_numpy(
-                gt_t[None][None][None]).to(device=gpu_id))
+            if model._object_detector is not None:
+                bb.append(bb_t_aug[None][None])
+                gt_classes.append(torch.from_numpy(
+                    gt_t[None][None][None]).to(device=gpu_id))
 
         # Perform inference with object-detector
         if object_detector is not None and model._object_detector is None:
@@ -322,10 +323,37 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
             model_input['states'] = torch.from_numpy(
                 np.array(states)).to(device=gpu_id)
 
-            prediction = object_detector(model_input,
-                                         inference=True)
+            prediction_external_obj = object_detector(model_input,
+                                                      inference=True)
+            # 1. Get the index with target class
+            target_indx_flags = prediction_external_obj['classes_final'][0] == 1
+            if torch.sum((target_indx_flags == True).int()) != 0:
+                # 2. Get the confidence scores for the target predictions and the the max
+                target_max_score_indx = torch.argmax(
+                    prediction_external_obj['conf_scores_final'][0][target_indx_flags])
+                max_score_target = prediction_external_obj['conf_scores_final'][
+                    0][target_indx_flags][target_max_score_indx]
+                if max_score_target != -1:
+                    scale_factor = object_detector.get_scale_factors()
+                    predicted_bb = project_bboxes(bboxes=prediction_external_obj['proposals'][0][None][None],
+                                                  width_scale_factor=scale_factor[0],
+                                                  height_scale_factor=scale_factor[1],
+                                                  mode='a2p')[0][target_indx_flags][target_max_score_indx]
+                    previous_predicted_bb[0] = torch.round(predicted_bb).int()
+                    # replace bb
+                    bb.append(torch.round(
+                        predicted_bb[None][None].to(device=gpu_id)).int())
+                else:
+                    bb.append(torch.round(previous_predicted_bb[0][None][None].to(
+                        device=gpu_id)).int())
+            else:
+                bb.append(torch.round(previous_predicted_bb[0][None][None].to(
+                    device=gpu_id)).int())
 
-        action, target_pred, target_obj_emb, activation_map, prediction, predicted_bb = get_action(
+            gt_classes.append(torch.from_numpy(
+                np.array([1])[None][None]).to(device=gpu_id))
+
+        action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
             model=model,
             target_obj_dec=None,
             states=states,
@@ -340,6 +368,12 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
             action_ranges=action_ranges,
             target_obj_embedding=target_obj_emb
         )
+
+        if model._object_detector is None:
+            prediction = prediction_external_obj
+        elif model._object_detector is not None:
+            prediction = prediction_internal_obj
+
         try:
             obs, reward, env_done, info = env.step(action)
             # get predicted bb from prediction
@@ -367,17 +401,20 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
                 obs['predicted_bb'] = torch.round(predicted_bb).cpu().numpy()
                 obs['predicted_score'] = max_score_target.cpu().numpy()
 
-            obs['gt_bb'] = bb_t
-            # adjust bb
-            adj_predicted_bb = adjust_bb(bb=predicted_bb,
-                                         crop_params=config.get('tasks_cfgs').get(task_name).get('crop'))
-            image = np.array(cv2.rectangle(
-                np.array(obs['camera_front_image'][:, :, ::-1]),
-                (int(adj_predicted_bb[0]),
-                 int(adj_predicted_bb[1])),
-                (int(adj_predicted_bb[2]),
-                 int(adj_predicted_bb[3])),
-                (0, 0, 255), 1))
+                obs['gt_bb'] = bb_t
+                # adjust bb
+                adj_predicted_bb = adjust_bb(bb=predicted_bb,
+                                             crop_params=config.get('tasks_cfgs').get(task_name).get('crop'))
+                image = np.array(cv2.rectangle(
+                    np.array(obs['camera_front_image'][:, :, ::-1]),
+                    (int(adj_predicted_bb[0]),
+                     int(adj_predicted_bb[1])),
+                    (int(adj_predicted_bb[2]),
+                     int(adj_predicted_bb[3])),
+                    (0, 0, 255), 1))
+            else:
+                obs['gt_bb'] = bb_t
+                image = np.array(obs['camera_front_image'][:, :, ::-1])
             cv2.imwrite(
                 f"step_test.png", image)
             if controller is not None and gt_env is not None:
@@ -386,8 +423,8 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
                     gt_action)
                 cv2.imwrite(
                     f"gt_step_test.png", gt_obs['camera_front_image'][:, :, ::-1])
-        except:
-            print("Exception during step")
+        except Exception as e:
+            print(f"Exception during step {e}")
         # if target_obj_dec is not None:
         #     info['target_pred'] = target_pred
         #     info['target_gt'] = agent_target_obj_position

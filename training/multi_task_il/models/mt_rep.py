@@ -382,39 +382,41 @@ class VideoImitation(nn.Module):
         super().__init__()
         self._remove_class_layers = remove_class_layers
         self._concat_bb = concat_bb
-        if not load_target_obj_detector:
-            self._embed = _TransformerFeatures(
-                latent_dim=latent_dim, demo_T=demo_T, dim_H=dim_H, dim_W=dim_W, **attn_cfg)
+        self._embed = _TransformerFeatures(
+            latent_dim=latent_dim, demo_T=demo_T, dim_H=dim_H, dim_W=dim_W, **attn_cfg)
 
-            if self._concat_bb:
-                conf_file = OmegaConf.load(os.path.join(
-                    target_obj_detector_path, "config.yaml"))
-                self._object_detector = hydra.utils.instantiate(
-                    conf_file.policy)
-                weights = torch.load(os.path.join(
-                    target_obj_detector_path,
-                    f"model_save-{target_obj_detector_step}.pt"),
-                    map_location=torch.device('cpu'))
-                self._object_detector.load_state_dict(weights)
-                self._object_detector.to("cuda:0")
-                self._object_detector.eval()
-        else:
-            # load target object detector module
+        self._object_detector = None
+        if load_target_obj_detector:
             conf_file = OmegaConf.load(os.path.join(
                 target_obj_detector_path, "config.yaml"))
-            self._embed, self._obj_classifier, self._target_obj_embedding = self._load_model(
-                model_path=target_obj_detector_path,
-                step=target_obj_detector_step,
-                conf_file=conf_file,
-                freeze=freeze_target_obj_detector,
-                remove_class_layers=remove_class_layers)
+            self._object_detector = hydra.utils.instantiate(
+                conf_file.policy)
+            weights = torch.load(os.path.join(
+                target_obj_detector_path,
+                f"model_save-{target_obj_detector_step}.pt"),
+                map_location=torch.device('cpu'))
+            self._object_detector.load_state_dict(weights)
+            self._object_detector.to("cuda:0")
+            self._object_detector.eval()
 
-        self._target_object_backbone = None
-        if not freeze_target_obj_detector and load_target_obj_detector:
-            self._target_object_backbone = copy.deepcopy(self._embed)
-            for param in self._target_object_backbone.parameters():
-                param.requires_grad = False
-        if (not load_target_obj_detector or not freeze_target_obj_detector) and load_contrastive:
+        # else:
+        #     # load target object detector module
+        #     conf_file = OmegaConf.load(os.path.join(
+        #         target_obj_detector_path, "config.yaml"))
+        #     self._embed, self._obj_classifier, self._target_obj_embedding = self._load_model(
+        #         model_path=target_obj_detector_path,
+        #         step=target_obj_detector_step,
+        #         conf_file=conf_file,
+        #         freeze=freeze_target_obj_detector,
+        #         remove_class_layers=remove_class_layers)
+
+        # self._target_object_backbone = None
+        # if not freeze_target_obj_detector and load_target_obj_detector:
+        #     self._target_object_backbone = copy.deepcopy(self._embed)
+        #     for param in self._target_object_backbone.parameters():
+        #         param.requires_grad = False
+        # (not load_target_obj_detector or not freeze_target_obj_detector) and load_contrastive:
+        if load_contrastive:
             self._target_embed = copy.deepcopy(self._embed)
             self._target_embed.load_state_dict(self._embed.state_dict())
             for p in self._target_embed.parameters():
@@ -465,13 +467,13 @@ class VideoImitation(nn.Module):
             concat_demo_act, concat_demo_head))
 
         # NOTE(Mandi): reduced input dimension size  from previous version! hence maybe try widen/add more action layers
-        if load_target_obj_detector and concat_target_obj_embedding:
-            target_obj_embedding_dim = self._target_obj_embedding._modules['2'].out_features
-            ac_in_dim = int(latent_dim + float(concat_target_obj_embedding) * target_obj_embedding_dim +
-                            float(concat_demo_act) * latent_dim + float(concat_state) * sdim)
-        else:
-            ac_in_dim = int(latent_dim + float(concat_demo_act)
-                            * latent_dim + float(concat_bb) * 4 + float(concat_state) * sdim)
+        # if load_target_obj_detector and concat_target_obj_embedding:
+        #     target_obj_embedding_dim = self._target_obj_embedding._modules['2'].out_features
+        #     ac_in_dim = int(latent_dim + float(concat_target_obj_embedding) * target_obj_embedding_dim +
+        #                     float(concat_demo_act) * latent_dim + float(concat_state) * sdim)
+        # else:
+        ac_in_dim = int(latent_dim + float(concat_demo_act)
+                        * latent_dim + float(concat_bb) * 4 + float(concat_state) * sdim)
 
         inv_input_dim = int(2*ac_in_dim)
 
@@ -663,21 +665,21 @@ class VideoImitation(nn.Module):
         embed_out = self._embed(
             images, context, compute_activation_map=compute_activation_map)
 
-        if self._target_object_backbone is not None and not self._freeze_target_obj_detector and target_obj_embedding is None:
-            # compute the embedding for the first frame
-            first_frame_batch = images[:, 0, :, :, :]
-            first_frame_batch = first_frame_batch[:, None, :, :, :]
-            target_obj_embedding_in = self._target_object_backbone(
-                first_frame_batch, context)
-        else:
-            target_obj_embedding_in = embed_out
+        # if self._target_object_backbone is not None and not self._freeze_target_obj_detector and target_obj_embedding is None:
+        #     # compute the embedding for the first frame
+        #     first_frame_batch = images[:, 0, :, :, :]
+        #     first_frame_batch = first_frame_batch[:, None, :, :, :]
+        #     target_obj_embedding_in = self._target_object_backbone(
+        #         first_frame_batch, context)
+        # else:
+        #     target_obj_embedding_in = embed_out
 
-        if self._concat_target_obj_embedding and target_obj_embedding is None:
-            # compute the target obj embedding, given the input from the first frame
-            target_obj_embedding = self._compute_target_obj_embedding(
-                target_obj_embedding_in)
+        # if self._concat_target_obj_embedding and target_obj_embedding is None:
+        #     # compute the target obj embedding, given the input from the first frame
+        #     target_obj_embedding = self._compute_target_obj_embedding(
+        #         target_obj_embedding_in)
 
-        if self._concat_bb:
+        if self._concat_bb and self._object_detector is not None:
             # run inference for target object detector
             model_input = dict()
             model_input['demo'] = context
@@ -721,6 +723,9 @@ class VideoImitation(nn.Module):
                 target_index = gt_classes == 1
                 predicted_bb = bb[target_index, :]
 
+        elif self._concat_bb and self._object_detector is None:
+            predicted_bb = bb
+
         out = self.get_action(
             embed_out=embed_out,
             target_obj_embedding=target_obj_embedding,
@@ -729,8 +734,9 @@ class VideoImitation(nn.Module):
             states=states,
             eval=eval)
 
-        out['target_obj_prediction'] = prediction
-        out['predicted_bb'] = predicted_bb
+        if self._object_detector is not None:
+            out['target_obj_prediction'] = prediction
+            out['predicted_bb'] = predicted_bb
 
         if self._concat_target_obj_embedding:
             out["target_obj_embedding"] = target_obj_embedding
@@ -738,7 +744,8 @@ class VideoImitation(nn.Module):
         if eval:
             return out  # NOTE: early return here to do less computation during test time
 
-        if (not self._load_target_obj_detector or not self._freeze_target_obj_detector) and self._load_contrastive:
+        # if (not self._load_target_obj_detector or not self._freeze_target_obj_detector) and self._load_contrastive:
+        if self._load_contrastive:
             # run frozen transformer on augmented images
             embed_out_target = self._target_embed(images_cp, context_cp)
 
@@ -753,12 +760,12 @@ class VideoImitation(nn.Module):
                 out[k] = v
 
         # run inverse model
-        if self._concat_target_obj_embedding:
-            # both are (B ob_T d)
-            demo_embed, img_embed = out['demo_embed'], embed_out['img_embed'][:, 1:, :]
-            states = states[:, 1:, :]
-        else:
-            demo_embed, img_embed = out['demo_embed'], embed_out['img_embed']
+        # if self._concat_target_obj_embedding:
+        #     # both are (B ob_T d)
+        #     demo_embed, img_embed = out['demo_embed'], embed_out['img_embed'][:, 1:, :]
+        #     states = states[:, 1:, :]
+        # else:
+        demo_embed, img_embed = out['demo_embed'], embed_out['img_embed']
 
         # B, T_im-1, d * 2
         inv_in = torch.cat((img_embed[:, :-1], img_embed[:, 1:]), 2)
@@ -773,17 +780,17 @@ class VideoImitation(nn.Module):
                             torch.cat((img_embed[:,  1:], demo_embed[:, :-1], predicted_bb[:, 1:]), dim=2), dim=2),
                     ),
                     dim=2)
-            elif self._concat_target_obj_embedding:
-                target_obj_embedding_inv = target_obj_embedding.repeat(
-                    1, inv_in.size(dim=1), 1)
-                inv_in = torch.cat(
-                    (
-                        F.normalize(torch.cat(
-                            (img_embed[:, :-1], demo_embed[:, :-1], target_obj_embedding_inv), dim=2), dim=2),
-                        F.normalize(torch.cat(
-                            (img_embed[:,  1:], demo_embed[:, :-1], target_obj_embedding_inv), dim=2), dim=2),
-                    ),
-                    dim=2)
+            # elif self._concat_target_obj_embedding:
+            #     target_obj_embedding_inv = target_obj_embedding.repeat(
+            #         1, inv_in.size(dim=1), 1)
+            #     inv_in = torch.cat(
+            #         (
+            #             F.normalize(torch.cat(
+            #                 (img_embed[:, :-1], demo_embed[:, :-1], target_obj_embedding_inv), dim=2), dim=2),
+            #             F.normalize(torch.cat(
+            #                 (img_embed[:,  1:], demo_embed[:, :-1], target_obj_embedding_inv), dim=2), dim=2),
+            #         ),
+            #         dim=2)
             else:
                 inv_in = torch.cat(
                     (

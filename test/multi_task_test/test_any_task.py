@@ -393,9 +393,8 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
     assert build_task, 'Got unsupported task '+env_name
     eval_fn = build_task['eval_fn']
     target_obj_dec = None
-
     traj, info = eval_fn(model=model,
-                         target_obj_dec=target_obj_dec,
+                         object_detector=target_obj_dec,
                          env=env,
                          gt_env=None,
                          context=context,
@@ -463,6 +462,7 @@ def rollout_imitation(model, object_detector, config, ctr,
         build_task = TASK_MAP.get(env_name, None)
         assert build_task, 'Got unsupported task '+env_name
         eval_fn = build_task['eval_fn']
+
         traj, info = eval_fn(model,
                              object_detector,
                              env,

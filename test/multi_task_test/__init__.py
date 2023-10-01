@@ -636,11 +636,12 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
             # Project bb over image
             # 1. Get the index with target class
             target_indx_flags = prediction['classes_final'][0] == 1
-            # 2. Get the confidence scores for the target predictions and the the max
-            target_max_score_indx = prediction['conf_scores_final'][0][target_indx_flags]
-            max_score_target = prediction['conf_scores_final'][0][target_indx_flags][target_max_score_indx]
 
-            if max_score_target.shape[0] != 0:
+            if torch.sum((target_indx_flags == True).int()) != 0:
+                # 2. Get the confidence scores for the target predictions and the the max
+                target_max_score_indx = torch.argmax(
+                    prediction['conf_scores_final'][0][target_indx_flags])
+                max_score_target = prediction['conf_scores_final'][0][target_indx_flags][target_max_score_indx][None]
                 if perform_augs:
                     scale_factor = model.get_scale_factors()
                     image = np.array(np.moveaxis(
@@ -648,7 +649,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                     predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
                                                   width_scale_factor=scale_factor[0],
                                                   height_scale_factor=scale_factor[1],
-                                                  mode='a2p')[0][target_indx_flags][target_max_score_indx]
+                                                  mode='a2p')[0][target_indx_flags][target_max_score_indx][None]
                 else:
                     image = formatted_img.cpu().numpy()
                     predicted_bb = prediction['proposals'][0]
@@ -729,6 +730,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                 f"step_test.png", obs['camera_front_image'][:, :, ::-1])
 
             n_steps += 1
+            tasks['success'] = reward or tasks['success']
             if n_steps >= max_T or env_done or reward:
                 done = True
 
