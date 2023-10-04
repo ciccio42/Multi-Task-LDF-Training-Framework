@@ -2,27 +2,27 @@
 export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=2
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/ur_multitask_dataset
 SAVE_PATH=/raid/home/frosa_Loc/checkpoint_save_folder
 POLICY='${mosaic}'
 
-SAVE_FREQ=4050
+SAVE_FREQ=2700
 LOG_FREQ=100
-VAL_FREQ=4050
+VAL_FREQ=2700
 
-EXP_NAME=1Task-Pick-Place-100-180-BB-inference
+EXP_NAME=1Task-Nut-Assembly-100-180-GT-BB
 PROJECT_NAME=${EXP_NAME}
-TASK_str=pick_place
+TASK_str=nut_assembly
 ROLLOUT=false
 EPOCH=40
-BSIZE=32 #32 #128 #64 #32
+BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=2
+SET_SAME_N=3
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
 LOADER_WORKERS=16
@@ -68,8 +68,8 @@ DIM_W=12 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 HEIGHT=100
 WIDTH=180
 
-RESUME_PATH=/raid/home/frosa_Loc/checkpoint_save_folder/1Task-Nut-Assembly-100-180-BB-Batch27
-RESUME_STEP=32400
+RESUME_PATH=/raid/home/frosa_Loc/checkpoint_save_folder/1Task-Pick-Place-100-180-BB-inference-Batch32
+RESUME_STEP=101250
 RESUME=false
 
 COSINE_ANNEALING=false

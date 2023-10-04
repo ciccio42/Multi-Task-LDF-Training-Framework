@@ -461,6 +461,8 @@ def create_gt_bb(dataset_loader, traj, t, task_name):
 
     if task_name == 'pick_place':
         num_objects = 3
+    elif task_name == 'nut_assembly':
+        num_objects = 2
 
     # select randomly another object
     no_target_obj_id = target_obj_id

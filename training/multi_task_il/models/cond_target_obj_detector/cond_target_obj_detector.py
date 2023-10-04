@@ -376,8 +376,9 @@ class AgentModule(nn.Module):
             self.height_scale_factor = self.img_height // self.out_h
 
             # scales and ratios for anchor boxes
-            self.anc_scales = [1.5, 2.0]  # [0.5, 1]
-            self.anc_ratios = [0.8, 1, 1.2]  # [0.5, 1, 1.5] #height/width
+            self.anc_scales = [1.0, 1.5, 2.0, 3.0, 4.0]  # [0.5, 1]
+            # [0.5, 1, 1.5] #height/width
+            self.anc_ratios = [0.2, 0.5, 0.8, 1, 1.2, 1.5, 2.0]
             self.n_anc_boxes = len(self.anc_scales) * len(self.anc_ratios)
 
             # IoU thresholds for +ve and -ve anchors

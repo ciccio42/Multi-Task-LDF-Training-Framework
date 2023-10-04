@@ -724,6 +724,11 @@ class VideoImitation(nn.Module):
                 predicted_bb = bb[target_index, :]
 
         elif self._concat_bb and self._object_detector is None:
+            # get the target object
+            B, T, O, D = bb.shape
+            if O != 1:
+                target_flag = torch.where(gt_classes == 1)
+                bb = torch.select(bb, 2, target_flag)
             predicted_bb = bb
 
         out = self.get_action(

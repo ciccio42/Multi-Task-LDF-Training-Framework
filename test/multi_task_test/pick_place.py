@@ -224,7 +224,7 @@ def pick_place_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None, 
     return traj, tasks
 
 
-def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None):
+def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, prediction_with_gt_bb=False):
 
     start_up_env_return = \
         startup_env(model=model,
@@ -306,13 +306,13 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
             img_aug, bb_t_aug = img_formatter(
                 obs['camera_front_image'][:, :, ::-1], bb_t)
             images.append(img_aug[None])
-            if model._object_detector is not None:
+            if model._object_detector is not None or prediction_with_gt_bb:
                 bb.append(bb_t_aug[None][None])
                 gt_classes.append(torch.from_numpy(
                     gt_t[None][None][None]).to(device=gpu_id))
 
         # Perform inference with object-detector
-        if object_detector is not None and model._object_detector is None:
+        if object_detector is not None and model._object_detector is None and not prediction_with_gt_bb:
             model_input = dict()
             model_input['demo'] = context.to(device=gpu_id)
             model_input['images'] = img_aug[None][None].to(device=gpu_id)
@@ -369,41 +369,59 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
             target_obj_embedding=target_obj_emb
         )
 
-        if model._object_detector is None:
+        if model._object_detector is None and not prediction_with_gt_bb:
             prediction = prediction_external_obj
-        elif model._object_detector is not None:
+        elif model._object_detector is not None and not prediction_with_gt_bb:
             prediction = prediction_internal_obj
 
         try:
             obs, reward, env_done, info = env.step(action)
-            # get predicted bb from prediction
-            # 1. Get the index with target class
-            target_indx_flags = prediction['classes_final'][0] == 1
-            if torch.sum((target_indx_flags == True).int()) != 0:
-                # 2. Get the confidence scores for the target predictions and the the max
-                target_max_score_indx = torch.argmax(
-                    prediction['conf_scores_final'][0][target_indx_flags])
-                max_score_target = prediction['conf_scores_final'][0][target_indx_flags][target_max_score_indx]
-                if max_score_target != -1:
-                    scale_factor = object_detector.get_scale_factors()
-                    predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
-                                                  width_scale_factor=scale_factor[0],
-                                                  height_scale_factor=scale_factor[1],
-                                                  mode='a2p')[0][target_indx_flags][target_max_score_indx]
-                    previous_predicted_bb[0] = torch.round(predicted_bb).int()
-                    # replace bb
-                    bb.append(torch.round(
-                        predicted_bb[None][None].to(device=gpu_id)).int())
+            if not prediction_with_gt_bb:
+                # get predicted bb from prediction
+                # 1. Get the index with target class
+                target_indx_flags = prediction['classes_final'][0] == 1
+                if torch.sum((target_indx_flags == True).int()) != 0:
+                    # 2. Get the confidence scores for the target predictions and the the max
+                    target_max_score_indx = torch.argmax(
+                        prediction['conf_scores_final'][0][target_indx_flags])
+                    max_score_target = prediction['conf_scores_final'][0][target_indx_flags][target_max_score_indx]
+                    if max_score_target != -1:
+                        scale_factor = object_detector.get_scale_factors()
+                        predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
+                                                      width_scale_factor=scale_factor[0],
+                                                      height_scale_factor=scale_factor[1],
+                                                      mode='a2p')[0][target_indx_flags][target_max_score_indx]
+                        previous_predicted_bb[0] = torch.round(
+                            predicted_bb).int()
+                        # replace bb
+                        bb.append(torch.round(
+                            predicted_bb[None][None].to(device=gpu_id)).int())
+                    else:
+                        bb.append(torch.round(previous_predicted_bb[None][None].to(
+                            device=gpu_id)).int())
+
+                    obs['predicted_bb'] = torch.round(
+                        predicted_bb).cpu().numpy()
+                    obs['predicted_score'] = max_score_target.cpu().numpy()
+                    obs['gt_bb'] = bb_t_aug
+                    # adjust bb
+                    adj_predicted_bb = adjust_bb(bb=predicted_bb,
+                                                 crop_params=config.get('tasks_cfgs').get(task_name).get('crop'))
+                    image = np.array(cv2.rectangle(
+                        np.array(obs['camera_front_image'][:, :, ::-1]),
+                        (int(adj_predicted_bb[0]),
+                         int(adj_predicted_bb[1])),
+                        (int(adj_predicted_bb[2]),
+                         int(adj_predicted_bb[3])),
+                        (0, 0, 255), 1))
                 else:
-                    bb.append(torch.round(previous_predicted_bb[None][None].to(
-                        device=gpu_id)).int())
-
-                obs['predicted_bb'] = torch.round(predicted_bb).cpu().numpy()
-                obs['predicted_score'] = max_score_target.cpu().numpy()
-
-                obs['gt_bb'] = bb_t
+                    obs['gt_bb'] = bb_t_aug
+                    image = np.array(obs['camera_front_image'][:, :, ::-1])
+            else:
+                obs['gt_bb'] = bb_t_aug[0]
+                obs['predicted_bb'] = bb_t_aug[0]
                 # adjust bb
-                adj_predicted_bb = adjust_bb(bb=predicted_bb,
+                adj_predicted_bb = adjust_bb(bb=bb_t_aug[0],
                                              crop_params=config.get('tasks_cfgs').get(task_name).get('crop'))
                 image = np.array(cv2.rectangle(
                     np.array(obs['camera_front_image'][:, :, ::-1]),
@@ -412,9 +430,7 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
                     (int(adj_predicted_bb[2]),
                      int(adj_predicted_bb[3])),
                     (0, 0, 255), 1))
-            else:
-                obs['gt_bb'] = bb_t
-                image = np.array(obs['camera_front_image'][:, :, ::-1])
+
             cv2.imwrite(
                 f"step_test.png", image)
             if controller is not None and gt_env is not None:
@@ -451,7 +467,7 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
     return traj, tasks
 
 
-def pick_place_eval(model, object_detector, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None):
+def pick_place_eval(model, object_detector, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None, gt_bb=False):
 
     if "vima" in model_name:
         return pick_place_eval_vima(model=model,
@@ -538,5 +554,6 @@ def pick_place_eval(model, object_detector, env, gt_env, context, gpu_id, variat
                                          concat_bb=config.policy.get(
                                              "concat_bb", False),
                                          task_name=task_name,
-                                         config=config
+                                         config=config,
+                                         prediction_with_gt_bb=gt_bb
                                          )

@@ -11,22 +11,22 @@ SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/
 POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
 
-SAVE_FREQ=4050
+SAVE_FREQ=1620
 LOG_FREQ=100
-VAL_FREQ=4050
+VAL_FREQ=1620
 PRINT_FREQ=100
 
-EXP_NAME=1Task-Pick-Place-Cond-Target-Obj-Detector-random-frames
-PROJECT_NAME="pick_place_cond_target_obj_detector_random_frames"
-TASK_str=pick_place
+EXP_NAME=1Task-Nut-Assembly-Cond-Target-Obj-Detector-random-frames
+PROJECT_NAME="1Task-Nut-Assembly-Cond-Target-Obj-Detector-random-frames"
+TASK_str=nut_assembly
 EPOCH=30 # start from 16
-BSIZE=32 #16 #32
+BSIZE=45 #16 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector.yaml
-LOADER_WORKERS=16
+LOADER_WORKERS=8
 BALANCING_POLICY=0
-SET_SAME_N=2
+SET_SAME_N=5
 OBS_T=7
 
 EARLY_STOPPING_PATIECE=-1
@@ -40,7 +40,7 @@ ROLLOUT=false
 PERFORM_AUGS=true
 NON_SEQUENTIAL=true
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-Cond-Target-Obj-Detector-only-first-frame-Batch80
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-only-first-frame-Batch80
 RESUME_STEP=14580
 RESUME=false
 

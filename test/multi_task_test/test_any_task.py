@@ -328,7 +328,7 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights
         return agent_env, context, variation, teacher_expert_rollout
 
 
-def object_detection_inference(model, config, ctr, heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, gt_file=None):
+def object_detection_inference(model, config, ctr, heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, gt_file=None, gt_bb=False):
 
     if gpu_id == -1:
         gpu_id = int(ctr % torch.cuda.device_count())
@@ -407,7 +407,8 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
                          model_name=model_name,
                          task_name=env_name,
                          config=config,
-                         gt_file=traj_data_trj)
+                         gt_file=traj_data_trj,
+                         gt_bb=gt_bb)
 
     if "cond_target_obj_detector" in model_name:
         print("Evaluated traj #{}, task #{}, TP {}, FP {}, FN {}".format(
@@ -420,7 +421,7 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
 
 
 def rollout_imitation(model, object_detector, config, ctr,
-                      heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None):
+                      heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, gt_bb=False):
     if gpu_id == -1:
         gpu_id = int(ctr % torch.cuda.device_count())
     print(f"Model GPU id {gpu_id}")
@@ -475,7 +476,8 @@ def rollout_imitation(model, object_detector, config, ctr,
                              max_T=max_T,
                              action_ranges=action_ranges,
                              model_name=model_name,
-                             config=config)
+                             config=config,
+                             gt_bb=gt_bb)
         print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             ctr, variation_id, info['reached'], info['picked'], info['success']))
         # print(f"Avg prediction {info['avg_pred']}")
@@ -516,7 +518,7 @@ def rollout_imitation(model, object_detector, config, ctr,
         return traj, info
 
 
-def _proc(model, object_detector, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, seed, n, gt_file):
+def _proc(model, object_detector, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, gt_bb, seed, n, gt_file):
     json_name = results_dir + '/traj{}.json'.format(n)
     pkl_name = results_dir + '/traj{}.pkl'.format(n)
     if os.path.exists(json_name) and os.path.exists(pkl_name):
@@ -544,7 +546,8 @@ def _proc(model, object_detector, config, results_dir, heights, widths, size, sh
                                                action_ranges=np.array(
                                                    config.dataset_cfg.get('normalization_ranges', [])),
                                                model_name=model_name,
-                                               gpu_id=gpu_id)
+                                               gpu_id=gpu_id,
+                                               gt_bb=gt_bb)
         else:
             # Perform object detection inference
             return_rollout = object_detection_inference(model=model,
@@ -631,6 +634,7 @@ if __name__ == '__main__':
     parser.add_argument('--save_path', default=None, type=str)
     parser.add_argument('--test_gt', action='store_true')
     parser.add_argument('--save_files', action='store_true')
+    parser.add_argument('--gt_bb', action='store_true')
 
     args = parser.parse_args()
 
@@ -748,7 +752,7 @@ if __name__ == '__main__':
     color = args.color
     variation = args.variation
     seed = args.seed
-    max_T = 80
+    max_T = 100
     # load target object detector
     # model_path = config.policy.get('target_obj_detector_path', None)
     # target_obj_dec = None
@@ -808,7 +812,8 @@ if __name__ == '__main__':
                           args.controller_path,
                           model_name,
                           args.gpu_id,
-                          args.save_files)
+                          args.save_files,
+                          args.gt_bb)
 
     random.seed(42)
     np.random.seed(42)
