@@ -353,30 +353,47 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
             gt_classes.append(torch.from_numpy(
                 np.array([1])[None][None]).to(device=gpu_id))
 
-        action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
-            model=model,
-            target_obj_dec=None,
-            states=states,
-            bb=bb,
-            gt_classes=gt_classes[0],
-            images=images,
-            context=context,
-            gpu_id=gpu_id,
-            n_steps=n_steps,
-            max_T=max_T,
-            baseline=baseline,
-            action_ranges=action_ranges,
-            target_obj_embedding=target_obj_emb
-        )
+        if concat_bb:
+            action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
+                model=model,
+                target_obj_dec=None,
+                states=states,
+                bb=bb,
+                gt_classes=gt_classes[0],
+                images=images,
+                context=context,
+                gpu_id=gpu_id,
+                n_steps=n_steps,
+                max_T=max_T,
+                baseline=baseline,
+                action_ranges=action_ranges,
+                target_obj_embedding=target_obj_emb
+            )
+        else:
+            action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
+                model=model,
+                target_obj_dec=None,
+                states=states,
+                bb=None,
+                gt_classes=None,
+                images=images,
+                context=context,
+                gpu_id=gpu_id,
+                n_steps=n_steps,
+                max_T=max_T,
+                baseline=baseline,
+                action_ranges=action_ranges,
+                target_obj_embedding=target_obj_emb
+            )
 
-        if model._object_detector is None and not prediction_with_gt_bb:
+        if concat_bb and model._object_detector is None and not prediction_with_gt_bb:
             prediction = prediction_external_obj
-        elif model._object_detector is not None and not prediction_with_gt_bb:
+        elif concat_bb and model._object_detector is not None and not prediction_with_gt_bb:
             prediction = prediction_internal_obj
 
         try:
             obs, reward, env_done, info = env.step(action)
-            if not prediction_with_gt_bb:
+            if concat_bb and not prediction_with_gt_bb:
                 # get predicted bb from prediction
                 # 1. Get the index with target class
                 target_indx_flags = prediction['classes_final'][0] == 1
@@ -417,7 +434,7 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
                 else:
                     obs['gt_bb'] = bb_t_aug
                     image = np.array(obs['camera_front_image'][:, :, ::-1])
-            else:
+            elif concat_bb and prediction_with_gt_bb:
                 obs['gt_bb'] = bb_t_aug[0]
                 obs['predicted_bb'] = bb_t_aug[0]
                 # adjust bb
@@ -430,6 +447,8 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
                     (int(adj_predicted_bb[2]),
                      int(adj_predicted_bb[3])),
                     (0, 0, 255), 1))
+            else:
+                image = np.array(obs['camera_front_image'][:, :, ::-1])
 
             cv2.imwrite(
                 f"step_test.png", image)

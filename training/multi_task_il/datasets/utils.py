@@ -449,7 +449,7 @@ def create_data_aug(dataset_loader=object):
     return frame_aug
 
 
-def create_gt_bb(dataset_loader, traj, t, task_name):
+def create_gt_bb(dataset_loader, traj, t, task_name, distractor=False):
     bb = []
     cl = []
     image_size = traj.get(
@@ -471,7 +471,7 @@ def create_gt_bb(dataset_loader, traj, t, task_name):
             0, num_objects)
 
     for obj_id, object_name in enumerate(traj.get(t)['obs']['obj_bb']['camera_front'].keys()):
-        if object_name != 'bin' and (obj_id == target_obj_id or obj_id == no_target_obj_id):
+        if object_name != 'bin' and (obj_id == target_obj_id or (obj_id == no_target_obj_id and distractor)):
             # 2. Get stored BB
             top_left_x = traj.get(
                 t)['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner'][0]
@@ -532,7 +532,7 @@ def adjust_points(points, frame_dims, crop_params, height, width):
     return tuple([int(min(x, d - 1)) for x, d in zip([h, w], (height, width))])
 
 
-def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_action=False, load_state=False):
+def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_action=False, load_state=False, distractor=False):
 
     images = []
     images_cp = []
@@ -544,7 +544,6 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
 
     has_eef_point = 'eef_point' in traj.get(0, False)['obs']
     crop_params = dataset_loader.task_crops.get(task_name, [0, 0, 0, 0])
-
     for j, t in enumerate(chosen_t):
         t = t.item()
         step_t = traj.get(t)
@@ -556,7 +555,8 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
         bb_frame, class_frame = create_gt_bb(dataset_loader=dataset_loader,
                                              traj=traj,
                                              t=t,
-                                             task_name=task_name)
+                                             task_name=task_name,
+                                             distractor=distractor)
 
         if dataset_loader._perform_augs:
             # Append bb, obj classes and images

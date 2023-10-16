@@ -148,7 +148,7 @@ class CondTargetObjDetectorDataset(Dataset):
                 end = len(traj)
                 chosen_t = torch.randperm(end)
                 chosen_t = chosen_t[chosen_t != 0][:self._obs_T]
-
+                chosen_t[0] = 1
             elif not self.non_sequential and not self._only_first_frame:
                 end = len(traj)
                 start = self._obs_T if self._first_frames else 1
@@ -172,7 +172,8 @@ class CondTargetObjDetectorDataset(Dataset):
             task_name=task_name,
             command=command,
             load_action=self._load_action,
-            load_state=self._load_state)
+            load_state=self._load_state,
+            distractor=True)
 
         if self._perform_augs:
             ret_dict['images'] = torch.stack(images)

@@ -23,6 +23,22 @@ TASK_ENV_MAP = {
         'ur5e':     'UR5e_PickPlaceDistractor',
         'object_set': 2,
     },
+    'old_pick_place': {
+        'n_task':   16,
+        'env_fn':   place_expert,
+        'panda':    'Panda_OldPickPlaceDistractor',
+        'sawyer':   'Sawyer_OldPickPlaceDistractor',
+        'ur5e':     'UR5e_OldPickPlaceDistractor',
+        'object_set': 1,
+    },
+    'old_object_pick_place': {
+        'n_task':   16,
+        'env_fn':   place_expert,
+        'panda':    'Panda_PickPlaceDistractor',
+        'sawyer':   'Sawyer_PickPlaceDistractor',
+        'ur5e':     'UR5e_PickPlaceDistractor',
+        'object_set': 1,
+    },
     'nut_assembly':  {
         'n_task':   9,
         'env_fn':   nut_expert,

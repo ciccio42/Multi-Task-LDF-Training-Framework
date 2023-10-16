@@ -2,6 +2,7 @@ import multi_task_robosuite_env.utils.utils as utils
 
 
 def get_env(env_name, ranges, **kwargs):
+    print(env_name)
     if env_name == 'Sawyer_PickPlaceDistractor':
         from multi_task_robosuite_env.tasks.new_pp import SawyerPickPlace
         env = SawyerPickPlace
@@ -10,6 +11,15 @@ def get_env(env_name, ranges, **kwargs):
         env = PandaPickPlace
     elif env_name == 'UR5e_PickPlaceDistractor':
         from multi_task_robosuite_env.tasks.new_pp import UR5ePickPlace
+        env = UR5ePickPlace
+    elif env_name == 'Sawyer_OldPickPlaceDistractor':
+        from multi_task_robosuite_env.tasks.old_pp import SawyerPickPlace
+        env = SawyerPickPlace
+    elif env_name == 'Panda_OldPickPlaceDistractor':
+        from multi_task_robosuite_env.tasks.old_pp import PandaPickPlace
+        env = PandaPickPlace
+    elif env_name == 'UR5e_OldPickPlaceDistractor':
+        from multi_task_robosuite_env.tasks.old_pp import UR5ePickPlace
         env = UR5ePickPlace
     elif env_name == 'Panda_NutAssemblyDistractor':
         from multi_task_robosuite_env.tasks.nut_assembly import PandaNutAssemblyDistractor

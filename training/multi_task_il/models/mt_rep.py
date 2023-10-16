@@ -206,6 +206,7 @@ class _TransformerFeatures(nn.Module):
             causal=causal, n_heads=attn_heads, demo_T=demo_T, fuse_starts=fuse_starts,
         )
 
+        # 5000
         self._pe = TemporalPositionalEncoding(
             conv_feature_dim, dropout, max_len=3000) if pos_enc else None
         self.demo_out = demo_out
@@ -398,6 +399,7 @@ class VideoImitation(nn.Module):
             self._object_detector.load_state_dict(weights)
             self._object_detector.to("cuda:0")
             self._object_detector.eval()
+        self._object_detector = None
 
         # else:
         #     # load target object detector module
@@ -656,7 +658,8 @@ class VideoImitation(nn.Module):
         context_cp=None,
         actions=None,
         target_obj_embedding=None,
-        compute_activation_map=False
+        compute_activation_map=False,
+        t=-1
     ):
         B, obs_T, _, height, width = images.shape
         demo_T = context.shape[1]
@@ -706,9 +709,6 @@ class VideoImitation(nn.Module):
                                                       width_scale_factor=scale_factor[0],
                                                       height_scale_factor=scale_factor[1],
                                                       mode='a2p')[0][target_indx_flags][target_max_score_indx]
-                        # cast predicted_bb to integer
-                        predicted_bb_list.append(
-                            torch.round(predicted_bb).int())
                     else:
                         print("No bb target for some frames")
                         # Get index for target object
@@ -726,18 +726,24 @@ class VideoImitation(nn.Module):
         elif self._concat_bb and self._object_detector is None:
             # get the target object
             B, T, O, D = bb.shape
-            if O != 1:
-                target_flag = torch.where(gt_classes == 1)
-                bb = torch.select(bb, 2, target_flag)
             predicted_bb = bb
 
-        out = self.get_action(
-            embed_out=embed_out,
-            target_obj_embedding=target_obj_embedding,
-            bb=predicted_bb,
-            ret_dist=ret_dist,
-            states=states,
-            eval=eval)
+        if self._concat_bb:
+            out = self.get_action(
+                embed_out=embed_out,
+                target_obj_embedding=target_obj_embedding,
+                bb=predicted_bb,
+                ret_dist=ret_dist,
+                states=states,
+                eval=eval)
+        else:
+            out = self.get_action(
+                embed_out=embed_out,
+                target_obj_embedding=target_obj_embedding,
+                bb=None,
+                ret_dist=ret_dist,
+                states=states,
+                eval=eval)
 
         if self._object_detector is not None:
             out['target_obj_prediction'] = prediction

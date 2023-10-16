@@ -2,18 +2,18 @@
 export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=2
+export CUDA_VISIBLE_DEVICES=1
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/ur_multitask_dataset
-SAVE_PATH=/raid/home/frosa_Loc/checkpoint_save_folder
+SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 POLICY='${mosaic}'
 
 SAVE_FREQ=2700
 LOG_FREQ=100
 VAL_FREQ=2700
 
-EXP_NAME=1Task-Nut-Assembly-100-180-GT-BB
+EXP_NAME=1Task-Nut-Assembly-100-180-PREDICTED-BB
 PROJECT_NAME=${EXP_NAME}
 TASK_str=nut_assembly
 ROLLOUT=false
@@ -25,7 +25,7 @@ BALANCING_POLICY=0
 SET_SAME_N=3
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=16
+LOADER_WORKERS=8
 NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=true
@@ -35,20 +35,20 @@ MUL_INTM=0
 BC_MUL=1.0
 INV_MUL=1.0
 
-LOAD_TARGET_OBJ_DETECTOR=false
-TARGET_OBJ_DETECTOR_STEP=68850
-TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-Cond-Target-Obj-Detector-random-frames-Batch32/
+LOAD_TARGET_OBJ_DETECTOR=true
+TARGET_OBJ_DETECTOR_STEP=32400
+TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-random-frames-Batch45/
 FREEZE_TARGET_OBJ_DETECTOR=false
 REMOVE_CLASS_LAYERS=false
 CONCAT_TARGET_OBJ_EMBEDDING=false
 CONCAT_STATE=false
 
 ACTION_DIM=7
-N_MIXTURES=3 # 5       # Nut-Assembly 3 # Pick-place 6
-OUT_DIM=128 # 128        # 64                  # 128
-ATTN_FF=256 # 256        # 128                 # 256
-COMPRESSOR_DIM=256 # 256 # 128          # 256
-HIDDEN_DIM=512 # 512     # 256              # 512
+N_MIXTURES=2 #3 Pick-place
+OUT_DIM=64 #128 Pick-place
+ATTN_FF=128 #256 Pick-place
+COMPRESSOR_DIM=128 #256 Pick-place
+HIDDEN_DIM=128 #512 Pick-place
 CONCAT_DEMO_HEAD=false
 CONCAT_DEMO_ACT=true
 PRETRAINED=false
@@ -68,8 +68,8 @@ DIM_W=12 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 HEIGHT=100
 WIDTH=180
 
-RESUME_PATH=/raid/home/frosa_Loc/checkpoint_save_folder/1Task-Pick-Place-100-180-BB-inference-Batch32
-RESUME_STEP=101250
+RESUME_PATH="/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Mosaic-200-360-Batch27"
+RESUME_STEP=108000
 RESUME=false
 
 COSINE_ANNEALING=false
@@ -131,8 +131,8 @@ python ../training/train_scripts/train_any.py \
     simclr.mul_intm=${MUL_INTM} \
     bc_mul=${BC_MUL} \
     inv_mul=${INV_MUL} \
-    debug=true \
-    wandb_log=false \
+    debug=false \
+    wandb_log=true \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS} \
     cosine_annealing=${COSINE_ANNEALING}

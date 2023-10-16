@@ -768,7 +768,7 @@ if __name__ == '__main__':
 
     # Load object detector
     object_detector = None
-    if config.policy.get('concat_bb', False):
+    if config.policy.get('concat_bb', False) and not args.gt_bb:
         conf_file = OmegaConf.load(os.path.join(
             config.policy.get('target_obj_detector_path', "/"), "config.yaml"))
         object_detector = hydra.utils.instantiate(conf_file.policy)

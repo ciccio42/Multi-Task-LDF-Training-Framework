@@ -408,7 +408,7 @@ def adjust_bb(bb, crop_params=[20, 25, 80, 75]):
     return [x1, y1, x2, y2]
 
 
-def get_action(model, target_obj_dec, bb, gt_classes, states, images, context, gpu_id, n_steps, max_T=80, baseline=None, action_ranges=[], target_obj_embedding=None):
+def get_action(model, target_obj_dec, bb, gt_classes, states, images, context, gpu_id, n_steps, max_T=80, baseline=None, action_ranges=[], target_obj_embedding=None, t=-1):
     s_t = torch.from_numpy(np.concatenate(states, 0).astype(np.float32))[None]
     if isinstance(images[-1], np.ndarray):
         i_t = torch.from_numpy(np.concatenate(
@@ -442,7 +442,8 @@ def get_action(model, target_obj_dec, bb, gt_classes, states, images, context, g
                         gt_classes=gt_classes,
                         eval=True,
                         target_obj_embedding=target_obj_embedding,
-                        compute_activation_map=True)  # to avoid computing ATC loss
+                        compute_activation_map=True,
+                        t=t)  # to avoid computing ATC loss
             try:
                 target_obj_embedding = out['target_obj_embedding']
             except:
@@ -564,23 +565,45 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
             n_action_bin=256,
             action_ranges=action_ranges)
 
-        object_name = env.objects[env.object_id].name
-        obj_delta_key = object_name + '_to_robot0_eef_pos'
-        obj_key = object_name + '_pos'
+        print(f"Max T {max_T}")
+        status = None
+        if task_name == "pick_place":
+            object_name = env.objects[env.object_id].name
+            obj_delta_key = object_name + '_to_robot0_eef_pos'
 
+        else:
+            object_name = env.nuts[env.nut_id].name
+            obj_key = object_name + '_pos'
+            if env.nut_id == 0:
+                handle_loc = env.sim.data.site_xpos[env.sim.model.site_name2id(
+                    'round-nut_handle_site')]
+            elif env.nut_id == 1:
+                handle_loc = env.sim.data.site_xpos[env.sim.model.site_name2id(
+                    'round-nut-2_handle_site')]
+            else:
+                handle_loc = env.sim.data.site_xpos[env.sim.model.site_name2id(
+                    'round-nut-3_handle_site')]
+
+        obj_key = object_name + '_pos'
         start_z = obs[obj_key][2]
         bb_queue = []
         while not done:
+            if task_name == 'pick_place':
+                tasks['reached'] = check_reach(threshold=0.03,
+                                               obj_distance=obs[obj_delta_key][:2],
+                                               current_reach=tasks['reached'])
 
-            tasks['reached'] = check_reach(threshold=0.03,
-                                           obj_distance=obs[obj_delta_key][:2],
-                                           current_reach=tasks['reached'])
+                tasks['picked'] = check_pick(threshold=0.05,
+                                             obj_z=obs[obj_key][2],
+                                             start_z=start_z,
+                                             reached=tasks['reached'],
+                                             picked=tasks['picked'])
 
-            tasks['picked'] = check_pick(threshold=0.05,
-                                         obj_z=obs[obj_key][2],
-                                         start_z=start_z,
-                                         reached=tasks['reached'],
-                                         picked=tasks['picked'])
+            else:
+                tasks['reached'] = tasks['reached'] or np.linalg.norm(
+                    handle_loc - obs['eef_pos']) < 0.045
+                tasks['picked'] = tasks['picked'] or (
+                    tasks['reached'] and obs[obj_key][2] - start_z > 0.05)
 
             bb_t, gt_t = get_gt_bb(traj=traj,
                                    obs=obs,
@@ -712,7 +735,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
 
             if controller is not None:
                 # compute the action for the current state
-                action_gt, status = controller.act(obs)
+                action_gt, status = controller.act(obs, status)
                 action = action_gt
                 # action_norm = bc_distrib.sample().cpu().numpy()[0]
                 # prev_action = action_norm
@@ -731,7 +754,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
 
             n_steps += 1
             tasks['success'] = reward or tasks['success']
-            if n_steps >= max_T or env_done or reward:
+            if n_steps >= 1 or env_done or reward:
                 done = True
 
         env.close()

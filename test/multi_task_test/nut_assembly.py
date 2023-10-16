@@ -7,11 +7,13 @@ from multi_task_test import make_prompt, prepare_obs
 from einops import rearrange
 from multi_task_il.models.vima.utils import *
 import robosuite.utils.transform_utils as T
-from multi_task_test import ENV_OBJECTS, TASK_COMMAND, startup_env, get_action
+from multi_task_test import make_prompt, prepare_obs, adjust_bb
+from multi_task_test import ENV_OBJECTS, TASK_COMMAND, startup_env, get_action, object_detection_inference, check_pick, check_reach, get_gt_bb
 from multi_task_test.primitive import *
+from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
 
 
-def nut_assembly_eval(model, target_obj_dec, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None):
+def nut_assembly_eval(model, object_detector, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="nut_assembly", config=None, gt_file=None, gt_bb=False):
 
     if "vima" in model_name:
         return nut_assembly_eval_vima(model=model,
@@ -21,17 +23,85 @@ def nut_assembly_eval(model, target_obj_dec, env, context, gpu_id, variation_id,
                                       max_T=max_T,
                                       baseline=baseline,
                                       action_ranges=action_ranges)
+    elif "cond_target_obj_detector" in model_name:
+        controller = None
+        policy = False
+        if gt_file is None:
+            # Instantiate Controller
+            if task_name == "nut_assembly" and "CondPolicy" not in model_name:
+                from multi_task_robosuite_env.controllers.controllers.expert_nut_assembly import NutAssemblyController
+                controller = NutAssemblyController(
+                    env=env.env,
+                    tries=0,
+                    ranges=[])
+                policy = False
+            else:
+                controller = None
+                policy = True
+                # map between task and number of tasks
+                n_tasks = []
+                tasks = dict()
+                start = 0
+                for i, task in enumerate(config.tasks):
+                    n_tasks.append(task['n_tasks'])
+                    tasks[task['name']] = (start, task['n_tasks'])
+                    start += task['n_tasks']
+
+                config.policy.n_tasks = n_tasks
+                config.dataset_cfg.tasks = tasks
+                config.dataset_cfg.n_tasks = int(np.sum(n_tasks))
+
+                from multi_task_robosuite_env.controllers.controllers.expert_nut_assembly import NutAssemblyController
+                controller = NutAssemblyController(
+                    env=env.env,
+                    tries=[],
+                    ranges=[])
+
+        return object_detection_inference(model=model,
+                                          env=env,
+                                          context=context,
+                                          gpu_id=gpu_id,
+                                          variation_id=variation_id,
+                                          img_formatter=img_formatter,
+                                          max_T=max_T,
+                                          baseline=baseline,
+                                          controller=controller,
+                                          action_ranges=action_ranges,
+                                          policy=policy,
+                                          perform_augs=config.dataset_cfg.get(
+                                              'perform_augs', True),
+                                          config=config,
+                                          gt_traj=gt_file,
+                                          task_name=task_name
+                                          )
     else:
+        # Instantiate Controller
+        if task_name == "nut_assembly":
+            from multi_task_robosuite_env.controllers.controllers.expert_nut_assembly import NutAssemblyController
+            # controller = NutAssemblyController(
+            #     env=env.env,
+            #     tries=0,
+            #     ranges=[])
+            controller = None
+            gt_env = None
         return nut_assembly_eval_demo_cond(model=model,
-                                           target_obj_dec=target_obj_dec,
+                                           object_detector=object_detector,
                                            env=env,
+                                           gt_env=gt_env,
+                                           controller=controller,
                                            context=context,
                                            gpu_id=gpu_id,
                                            variation_id=variation_id,
                                            img_formatter=img_formatter,
                                            max_T=max_T,
                                            baseline=baseline,
-                                           action_ranges=action_ranges)
+                                           action_ranges=action_ranges,
+                                           concat_bb=config.policy.get(
+                                               "concat_bb", False),
+                                           task_name=task_name,
+                                           config=config,
+                                           prediction_with_gt_bb=gt_bb
+                                           )
 
 
 def nut_assembly_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None, img_formatter=None, max_T=85, baseline=False, action_ranges=[]):
@@ -248,11 +318,24 @@ def nut_assembly_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None
     return traj, tasks
 
 
-def nut_assembly_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[]):
+def nut_assembly_eval_demo_cond(model, object_detector, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, prediction_with_gt_bb=False):
 
-    done, states, images, context, obs, traj, tasks = \
-        startup_env(model, env, context, gpu_id,
-                    variation_id, baseline=baseline)
+    start_up_env_return = \
+        startup_env(model=model,
+                    env=env,
+                    gt_env=gt_env,
+                    context=context,
+                    gpu_id=gpu_id,
+                    variation_id=variation_id,
+                    baseline=baseline,
+                    bb_flag=concat_bb
+                    )
+
+    if concat_bb:
+        done, states, images, context, obs, traj, tasks, bb, gt_classes, gt_obs, current_gripper_pose = start_up_env_return
+    else:
+        done, states, images, context, obs, traj, tasks, gt_obs, current_gripper_pose = start_up_env_return
+        bb = None
 
     object_name = env.nuts[env.nut_id].name
     if env.nut_id == 0:
@@ -265,12 +348,15 @@ def nut_assembly_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, var
         handle_loc = env.sim.data.site_xpos[env.sim.model.site_name2id(
             'round-nut-3_handle_site')]
 
+    object_name = env.nuts[env.nut_id].name
+    obj_delta_key = object_name + '_to_robot0_eef_pos'
     obj_key = object_name + '_pos'
+
     start_z = obs[obj_key][2]
     n_steps = 0
 
     # Compute the target obj-slot
-    if target_obj_dec != None:
+    if object_detector != None:
         agent_target_obj_position = -1
         agent_target_obj_id = traj.get(0)['obs']['target-object']
         for id, obj_name in enumerate(ENV_OBJECTS['nut_assembly']['obj_names']):
@@ -281,47 +367,213 @@ def nut_assembly_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, var
                     if pos[1] >= pos_range[0] and pos[1] <= pos_range[1]:
                         agent_target_obj_position = i
                 break
+
     # compute the average prediction over the whole trajectory
     avg_prediction = 0
     target_obj_emb = None
     print(f"Max-t {max_T}")
 
     while not done:
+
         tasks['reached'] = tasks['reached'] or np.linalg.norm(
             handle_loc - obs['eef_pos']) < 0.045
         tasks['picked'] = tasks['picked'] or (
             tasks['reached'] and obs[obj_key][2] - start_z > 0.05)
+
         if baseline and len(states) >= 5:
-            states, images = [], []
+            states, images, bb = [], [], []
+
         states.append(np.concatenate(
             (obs['ee_aa'], obs['gripper_qpos'])).astype(np.float32)[None])
-        images.append(img_formatter(
-            obs['camera_front_image'][:, :, ::-1])[None])
-        action, target_pred, target_obj_emb, activation_map = get_action(
-            model,
-            target_obj_dec,
-            states,
-            images,
-            context,
-            gpu_id,
-            n_steps,
-            max_T,
-            baseline,
-            action_ranges,
-            target_obj_emb)
 
-        obs, reward, env_done, info = env.step(action)
-        # obs['activation_map'] = activation_map
-        # cv2.imwrite("prova_activation_map.png", activation_map.numpy())
-        # traj.append(obs, reward, done, info, action)
+        # Get GT BB
+        if concat_bb:
+            bb_t, gt_t = get_gt_bb(traj=traj,
+                                   obs=obs,
+                                   task_name=task_name)
+            previous_predicted_bb = []
+            previous_predicted_bb.append(torch.tensor(
+                [.0, .0, .0, .0]).to(
+                device=gpu_id).float())
 
-        if target_obj_dec is not None:
-            info['target_pred'] = target_pred
-            info['target_gt'] = agent_target_obj_position
-            if np.argmax(target_pred) == agent_target_obj_position:
-                avg_prediction += 1
+        # convert observation from BGR to RGB
+        if config.augs.get("old_aug", True):
+            images.append(img_formatter(
+                obs['camera_front_image'][:, :, ::-1])[None])
+        else:
+            img_aug, bb_t_aug = img_formatter(
+                obs['camera_front_image'][:, :, ::-1], bb_t)
+            images.append(img_aug[None])
+            if model._object_detector is not None or prediction_with_gt_bb:
+                bb.append(bb_t_aug[None][None])
+                gt_classes.append(torch.from_numpy(
+                    gt_t[None][None][None]).to(device=gpu_id))
 
-        tasks['success'] = (reward and tasks['reached']) or tasks['success']
+        # Perform inference with object-detector
+        if object_detector is not None and model._object_detector is None and not prediction_with_gt_bb:
+            model_input = dict()
+            model_input['demo'] = context.to(device=gpu_id)
+            model_input['images'] = img_aug[None][None].to(device=gpu_id)
+            model_input['gt_bb'] = torch.from_numpy(
+                bb_t_aug[None][None]).float().to(device=gpu_id)
+            model_input['gt_classes'] = torch.from_numpy(
+                gt_t[None][None][None]).to(device=gpu_id)
+            model_input['states'] = torch.from_numpy(
+                np.array(states)).to(device=gpu_id)
+
+            prediction_external_obj = object_detector(model_input,
+                                                      inference=True)
+            # 1. Get the index with target class
+            target_indx_flags = prediction_external_obj['classes_final'][0] == 1
+            if torch.sum((target_indx_flags == True).int()) != 0:
+                # 2. Get the confidence scores for the target predictions and the the max
+                target_max_score_indx = torch.argmax(
+                    prediction_external_obj['conf_scores_final'][0][target_indx_flags])
+                max_score_target = prediction_external_obj['conf_scores_final'][
+                    0][target_indx_flags][target_max_score_indx]
+                if max_score_target != -1:
+                    scale_factor = object_detector.get_scale_factors()
+                    predicted_bb = project_bboxes(bboxes=prediction_external_obj['proposals'][0][None][None],
+                                                  width_scale_factor=scale_factor[0],
+                                                  height_scale_factor=scale_factor[1],
+                                                  mode='a2p')[0][target_indx_flags][target_max_score_indx]
+                    previous_predicted_bb[0] = torch.round(predicted_bb).int()
+                    # replace bb
+                    bb.append(torch.round(
+                        predicted_bb[None][None].to(device=gpu_id)).int())
+                else:
+                    bb.append(torch.round(previous_predicted_bb[0][None][None].to(
+                        device=gpu_id)).int())
+            else:
+                bb.append(torch.round(previous_predicted_bb[0][None][None].to(
+                    device=gpu_id)).int())
+
+            gt_classes.append(torch.from_numpy(
+                np.array([1])[None][None]).to(device=gpu_id))
+
+        if concat_bb:
+            action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
+                model=model,
+                target_obj_dec=None,
+                states=states,
+                bb=bb,
+                gt_classes=gt_classes[0],
+                images=images,
+                context=context,
+                gpu_id=gpu_id,
+                n_steps=n_steps,
+                max_T=max_T,
+                baseline=baseline,
+                action_ranges=action_ranges,
+                target_obj_embedding=target_obj_emb,
+                t=n_steps
+            )
+        else:
+            action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
+                model=model,
+                target_obj_dec=None,
+                states=states,
+                bb=None,
+                gt_classes=None,
+                images=images,
+                context=context,
+                gpu_id=gpu_id,
+                n_steps=n_steps,
+                max_T=max_T,
+                baseline=baseline,
+                action_ranges=action_ranges,
+                target_obj_embedding=target_obj_emb
+            )
+
+        if concat_bb and model._object_detector is None and not prediction_with_gt_bb:
+            prediction = prediction_external_obj
+        elif concat_bb and model._object_detector is not None and not prediction_with_gt_bb:
+            prediction = prediction_internal_obj
+
+        try:
+            obs, reward, env_done, info = env.step(action)
+            if concat_bb and not prediction_with_gt_bb:
+                # get predicted bb from prediction
+                # 1. Get the index with target class
+                target_indx_flags = prediction['classes_final'][0] == 1
+                if torch.sum((target_indx_flags == True).int()) != 0:
+                    # 2. Get the confidence scores for the target predictions and the the max
+                    target_max_score_indx = torch.argmax(
+                        prediction['conf_scores_final'][0][target_indx_flags])
+                    max_score_target = prediction['conf_scores_final'][0][target_indx_flags][target_max_score_indx]
+                    if max_score_target != -1:
+                        scale_factor = object_detector.get_scale_factors()
+                        predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
+                                                      width_scale_factor=scale_factor[0],
+                                                      height_scale_factor=scale_factor[1],
+                                                      mode='a2p')[0][target_indx_flags][target_max_score_indx]
+                        previous_predicted_bb[0] = torch.round(
+                            predicted_bb).int()
+                        # replace bb
+                        bb.append(torch.round(
+                            predicted_bb[None][None].to(device=gpu_id)).int())
+                    else:
+                        bb.append(torch.round(previous_predicted_bb[None][None].to(
+                            device=gpu_id)).int())
+
+                    obs['predicted_bb'] = torch.round(
+                        predicted_bb).cpu().numpy()
+                    obs['predicted_score'] = max_score_target.cpu().numpy()
+                    obs['gt_bb'] = bb_t_aug
+                    # adjust bb
+                    adj_predicted_bb = adjust_bb(bb=predicted_bb,
+                                                 crop_params=config.get('tasks_cfgs').get(task_name).get('crop'))
+                    image = np.array(cv2.rectangle(
+                        np.array(obs['camera_front_image'][:, :, ::-1]),
+                        (int(adj_predicted_bb[0]),
+                         int(adj_predicted_bb[1])),
+                        (int(adj_predicted_bb[2]),
+                         int(adj_predicted_bb[3])),
+                        (0, 0, 255), 1))
+                else:
+                    obs['gt_bb'] = bb_t_aug
+                    image = np.array(obs['camera_front_image'][:, :, ::-1])
+            elif concat_bb and prediction_with_gt_bb:
+                obs['gt_bb'] = bb_t_aug[0]
+                obs['predicted_bb'] = bb_t_aug[0]
+                # adjust bb
+                adj_predicted_bb = adjust_bb(bb=bb_t_aug[0],
+                                             crop_params=config.get('tasks_cfgs').get(task_name).get('crop'))
+                image = np.array(cv2.rectangle(
+                    np.array(obs['camera_front_image'][:, :, ::-1]),
+                    (int(adj_predicted_bb[0]),
+                     int(adj_predicted_bb[1])),
+                    (int(adj_predicted_bb[2]),
+                     int(adj_predicted_bb[3])),
+                    (0, 0, 255), 1))
+            else:
+                image = np.array(obs['camera_front_image'][:, :, ::-1])
+
+            cv2.imwrite(
+                f"step_test.png", image)
+            if controller is not None and gt_env is not None:
+                gt_action, gt_status = controller.act(gt_obs)
+                gt_obs, gt_reward, gt_env_done, gt_info = gt_env.step(
+                    gt_action)
+                cv2.imwrite(
+                    f"gt_step_test.png", gt_obs['camera_front_image'][:, :, ::-1])
+        except Exception as e:
+            print(f"Exception during step {e}")
+
+        # if target_obj_dec is not None:
+        #     info['target_pred'] = target_pred
+        #     info['target_gt'] = agent_target_obj_position
+        #     if np.argmax(target_pred) == agent_target_obj_position:
+        #         avg_prediction += 1
+
+        # if activation_map is not None:
+        #     obs['activation_map'] = activation_map
+        #     cv2.imwrite("prova_activation_map.png", activation_map)
+
+        traj.append(obs, reward, done, info, action)
+
+        tasks['success'] = (reward or tasks['success']) and (
+            tasks['reached'] and tasks['picked'])
         n_steps += 1
         if env_done or reward or n_steps > max_T:
             done = True
@@ -331,5 +583,5 @@ def nut_assembly_eval_demo_cond(model, target_obj_dec, env, context, gpu_id, var
     del states
     del images
     del model
-    # print("Done evaluating traj #{}, task#{}, success? {} ".format(ctr, variation_id, tasks['success']))
+
     return traj, tasks
