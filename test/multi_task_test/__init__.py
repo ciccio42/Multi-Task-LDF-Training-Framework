@@ -17,6 +17,7 @@ from multi_task_il.utils import normalize_action, denormalize_action
 from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
 from torchvision.ops import box_iou
 import copy
+import matplotlib.pyplot as plt
 
 DEBUG = False
 
@@ -444,10 +445,8 @@ def get_action(model, target_obj_dec, bb, gt_classes, states, images, context, g
                         target_obj_embedding=target_obj_embedding,
                         compute_activation_map=True,
                         t=t)  # to avoid computing ATC loss
-            try:
-                target_obj_embedding = out['target_obj_embedding']
-            except:
-                pass
+
+            target_obj_embedding = out.get('target_obj_embedding', None)
 
             action = out['bc_distrib'].sample()[0, -1].cpu().numpy()
             if target_obj_dec is not None:
@@ -543,7 +542,75 @@ def get_gt_bb(traj=None, obs=None, task_name=None, t=0):
     return bb_t, gt_t
 
 
-def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None, action_ranges=[], policy=True, perform_augs=False, config=None, gt_traj=None):
+def compute_activation_map(model, agent_obs, prediction):
+
+    model.zero_grad()
+    one_hot_output = torch.FloatTensor(1, 2).zero_()
+    one_hot_output[0][1] = 1
+    target_indx_flags = prediction['classes_final'][0] == 1
+    target_max_score_indx = torch.argmax(
+        prediction['conf_scores_final'][0][target_indx_flags])
+    output = prediction['cls_scores'][target_max_score_indx][None]
+    output.requires_grad = True
+    output.backward(gradient=one_hot_output.cuda())
+
+    # Get the gradients and the features
+    gradients = model.get_activations_gradient()
+    pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
+    activations = model.get_activations(agent_obs).detach()
+
+    # Weight the channels by corresponding gradients
+    for i in range(activations.shape[1]):
+        activations[:, i, :, :] *= pooled_gradients[i]
+
+    # Average the channels of the activations
+    activation_map = torch.mean(
+        activations, dim=1).squeeze().cpu().numpy()
+
+    return activation_map
+
+
+def plot_activation_map(activation_map, agent_obs, save_path="activation_map.png"):
+    """
+    Compute and plot the activation map overlaid on the original image.
+
+    Parameters:
+    - model: The pre-trained model.
+    - agent_obs: The input tensor to the model. Expected shape is [B, C, H, W].
+    - target_class: The target class for which the activation map should be computed.
+    - save_path: Path to save the overlaid image.
+
+    Returns:
+    - None. The function saves the overlaid image to the specified path.
+    """
+
+    # Get the first image from the batch
+    input_image = np.array((agent_obs[0, :, :, :].cpu(
+    ).numpy() * 255).transpose((1, 2, 0)), dtype=np.uint8)
+
+    # Resize the activation map to match the input image size
+    heatmap_resized = cv2.resize(
+        activation_map, (input_image.shape[1], input_image.shape[0]))
+
+    # Convert the heatmap values between 0 and 255 for visualization
+    heatmap_np = np.uint8(255 * heatmap_resized)
+
+    # Convert the heatmap into a colormap
+    heatmap_colormap = cv2.applyColorMap(heatmap_np, cv2.COLORMAP_JET)
+
+    # Overlay the colormap on the original image
+    overlaid_image = cv2.addWeighted(
+        input_image, 0.5, heatmap_colormap, 0.5, 0)
+
+    # Display the image using matplotlib
+    plt.imshow(cv2.cvtColor(overlaid_image, cv2.COLOR_BGR2RGB))
+    plt.axis('off')
+    plt.title("Activation Map Overlaid on Image")
+    plt.savefig(save_path)
+    plt.show()
+
+
+def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None, action_ranges=[], policy=True, perform_augs=False, config=None, gt_traj=None, activation_map=True):
 
     if gt_traj is None:
         done, states, images, context, obs, traj, tasks, bb, gt_classes, _, prev_action = \
@@ -656,10 +723,18 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                 bb_queue = prediction['prediction_target_obj_detector']['proposals']
                 prediction = prediction['prediction_target_obj_detector']
 
+            if activation_map:
+                pass
+                # last_conv_layer = model._backbone.
+                # model.register_forward_hook(last_conv_layer)
+                # model.register_backward_hook(last_conv_layer)
+                # actvation_map = compute_activation_map(model=model,
+                #                                        agent_obs=model_input,
+                #                                        prediction=prediction)
+
             # Project bb over image
             # 1. Get the index with target class
             target_indx_flags = prediction['classes_final'][0] == 1
-
             if torch.sum((target_indx_flags == True).int()) != 0:
                 # 2. Get the confidence scores for the target predictions and the the max
                 target_max_score_indx = torch.argmax(
@@ -735,7 +810,10 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
 
             if controller is not None:
                 # compute the action for the current state
-                action_gt, status = controller.act(obs, status)
+                if task_name == "nut_assembly":
+                    action_gt, status = controller.act(obs, status)
+                else:
+                    action_gt, status = controller.act(obs)
                 action = action_gt
                 # action_norm = bc_distrib.sample().cpu().numpy()[0]
                 # prev_action = action_norm
@@ -754,7 +832,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
 
             n_steps += 1
             tasks['success'] = reward or tasks['success']
-            if n_steps >= 1 or env_done or reward:
+            if n_steps >= max_T or env_done or reward:
                 done = True
 
         env.close()
@@ -940,10 +1018,10 @@ def clip_action(action, prev_action):
     delta = prev_pos - current_action[:3]
 
     for i, delta_component in enumerate(delta):
-        if abs(delta_component) > 0.02:
+        if abs(delta_component) > 0.005:
             if prev_pos[i] > current_action[i]:
-                current_action[i] = prev_action[i] - 0.02
+                current_action[i] = prev_action[i] - 0.005
             else:
-                current_action[i] = prev_action[i] + 0.02
+                current_action[i] = prev_action[i] + 0.005
 
     return current_action

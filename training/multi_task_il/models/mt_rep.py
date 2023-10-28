@@ -399,7 +399,7 @@ class VideoImitation(nn.Module):
             self._object_detector.load_state_dict(weights)
             self._object_detector.to("cuda:0")
             self._object_detector.eval()
-        self._object_detector = None
+        # self._object_detector = None
 
         # else:
         #     # load target object detector module
@@ -709,6 +709,7 @@ class VideoImitation(nn.Module):
                                                       width_scale_factor=scale_factor[0],
                                                       height_scale_factor=scale_factor[1],
                                                       mode='a2p')[0][target_indx_flags][target_max_score_indx]
+                        predicted_bb_list.append(predicted_bb)
                     else:
                         print("No bb target for some frames")
                         # Get index for target object

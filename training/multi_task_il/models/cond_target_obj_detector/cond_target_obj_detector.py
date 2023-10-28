@@ -15,6 +15,7 @@ from torchvision import ops
 from multi_task_il.models.cond_target_obj_detector.utils import *
 from torchvision.models.video import r2plus1d_18, R2Plus1D_18_Weights
 import cv2
+import matplotlib.pyplot as plt
 
 DEBUG = False
 
@@ -258,13 +259,20 @@ class ProposalModule(nn.Module):
 
 
 def make_model(model_dict, backbone_name="resnet18", task_embedding_dim=128, conv_drop_dim=3):
-    return FiLM(
+    backbone = FiLM(
         backbone_name=backbone_name,
         conv_drop_dim=conv_drop_dim,
         n_res_blocks=model_dict['n_res_blocks'],
         n_classes=model_dict['n_classes'],
         n_channels=model_dict['n_channels'],
         task_embedding_dim=task_embedding_dim)
+    # for name, module in backbone.named_children():
+    #     if name == "res_blocks":
+    #         for name, module in backbone.res_blocks.named_children():
+    #             if name == "5":
+    #                 for name, module in backbone.res_blocks.name.named_children():
+    #                     print(name, module)
+    return backbone
 
 
 class CondModule(nn.Module):
@@ -376,17 +384,23 @@ class AgentModule(nn.Module):
             self.height_scale_factor = self.img_height // self.out_h
 
             # scales and ratios for anchor boxes
-            self.anc_scales = [1.0, 1.5, 2.0, 3.0, 4.0]  # [0.5, 1]
+            self.anc_scales = [1.5, 2.0]  # [1.0, 1.5, 2.0, 3.0, 4.0]
             # [0.5, 1, 1.5] #height/width
-            self.anc_ratios = [0.2, 0.5, 0.8, 1, 1.2, 1.5, 2.0]
+            # [0.2, 0.5, 0.8, 1, 1.2, 1.5, 2.0]
+            self.anc_ratios = [0.8, 1, 1.2]
             self.n_anc_boxes = len(self.anc_scales) * len(self.anc_ratios)
 
             # IoU thresholds for +ve and -ve anchors
+
             self.pos_thresh = 0.4
             self.neg_thresh = 0.3
-
             self.conf_thresh = 0.7
             self.nms_thresh = 0.5
+            # self.pos_thresh = 0.4
+            # self.neg_thresh = 0.3
+
+            # self.conf_thresh = 0.7
+            # self.nms_thresh = 0.5
 
             self.proposal_module = ProposalModule(
                 self.out_channels_backbone,
@@ -595,6 +609,7 @@ class AgentModule(nn.Module):
 
                     ret_dict['proposals'] = proposals_final
                     ret_dict['conf_scores_final'] = conf_scores_final
+                    ret_dict['cls_scores'] = cls_scores
                     ret_dict['feature_map'] = feature_map
                     ret_dict['classes_final'] = classes_final
 
@@ -643,6 +658,10 @@ class CondTargetObjectDetector(nn.Module):
         params = sum([np.prod(p.size()) for p in model_parameters])
         print('Total params in Detection module:', params)
 
+        # Initialize hooks
+        self.activations = None
+        self.gradients = None
+
     def forward(self, inputs: dict, inference: bool = False):
         cond_video = inputs['demo']
         agent_obs = inputs['images']
@@ -659,6 +678,30 @@ class CondTargetObjectDetector(nn.Module):
             inference=inference)
         # print(agent_emb.shape)
         return ret_dict
+
+    def activations_hook(self, grad):
+        self.activations = grad
+
+    def register_forward_hook(self, layer):
+        """
+        Register a forward hook on the specified layer.
+        """
+        layer.register_forward_hook(self.activations_hook)
+
+    def gradients_hook(self, module, grad_input, grad_output):
+        self.gradients = grad_output[0]
+
+    def register_backward_hook(self, layer):
+        """
+        Register a backward hook on the specified layer.
+        """
+        layer.register_backward_hook(self.gradients_hook)
+
+    def get_activations(self, x):
+        return self.activations
+
+    def get_activations_gradient(self):
+        return self.gradients
 
     def get_scale_factors(self):
         return [self._agent_backone.width_scale_factor, self._agent_backone.height_scale_factor]

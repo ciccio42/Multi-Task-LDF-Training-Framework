@@ -8,9 +8,16 @@ from einops import rearrange
 from multi_task_il.models.vima.utils import *
 import robosuite.utils.transform_utils as T
 from multi_task_test import make_prompt, prepare_obs, adjust_bb
-from multi_task_test import ENV_OBJECTS, TASK_COMMAND, startup_env, get_action, object_detection_inference, check_pick, check_reach, get_gt_bb
+from multi_task_test import ENV_OBJECTS, TASK_COMMAND, startup_env, get_action, object_detection_inference, check_pick, check_reach, get_gt_bb, clip_action
 from multi_task_test.primitive import *
 from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
+
+
+def _clip_delta(delta, max_step=0.015):
+    norm_delta = np.linalg.norm(delta)
+    if norm_delta < max_step:
+        return delta
+    return delta / norm_delta * max_step
 
 
 def nut_assembly_eval(model, object_detector, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="nut_assembly", config=None, gt_file=None, gt_bb=False):
@@ -336,7 +343,7 @@ def nut_assembly_eval_demo_cond(model, object_detector, env, context, gpu_id, va
     else:
         done, states, images, context, obs, traj, tasks, gt_obs, current_gripper_pose = start_up_env_return
         bb = None
-
+    prev_action = current_gripper_pose
     object_name = env.nuts[env.nut_id].name
     if env.nut_id == 0:
         handle_loc = env.sim.data.site_xpos[env.sim.model.site_name2id(
@@ -404,6 +411,9 @@ def nut_assembly_eval_demo_cond(model, object_detector, env, context, gpu_id, va
             img_aug, bb_t_aug = img_formatter(
                 obs['camera_front_image'][:, :, ::-1], bb_t)
             images.append(img_aug[None])
+            debug_img = np.array(np.moveaxis(
+                img_aug[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+            cv2.imwrite("debug.png", debug_img)
             if model._object_detector is not None or prediction_with_gt_bb:
                 bb.append(bb_t_aug[None][None])
                 gt_classes.append(torch.from_numpy(
@@ -491,6 +501,9 @@ def nut_assembly_eval_demo_cond(model, object_detector, env, context, gpu_id, va
             prediction = prediction_internal_obj
 
         try:
+
+            # action = clip_action(action, prev_action)
+            # prev_action = action
             obs, reward, env_done, info = env.step(action)
             if concat_bb and not prediction_with_gt_bb:
                 # get predicted bb from prediction
@@ -502,13 +515,38 @@ def nut_assembly_eval_demo_cond(model, object_detector, env, context, gpu_id, va
                         prediction['conf_scores_final'][0][target_indx_flags])
                     max_score_target = prediction['conf_scores_final'][0][target_indx_flags][target_max_score_indx]
                     if max_score_target != -1:
-                        scale_factor = object_detector.get_scale_factors()
+                        if model._object_detector is not None:
+                            scale_factor = model._object_detector.get_scale_factors()
+                        else:
+                            scale_factor = object_detector.get_scale_factors()
                         predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
                                                       width_scale_factor=scale_factor[0],
                                                       height_scale_factor=scale_factor[1],
                                                       mode='a2p')[0][target_indx_flags][target_max_score_indx]
                         previous_predicted_bb[0] = torch.round(
                             predicted_bb).int()
+
+                        debug_bb_img = np.array(cv2.rectangle(
+                            np.ascontiguousarray(
+                                debug_img, dtype=np.uint8),
+                            (int(predicted_bb[0]),
+                                int(predicted_bb[1])),
+                            (int(predicted_bb[2]),
+                                int(predicted_bb[3])),
+                            (0, 0, 255), 1))
+                        cv2.imwrite("debug_bb.png", debug_bb_img)
+
+                        # for indx, bb_p in enumerate(project_bboxes(bboxes=prediction['proposals'][0][None][None], width_scale_factor=scale_factor[0], height_scale_factor=scale_factor[1], mode='a2p')[0]):
+                        #     debug_bb_img = np.array(cv2.rectangle(
+                        #         np.ascontiguousarray(
+                        #             debug_img, dtype=np.uint8),
+                        #         (int(bb_p[0]),
+                        #          int(bb_p[1])),
+                        #         (int(bb_p[2]),
+                        #          int(bb_p[3])),
+                        #         (0, 0, 255), 1))
+                        #     cv2.imwrite("debug_bb.png", debug_bb_img)
+
                         # replace bb
                         bb.append(torch.round(
                             predicted_bb[None][None].to(device=gpu_id)).int())

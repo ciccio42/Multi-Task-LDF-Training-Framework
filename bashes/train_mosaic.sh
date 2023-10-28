@@ -2,7 +2,7 @@
 export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=3
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/ur_multitask_dataset
@@ -13,7 +13,7 @@ SAVE_FREQ=2700
 LOG_FREQ=100
 VAL_FREQ=2700
 
-EXP_NAME=1Task-Nut-Assembly-100-180-PREDICTED-BB
+EXP_NAME=1Task-Nut-Assembly-100-180-PREDICTED-BB-2
 PROJECT_NAME=${EXP_NAME}
 TASK_str=nut_assembly
 ROLLOUT=false
@@ -25,7 +25,7 @@ BALANCING_POLICY=0
 SET_SAME_N=3
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=8
+LOADER_WORKERS=1
 NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=true
@@ -36,8 +36,8 @@ BC_MUL=1.0
 INV_MUL=1.0
 
 LOAD_TARGET_OBJ_DETECTOR=true
-TARGET_OBJ_DETECTOR_STEP=32400
-TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-random-frames-Batch45/
+TARGET_OBJ_DETECTOR_STEP=40455
+TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54
 FREEZE_TARGET_OBJ_DETECTOR=false
 REMOVE_CLASS_LAYERS=false
 CONCAT_TARGET_OBJ_EMBEDDING=false
@@ -131,8 +131,8 @@ python ../training/train_scripts/train_any.py \
     simclr.mul_intm=${MUL_INTM} \
     bc_mul=${BC_MUL} \
     inv_mul=${INV_MUL} \
-    debug=false \
-    wandb_log=true \
+    debug=true \
+    wandb_log=false \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS} \
     cosine_annealing=${COSINE_ANNEALING}

@@ -20,8 +20,10 @@ from copy import deepcopy
 from functools import reduce
 from operator import concat
 from multi_task_il.utils import normalize_action
+import time
+import math
 
-DEBUG = False
+DEBUG = True
 
 ENV_OBJECTS = {
     'pick_place': {
@@ -38,6 +40,11 @@ JITTER_FACTORS = {'brightness': 0.4,
                   'contrast': 0.4, 'saturation': 0.4, 'hue': 0.1}
 
 
+#
+NUM_VARIATION_PER_OBEJECT = {'pick_place': (4, 4),
+                             'nut_assembly': (3, 3)}
+
+
 def collate_by_task(batch):
     """ Use this for validation: groups data by task names to compute per-task losses """
     per_task_data = defaultdict(list)
@@ -51,7 +58,7 @@ def collate_by_task(batch):
     return per_task_data
 
 
-def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_name: str = "panda", root_dir: str = "", task_spec=None, split: list = [0.9, 0.1], allow_train_skip: bool = False, allow_val_skip: bool = False):
+def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_name: str = "panda", root_dir: str = "", task_spec=None, split: list = [0.9, 0.1], allow_train_skip: bool = False, allow_val_skip: bool = False, mix_variations: bool = False):
 
     count = 0
     for spec in task_spec:
@@ -146,24 +153,58 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                                         dataset_loader.object_distribution[name][task_id][obj_name][agent] = i
                                         break
                                 break
+            if not dataset_loader._mix_demo_agent:
+                for demo in demo_files:
+                    for agent in agent_files:
+                        dataset_loader.all_file_pairs[count] = (
+                            name, _id, demo, agent)
+                        dataset_loader.task_to_idx[name].append(count)
+                        dataset_loader.subtask_to_idx[name][task_id].append(
+                            count)
+                        if dataset_loader.compute_obj_distribution:
+                            # take objs for the current task_id
+                            for obj in dataset_loader.object_distribution[name][task_id].keys():
+                                # take the slot for the given agent file
+                                if agent in dataset_loader.object_distribution[name][task_id][obj]:
+                                    slot_indx = dataset_loader.object_distribution[name][task_id][obj][agent]
+                                    # assign the slot for the given agent file
+                                    dataset_loader.object_distribution_to_indx[name][task_id][slot_indx].append(
+                                        count)
+                                    dataset_loader.index_to_slot[count] = slot_indx
+                        count += 1
 
-            for demo in demo_files:
-                for agent in agent_files:
-                    dataset_loader.all_file_pairs[count] = (
-                        name, _id, demo, agent)
-                    dataset_loader.task_to_idx[name].append(count)
-                    dataset_loader.subtask_to_idx[name][task_id].append(count)
-                    if dataset_loader.compute_obj_distribution:
-                        # take objs for the current task_id
-                        for obj in dataset_loader.object_distribution[name][task_id].keys():
-                            # take the slot for the given agent file
-                            if agent in dataset_loader.object_distribution[name][task_id][obj]:
-                                slot_indx = dataset_loader.object_distribution[name][task_id][obj][agent]
-                                # assign the slot for the given agent file
-                                dataset_loader.object_distribution_to_indx[name][task_id][slot_indx].append(
-                                    count)
-                                dataset_loader.index_to_slot[count] = slot_indx
-                    count += 1
+        if dataset_loader._mix_demo_agent:
+            count = 0
+            num_variation_per_object = NUM_VARIATION_PER_OBEJECT[name][0]
+            num_objects = NUM_VARIATION_PER_OBEJECT[name][1]
+
+            # for each sub-task
+            for _id in range(spec.get('n_tasks')):
+
+                # for each demo_file
+                demo_files = dataset_loader.demo_files[name][_id]
+                for demo_file in demo_files:
+                    # 50% trajectories same task
+                    # 50% trajectories different files
+                    same_variation_number = len(
+                        dataset_loader.agent_files[name][_id])
+                    # take the trajectories same variation as demo
+                    agent_files = random.sample(
+                        dataset_loader.agent_files[name][_id], int(same_variation_number/2))
+                    # take indices for different manipulated objects
+                    target_obj_id = int(_id/num_variation_per_object)
+                    for sub_task_id in range(spec.get('n_tasks')):
+                        if not (sub_task_id >= target_obj_id*num_variation_per_object and sub_task_id < ((target_obj_id*num_variation_per_object)+num_variation_per_object)):
+                            # the following index has a differnt object
+                            agent_files.extend(random.sample(
+                                dataset_loader.agent_files[name][sub_task_id], int(same_variation_number/(2*spec.get('n_tasks')-num_variation_per_object))))
+                    for agent_file in agent_files:
+                        dataset_loader.all_file_pairs[count] = (
+                            name, _id, demo_file, agent_file)
+                        dataset_loader.task_to_idx[name].append(count)
+                        dataset_loader.subtask_to_idx[name][_id].append(
+                            count)
+                        count += 1
 
         print('Done loading Task {}, agent/demo trajctores pairs reach a count of: {}'.format(name, count))
         dataset_loader.task_crops[name] = spec.get('crop', [0, 0, 0, 0])
@@ -191,7 +232,8 @@ def make_demo(dataset, traj, task_name):
             # convert from BGR to RGB and scale to 0-1 range
             obs = copy.copy(
                 traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
-            processed = dataset.frame_aug(task_name, obs, perform_aug=False)
+            processed = dataset.frame_aug(
+                task_name, obs, perform_aug=False, frame_number=i)
             frames.append(processed)
             if dataset.aug_twice:
                 cp_frames.append(dataset.frame_aug(
@@ -374,7 +416,7 @@ def create_data_aug(dataset_loader=object):
                     bb[obj_indx] = np.array([[x1_new, y1, x2_new, y2]])
         return obs, bb
 
-    def frame_aug(task_name, obs, second=False, bb=None, class_frame=None, perform_aug=True):
+    def frame_aug(task_name, obs, second=False, bb=None, class_frame=None, perform_aug=True, frame_number=-1):
 
         img_height, img_width = obs.shape[:2]
         """applies to every timestep's RGB obs['camera_front_image']"""
@@ -389,7 +431,7 @@ def create_data_aug(dataset_loader=object):
         obs = resized_crop(obs, top=top, left=left, height=box_h,
                            width=box_w, size=(dataset_loader.height, dataset_loader.width))
         if DEBUG:
-            cv2.imwrite("resized_target_obj.png", np.moveaxis(
+            cv2.imwrite(f"resized_target_obj_{frame_number}.png", np.moveaxis(
                 obs.numpy()*255, 0, -1))
         if bb is not None and class_frame is not None:
             bb = adjust_bb(dataset_loader=dataset_loader,
@@ -449,15 +491,17 @@ def create_data_aug(dataset_loader=object):
     return frame_aug
 
 
-def create_gt_bb(dataset_loader, traj, t, task_name, distractor=False):
+def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, command=None, subtask_id=-1):
     bb = []
     cl = []
-    image_size = traj.get(
-        t)['obs']['camera_front_image'].shape
-
-    # 1. Get Target Object
-    target_obj_id = traj.get(
-        t)['obs']['target-object']
+    if subtask_id == -1:
+        # 1. Get Target Object
+        target_obj_id = step_t['obs']['target-object']
+    else:
+        target_obj_id = int(
+            subtask_id/NUM_VARIATION_PER_OBEJECT[task_name][0])
+        if target_obj_id != step_t['obs']['target-object']:
+            print("different-objects")
 
     if task_name == 'pick_place':
         num_objects = 3
@@ -470,52 +514,57 @@ def create_gt_bb(dataset_loader, traj, t, task_name, distractor=False):
         no_target_obj_id = random.randint(
             0, num_objects)
 
-    for obj_id, object_name in enumerate(traj.get(t)['obs']['obj_bb']['camera_front'].keys()):
-        if object_name != 'bin' and (obj_id == target_obj_id or (obj_id == no_target_obj_id and distractor)):
-            # 2. Get stored BB
-            top_left_x = traj.get(
-                t)['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner'][0]
-            top_left_y = traj.get(
-                t)['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner'][1]
-            # print(f"Top-Left X {top_left_x} - Top-Left Y {top_left_y}")
-            bottom_right_x = traj.get(
-                t)['obs']['obj_bb']["camera_front"][object_name]['upper_left_corner'][0]
-            bottom_right_y = traj.get(
-                t)['obs']['obj_bb']["camera_front"][object_name]['upper_left_corner'][1]
+    dict_keys = list(step_t['obs']['obj_bb']['camera_front'].keys())
+    if distractor:
+        end = 2
+    else:
+        end = 1
 
-            # center_x
-            center_x = traj.get(
-                t)['obs']['obj_bb']["camera_front"][object_name]['center'][0]
-            # center_y
-            center_y = traj.get(
-                t)['obs']['obj_bb']["camera_front"][object_name]['center'][1]
+    for i in range(end):
 
-            # bounding-box
-            # right_x - left_x
-            width = bottom_right_x - top_left_x
-            # left_y - right_y
-            height = bottom_right_y - top_left_y
-            # test GT
-            if DEBUG:
-                image = cv2.rectangle(np.array(traj.get(
-                    t)['obs']['camera_front_image'][:, :, ::-1]),
-                    (int(top_left_x),
-                        int(top_left_y)),
-                    (int(bottom_right_x),
-                        int(bottom_right_y)),
-                    color=(0, 0, 255),
-                    thickness=1)
-                cv2.imwrite("GT_bb.png", image)
+        if i == 0:
+            object_name = dict_keys[target_obj_id]
+        elif i != 0 and distractor:
+            object_name = dict_keys[no_target_obj_id]
 
-            bb.append([top_left_x, top_left_y,
-                       bottom_right_x, bottom_right_y])
+        top_left = step_t['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner']
+        bottom_right = step_t['obs']['obj_bb']["camera_front"][object_name]['upper_left_corner']
+        # 2. Get stored BB
+        top_left_x = top_left[0]
+        top_left_y = top_left[1]
+        # print(f"Top-Left X {top_left_x} - Top-Left Y {top_left_y}")
+        bottom_right_x = bottom_right[0]
+        bottom_right_y = bottom_right[1]
 
-            # 1 Target
-            # 0 No-target
-            if obj_id == target_obj_id:
-                cl.append(1)
+        # test GT
+        if DEBUG:
+            if i == 0:
+                color = (0, 255, 0)
+                image = np.array(
+                    step_t['obs']['camera_front_image'][:, :, ::-1])
             else:
-                cl.append(0)
+                color = (255, 0, 0)
+            image = cv2.rectangle(image,
+                                  (int(top_left_x),
+                                   int(top_left_y)),
+                                  (int(bottom_right_x),
+                                   int(bottom_right_y)),
+                                  color=color,
+                                  thickness=1)
+            if i == 0:
+                if DEBUG:
+                    cv2.imwrite("GT_bb.png", image)
+
+        bb.append([top_left_x, top_left_y,
+                   bottom_right_x, bottom_right_y])
+
+        # 1 Target
+        # 0 No-target
+        if i == 0:
+            cl.append(1)
+        else:
+            cl.append(0)
+
     return np.array(bb), np.array(cl)
 
 
@@ -532,7 +581,7 @@ def adjust_points(points, frame_dims, crop_params, height, width):
     return tuple([int(min(x, d - 1)) for x, d in zip([h, w], (height, width))])
 
 
-def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_action=False, load_state=False, distractor=False):
+def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_action=False, load_state=False, distractor=False, subtask_id=-1):
 
     images = []
     images_cp = []
@@ -554,14 +603,20 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
         # Create GT BB
         bb_frame, class_frame = create_gt_bb(dataset_loader=dataset_loader,
                                              traj=traj,
-                                             t=t,
+                                             step_t=step_t,
                                              task_name=task_name,
-                                             distractor=distractor)
+                                             distractor=distractor,
+                                             command=command,
+                                             subtask_id=subtask_id)
+        # print(f"BB time: {end_bb-start_bb}")
 
         if dataset_loader._perform_augs:
             # Append bb, obj classes and images
+            aug_time = time.time()
             processed, bb_aug, class_frame = dataset_loader.frame_aug(
                 task_name, image, False, bb_frame, class_frame)
+            end_aug = time.time()
+            # print(f"Aug time: {end_aug-aug_time}")
             images.append(processed)
         else:
             bb_aug = bb_frame
@@ -607,10 +662,13 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
             # Load states
             for k in dataset_loader._state_spec:
                 if k == 'action':
+                    norm_start = time.time()
                     state_component = normalize_action(
                         action=step_t['action'],
                         n_action_bin=dataset_loader._n_action_bin,
                         action_ranges=dataset_loader._normalization_ranges)
+                    norm_end = time.time()
+                    # print(f"Norm time {norm_end-norm_start}")
                 else:
                     state_component = step_t['obs'][k]
                 state.append(state_component)
@@ -719,6 +777,7 @@ class DIYBatchSampler(Sampler):
             sub_task_size = len(subtask_to_idx[task_name].get(first_id))
             print("Task {} loaded {} subtasks, starting from {}, should all have sizes {}".format(
                 task_name, num_loaded_sub_tasks, first_id, sub_task_size))
+
             for sub_task, sub_idxs in subtask_to_idx[task_name].items():
 
                 # the balancing has been requested
@@ -791,8 +850,10 @@ class DIYBatchSampler(Sampler):
         each task"""
         batch = []
         for i in range(self.max_len):
+            # for each sample in the batch
             for idx in range(self.batch_size):
                 (name, sub_task) = self.idx_map[idx]
+
                 if self.balancing_policy == 1 and self.object_distribution_to_indx != None:
                     slot_indx = idx % len(self.task_samplers[name][sub_task])
                     # take one sample for the current task, sub_task, and slot

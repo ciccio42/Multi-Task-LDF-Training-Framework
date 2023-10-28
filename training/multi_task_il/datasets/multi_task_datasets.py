@@ -77,7 +77,7 @@ class MultiTaskPairedDataset(Dataset):
 
         # Frame distribution for each trajectory
         self._frame_distribution = OrderedDict()
-
+        self._mix_demo_agent = False
         create_train_val_dict(self,
                               agent_name,
                               demo_name,

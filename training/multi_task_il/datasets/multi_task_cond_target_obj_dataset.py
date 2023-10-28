@@ -17,6 +17,7 @@ from multi_task_il.datasets.utils import *
 import robosuite.utils.transform_utils as T
 from multiprocessing import Pool, cpu_count
 import functools
+import time
 
 
 DEBUG = False
@@ -57,6 +58,7 @@ class CondTargetObjDetectorDataset(Dataset):
             tasks={},
             n_tasks=16,
             perform_augs=False,
+            mix_demo_agent=True,
             ** params):
 
         self.task_crops = OrderedDict()
@@ -83,6 +85,7 @@ class CondTargetObjDetectorDataset(Dataset):
         self._tasks = tasks
         self._n_tasks = n_tasks
         self._perform_augs = perform_augs
+        self._mix_demo_agent = mix_demo_agent
 
         self.select_random_frames = select_random_frames
         self.compute_obj_distribution = compute_obj_distribution
@@ -125,12 +128,25 @@ class CondTargetObjDetectorDataset(Dataset):
         an index to a proper sub-task index """
         if self.mode == 'train':
             pass
+
         (task_name, sub_task_id, demo_file,
-         agent_file) = self.all_file_pairs[idx]
+            agent_file) = self.all_file_pairs[idx]
         demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
+
+        # start_demo = time.time()
         demo_data = make_demo(self, demo_traj[0], task_name)
+        # end_demo = time.time()
+        # print(f"Demo-time {end_demo-start_demo}")
+
+        # start_trj = time.time()
         traj = self._make_traj(
-            agent_traj[0], agent_traj[1], task_name, sub_task_id)
+            agent_traj[0], demo_traj[1], task_name, sub_task_id)
+        # end_trj = time.time()
+        # print(f"Trj-time {end_trj-start_trj}")
+
+        # end_time = time.time()
+        # elapsed_time = end_time - start_time
+        # print("Elapsed time: ", elapsed_time)
         return {'demo_data': demo_data, 'traj': traj, 'task_name': task_name, 'task_id': sub_task_id}
 
     def _make_traj(self, traj, command, task_name, sub_task_id):
@@ -144,11 +160,10 @@ class CondTargetObjDetectorDataset(Dataset):
                 [True, False], weights=[0.5, 0.50])
 
         if not take_first_frames:
-            if self.non_sequential and self._obs_T > 1:
+            if self.non_sequential and self._obs_T > 1 and not self._only_first_frame:
                 end = len(traj)
                 chosen_t = torch.randperm(end)
                 chosen_t = chosen_t[chosen_t != 0][:self._obs_T]
-                chosen_t[0] = 1
             elif not self.non_sequential and not self._only_first_frame:
                 end = len(traj)
                 start = self._obs_T if self._first_frames else 1
@@ -165,6 +180,7 @@ class CondTargetObjDetectorDataset(Dataset):
             start = torch.Tensor([1]).int()
             chosen_t = [j + start for j in range(self._obs_T+1)]
 
+        # start_create_sample = time.time()
         images, images_cp, bb, obj_classes, actions, states, points = create_sample(
             dataset_loader=self,
             traj=traj,
@@ -173,7 +189,10 @@ class CondTargetObjDetectorDataset(Dataset):
             command=command,
             load_action=self._load_action,
             load_state=self._load_state,
-            distractor=True)
+            distractor=True,
+            subtask_id=sub_task_id)
+        # end_create_sample = time.time()
+        # print(f"Create sample time {end_create_sample-start_create_sample}")
 
         if self._perform_augs:
             ret_dict['images'] = torch.stack(images)
