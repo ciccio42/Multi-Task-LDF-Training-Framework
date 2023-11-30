@@ -11,7 +11,7 @@ from robosuite.models.objects import (
     CerealVisualObject,
     CanVisualObject,
 )
-from multi_task_robosuite_env.arena import TableArena
+from multi_task_robosuite_env.arena import TableArena, BinsArena
 from multi_task_robosuite_env.objects.custom_xml_objects import *
 from multi_task_robosuite_env.sampler import BoundarySampler
 from robosuite.models.tasks import ManipulationTask
@@ -138,7 +138,8 @@ class PickPlace(SingleArmEnv):
             object_type=None,
             y_ranges=[[0.16, 0.19], [0.05, 0.09],
                       [-0.08, -0.03], [-0.19, -0.15]],
-            env_conf=None
+            env_conf=None,
+            arena="Table"
     ):
         print(f"Render GPU id {render_gpu_device_id}")
         # settings for table top
@@ -186,6 +187,7 @@ class PickPlace(SingleArmEnv):
 
         self.y_ranges = y_ranges
         self.x_ranges = env_conf['x_ranges']
+
         self.bin_position_x = env_conf['bin_position_x']
         self.bin_position_y = env_conf['bin_position_y']
 

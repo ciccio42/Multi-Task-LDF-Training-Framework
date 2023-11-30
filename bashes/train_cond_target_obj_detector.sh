@@ -11,22 +11,22 @@ SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/
 POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
 
-SAVE_FREQ=1305
+SAVE_FREQ=1458
 LOG_FREQ=100
-VAL_FREQ=1305
+VAL_FREQ=1458
 PRINT_FREQ=100
 
-EXP_NAME=1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent
+EXP_NAME=1Task-Pick-Place-Cond-Target-Obj-Detector-separate-demo-agent
 PROJECT_NAME=${EXP_NAME}
-TASK_str=nut_assembly
+TASK_str=pick_place
 EPOCH=50 # start from 16
-BSIZE=54 #16 #32
+BSIZE=80 #16 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector.yaml
-LOADER_WORKERS=1
+LOADER_WORKERS=8
 BALANCING_POLICY=0
-SET_SAME_N=6
+SET_SAME_N=5
 OBS_T=7
 
 EARLY_STOPPING_PATIECE=-1
@@ -92,7 +92,7 @@ python ../training/train_scripts/train_any.py \
     train_cfg.lr=${LR} \
     train_cfg.weight_decay=${WEIGHT_DECAY} \
     train_cfg.lr_schedule=${SCHEDULER} \
-    debug=true \
-    wandb_log=false \
+    debug=false \
+    wandb_log=true \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS}

@@ -293,7 +293,7 @@ class UR5ePickPlace(PickPlace):
         items = ['milk', 'bread', 'cereal', 'can']
         obj = np.random.choice(items) if force_object is None else force_object
         obj = items[obj] if isinstance(obj, int) else obj
-        super().__init__(robots=['Panda'], single_object_mode=2,
+        super().__init__(robots=['Ur5e'], single_object_mode=2,
                          object_type=obj, no_clear=True,  **kwargs)
 
 

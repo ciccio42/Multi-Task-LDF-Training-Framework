@@ -2,30 +2,30 @@
 export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=1
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/ur_multitask_dataset
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 POLICY='${mosaic}'
 
-SAVE_FREQ=2700
+SAVE_FREQ=-1
 LOG_FREQ=100
-VAL_FREQ=2700
+VAL_FREQ=-1
 
-EXP_NAME=1Task-Nut-Assembly-100-180-PREDICTED-BB-2
+EXP_NAME=2Task-Nut-Assembly-Pick-Place-100-180
 PROJECT_NAME=${EXP_NAME}
-TASK_str=nut_assembly
+TASK_str=[pick_place,nut_assembly]
 ROLLOUT=false
-EPOCH=40
+EPOCH=90
 BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=3
+SET_SAME_N=2
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=1
+LOADER_WORKERS=16
 NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=true
@@ -35,7 +35,7 @@ MUL_INTM=0
 BC_MUL=1.0
 INV_MUL=1.0
 
-LOAD_TARGET_OBJ_DETECTOR=true
+LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=40455
 TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54
 FREEZE_TARGET_OBJ_DETECTOR=false
@@ -44,7 +44,7 @@ CONCAT_TARGET_OBJ_EMBEDDING=false
 CONCAT_STATE=false
 
 ACTION_DIM=7
-N_MIXTURES=2 #3 Pick-place
+N_MIXTURES=7 #3 Pick-place
 OUT_DIM=64 #128 Pick-place
 ATTN_FF=128 #256 Pick-place
 COMPRESSOR_DIM=128 #256 Pick-place
@@ -52,7 +52,7 @@ HIDDEN_DIM=128 #512 Pick-place
 CONCAT_DEMO_HEAD=false
 CONCAT_DEMO_ACT=true
 PRETRAINED=false
-CONCAT_BB=true
+CONCAT_BB=false
 NULL_BB=false
 
 EARLY_STOPPING_PATIECE=-1
@@ -131,8 +131,8 @@ python ../training/train_scripts/train_any.py \
     simclr.mul_intm=${MUL_INTM} \
     bc_mul=${BC_MUL} \
     inv_mul=${INV_MUL} \
+    cosine_annealing=${COSINE_ANNEALING} \
     debug=true \
     wandb_log=false \
     resume=${RESUME} \
-    loader_workers=${LOADER_WORKERS} \
-    cosine_annealing=${COSINE_ANNEALING}
+    loader_workers=${LOADER_WORKERS}

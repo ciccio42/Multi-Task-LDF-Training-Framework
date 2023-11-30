@@ -46,14 +46,18 @@ class MultiTaskPairedDataset(Dataset):
             normalization_ranges=[],
             n_action_bin=256,
             perform_augs=True,
+            change_command_epoch=True,
             ** params):
 
         self.task_crops = OrderedDict()
         # each idx i maps to a unique tuple of (task_name, sub_task_id, agent.pkl, demo.pkl)
         self.all_file_pairs = OrderedDict()
-        count = 0
+        self.all_agent_files = OrderedDict()
+        self.all_demo_files = OrderedDict()
         self.task_to_idx = defaultdict(list)
         self.subtask_to_idx = OrderedDict()
+        self.demo_task_to_idx = defaultdict(list)
+        self.demo_subtask_to_idx = OrderedDict()
         self.agent_files = dict()
         self.demo_files = dict()
         self.mode = mode
@@ -74,20 +78,25 @@ class MultiTaskPairedDataset(Dataset):
         self._n_action_bin = n_action_bin
         self._perform_augs = perform_augs
         self._state_spec = state_spec
+        self._change_command_epoch = change_command_epoch
 
         # Frame distribution for each trajectory
         self._frame_distribution = OrderedDict()
         self._mix_demo_agent = False
-        create_train_val_dict(self,
-                              agent_name,
-                              demo_name,
-                              root_dir,
-                              tasks_spec,
-                              split,
-                              allow_train_skip,
-                              allow_val_skip)
+        count = create_train_val_dict(self,
+                                      agent_name,
+                                      demo_name,
+                                      root_dir,
+                                      tasks_spec,
+                                      split,
+                                      allow_train_skip,
+                                      allow_val_skip)
 
-        self.pairs_count = count
+        if not self._change_command_epoch:
+            self.pairs_count = count
+        else:
+            self.file_count = count
+
         self.task_count = len(tasks_spec)
 
         self._demo_T, self._obs_T = demo_T, obs_T
@@ -107,26 +116,42 @@ class MultiTaskPairedDataset(Dataset):
     def __len__(self):
         """NOTE: we should count total possible demo-agent pairs, not just single-file counts
         total pairs should sum over all possible sub-task pairs"""
-        return self.pairs_count
+        if not self._change_command_epoch:
+            return self.pairs_count
+        else:
+            return self.file_count
 
     def __getitem__(self, idx):
         """since the data is organized by task, use a mapping here to convert
         an index to a proper sub-task index """
         if self.mode == 'train':
             pass
-        (task_name, sub_task_id, demo_file,
-         agent_file) = self.all_file_pairs[idx]
+        if not self._change_command_epoch:
+            (task_name, sub_task_id, demo_file,
+             agent_file) = self.all_file_pairs[idx]
+        else:
+            (task_name, sub_task_id, agent_file,
+                trj_length) = self.all_agent_files[idx[0]]
+            _, _, demo_file = self.all_demo_files[idx[1]]
 
-        if agent_file not in self.all_file_pairs:
-            self._frame_distribution[agent_file] = np.zeros((1, 250))
-
+        # if agent_file not in self.all_file_pairs:
+        #     self._frame_distribution[agent_file] = np.zeros((1, 250))
+        # start = time.time()
         demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
+        # end = time.time()
+        # print(f"Loading time {end-start}")
+        # start = time.time()
         demo_data = make_demo(self, demo_traj[0], task_name)
+        # end = time.time()
+        # print(f"Make demo {end-start}")
+        # start = time.time()
         traj = self._make_traj(
             agent_traj[0],
             agent_traj[1],
             task_name,
             sub_task_id)
+        # end = time.time()
+        # print(f"Make traj {end-start}")
         return {'demo_data': demo_data, 'traj': traj, 'task_name': task_name, 'task_id': sub_task_id}
 
     def _make_traj(self, traj, command, task_name, sub_task_id):

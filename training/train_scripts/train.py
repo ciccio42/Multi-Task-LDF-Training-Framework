@@ -159,6 +159,9 @@ class Trainer:
         log_freq            = self.train_cfg.get('log_freq', 1000)
         print_freq          = self.train_cfg.get('print_freq', 100)
         save_freq           = self.config.get('save_freq', 10000)
+        if save_freq == -1:
+            save_freq = len(self._train_loader)
+            val_freq = len(self._train_loader)
 
         print("Loss multipliers: \n BC: {} inv: {} Point: {}".format(
             self.train_cfg.bc_loss_mult, self.train_cfg.inv_loss_mult, self.train_cfg.pnt_loss_mult))
@@ -183,7 +186,7 @@ class Trainer:
             mod = model.module if isinstance(model, nn.DataParallel) else model 
             mod.momentum_update(frac)
             
-            for inputs in self. _train_loader:
+            for inputs in self._train_loader:
                 optimizer.zero_grad() 
                 task_losses = self.calculate_task_loss(model, inputs)
                 weighted_task_loss = sum([l["loss_sum"] * task_loss_muls.get(name) for name, l in task_losses.items()]) 

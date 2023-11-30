@@ -394,14 +394,14 @@ def nut_assembly_eval_demo_cond(model, object_detector, env, context, gpu_id, va
             (obs['ee_aa'], obs['gripper_qpos'])).astype(np.float32)[None])
 
         # Get GT BB
-        if concat_bb:
-            bb_t, gt_t = get_gt_bb(traj=traj,
-                                   obs=obs,
-                                   task_name=task_name)
-            previous_predicted_bb = []
-            previous_predicted_bb.append(torch.tensor(
-                [.0, .0, .0, .0]).to(
-                device=gpu_id).float())
+        # if concat_bb:
+        bb_t, gt_t = get_gt_bb(traj=traj,
+                               obs=obs,
+                               task_name=task_name)
+        previous_predicted_bb = []
+        previous_predicted_bb.append(torch.tensor(
+            [.0, .0, .0, .0]).to(
+            device=gpu_id).float())
 
         # convert observation from BGR to RGB
         if config.augs.get("old_aug", True):
