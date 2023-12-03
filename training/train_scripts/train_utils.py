@@ -894,7 +894,8 @@ class Trainer:
                         print(train_print)
 
                 #### ---- Validation step ----####
-                if self._step != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
+                # self._step != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
+                if False:
                     print("Validation")
                     rollout = self.config.get("rollout", False)
                     model = model.eval()

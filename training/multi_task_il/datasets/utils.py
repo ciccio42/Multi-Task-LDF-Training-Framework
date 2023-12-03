@@ -60,11 +60,14 @@ def collate_by_task(batch):
     """ Use this for validation: groups data by task names to compute per-task losses """
     collate_time = time.time()
     per_task_data = defaultdict(list)
+    start_batch = time.time()
     for b in batch:
         per_task_data[b['task_name']].append(
             {k: v for k, v in b.items() if k != 'task_name' and k != 'task_id'}
         )
+    logger.debug(f"Batch time {time.time()-start_batch}")
 
+    default_collate = time.time()
     for name, data in per_task_data.items():
         per_task_data[name] = default_collate(data)
     logger.debug(f"Collate time {time.time()-collate_time}")
