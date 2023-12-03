@@ -67,7 +67,7 @@ def collate_by_task(batch):
         )
     logger.debug(f"Batch time {time.time()-start_batch}")
 
-    default_collate = time.time()
+    collate_time = time.time()
     for name, data in per_task_data.items():
         per_task_data[name] = default_collate(data)
     logger.debug(f"Collate time {time.time()-collate_time}")
@@ -888,7 +888,7 @@ class DIYBatchSampler(Sampler):
                 self.task_info[name]['sampler_len'] = max(
                     sub_length, self.task_info[name]['sampler_len'])
         # print("Index map:", self.idx_map)
-
+        # number of steps that I need for covering all the couple (demo, agent)
         self.max_len = max([info['sampler_len']
                             for info in self.task_info.values()])
         print('Max length for sampler iterator:', self.max_len)
@@ -1103,7 +1103,7 @@ class TrajectoryBatchSampler(Sampler):
                     sub_length, self.task_info[name]['sampler_len'])
         # print("Index map:", self.idx_map)
 
-        self.max_len = n_step
+        self.max_len = epoch_steps
         print('Max length for sampler iterator:', self.max_len)
         self.n_tasks = n_tasks
         self.epoch_steps = epoch_steps
@@ -1120,7 +1120,7 @@ class TrajectoryBatchSampler(Sampler):
         each task"""
         batch = []
         agent_demo_pair = dict()
-        for i in range(self.num_step):
+        for i in range(self.max_len):
             batch = []
             if i % self.epoch_steps == 0:
                 agent_demo_pair = dict()
@@ -1175,4 +1175,4 @@ class TrajectoryBatchSampler(Sampler):
         # Since different task may have different data sizes,
         # define total length of sampler as number of iterations to
         # exhaust the last task
-        return self.epoch_steps
+        return self.max_len

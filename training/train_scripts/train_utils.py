@@ -118,10 +118,10 @@ def make_data_loaders(config, dataset_cfg):
         if not dataset_cfg.change_command_epoch:
             samplerClass = DIYBatchSampler
             val_sampler = samplerClass(
-                task_to_idx=dataset.task_to_idx,
-                subtask_to_idx=dataset.subtask_to_idx,
+                task_to_idx=val_dataset.task_to_idx,
+                subtask_to_idx=val_dataset.subtask_to_idx,
                 tasks_spec=dataset_cfg.tasks_spec,
-                object_distribution_to_indx=dataset.object_distribution_to_indx,
+                object_distribution_to_indx=val_dataset.object_distribution_to_indx,
                 sampler_spec=config.samplers,
                 n_step=val_step)
         else:
@@ -835,6 +835,7 @@ class Trainer:
         model = model.to(self._device)
         # summary(model)
 
+        step = 0
         for e in range(epochs):
             frac = e / epochs
             # with tqdm(self._train_loader, unit="batch") as tepoch:
