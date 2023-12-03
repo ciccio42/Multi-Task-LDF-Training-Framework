@@ -1165,7 +1165,7 @@ class TrajectoryBatchSampler(Sampler):
                 if self.shuffle:
                     random.shuffle(batch)
                 yield batch
-
+                batch = []
             if len(batch) > 0 and not self.drop_last:
                 if self.shuffle:
                     random.shuffle(batch)
@@ -1175,4 +1175,5 @@ class TrajectoryBatchSampler(Sampler):
         # Since different task may have different data sizes,
         # define total length of sampler as number of iterations to
         # exhaust the last task
+        print(f"Sampler max-len {self.max_len}")
         return self.max_len
