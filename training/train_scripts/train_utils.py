@@ -102,7 +102,7 @@ def make_data_loaders(config, dataset_cfg):
             np.random.randint(2 ** 29) + w),
         collate_fn=collate_by_task,
         pin_memory=True,
-        prefetch_factor=5,
+        prefetch_factor=2,
         persistent_workers=True
     )
 
@@ -145,7 +145,7 @@ def make_data_loaders(config, dataset_cfg):
                 np.random.randint(2 ** 29) + w),
             collate_fn=collate_by_task,
             pin_memory=False,
-            prefetch_factor=5,
+            prefetch_factor=2,
             persistent_workers=True
         )
 

@@ -47,6 +47,7 @@ class MultiTaskPairedDataset(Dataset):
             n_action_bin=256,
             perform_augs=True,
             change_command_epoch=True,
+            load_eef_point=False,
             ** params):
 
         self.task_crops = OrderedDict()
@@ -78,7 +79,9 @@ class MultiTaskPairedDataset(Dataset):
         self._n_action_bin = n_action_bin
         self._perform_augs = perform_augs
         self._state_spec = state_spec
+        self._load_state_spec = True if state_spec is not None else False
         self._change_command_epoch = change_command_epoch
+        self._load_eef_point = load_eef_point
 
         # Frame distribution for each trajectory
         self._frame_distribution = OrderedDict()
@@ -179,7 +182,8 @@ class MultiTaskPairedDataset(Dataset):
             task_name=task_name,
             command=command,
             load_action=True,
-            load_state=True)
+            load_state=self._load_state_spec,
+            load_eef_point=self._load_eef_point)
 
         ret_dict['images'] = torch.stack(images)
 

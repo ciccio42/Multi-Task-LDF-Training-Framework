@@ -24,6 +24,16 @@ import time
 import math
 from tqdm import tqdm
 
+import logging
+import time
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Create a logger object
+logger = logging.getLogger('Data-Loader')
+
 DEBUG = False
 
 ENV_OBJECTS = {
@@ -48,6 +58,7 @@ NUM_VARIATION_PER_OBEJECT = {'pick_place': (4, 4),
 
 def collate_by_task(batch):
     """ Use this for validation: groups data by task names to compute per-task losses """
+    collate_time = time.time()
     per_task_data = defaultdict(list)
     for b in batch:
         per_task_data[b['task_name']].append(
@@ -56,6 +67,7 @@ def collate_by_task(batch):
 
     for name, data in per_task_data.items():
         per_task_data[name] = default_collate(data)
+    logger.info(f"Collate time {time.time()-collate_time}")
     return per_task_data
 
 
@@ -612,7 +624,7 @@ def adjust_points(points, frame_dims, crop_params, height, width):
     return tuple([int(min(x, d - 1)) for x, d in zip([h, w], (height, width))])
 
 
-def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_action=False, load_state=False, distractor=False, subtask_id=-1):
+def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_action=False, load_state=False, load_eef_point=False, distractor=False, subtask_id=-1):
 
     images = []
     images_cp = []
@@ -622,7 +634,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
     states = []
     points = []
 
-    has_eef_point = 'eef_point' in traj.get(0, False)['obs']
+    time_sample = time.time()
     crop_params = dataset_loader.task_crops.get(task_name, [0, 0, 0, 0])
     for j, t in enumerate(chosen_t):
         t = t.item()
@@ -632,6 +644,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
             step_t['obs']['camera_front_image'][:, :, ::-1])
 
         # Create GT BB
+        bb_time = time.time()
         bb_frame, class_frame = create_gt_bb(dataset_loader=dataset_loader,
                                              traj=traj,
                                              step_t=step_t,
@@ -639,6 +652,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                                              distractor=distractor,
                                              command=command,
                                              subtask_id=subtask_id)
+        logger.debug(f"BB time {time.time()-bb_time}")
         # print(f"BB time: {end_bb-start_bb}")
 
         if dataset_loader._perform_augs:
@@ -647,7 +661,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
             processed, bb_aug, class_frame = dataset_loader.frame_aug(
                 task_name, image, False, bb_frame, class_frame)
             end_aug = time.time()
-            # print(f"Aug time: {end_aug-aug_time}")
+            logger.debug(f"Aug time: {end_aug-aug_time}")
             images.append(processed)
         else:
             bb_aug = bb_frame
@@ -656,11 +670,13 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
         obj_classes.append((torch.from_numpy(class_frame)))
 
         if dataset_loader.aug_twice:
+            aug_twice_time = time.time()
             image_cp = dataset_loader.frame_aug(task_name, image, True)
             images_cp.append(image_cp)
+            logger.debug(f"Aug twice time: {time.time()-aug_twice_time}")
 
-        if has_eef_point:
-
+        if load_eef_point:
+            eef_point_time = time.time()
             if DEBUG:
                 image_point = np.array(
                     step_t['obs']['camera_front_image'][:, :, ::-1], dtype=np.uint8)
@@ -681,14 +697,18 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                 image = cv2.circle(cv2.UMat(image), (points[-1][0][1], points[-1][0][0]), radius=1, color=(
                     0, 0, 255), thickness=1)
                 cv2.imwrite("adjusted_point.png", cv2.UMat(image))
+            logger.debug(f"EEF point: {time.time()-eef_point_time}")
 
         if load_action and j >= 1:
+            action_time = time.time()
             # Load action
             action = step_t['action'] if not dataset_loader._normalize_action else normalize_action(
                 action=step_t['action'], n_action_bin=dataset_loader._n_action_bin, action_ranges=dataset_loader._normalization_ranges)
             actions.append(action)
+            logger.debug(f"Action: {time.time()-action_time}")
 
         if load_state:
+            state_time = time.time()
             state = []
             # Load states
             for k in dataset_loader._state_spec:
@@ -704,6 +724,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                     state_component = step_t['obs'][k]
                 state.append(state_component)
             states.append(np.concatenate(state))
+            logger.debug(f"State: {time.time()-state}")
 
         # test GT
         if DEBUG:
@@ -718,7 +739,8 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                                   thickness=1)
             # print(f"Command {command}")
             cv2.imwrite("GT_bb_after_aug.png", image)
-
+    end_time_sample = time.time()
+    logger.debug(f"Sample time {end_time_sample-time_sample}")
     return images, images_cp, bb, obj_classes, actions, states, points
 
 

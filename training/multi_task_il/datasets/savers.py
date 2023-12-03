@@ -27,9 +27,14 @@ def _compress_obs(obs):
 
 
 def _decompress_obs(obs):
-    for key in obs.keys():
+    keys = ["camera_front_image"]
+    for key in keys:
         if 'image' in key:
-            obs[key] = cv2.imdecode(obs[key], cv2.IMREAD_COLOR)
+            try:
+                decomp = cv2.imdecode(obs[key], cv2.IMREAD_COLOR)
+                obs[key] = decomp
+            except:
+                pass
         if 'depth_norm' in key:
             obs[key] = cv2.imdecode(
                 obs[key], cv2.IMREAD_GRAYSCALE).astype(np.uint8)
@@ -67,8 +72,7 @@ class Trajectory:
         assert 0 <= t < self.T or - \
             self.T < t <= 0, "index should be in (-T, T)"
 
-        obs_t, reward_t, done_t, info_t, action_t = copy.deepcopy(
-            self._data[t])
+        obs_t, reward_t, done_t, info_t, action_t = self._data[t]
         if decompress:
             obs_t = _decompress_obs(obs_t)
         ret_dict = dict(obs=obs_t, reward=reward_t,
