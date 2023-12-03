@@ -42,9 +42,9 @@ ROLLOUT=false
 PERFORM_AUGS=true
 NON_SEQUENTIAL=true
 
-RESUME_PATH=1Task-Nut-Assembly-Cond-Target-Obj-Detector-random-frames-Batch45
-RESUME_STEP=46980
-RESUME=false
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/2Task-Pick-Place-Nut-Assembly-Cond-Target-Obj-Detector-Batch50/
+RESUME_STEP=3645
+RESUME=true
 
 DROP_DIM=4      # 2    # 3
 OUT_FEATURE=128 # 512 # 256

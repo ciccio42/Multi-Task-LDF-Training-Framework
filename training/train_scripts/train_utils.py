@@ -895,8 +895,7 @@ class Trainer:
                         print(train_print)
 
                 #### ---- Validation step ----####
-                # self._step != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
-                if False:
+                if self._step % val_freq == 0 and not self.config.get("use_daml", False):
                     print("Validation")
                     rollout = self.config.get("rollout", False)
                     model = model.eval()
@@ -906,7 +905,7 @@ class Trainer:
                             list) for task in task_names}
                         # val_iter = iter(self._val_loader)
                         # for i, val_inputs in tqdm(enumerate(self._val_loader), total=len(self._val_loader)):
-                        for val_inputs in enumerate(self._val_loader):
+                        for val_inputs in tqdm(self._val_loader):
                             use_daml = self.config.get("use_daml", False)
                             if use_daml:  # allow grad!
                                 val_task_losses = loss_function(
