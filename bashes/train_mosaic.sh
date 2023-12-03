@@ -133,7 +133,7 @@ python ../training/train_scripts/train_any.py \
     bc_mul=${BC_MUL} \
     inv_mul=${INV_MUL} \
     cosine_annealing=${COSINE_ANNEALING} \
-    debug=true \
-    wandb_log=false \
+    debug=false \
+    wandb_log=true \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS}

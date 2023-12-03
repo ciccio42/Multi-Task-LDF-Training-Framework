@@ -59,22 +59,35 @@ class CondTargetObjDetectorDataset(Dataset):
             n_tasks=16,
             perform_augs=False,
             mix_demo_agent=True,
+            change_command_epoch=False,
+            load_eef_point=False,
             ** params):
 
         self.task_crops = OrderedDict()
         # each idx i maps to a unique tuple of (task_name, sub_task_id, agent.pkl, demo.pkl)
         self.all_file_pairs = OrderedDict()
+        self.all_agent_files = OrderedDict()
+        self.all_demo_files = OrderedDict()
         count = 0
         self.task_to_idx = defaultdict(list)
         self.subtask_to_idx = OrderedDict()
+        self.demo_task_to_idx = defaultdict(list)
+        self.demo_subtask_to_idx = OrderedDict()
+
         self.agent_files = dict()
         self.demo_files = dict()
         self.mode = mode
+
         self._demo_T = demo_T
         self._obs_T = obs_T
+
         self._load_action = load_action
         self._load_state = load_state
         self._state_spec = state_spec
+        self._load_state_spec = True if state_spec is not None else False
+        self._change_command_epoch = change_command_epoch
+        self._load_eef_point = load_eef_point
+
         self._action_spec = action_spec
         self._normalize_action = normalize_action
         self._normalization_ranges = np.array(normalization_ranges)

@@ -192,7 +192,7 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                                         count)
                                     dataset_loader.index_to_slot[count] = slot_indx
                         count += 1
-            else:
+            elif not dataset_loader._mix_demo_agent and dataset_loader._change_command_epoch:
                 print(f"Loading task {name} - sub-task {_id}")
                 for agent in tqdm(agent_files):
                     # open file and check trajectory lenght
@@ -218,7 +218,6 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                     demo_file_cnt += 1
 
         if dataset_loader._mix_demo_agent:
-            count = 0
             num_variation_per_object = NUM_VARIATION_PER_OBEJECT[name][0]
             num_objects = NUM_VARIATION_PER_OBEJECT[name][1]
 

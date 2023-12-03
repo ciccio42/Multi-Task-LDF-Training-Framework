@@ -123,6 +123,8 @@ dataset_cfg:
   tasks: {}
   n_tasks: 16
   perform_augs: False
+  change_command_epoch: False
+  load_eef_point: False
 
 augs:
   old_aug: false

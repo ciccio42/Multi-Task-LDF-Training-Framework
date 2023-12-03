@@ -1047,7 +1047,7 @@ class Trainer:
                 if self.config.wandb_log:
                     wandb.log(tolog)
                 self._step += 1
-                if not model._load_target_obj_detector or not model._freeze_target_obj_detector:
+                if not getattr(model, "_load_target_obj_detector", True) or not getattr(model, "_freeze_target_obj_detector", True):
                     # update target params
                     mod = model.module if isinstance(
                         model, nn.DataParallel) else model

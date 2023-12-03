@@ -1,24 +1,26 @@
 #!/bin/sh
-export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
+export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
+# export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
-
-EXPERT_DATA=/raid/home/frosa_Loc/ur_multitask_dataset
+EXPERT_DATA=/mnt/sdc1/frosa/opt_dataset
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/
 POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
 
-SAVE_FREQ=1458
+SAVE_FREQ=-1
 LOG_FREQ=100
-VAL_FREQ=1458
+VAL_FREQ=-1
 PRINT_FREQ=100
 
-EXP_NAME=1Task-Pick-Place-Cond-Target-Obj-Detector-separate-demo-agent
+EXP_NAME=2Task-Pick-Place-Nut-Assembly-Cond-Target-Obj-Detector
 PROJECT_NAME=${EXP_NAME}
-TASK_str=pick_place
+TASK_str=["pick_place","nut_assembly"]
 EPOCH=50 # start from 16
 BSIZE=80 #16 #32
 COMPUTE_OBJ_DISTRIBUTION=false
@@ -26,7 +28,7 @@ CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector.yaml
 LOADER_WORKERS=8
 BALANCING_POLICY=0
-SET_SAME_N=5
+SET_SAME_N=2
 OBS_T=7
 
 EARLY_STOPPING_PATIECE=-1
