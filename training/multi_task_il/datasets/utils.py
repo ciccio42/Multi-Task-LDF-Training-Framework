@@ -67,7 +67,7 @@ def collate_by_task(batch):
 
     for name, data in per_task_data.items():
         per_task_data[name] = default_collate(data)
-    logger.info(f"Collate time {time.time()-collate_time}")
+    logger.debug(f"Collate time {time.time()-collate_time}")
     return per_task_data
 
 
