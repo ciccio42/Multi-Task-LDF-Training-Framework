@@ -1119,10 +1119,13 @@ class TrajectoryBatchSampler(Sampler):
         Fix a total self.batch_size, sample different numbers of datapoints from
         each task"""
         batch = []
+        print("Reset agent_demo_pair")
         agent_demo_pair = dict()
         for i in range(self.max_len):
+            print(i)
             batch = []
             if i % self.epoch_steps == 0:
+                print("Reset agent_demo_pair")
                 agent_demo_pair = dict()
 
             # for each sample in the batch

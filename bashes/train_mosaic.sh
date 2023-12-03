@@ -16,7 +16,7 @@ SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
 
-EXP_NAME=2Task-Nut-Assembly-Pick-Place-100-180-2
+EXP_NAME=2Task-Nut-Assembly-Pick-Place-100-180
 PROJECT_NAME=${EXP_NAME}
 TASK_str=[pick_place,nut_assembly]
 ROLLOUT=false
@@ -136,6 +136,6 @@ python ../training/train_scripts/train_any.py \
     inv_mul=${INV_MUL} \
     cosine_annealing=${COSINE_ANNEALING} \
     debug=false \
-    wandb_log=false \
+    wandb_log=true \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS}
