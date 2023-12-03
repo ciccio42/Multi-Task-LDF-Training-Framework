@@ -104,7 +104,7 @@ if __name__ == '__main__':
         args.task_path, args.task_name, f"{args.robot_name}_{args.task_name}")
 
     # load task configuration file
-    conf_file_path = "/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/experiments/tasks_cfgs/7_tasks.yaml"
+    conf_file_path = "../../experiments/tasks_cfgs/7_tasks.yaml"
     with open(conf_file_path, 'r') as file:
         task_conf = yaml.safe_load(file)
 

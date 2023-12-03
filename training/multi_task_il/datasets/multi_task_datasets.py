@@ -139,10 +139,10 @@ class MultiTaskPairedDataset(Dataset):
 
         # if agent_file not in self.all_file_pairs:
         #     self._frame_distribution[agent_file] = np.zeros((1, 250))
-        # start = time.time()
+        start = time.time()
         demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
-        # end = time.time()
-        # print(f"Loading time {end-start}")
+        end = time.time()
+        logger.debug(f"Loading time {end-start}")
         # start = time.time()
         demo_data = make_demo(self, demo_traj[0], task_name)
         # end = time.time()

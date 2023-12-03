@@ -933,15 +933,15 @@ class DIYBatchSampler(Sampler):
                         batch.append(next(iterator))
                         self.task_iterators[name][sub_task] = iterator
 
-        if len(batch) == self.batch_size:
-            if self.shuffle:
-                random.shuffle(batch)
-            yield batch
-            batch = []
-        if len(batch) > 0 and not self.drop_last:
-            if self.shuffle:
-                random.shuffle(batch)
-            yield batch
+            if len(batch) == self.batch_size:
+                if self.shuffle:
+                    random.shuffle(batch)
+                yield batch
+                batch = []
+            if len(batch) > 0 and not self.drop_last:
+                if self.shuffle:
+                    random.shuffle(batch)
+                yield batch
 
     def __len__(self):
         # Since different task may have different data sizes,
