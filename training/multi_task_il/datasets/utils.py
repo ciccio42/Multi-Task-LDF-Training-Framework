@@ -1122,7 +1122,6 @@ class TrajectoryBatchSampler(Sampler):
         print("Reset agent_demo_pair")
         agent_demo_pair = dict()
         for i in range(self.max_len):
-            print(i)
             batch = []
             if i % self.epoch_steps == 0:
                 print("Reset agent_demo_pair")
