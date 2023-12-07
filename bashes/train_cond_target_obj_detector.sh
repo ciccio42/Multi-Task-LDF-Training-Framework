@@ -1,14 +1,14 @@
 #!/bin/sh
-export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
-# export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
+# export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
+export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/mnt/sdc1/frosa/opt_dataset
+EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/
 POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
@@ -43,7 +43,7 @@ PERFORM_AUGS=true
 NON_SEQUENTIAL=true
 
 RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/2Task-Pick-Place-Nut-Assembly-Cond-Target-Obj-Detector-Batch50/
-RESUME_STEP=3645
+RESUME_STEP=40095
 RESUME=true
 
 DROP_DIM=4      # 2    # 3

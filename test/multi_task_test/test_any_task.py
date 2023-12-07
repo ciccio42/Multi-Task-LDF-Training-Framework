@@ -31,6 +31,8 @@ from torchvision.transforms import ToTensor
 from multi_task_test.nut_assembly import nut_assembly_eval
 from multi_task_test.pick_place import pick_place_eval
 from multi_task_test import select_random_frames
+import re
+
 
 set_start_method('forkserver', force=True)
 LOG_PATH = None
@@ -90,6 +92,13 @@ TASK_MAP = {
     # },
 
 }
+
+
+def extract_last_number(path):
+    # Use regular expression to find the last number in the path
+    check_point_number = path.split(
+        '/')[-1].split('_')[-1].split('-')[-1].split('.')[0]
+    return int(check_point_number)
 
 
 def build_tvf_formatter(config, env_name='stack'):
@@ -650,10 +659,25 @@ if __name__ == '__main__':
     #     try_path = join(LOG_PATH, args.model)
     #     assert os.path.exists(try_path), f"Cannot find {try_path} anywhere"
     if 'model_save' not in args.model:
-        print("Appending saved step {}".format(args.saved_step))
-        try_path = join(try_path, 'model_save-{}.pt'.format(args.saved_step))
-        assert os.path.exists(
-            try_path), "Cannot find anywhere: " + str(try_path)
+        if args.saved_step != -1:
+            print("Appending saved step {}".format(args.saved_step))
+            try_path = join(
+                try_path, 'model_save-{}.pt'.format(args.saved_step))
+            assert os.path.exists(
+                try_path), "Cannot find anywhere: " + str(try_path)
+        else:
+            import glob
+            print(f"Finding checkpoints in {try_path}")
+            check_point_list = glob.glob(
+                os.path.join(try_path, "model_save-*.pt"))
+            exclude_pattern = r'model_save-optim-\d+\.pt'
+            check_point_list = [
+                path for path in check_point_list if not re.search(exclude_pattern, path)]
+            check_point_list = sorted(
+                check_point_list, key=extract_last_number)
+            print(check_point_list)
+            # take the last check point
+            try_path = check_point_list[-1]
 
     model_path = os.path.expanduser(try_path)
 

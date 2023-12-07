@@ -202,7 +202,7 @@ class FiLM(nn.Module):
         h = agent_obs_feat.size(2)
         w = agent_obs_feat.size(3)
         coords = coord_map((h, w))[None].repeat(
-            agent_obs_feat.shape[0], 1, 1, 1)  # B 2 h w
+            agent_obs_feat.shape[0], 1, 1, 1).to(agent_obs_feat.get_device())  # B 2 h w
 
         for i, res_block in enumerate(self.res_blocks):
             beta = film_vector[:, i, 0, :]
