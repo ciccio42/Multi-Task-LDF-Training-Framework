@@ -13,9 +13,9 @@ SAVE_PATH=/home/frosa_loc/Multi-Task-LFD-Framework/mosaic-baseline-sav-folder/ur
 POLICY='${cond_policy}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
 
-SAVE_FREQ=2025
+SAVE_FREQ=-1
 LOG_FREQ=100
-VAL_FREQ=2025
+VAL_FREQ=-1
 PRINT_FREQ=100
 
 EXP_NAME=1Task-Pick-Place-Cond-Target-Obj-Detector-Policy-GT-BB-Low-Variance

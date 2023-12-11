@@ -198,7 +198,7 @@ class _TransformerFeatures(nn.Module):
         elif drop_dim == 3:
             conv_feature_dim = 256
         else:
-            raise NotImplementedError
+            conv_feature_dim = 128
 
         self._attn_layers = _StackedAttnLayers(
             in_dim=conv_feature_dim, out_dim=conv_feature_dim, n_layers=n_attn_layers,
@@ -208,7 +208,7 @@ class _TransformerFeatures(nn.Module):
 
         # 5000
         self._pe = TemporalPositionalEncoding(
-            conv_feature_dim, dropout, max_len=3000) if pos_enc else None
+            conv_feature_dim, dropout, max_len=5000) if pos_enc else None
         self.demo_out = demo_out
         in_dim = conv_feature_dim * dim_H * dim_W
         print("Linear embedder has input dim: {}x{}x{}={} ".format(
