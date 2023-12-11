@@ -667,6 +667,7 @@ if __name__ == '__main__':
                 try_path), "Cannot find anywhere: " + str(try_path)
         else:
             import glob
+            try_path_list = []
             print(f"Finding checkpoints in {try_path}")
             check_point_list = glob.glob(
                 os.path.join(try_path, "model_save-*.pt"))
@@ -675,254 +676,263 @@ if __name__ == '__main__':
                 path for path in check_point_list if not re.search(exclude_pattern, path)]
             check_point_list = sorted(
                 check_point_list, key=extract_last_number)
-            print(check_point_list)
             # take the last check point
-            try_path = check_point_list[-1]
+            try_paths = check_point_list
+            epoch_numbers = len(try_paths)
+            try_path_list = try_paths[-10:]
 
-    model_path = os.path.expanduser(try_path)
+    for try_path in try_path_list:
 
-    assert args.env in TASK_MAP.keys(), "Got unsupported environment {}".format(args.env)
+        model_path = os.path.expanduser(try_path)
+        print(model_path)
+        assert args.env in TASK_MAP.keys(), "Got unsupported environment {}".format(args.env)
 
-    if args.variation and args.save_path is None:
-        results_dir = os.path.join(
-            os.path.dirname(model_path), 'results_{}_{}/'.format(args.env, args.variation))
-    elif not args.variation and args.save_path is None:
-        results_dir = os.path.join(os.path.dirname(
-            model_path), 'results_{}/'.format(args.env))
-    elif args.save_path is not None:
-        results_dir = os.path.join(args.save_path)
+        if args.variation and args.save_path is None:
+            results_dir = os.path.join(
+                os.path.dirname(model_path), 'results_{}_{}/'.format(args.env, args.variation))
+        elif not args.variation and args.save_path is None:
+            results_dir = os.path.join(os.path.dirname(
+                model_path), 'results_{}/'.format(args.env))
+        elif args.save_path is not None:
+            results_dir = os.path.join(args.save_path)
 
-    if args.env == 'stack_block':
-        if (args.size or args.shape or args.color):
-            results_dir = os.path.join(os.path.dirname(model_path),
-                                       'results_stack_size{}-shape{}-color-{}'.format(int(args.size), int(args.shape), int(args.color)))
+        print(f"Result dir {results_dir}")
 
-    assert args.env != '', 'Must specify correct task to evaluate'
-    os.makedirs(results_dir, exist_ok=True)
-    model_saved_step = model_path.split("/")[-1].split("-")
-    model_saved_step.remove("model_save")
-    model_saved_step = model_saved_step[0][:-3]
-    print("loading model from saved training step %s" % model_saved_step)
-    results_dir = os.path.join(results_dir, 'step-'+model_saved_step)
-    os.makedirs(results_dir, exist_ok=True)
-    print("Made new path for results at: %s" % results_dir)
-    config_path = os.path.expanduser(args.config) if args.config else os.path.join(
-        os.path.dirname(model_path), 'config.yaml')
+        if args.env == 'stack_block':
+            if (args.size or args.shape or args.color):
+                results_dir = os.path.join(os.path.dirname(model_path),
+                                           'results_stack_size{}-shape{}-color-{}'.format(int(args.size), int(args.shape), int(args.color)))
 
-    config = OmegaConf.load(config_path)
-    print('Multi-task dataset, tasks used: ', config.tasks)
+        assert args.env != '', 'Must specify correct task to evaluate'
+        os.makedirs(results_dir, exist_ok=True)
+        model_saved_step = model_path.split("/")[-1].split("-")
+        model_saved_step.remove("model_save")
+        model_saved_step = model_saved_step[0][:-3]
+        print("loading model from saved training step %s" % model_saved_step)
+        results_dir = os.path.join(results_dir, 'step-'+model_saved_step)
+        os.makedirs(results_dir, exist_ok=True)
+        print("Made new path for results at: %s" % results_dir)
+        config_path = os.path.expanduser(args.config) if args.config else os.path.join(
+            os.path.dirname(model_path), 'config.yaml')
 
-    model = hydra.utils.instantiate(config.policy)
+        config = OmegaConf.load(config_path)
+        print('Multi-task dataset, tasks used: ', config.tasks)
 
-    if args.wandb_log:
-        model_name = model_path.split("/")[-2]
-        run = wandb.init(project=args.project_name,
-                         job_type='test', group=model_name.split("-1gpu")[0])
-        run.name = model_name + f'-Test_{args.env}-Step_{model_saved_step}'
-        wandb.config.update(args)
+        model = hydra.utils.instantiate(config.policy)
 
-    # assert torch.cuda.device_count() <= 5, "Let's restrict visible GPUs to not hurt other processes. E.g. export CUDA_VISIBLE_DEVICES=0,1"
-    build_task = TASK_MAP.get(args.env, None)
-    assert build_task, 'Got unsupported task '+args.env
+        if args.wandb_log:
+            model_name = model_path.split("/")[-2]
+            run = wandb.init(project=args.project_name,
+                             job_type='test',
+                             group=model_name.split("-1gpu")[0],
+                             reinit=True)
+            run.name = model_name + f'-Test_{args.env}-Step_{model_saved_step}'
+            wandb.config.update(args)
 
-    if args.N == -1:
-        if not args.variation:
-            args.N = int(args.eval_each_task *
-                         build_task.get('num_variations', 0))
-            if args.eval_subsets:
-                print("evaluating only first {} subtasks".format(args.eval_subsets))
-                args.N = int(args.eval_each_task * args.eval_subsets)
+        # assert torch.cuda.device_count() <= 5, "Let's restrict visible GPUs to not hurt other processes. E.g. export CUDA_VISIBLE_DEVICES=0,1"
+        build_task = TASK_MAP.get(args.env, None)
+        assert build_task, 'Got unsupported task '+args.env
+
+        if args.N == -1:
+            if not args.variation:
+                args.N = int(args.eval_each_task *
+                             build_task.get('num_variations', 0))
+                if args.eval_subsets:
+                    print("evaluating only first {} subtasks".format(
+                        args.eval_subsets))
+                    args.N = int(args.eval_each_task * args.eval_subsets)
+            else:
+                args.N = int(args.eval_each_task)
+
+        assert args.N, "Need pre-define how many trajs to test for each env"
+        print('Found {} GPU devices, using {} parallel workers for evaluating {} total trajectories\n'.format(
+            torch.cuda.device_count(), args.num_workers, args.N))
+
+        T_context = config.dataset_cfg.demo_T  # a different set of config scheme
+        # heights, widths = config.train_cfg.dataset.get('height', 100), config.train_cfg.dataset.get('width', 200)
+        heights, widths = build_task.get('render_hw', (100, 180))
+        if args.use_h != -1 and args.use_w != -1:
+            print(
+                f"Reset to non-default render sizes {args.use_h}-by-{args.use_w}")
+            heights, widths = args.use_h, args.use_w
+
+        print("Renderer is using size {} \n".format((heights, widths)))
+
+        model._2_point = None
+        model._target_embed = None
+        if 'mt_rep' in config.policy._target_:
+            model.skip_for_eval()
+        loaded = torch.load(model_path, map_location=torch.device('cpu'))
+
+        if config.get('use_daml', False):
+            removed = OrderedDict(
+                {k.replace('module.', ''): v for k, v in loaded.items()})
+            model.load_state_dict(removed)
+            model = l2l.algorithms.MAML(
+                model,
+                lr=config['policy']['maml_lr'],
+                first_order=config['policy']['first_order'],
+                allow_unused=True)
         else:
-            args.N = int(args.eval_each_task)
+            model.load_state_dict(loaded)
 
-    assert args.N, "Need pre-define how many trajs to test for each env"
-    print('Found {} GPU devices, using {} parallel workers for evaluating {} total trajectories\n'.format(
-        torch.cuda.device_count(), args.num_workers, args.N))
+        # model.set_conv_layer_reference(model)
 
-    T_context = config.dataset_cfg.demo_T  # a different set of config scheme
-    # heights, widths = config.train_cfg.dataset.get('height', 100), config.train_cfg.dataset.get('width', 200)
-    heights, widths = build_task.get('render_hw', (100, 180))
-    if args.use_h != -1 and args.use_w != -1:
-        print(
-            f"Reset to non-default render sizes {args.use_h}-by-{args.use_w}")
-        heights, widths = args.use_h, args.use_w
+        model = model.eval()  # .cuda()
+        n_success = 0
+        size = args.size
+        shape = args.shape
+        color = args.color
+        variation = args.variation
+        seed = args.seed
+        max_T = 95
+        # load target object detector
+        # model_path = config.policy.get('target_obj_detector_path', None)
+        # target_obj_dec = None
+        # train_data_loader = None
+        # if model_path is not None and config.policy.load_target_obj_detector:
+        #     # load config file
+        #     conf_file = OmegaConf.load(os.path.join(model_path, "config.yaml"))
+        #     target_obj_dec = hydra.utils.instantiate(conf_file.policy)
+        #     weights = torch.load(os.path.join(
+        #         model_path, f"model_save-{config.policy['target_obj_detector_step']}.pt"), map_location=torch.device('cpu'))
+        #     target_obj_dec.load_state_dict(weights)
+        #     target_obj_dec.eval()
 
-    print("Renderer is using size {} \n".format((heights, widths)))
+        # Load object detector
+        object_detector = None
+        if config.policy.get('concat_bb', False) and not args.gt_bb:
+            conf_file = OmegaConf.load(os.path.join(
+                config.policy.get('target_obj_detector_path', "/"), "config.yaml"))
+            object_detector = hydra.utils.instantiate(conf_file.policy)
+            weights = torch.load(os.path.join(
+                os.path.join(config.policy.get(
+                    'target_obj_detector_path', "/")),
+                f"model_save-{config.policy['target_obj_detector_step']}.pt"),
+                map_location=torch.device('cpu'))
+            object_detector.load_state_dict(weights)
+            object_detector.eval()
 
-    model._2_point = None
-    model._target_embed = None
-    if 'mt_rep' in config.policy._target_:
-        model.skip_for_eval()
-    loaded = torch.load(model_path, map_location=torch.device('cpu'))
-
-    if config.get('use_daml', False):
-        removed = OrderedDict(
-            {k.replace('module.', ''): v for k, v in loaded.items()})
-        model.load_state_dict(removed)
-        model = l2l.algorithms.MAML(
-            model,
-            lr=config['policy']['maml_lr'],
-            first_order=config['policy']['first_order'],
-            allow_unused=True)
-    else:
-        model.load_state_dict(loaded)
-
-    # model.set_conv_layer_reference(model)
-
-    model = model.eval()  # .cuda()
-    n_success = 0
-    size = args.size
-    shape = args.shape
-    color = args.color
-    variation = args.variation
-    seed = args.seed
-    max_T = 95
-    # load target object detector
-    # model_path = config.policy.get('target_obj_detector_path', None)
-    # target_obj_dec = None
-    # train_data_loader = None
-    # if model_path is not None and config.policy.load_target_obj_detector:
-    #     # load config file
-    #     conf_file = OmegaConf.load(os.path.join(model_path, "config.yaml"))
-    #     target_obj_dec = hydra.utils.instantiate(conf_file.policy)
-    #     weights = torch.load(os.path.join(
-    #         model_path, f"model_save-{config.policy['target_obj_detector_step']}.pt"), map_location=torch.device('cpu'))
-    #     target_obj_dec.load_state_dict(weights)
-    #     target_obj_dec.eval()
-
-    # Load object detector
-    object_detector = None
-    if config.policy.get('concat_bb', False) and not args.gt_bb:
-        conf_file = OmegaConf.load(os.path.join(
-            config.policy.get('target_obj_detector_path', "/"), "config.yaml"))
-        object_detector = hydra.utils.instantiate(conf_file.policy)
-        weights = torch.load(os.path.join(
-            os.path.join(config.policy.get('target_obj_detector_path', "/")),
-            f"model_save-{config.policy['target_obj_detector_step']}.pt"),
-            map_location=torch.device('cpu'))
-        object_detector.load_state_dict(weights)
-        object_detector.eval()
-
-    dataset = None
-    if args.test_gt:
-        from hydra.utils import instantiate
-        from torch.utils.data import DataLoader
-        from multiprocessing import cpu_count
-        from multi_task_il.datasets.utils import DIYBatchSampler, collate_by_task
-        config.dataset_cfg.mode = "train"
-        dataset = instantiate(config.get('dataset_cfg', None))
-        # get list of pkl files
-        pkl_file_dict = dataset.all_file_pairs
-
-    parallel = args.num_workers > 1
-
-    model_name = config.policy._target_
-
-    print(f"---- Testing model {model_name} ----")
-    f = functools.partial(_proc,
-                          model,
-                          object_detector,
-                          config,
-                          results_dir,
-                          heights,
-                          widths,
-                          size,
-                          shape,
-                          color,
-                          args.env,
-                          args.baseline,
-                          variation,
-                          max_T,
-                          args.controller_path,
-                          model_name,
-                          args.gpu_id,
-                          args.save_files,
-                          args.gt_bb)
-
-    random.seed(42)
-    np.random.seed(42)
-    if args.test_gt:
-        seeds = [(-1, i, list)
-                 for i, list in enumerate(pkl_file_dict.values())]
-    else:
-        seeds = [(random.getrandbits(32), i, None) for i in range(args.N)]
-
-    if parallel:
-        with Pool(args.num_workers) as p:
-            task_success_flags = p.starmap(f, seeds)
-    else:
+        dataset = None
         if args.test_gt:
-            task_success_flags = [f(seeds[i][0], seeds[i][1], seeds[i][2])
-                                  for i, _ in enumerate(seeds)]
+            from hydra.utils import instantiate
+            from torch.utils.data import DataLoader
+            from multiprocessing import cpu_count
+            from multi_task_il.datasets.utils import DIYBatchSampler, collate_by_task
+            config.dataset_cfg.mode = "train"
+            dataset = instantiate(config.get('dataset_cfg', None))
+            # get list of pkl files
+            pkl_file_dict = dataset.all_file_pairs
+
+        parallel = args.num_workers > 1
+
+        model_name = config.policy._target_
+
+        print(f"---- Testing model {model_name} ----")
+        f = functools.partial(_proc,
+                              model,
+                              object_detector,
+                              config,
+                              results_dir,
+                              heights,
+                              widths,
+                              size,
+                              shape,
+                              color,
+                              args.env,
+                              args.baseline,
+                              variation,
+                              max_T,
+                              args.controller_path,
+                              model_name,
+                              args.gpu_id,
+                              args.save_files,
+                              args.gt_bb)
+
+        random.seed(42)
+        np.random.seed(42)
+        if args.test_gt:
+            seeds = [(-1, i, list)
+                     for i, list in enumerate(pkl_file_dict.values())]
         else:
-            task_success_flags = [f(seeds[i][0], seeds[i][1], seeds[i][2])
-                                  for i, n in enumerate(range(args.N))]
+            seeds = [(random.getrandbits(32), i, None) for i in range(args.N)]
 
-    if "cond_target_obj_detector" not in model_name:
-        final_results = dict()
-        for k in ['reached', 'picked', 'success']:
-            n_success = sum([t[k] for t in task_success_flags])
-            print('Task {}, rate {}'.format(k, n_success / float(args.N)))
-            final_results[k] = n_success / float(args.N)
-        variation_ids = defaultdict(list)
-        for t in task_success_flags:
-            _id = t['variation_id']
-            variation_ids[_id].append(t['success'])
-        for _id in variation_ids.keys():
-            num_eval = len(variation_ids[_id])
-            rate = sum(variation_ids[_id]) / num_eval
-            final_results['task#'+str(_id)] = rate
-            print('Success rate on task#'+str(_id), rate)
-
-        final_results['N'] = int(args.N)
-        final_results['model_saved'] = model_saved_step
-        json.dump({k: v for k, v in final_results.items()}, open(
-            results_dir+'/test_across_{}trajs.json'.format(args.N), 'w'))
-    else:
-        all_avg_iou = np.mean([t['avg_iou'] for t in task_success_flags])
-        all_avg_tp = np.mean([t['avg_tp'] for t in task_success_flags])
-        all_avg_fp = np.mean([t['avg_fp'] for t in task_success_flags])
-        all_avg_fn = np.mean([t['avg_fn'] for t in task_success_flags])
-        print(f"TP {all_avg_tp} - FP {all_avg_fp} - FN {all_avg_fn}")
-        final_results = dict()
-        final_results['N'] = int(args.N)
-        final_results['model_saved'] = model_saved_step
-        final_results['avg_iou'] = all_avg_iou
-        final_results['avg_tp'] = all_avg_tp
-        final_results['avg_fp'] = all_avg_fp
-        final_results['avg_fn'] = all_avg_fn
-
-        json.dump({k: v for k, v in final_results.items()}, open(
-            results_dir+'/test_across_{}trajs.json'.format(args.N), 'w'))
-
-    if args.wandb_log:
-
-        for i, t in enumerate(task_success_flags):
-            log = dict()
-            log['episode'] = i
-            for k in t.keys():
-                log[k] = float(t[k]) if k != "variation_id" else int(t[k])
-            wandb.log(log)
+        if parallel:
+            with Pool(args.num_workers) as p:
+                task_success_flags = p.starmap(f, seeds)
+        else:
+            if args.test_gt:
+                task_success_flags = [f(seeds[i][0], seeds[i][1], seeds[i][2])
+                                      for i, _ in enumerate(seeds)]
+            else:
+                task_success_flags = [f(seeds[i][0], seeds[i][1], seeds[i][2])
+                                      for i, n in enumerate(range(args.N))]
 
         if "cond_target_obj_detector" not in model_name:
-            all_succ_flags = [t['success'] for t in task_success_flags]
-            all_reached_flags = [t['reached'] for t in task_success_flags]
-            all_picked_flags = [t['picked'] for t in task_success_flags]
-            all_avg_pred = [t['avg_pred'] for t in task_success_flags]
+            final_results = dict()
+            for k in ['reached', 'picked', 'success']:
+                n_success = sum([t[k] for t in task_success_flags])
+                print('Task {}, rate {}'.format(k, n_success / float(args.N)))
+                final_results[k] = n_success / float(args.N)
+            variation_ids = defaultdict(list)
+            for t in task_success_flags:
+                _id = t['variation_id']
+                variation_ids[_id].append(t['success'])
+            for _id in variation_ids.keys():
+                num_eval = len(variation_ids[_id])
+                rate = sum(variation_ids[_id]) / num_eval
+                final_results['task#'+str(_id)] = rate
+                print('Success rate on task#'+str(_id), rate)
 
-            wandb.log({
-                'avg_success': np.mean(all_succ_flags),
-                'avg_reached': np.mean(all_reached_flags),
-                'avg_picked': np.mean(all_picked_flags),
-                'avg_prediction': np.mean(all_avg_pred),
-                'success_err': np.mean(all_succ_flags) / np.sqrt(args.N),
-            })
+            final_results['N'] = int(args.N)
+            final_results['model_saved'] = model_saved_step
+            json.dump({k: v for k, v in final_results.items()}, open(
+                results_dir+'/test_across_{}trajs.json'.format(args.N), 'w'))
         else:
-            wandb.log({
-                'avg_iou': np.mean(all_avg_iou)})
-            wandb.log({
-                'avg_tp': np.mean(all_avg_tp)})
-            wandb.log({
-                'avg_fp': np.mean(all_avg_fp)})
-            wandb.log({
-                'avg_fn': np.mean(all_avg_fn)})
+            all_avg_iou = np.mean([t['avg_iou'] for t in task_success_flags])
+            all_avg_tp = np.mean([t['avg_tp'] for t in task_success_flags])
+            all_avg_fp = np.mean([t['avg_fp'] for t in task_success_flags])
+            all_avg_fn = np.mean([t['avg_fn'] for t in task_success_flags])
+            print(f"TP {all_avg_tp} - FP {all_avg_fp} - FN {all_avg_fn}")
+            final_results = dict()
+            final_results['N'] = int(args.N)
+            final_results['model_saved'] = model_saved_step
+            final_results['avg_iou'] = all_avg_iou
+            final_results['avg_tp'] = all_avg_tp
+            final_results['avg_fp'] = all_avg_fp
+            final_results['avg_fn'] = all_avg_fn
+
+            json.dump({k: v for k, v in final_results.items()}, open(
+                results_dir+'/test_across_{}trajs.json'.format(args.N), 'w'))
+
+        if args.wandb_log:
+
+            for i, t in enumerate(task_success_flags):
+                log = dict()
+                log['episode'] = i
+                for k in t.keys():
+                    log[k] = float(t[k]) if k != "variation_id" else int(t[k])
+                wandb.log(log)
+
+            if "cond_target_obj_detector" not in model_name:
+                all_succ_flags = [t['success'] for t in task_success_flags]
+                all_reached_flags = [t['reached'] for t in task_success_flags]
+                all_picked_flags = [t['picked'] for t in task_success_flags]
+                all_avg_pred = [t['avg_pred'] for t in task_success_flags]
+
+                wandb.log({
+                    'avg_success': np.mean(all_succ_flags),
+                    'avg_reached': np.mean(all_reached_flags),
+                    'avg_picked': np.mean(all_picked_flags),
+                    'avg_prediction': np.mean(all_avg_pred),
+                    'success_err': np.mean(all_succ_flags) / np.sqrt(args.N),
+                })
+            else:
+                wandb.log({
+                    'avg_iou': np.mean(all_avg_iou)})
+                wandb.log({
+                    'avg_tp': np.mean(all_avg_tp)})
+                wandb.log({
+                    'avg_fp': np.mean(all_avg_fp)})
+                wandb.log({
+                    'avg_fn': np.mean(all_avg_fn)})
