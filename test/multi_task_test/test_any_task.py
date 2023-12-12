@@ -189,15 +189,15 @@ def build_tvf_formatter_obj_detector(config, env_name):
                            box_w=box_w,
                            box_h=box_h)
 
-            image = cv2.rectangle(np.ascontiguousarray(np.array(np.moveaxis(
-                img.numpy()*255, 0, -1), dtype=np.uint8)),
-                (bb[0][0],
-                 bb[0][1]),
-                (bb[0][2],
-                 bb[0][3]),
-                color=(0, 0, 255),
-                thickness=1)
-            cv2.imwrite("bb_cropped.png", image)
+            # image = cv2.rectangle(np.ascontiguousarray(np.array(np.moveaxis(
+            #     img.numpy()*255, 0, -1), dtype=np.uint8)),
+            #     (bb[0][0],
+            #      bb[0][1]),
+            #     (bb[0][2],
+            #      bb[0][3]),
+            #     color=(0, 0, 255),
+            #     thickness=1)
+            # cv2.imwrite("bb_cropped.png", image)
             return img, bb
 
         return img
@@ -658,16 +658,18 @@ if __name__ == '__main__':
     #     print("Appending dir to given exp_name: ", args.model)
     #     try_path = join(LOG_PATH, args.model)
     #     assert os.path.exists(try_path), f"Cannot find {try_path} anywhere"
+    try_path_list = []
     if 'model_save' not in args.model:
+        print(args.saved_step)
         if args.saved_step != -1:
             print("Appending saved step {}".format(args.saved_step))
             try_path = join(
                 try_path, 'model_save-{}.pt'.format(args.saved_step))
+            try_path_list.append(try_path)
             assert os.path.exists(
                 try_path), "Cannot find anywhere: " + str(try_path)
         else:
             import glob
-            try_path_list = []
             print(f"Finding checkpoints in {try_path}")
             check_point_list = glob.glob(
                 os.path.join(try_path, "model_save-*.pt"))
@@ -679,7 +681,7 @@ if __name__ == '__main__':
             # take the last check point
             try_paths = check_point_list
             epoch_numbers = len(try_paths)
-            try_path_list = try_paths[-10:]
+            try_path_list = try_paths[-1:]
 
     for try_path in try_path_list:
 

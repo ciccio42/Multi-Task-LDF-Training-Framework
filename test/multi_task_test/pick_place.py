@@ -430,7 +430,7 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
                          int(adj_predicted_bb[1])),
                         (int(adj_predicted_bb[2]),
                          int(adj_predicted_bb[3])),
-                        (0, 0, 255), 1))
+                        (255, 0, 0), 1))
                 else:
                     obs['gt_bb'] = bb_t_aug
                     image = np.array(obs['camera_front_image'][:, :, ::-1])
@@ -446,18 +446,18 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
                      int(adj_predicted_bb[1])),
                     (int(adj_predicted_bb[2]),
                      int(adj_predicted_bb[3])),
-                    (0, 0, 255), 1))
+                    (0, 255, 0), 1))
             else:
                 image = np.array(obs['camera_front_image'][:, :, ::-1])
 
             cv2.imwrite(
                 f"step_test.png", image)
-            if controller is not None and gt_env is not None:
-                gt_action, gt_status = controller.act(gt_obs)
-                gt_obs, gt_reward, gt_env_done, gt_info = gt_env.step(
-                    gt_action)
-                cv2.imwrite(
-                    f"gt_step_test.png", gt_obs['camera_front_image'][:, :, ::-1])
+            # if controller is not None and gt_env is not None:
+            #     gt_action, gt_status = controller.act(gt_obs)
+            #     gt_obs, gt_reward, gt_env_done, gt_info = gt_env.step(
+            #         gt_action)
+            #     cv2.imwrite(
+            #         f"gt_step_test.png", gt_obs['camera_front_image'][:, :, ::-1])
         except Exception as e:
             print(f"Exception during step {e}")
         # if target_obj_dec is not None:
