@@ -174,8 +174,8 @@ def build_tvf_formatter_obj_detector(config, env_name):
         # ])
         # img = transforms_pipe(img)
 
-        cv2.imwrite("resized_target_obj.png", np.moveaxis(
-            img.numpy()*255, 0, -1))
+        # cv2.imwrite("resized_target_obj.png", np.moveaxis(
+        #     img.numpy()*255, 0, -1))
 
         if bb is not None:
             from multi_task_il.datasets.utils import adjust_bb
@@ -322,8 +322,8 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights
     context = select_random_frames(
         teacher_expert_rollout, T_context, sample_sides=True, random_frames=random_frames)
     # convert BGR context image to RGB and scale to 0-1
-    for i, img in enumerate(context):
-        cv2.imwrite(f"context_{i}.png", np.array(img[:, :, ::-1]))
+    # for i, img in enumerate(context):
+    #     cv2.imwrite(f"context_{i}.png", np.array(img[:, :, ::-1]))
     context = [img_formatter(i[:, :, ::-1])[None] for i in context]
     # assert len(context ) == 6
     if isinstance(context[0], np.ndarray):
@@ -872,7 +872,7 @@ if __name__ == '__main__':
 
         if "cond_target_obj_detector" not in model_name:
             final_results = dict()
-            for k in ['reached', 'picked', 'success']:
+            for k in ['reached', 'picked', 'success', 'reached_wrong', 'picked_wrong', 'place_wrong']:
                 n_success = sum([t[k] for t in task_success_flags])
                 print('Task {}, rate {}'.format(k, n_success / float(args.N)))
                 final_results[k] = n_success / float(args.N)
@@ -920,6 +920,12 @@ if __name__ == '__main__':
                 all_succ_flags = [t['success'] for t in task_success_flags]
                 all_reached_flags = [t['reached'] for t in task_success_flags]
                 all_picked_flags = [t['picked'] for t in task_success_flags]
+                all_reached_wrong_flags = [t['reached_wrong']
+                                           for t in task_success_flags]
+                all_picked_wrong_flags = [t['picked_wrong']
+                                          for t in task_success_flags]
+                all_place_wrong_flags = [t['place_wrong']
+                                         for t in task_success_flags]
                 all_avg_pred = [t['avg_pred'] for t in task_success_flags]
 
                 wandb.log({
@@ -927,6 +933,9 @@ if __name__ == '__main__':
                     'avg_reached': np.mean(all_reached_flags),
                     'avg_picked': np.mean(all_picked_flags),
                     'avg_prediction': np.mean(all_avg_pred),
+                    'avg_reached_wrong': np.mean(all_reached_wrong_flags),
+                    'avg_picked_wrong': np.mean(all_picked_wrong_flags),
+                    'avg_place_wrong': np.mean(all_place_wrong_flags),
                     'success_err': np.mean(all_succ_flags) / np.sqrt(args.N),
                 })
             else:

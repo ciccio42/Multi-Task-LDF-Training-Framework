@@ -741,6 +741,10 @@ class NutAssembly(DefaultNutAssembly):
         """
         di = super()._get_observation()
 
+        di['peg1_pos'] = self.sim.data.body_xpos[self.peg1_body_id]
+        di['peg2_pos'] = self.sim.data.body_xpos[self.peg2_body_id]
+        di['peg3_pos'] = self.sim.data.body_xpos[self.peg3_body_id]
+
         if self.single_object_mode == 2:
             di['target-object'] = self.nut_id
             di['target-peg'] = self._default_peg

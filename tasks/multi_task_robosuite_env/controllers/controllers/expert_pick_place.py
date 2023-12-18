@@ -233,6 +233,7 @@ def get_expert_trajectory(env_type, controller_type, renderer=False, camera_obs=
         gpu_id = 0
     else:
         gpu_id = int(visible_ids[gpu_id])+1
+    print(f"GPU-ID {gpu_id}")
     seed = seed if seed is not None else random.getrandbits(32)
     env_seed = seed if env_seed is None else env_seed
     seed_offset = sum([int(a) for a in bytes(env_type, 'ascii')])

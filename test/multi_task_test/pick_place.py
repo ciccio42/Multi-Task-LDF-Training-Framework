@@ -8,7 +8,7 @@ from multi_task_test import make_prompt, prepare_obs, adjust_bb
 from einops import rearrange
 from multi_task_il.models.vima.utils import *
 import robosuite.utils.transform_utils as T
-from multi_task_test import ENV_OBJECTS, TASK_COMMAND, startup_env, get_action, object_detection_inference, check_pick, check_reach, get_gt_bb
+from multi_task_test import ENV_OBJECTS, TASK_COMMAND, startup_env, get_action, object_detection_inference, check_pick, check_reach, get_gt_bb, check_bin
 from multi_task_test.primitive import *
 from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
 
@@ -244,30 +244,33 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
 
     n_steps = 0
 
-    object_name = env.objects[env.object_id].name
-    obj_delta_key = object_name + '_to_robot0_eef_pos'
-    obj_key = object_name + '_pos'
+    object_name_target = env.objects[env.object_id].name
+    obj_delta_key = object_name_target + '_to_robot0_eef_pos'
+    obj_key = object_name_target + '_pos'
 
     start_z = obs[obj_key][2]
 
     # Compute the target obj-slot
-    if object_detector != None:
-        agent_target_obj_position = -1
-        agent_target_obj_id = traj.get(0)['obs']['target-object']
-        for id, obj_name in enumerate(ENV_OBJECTS['pick_place']['obj_names']):
-            if id == agent_target_obj_id:
-                # get object position
-                pos = traj.get(0)['obs'][f'{obj_name}_pos']
-                for i, pos_range in enumerate(ENV_OBJECTS['pick_place']["ranges"]):
-                    if pos[1] >= pos_range[0] and pos[1] <= pos_range[1]:
-                        agent_target_obj_position = i
-                break
+    # if object_detector != None:
+    #     agent_target_obj_position = -1
+    #     agent_target_obj_id = traj.get(0)['obs']['target-object']
+    #     for id, obj_name in enumerate(ENV_OBJECTS['pick_place']['obj_names']):
+    #         if id == agent_target_obj_id:
+    #             # get object position
+    #             pos = traj.get(0)['obs'][f'{obj_name}_pos']
+    #             for i, pos_range in enumerate(ENV_OBJECTS['pick_place']["ranges"]):
+    #                 if pos[1] >= pos_range[0] and pos[1] <= pos_range[1]:
+    #                     agent_target_obj_position = i
+    #             break
 
     # compute the average prediction over the whole trajectory
     avg_prediction = 0
     target_obj_emb = None
 
     print(f"Max-t {max_T}")
+    tasks["reached_wrong"] = 0.0
+    tasks["picked_wrong"] = 0.0
+    tasks["place_wrong"] = 0.0
 
     while not done:
 
@@ -281,6 +284,23 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
                                      start_z=start_z,
                                      reached=tasks['reached'],
                                      picked=tasks['picked'])
+
+        for obj_id, obj_name, in enumerate(ENV_OBJECTS["pick_place"]['obj_names']):
+            if obj_id != traj.get(0)['obs']['target-object'] and obj_name != "bin":
+                if check_reach(threshold=0.03,
+                               obj_distance=obs[obj_name +
+                                                '_to_robot0_eef_pos'],
+                               current_reach=tasks.get(
+                                   "reached_wrong", 0.0)
+                               ):
+                    tasks['reached_wrong'] = 1.0
+                if check_pick(threshold=0.05,
+                              obj_z=obs[obj_name + "_pos"][2],
+                              start_z=start_z,
+                              reached=tasks['reached'],
+                              picked=tasks.get(
+                                  "picked_wrong", 0.0)):
+                    tasks['picked_wrong'] = 1.0
 
         if baseline and len(states) >= 5:
             states, images, bb = [], [], []
@@ -473,6 +493,20 @@ def pick_place_eval_demo_cond(model, object_detector, env, context, gpu_id, vari
         traj.append(obs, reward, done, info, action)
 
         tasks['success'] = reward or tasks['success']
+
+        # check if the object has been placed in a different bin
+        if not tasks['success']:
+            for i, bin_name in enumerate(ENV_OBJECTS['pick_place']['bin_names']):
+                if i != obs['target-box-id']:
+                    bin_pos = obs[f"{bin_name}_pos"]
+                    if check_bin(threshold=0.03,
+                                 bin_pos=bin_pos,
+                                 obj_pos=obs[f"{object_name_target}_pos"],
+                                 current_bin=tasks.get(
+                                     "place_wrong", 0.0)
+                                 ):
+                        tasks["place_wrong"] = 1.0
+
         n_steps += 1
         if env_done or reward or n_steps > max_T:
             done = True

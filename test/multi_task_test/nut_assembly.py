@@ -8,7 +8,7 @@ from einops import rearrange
 from multi_task_il.models.vima.utils import *
 import robosuite.utils.transform_utils as T
 from multi_task_test import make_prompt, prepare_obs, adjust_bb
-from multi_task_test import ENV_OBJECTS, TASK_COMMAND, startup_env, get_action, object_detection_inference, check_pick, check_reach, get_gt_bb, clip_action
+from multi_task_test import ENV_OBJECTS, TASK_COMMAND, startup_env, get_action, object_detection_inference, check_pick, check_reach, get_gt_bb, clip_action, check_peg
 from multi_task_test.primitive import *
 from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
 
@@ -363,29 +363,43 @@ def nut_assembly_eval_demo_cond(model, object_detector, env, context, gpu_id, va
     n_steps = 0
 
     # Compute the target obj-slot
-    if object_detector != None:
-        agent_target_obj_position = -1
-        agent_target_obj_id = traj.get(0)['obs']['target-object']
-        for id, obj_name in enumerate(ENV_OBJECTS['nut_assembly']['obj_names']):
-            if id == agent_target_obj_id:
-                # get object position
-                pos = traj.get(0)['obs'][f'{obj_name}_pos']
-                for i, pos_range in enumerate(ENV_OBJECTS['nut_assembly']["ranges"]):
-                    if pos[1] >= pos_range[0] and pos[1] <= pos_range[1]:
-                        agent_target_obj_position = i
-                break
+    # if object_detector != None:
+    #     agent_target_obj_position = -1
+    #     agent_target_obj_id = traj.get(0)['obs']['target-object']
+    #     for id, obj_name in enumerate(ENV_OBJECTS['nut_assembly']['obj_names']):
+    #         if id == agent_target_obj_id:
+    #             # get object position
+    #             pos = traj.get(0)['obs'][f'{obj_name}_pos']
+    #             for i, pos_range in enumerate(ENV_OBJECTS['nut_assembly']["ranges"]):
+    #                 if pos[1] >= pos_range[0] and pos[1] <= pos_range[1]:
+    #                     agent_target_obj_position = i
+    #             break
 
     # compute the average prediction over the whole trajectory
     avg_prediction = 0
     target_obj_emb = None
+    tasks["reached_wrong"] = 0.0
+    tasks["picked_wrong"] = 0.0
+    tasks["place_wrong"] = 0.0
     print(f"Max-t {max_T}")
 
     while not done:
 
         tasks['reached'] = tasks['reached'] or np.linalg.norm(
             handle_loc - obs['eef_pos']) < 0.045
+
         tasks['picked'] = tasks['picked'] or (
             tasks['reached'] and obs[obj_key][2] - start_z > 0.05)
+
+        if not tasks['reached']:
+            for obj_id, obj_name, in enumerate(ENV_OBJECTS["nut_assembly"]['obj_names'][:3]):
+                handle_obj_loc = env.sim.data.site_xpos[env.sim.model.site_name2id(
+                    f'{obj_name}_handle_site')]
+                if obj_id != traj.get(0)['obs']['target-object'] and obj_name != "bin":
+                    tasks['reached_wrong'] = tasks['reached_wrong'] or np.linalg.norm(
+                        handle_obj_loc - obs['eef_pos']) < 0.045
+                    tasks['picked_wrong'] = tasks['picked_wrong'] or (
+                        tasks['reached_wrong'] and obs[obj_key][2] - start_z > 0.05)
 
         if baseline and len(states) >= 5:
             states, images, bb = [], [], []
@@ -612,6 +626,26 @@ def nut_assembly_eval_demo_cond(model, object_detector, env, context, gpu_id, va
 
         tasks['success'] = (reward or tasks['success']) and (
             tasks['reached'] and tasks['picked'])
+
+        if not tasks['success']:
+            for i, peg_name in enumerate(ENV_OBJECTS['nut_assembly']['peg_names']):
+                if i != obs['target-peg']:
+                    peg_pos = obs[f"peg{i+1}_pos"]
+                    obj_pos = obs[f"{ENV_OBJECTS['nut_assembly']['obj_names'][obs['target-object']]}_pos"]
+                    if check_peg(peg_pos=peg_pos,
+                                 obj_pos=obj_pos,
+                                 current_peg=tasks.get("place_wrong", 0.0)):
+                        tasks["place_wrong"] = 1.0
+                # if i != obs['target-box-id']:
+                #     bin_pos = obs[f"{bin_name}_pos"]
+                #     if check_bin(threshold=0.03,
+                #                  bin_pos=bin_pos,
+                #                  obj_pos=obs[f"{object_name_target}_pos"],
+                #                  current_bin=tasks.get(
+                #                      "place_wrong", 0.0)
+                #                  ):
+                #         tasks["place_wrong"] = 1.0
+
         n_steps += 1
         if env_done or reward or n_steps > max_T:
             done = True

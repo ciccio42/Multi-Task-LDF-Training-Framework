@@ -206,7 +206,7 @@ class _TransformerFeatures(nn.Module):
             causal=causal, n_heads=attn_heads, demo_T=demo_T, fuse_starts=fuse_starts,
         )
 
-        # 5000
+        # 3000
         self._pe = TemporalPositionalEncoding(
             conv_feature_dim, dropout, max_len=5000) if pos_enc else None
         self.demo_out = demo_out

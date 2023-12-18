@@ -9,11 +9,29 @@ NUM_WORKERS=7
 MODEL_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/2Task-Pick-Place-Nut-Assembly-Mosaic-100-180-Target-Obj-Detector-BB-Batch50/
 CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
 
+# for MODEL in ${MODEL_PATH}; do
+#     for S in -1; do #81000 89100; do
+#         for TASK in pick_place; do
+#             SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/2Task-Pick-Place-Nut-Assembly-Mosaic-100-180-Target-Obj-Detector-BB-Batch50/results_${TASK}
+#             python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id 0 --wandb_log --save_path ${SAVE_PATH} --save_files #--gt_bb --wandb_log --save_path ${SAVE_PATH} --save_files
+#         done
+#     done
+# done
+
+for MODEL in ${MODEL_PATH}; do
+    for S in -1; do #81000 89100; do
+        for TASK in nut_assembly pick_place; do
+            SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/2Task-Pick-Place-Nut-Assembly-Mosaic-100-180-Target-Obj-Detector-BB-Batch50/results_${TASK}
+            python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id 0 --save_path ${SAVE_PATH} --save_files #--gt_bb  --save_path ${SAVE_PATH} --save_files
+        done
+    done
+done
+
 for MODEL in ${MODEL_PATH}; do
     for S in -1; do #81000 89100; do
         for TASK in nut_assembly pick_place; do
             SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/2Task-Pick-Place-Nut-Assembly-Mosaic-100-180-Target-Obj-Detector-BB-Batch50/results_${TASK}_gt_bb
-            python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id 0 --gt_bb --wandb_log --save_path ${SAVE_PATH} --save_files
+            python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id 0 --save_path ${SAVE_PATH} --save_files --gt_bb
         done
     done
 done

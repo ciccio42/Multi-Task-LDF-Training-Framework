@@ -597,6 +597,14 @@ class PickPlace(SingleArmEnv):
             object_state_keys.append(
                 "{}_to_{}eef_quat".format(obj_str, pr))
 
+        for i, bin_name in enumerate(['bin_box_1', 'bin_box_2', 'bin_box_3', 'bin_box_4']):
+
+            bin_bodyid = self.sim.model.body_name2id(bin_name)
+
+            bin_pos = np.array(self.sim.data.body_xpos[bin_bodyid])
+
+            di["{}_pos".format(bin_name)] = bin_pos
+
         di["object-state"] = np.concatenate([di[k]
                                             for k in object_state_keys])
 

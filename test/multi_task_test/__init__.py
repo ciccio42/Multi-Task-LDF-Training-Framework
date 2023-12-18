@@ -48,6 +48,7 @@ PLACEHOLDER_TOKENS = [
 ENV_OBJECTS = {
     'pick_place': {
         'obj_names': ['greenbox', 'yellowbox', 'bluebox', 'redbox', 'bin'],
+        'bin_names': ['bin_box_1', 'bin_box_2', 'bin_box_3', 'bin_box_4'],
         'ranges': [[-0.255, -0.195], [-0.105, -0.045], [0.045, 0.105], [0.195, 0.255]],
         'splitted_obj_names': ['green box', 'yellow box', 'blue box', 'red box'],
         'bin_position': [0.18, 0.00, 0.75],
@@ -58,7 +59,8 @@ ENV_OBJECTS = {
                     'bin': [0.6, 0.06, 0.15]},
     },
     'nut_assembly': {
-        'obj_names': ['round-nut', 'round-nut-2', 'round-nut-3', "peg1", "peg2", "peg3"],
+        'obj_names': ['round-nut', 'round-nut-2', 'round-nut-3'],
+        'peg_names': ['peg1', 'peg2', 'peg3'],
         'splitted_obj_names': ['grey nut', 'brown nut', 'blue nut'],
         'ranges': [[0.10, 0.31], [-0.10, 0.10], [-0.31, -0.10]]
     }
@@ -1010,6 +1012,38 @@ def check_pick(threshold: float, obj_z: float, start_z: float, reached: bool, pi
 def check_reach(threshold: float, obj_distance: np.array, current_reach: bool):
     return current_reach or np.linalg.norm(
         obj_distance) < threshold
+
+
+def check_bin(threshold: float, bin_pos: np.array, obj_pos: np.array, current_bin: bool):
+    bin_x_low = bin_pos[0]
+    bin_y_low = bin_pos[1]
+    bin_x_low -= 0.16 / 2
+    bin_y_low -= 0.16 / 2
+
+    bin_x_high = bin_x_low + 0.16
+    bin_y_high = bin_y_low + 0.16
+    # print(bin_pos, obj_pos)
+    res = False
+    if (
+            bin_x_low < obj_pos[0] < bin_x_high
+            and bin_y_low < obj_pos[1] < bin_y_high
+            and bin_pos[2] < obj_pos[2] < bin_pos[2] + 0.1
+    ):
+        res = True
+    return (current_bin or res)
+
+
+def check_peg(peg_pos: np.array, obj_pos: np.array, current_peg: bool):
+
+    # print(bin_pos, obj_pos)
+    res = False
+    if (
+            abs(obj_pos[0] - peg_pos[0]) < 0.03
+            and abs(obj_pos[1] - peg_pos[1]) < 0.03
+            and obj_pos[2] < 0.860 + 0.05
+    ):
+        res = True
+    return res or current_peg
 
 
 def clip_action(action, prev_action):
