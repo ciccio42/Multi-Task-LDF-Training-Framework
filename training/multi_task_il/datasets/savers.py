@@ -13,9 +13,10 @@ except:
 def _compress_obs(obs):
     for key in obs.keys():
         if 'image' in key:
-            okay, im_string = cv2.imencode('.jpg', obs[key])
-            assert okay, "image encoding failed!"
-            obs[key] = im_string
+            if len(obs[key].shape) == 3:
+                okay, im_string = cv2.imencode('.jpg', obs[key])
+                assert okay, "image encoding failed!"
+                obs[key] = im_string
         if 'depth_norm' in key:
             assert len(
                 obs[key].shape) == 2 and obs[key].dtype == np.uint8, "assumes uint8 greyscale depth image!"

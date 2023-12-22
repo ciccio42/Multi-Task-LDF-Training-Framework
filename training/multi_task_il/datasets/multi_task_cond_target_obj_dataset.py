@@ -58,6 +58,7 @@ class CondTargetObjDetectorDataset(Dataset):
             tasks={},
             n_tasks=16,
             perform_augs=False,
+            perform_scale_resize=True,
             mix_demo_agent=True,
             change_command_epoch=False,
             load_eef_point=False,
@@ -102,6 +103,12 @@ class CondTargetObjDetectorDataset(Dataset):
 
         self.select_random_frames = select_random_frames
         self.compute_obj_distribution = compute_obj_distribution
+        self.perform_scale_resize = perform_scale_resize
+        if "real" in agent_name:
+            self.real = True
+        else:
+            self.real = False
+
         self.object_distribution = OrderedDict()
         self.object_distribution_to_indx = OrderedDict()
         self.index_to_slot = OrderedDict()

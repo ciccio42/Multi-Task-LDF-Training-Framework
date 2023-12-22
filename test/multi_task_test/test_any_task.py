@@ -681,7 +681,7 @@ if __name__ == '__main__':
             # take the last check point
             try_paths = check_point_list
             epoch_numbers = len(try_paths)
-            try_path_list = try_paths[-1:]
+            try_path_list = try_paths[-10:]
 
     for try_path in try_path_list:
 

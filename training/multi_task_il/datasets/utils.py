@@ -278,11 +278,19 @@ def make_demo(dataset, traj, task_name):
             obs = copy.copy(
                 traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
             processed = dataset.frame_aug(
-                task_name, obs, perform_aug=False, frame_number=i)
+                task_name,
+                obs,
+                perform_aug=False,
+                frame_number=i,
+                perform_scale_resize=True)
             frames.append(processed)
             if dataset.aug_twice:
                 cp_frames.append(dataset.frame_aug(
-                    task_name, obs, True, perform_aug=False))
+                    task_name,
+                    obs,
+                    True,
+                    perform_aug=False,
+                    perform_scale_resize=True))
     else:
         frames = []
         cp_frames = []
@@ -321,11 +329,18 @@ def make_demo(dataset, traj, task_name):
             obs = copy.copy(
                 traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
 
-            processed = dataset.frame_aug(task_name, obs, perform_aug=False)
+            processed = dataset.frame_aug(task_name,
+                                          obs,
+                                          perform_aug=False,
+                                          perform_scale_resize=dataset.perform_scale_resize)
             frames.append(processed)
             if dataset.aug_twice:
                 cp_frames.append(dataset.frame_aug(
-                    task_name, obs, True, perform_aug=False))
+                    task_name,
+                    obs,
+                    True,
+                    perform_aug=False,
+                    perform_scale_resize=dataset.perform_scale_resize))
 
     ret_dict = dict()
     ret_dict['demo'] = torch.stack(frames)
@@ -461,39 +476,49 @@ def create_data_aug(dataset_loader=object):
                     bb[obj_indx] = np.array([[x1_new, y1, x2_new, y2]])
         return obs, bb
 
-    def frame_aug(task_name, obs, second=False, bb=None, class_frame=None, perform_aug=True, frame_number=-1):
+    def frame_aug(task_name, obs, second=False, bb=None, class_frame=None, perform_aug=True, frame_number=-1, perform_scale_resize=True):
 
-        img_height, img_width = obs.shape[:2]
-        """applies to every timestep's RGB obs['camera_front_image']"""
-        crop_params = dataset_loader.task_crops.get(task_name, [0, 0, 0, 0])
-        top, left = crop_params[0], crop_params[2]
-        img_height, img_width = obs.shape[0], obs.shape[1]
-        box_h, box_w = img_height - top - \
-            crop_params[1], img_width - left - crop_params[3]
+        if perform_scale_resize:
+            img_height, img_width = obs.shape[:2]
+            """applies to every timestep's RGB obs['camera_front_image']"""
+            crop_params = dataset_loader.task_crops.get(
+                task_name, [0, 0, 0, 0])
+            top, left = crop_params[0], crop_params[2]
+            img_height, img_width = obs.shape[0], obs.shape[1]
+            box_h, box_w = img_height - top - \
+                crop_params[1], img_width - left - crop_params[3]
 
-        obs = dataset_loader.toTensor(obs)
-        # ---- Resized crop ----#
-        obs = resized_crop(obs, top=top, left=left, height=box_h,
-                           width=box_w, size=(dataset_loader.height, dataset_loader.width))
-        if DEBUG:
-            cv2.imwrite(f"resized_target_obj_{frame_number}.png", np.moveaxis(
-                obs.numpy()*255, 0, -1))
-        if bb is not None and class_frame is not None:
-            bb = adjust_bb(dataset_loader=dataset_loader,
-                           bb=bb,
-                           obs=obs,
-                           img_height=img_height,
-                           img_width=img_width,
-                           top=top,
-                           left=left,
-                           box_w=box_w,
-                           box_h=box_h)
+            obs = dataset_loader.toTensor(obs)
+            # ---- Resized crop ----#
+            obs = resized_crop(obs, top=top, left=left, height=box_h,
+                               width=box_w, size=(dataset_loader.height, dataset_loader.width))
+            if DEBUG:
+                cv2.imwrite(f"resized_target_obj_{frame_number}.png", np.moveaxis(
+                    obs.numpy()*255, 0, -1))
+            if bb is not None and class_frame is not None:
+                bb = adjust_bb(dataset_loader=dataset_loader,
+                               bb=bb,
+                               obs=obs,
+                               img_height=img_height,
+                               img_width=img_width,
+                               top=top,
+                               left=left,
+                               box_w=box_w,
+                               box_h=box_h)
 
-        if dataset_loader.data_augs.get('null_bb', False) and bb is not None:
-            bb[0][0] = 0.0
-            bb[0][1] = 0.0
-            bb[0][2] = 0.0
-            bb[0][3] = 0.0
+            if dataset_loader.data_augs.get('null_bb', False) and bb is not None:
+                bb[0][0] = 0.0
+                bb[0][1] = 0.0
+                bb[0][2] = 0.0
+                bb[0][3] = 0.0
+        else:
+            obs = dataset_loader.toTensor(obs)
+            if bb is not None and class_frame is not None:
+                for obj_indx, obj_bb in enumerate(bb):
+                    # Convert normalized bounding box coordinates to actual coordinates
+                    x1, y1, x2, y2 = obj_bb
+                    # replace with new bb
+                    bb[obj_indx] = np.array([[x1, y1, x2, y2]])
 
         # ---- Horizontal Flip ----#
         # if not dataset_loader.data_augs.get('old_aug', True):
@@ -559,7 +584,11 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         no_target_obj_id = random.randint(
             0, num_objects)
 
-    dict_keys = list(step_t['obs']['obj_bb']['camera_front'].keys())
+    try:
+        dict_keys = list(step_t['obs']['obj_bb']['camera_front'].keys())
+    except:
+        dict_keys = list(step_t['obs']['obj_bb'].keys())
+
     if distractor:
         end = 2
     else:
@@ -572,8 +601,13 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         elif i != 0 and distractor:
             object_name = dict_keys[no_target_obj_id]
 
-        top_left = step_t['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner']
-        bottom_right = step_t['obs']['obj_bb']["camera_front"][object_name]['upper_left_corner']
+        try:
+            top_left = step_t['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner']
+            bottom_right = step_t['obs']['obj_bb']["camera_front"][object_name]['upper_left_corner']
+        except:
+            top_left = step_t['obs']['obj_bb'][object_name]['upper_left_corner']
+            bottom_right = step_t['obs']['obj_bb'][object_name]['bottom_right_corner']
+
         # 2. Get stored BB
         top_left_x = top_left[0]
         top_left_y = top_left[1]
@@ -642,8 +676,15 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
         t = t.item()
         step_t = traj.get(t)
 
-        image = copy.copy(
-            step_t['obs']['camera_front_image'][:, :, ::-1])
+        if not dataset_loader.real:
+            image = copy.copy(
+                step_t['obs']['camera_front_image'][:, :, ::-1])
+        else:
+            image = copy.copy(
+                step_t['obs']['camera_front_image'])
+
+        if DEBUG:
+            cv2.imwrite("original_image.png", image)
 
         # Create GT BB
         bb_time = time.time()
@@ -661,7 +702,12 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
             # Append bb, obj classes and images
             aug_time = time.time()
             processed, bb_aug, class_frame = dataset_loader.frame_aug(
-                task_name, image, False, bb_frame, class_frame)
+                task_name,
+                image,
+                False,
+                bb_frame,
+                class_frame,
+                perform_scale_resize=dataset_loader.perform_scale_resize)
             end_aug = time.time()
             logger.debug(f"Aug time: {end_aug-aug_time}")
             images.append(processed)
@@ -673,7 +719,10 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
 
         if dataset_loader.aug_twice:
             aug_twice_time = time.time()
-            image_cp = dataset_loader.frame_aug(task_name, image, True)
+            image_cp = dataset_loader.frame_aug(task_name,
+                                                image,
+                                                True,
+                                                perform_scale_resize=dataset_loader.perform_scale_resize)
             images_cp.append(image_cp)
             logger.debug(f"Aug twice time: {time.time()-aug_twice_time}")
 

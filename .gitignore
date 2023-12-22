@@ -148,3 +148,5 @@ bashes/test/*
 bashes/*.txt
 bashes/*.png
 /training/multi_task_il/models/outputs/*
+/training/multi_task_il/datasets/*.jpg
+/training/multi_task_il/datasets/*.png
