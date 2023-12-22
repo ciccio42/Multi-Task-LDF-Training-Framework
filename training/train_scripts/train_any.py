@@ -43,7 +43,8 @@ def main(cfg):
     if cfg.set_same_n > -1:
         for tsk in cfg.tasks:
             tsk.n_per_task = cfg.set_same_n
-        cfg.bsize = sum([tsk.n_tasks * cfg.set_same_n for tsk in cfg.tasks])
+        cfg.bsize = sum(
+            [(len(tsk.task_ids)-len(tsk.skip_ids)) * cfg.set_same_n for tsk in cfg.tasks])
         cfg.vsize = cfg.bsize
         print(
             f'To construct a training batch, set n_per_task of all tasks to {cfg.set_same_n}, new train/val batch sizes: {cfg.train_cfg.batch_size}/{cfg.train_cfg.val_size}')

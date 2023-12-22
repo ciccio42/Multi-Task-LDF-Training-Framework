@@ -80,7 +80,7 @@ samplers:
   shuffle:            True 
   # Policy 1: At each slot is assigned a RandomSampler
   balancing_policy: 0 # 0, 1, 2 
-val_skip:             False # whether to let the samplers skip some **sub**tasks
+val_skip:             True # whether to let the samplers skip some **sub**tasks
 train_skip:           True
 
 dataset_cfg:

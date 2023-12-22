@@ -676,7 +676,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
         t = t.item()
         step_t = traj.get(t)
 
-        if not dataset_loader.real:
+        if not getattr(dataset_loader, "real", False):
             image = copy.copy(
                 step_t['obs']['camera_front_image'][:, :, ::-1])
         else:
@@ -707,7 +707,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                 False,
                 bb_frame,
                 class_frame,
-                perform_scale_resize=dataset_loader.perform_scale_resize)
+                perform_scale_resize=getattr(dataset_loader, "perform_scale_resize", True))
             end_aug = time.time()
             logger.debug(f"Aug time: {end_aug-aug_time}")
             images.append(processed)
@@ -722,7 +722,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
             image_cp = dataset_loader.frame_aug(task_name,
                                                 image,
                                                 True,
-                                                perform_scale_resize=dataset_loader.perform_scale_resize)
+                                                perform_scale_resize=getattr(dataset_loader, "perform_scale_resize", True))
             images_cp.append(image_cp)
             logger.debug(f"Aug twice time: {time.time()-aug_twice_time}")
 
@@ -1136,13 +1136,13 @@ class TrajectoryBatchSampler(Sampler):
         for spec in tasks_spec:
             name = spec.name
             _ids = spec.get('task_ids', None)
+            _skip_ids = spec.get('skip_ids', [])
             n = spec.get('n_per_task', None)
             assert (
                 _ids and n), 'Must specify which subtask ids to use and how many is contained in each batch'
             info = self.task_info[name]
             subtask_names = info.get('sub_id_to_name')
-            for _id in _ids:
-                subtask = subtask_names[_id]
+            for subtask in subtask_names.values():
                 for _ in range(n):
                     # position idx of batch is a sample of task [name] subtask [subtask]
                     self.idx_map[idx] = (name, subtask)
