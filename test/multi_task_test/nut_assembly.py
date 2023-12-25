@@ -20,7 +20,7 @@ def _clip_delta(delta, max_step=0.015):
     return delta / norm_delta * max_step
 
 
-def nut_assembly_eval(model, object_detector, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="nut_assembly", config=None, gt_file=None, gt_bb=False):
+def nut_assembly_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="nut_assembly", config=None, gt_file=None, gt_bb=False):
 
     if "vima" in model_name:
         return nut_assembly_eval_vima(model=model,
@@ -92,7 +92,6 @@ def nut_assembly_eval(model, object_detector, env, gt_env, context, gpu_id, vari
             controller = None
             gt_env = None
         return nut_assembly_eval_demo_cond(model=model,
-                                           object_detector=object_detector,
                                            env=env,
                                            gt_env=gt_env,
                                            controller=controller,
@@ -107,7 +106,7 @@ def nut_assembly_eval(model, object_detector, env, gt_env, context, gpu_id, vari
                                                "concat_bb", False),
                                            task_name=task_name,
                                            config=config,
-                                           prediction_with_gt_bb=gt_bb
+                                           predict_gt_bb=gt_bb
                                            )
 
 
@@ -325,7 +324,7 @@ def nut_assembly_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None
     return traj, tasks
 
 
-def nut_assembly_eval_demo_cond(model, object_detector, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, prediction_with_gt_bb=False):
+def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False):
 
     start_up_env_return = \
         startup_env(model=model,
@@ -361,19 +360,6 @@ def nut_assembly_eval_demo_cond(model, object_detector, env, context, gpu_id, va
 
     start_z = obs[obj_key][2]
     n_steps = 0
-
-    # Compute the target obj-slot
-    # if object_detector != None:
-    #     agent_target_obj_position = -1
-    #     agent_target_obj_id = traj.get(0)['obs']['target-object']
-    #     for id, obj_name in enumerate(ENV_OBJECTS['nut_assembly']['obj_names']):
-    #         if id == agent_target_obj_id:
-    #             # get object position
-    #             pos = traj.get(0)['obs'][f'{obj_name}_pos']
-    #             for i, pos_range in enumerate(ENV_OBJECTS['nut_assembly']["ranges"]):
-    #                 if pos[1] >= pos_range[0] and pos[1] <= pos_range[1]:
-    #                     agent_target_obj_position = i
-    #             break
 
     # compute the average prediction over the whole trajectory
     avg_prediction = 0
@@ -428,52 +414,10 @@ def nut_assembly_eval_demo_cond(model, object_detector, env, context, gpu_id, va
             debug_img = np.array(np.moveaxis(
                 img_aug[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
             cv2.imwrite("debug.png", debug_img)
-            if model._object_detector is not None or prediction_with_gt_bb:
+            if model._object_detector is not None or predict_gt_bb:
                 bb.append(bb_t_aug[None][None])
                 gt_classes.append(torch.from_numpy(
                     gt_t[None][None][None]).to(device=gpu_id))
-
-        # Perform inference with object-detector
-        if object_detector is not None and model._object_detector is None and not prediction_with_gt_bb:
-            model_input = dict()
-            model_input['demo'] = context.to(device=gpu_id)
-            model_input['images'] = img_aug[None][None].to(device=gpu_id)
-            model_input['gt_bb'] = torch.from_numpy(
-                bb_t_aug[None][None]).float().to(device=gpu_id)
-            model_input['gt_classes'] = torch.from_numpy(
-                gt_t[None][None][None]).to(device=gpu_id)
-            model_input['states'] = torch.from_numpy(
-                np.array(states)).to(device=gpu_id)
-
-            prediction_external_obj = object_detector(model_input,
-                                                      inference=True)
-            # 1. Get the index with target class
-            target_indx_flags = prediction_external_obj['classes_final'][0] == 1
-            if torch.sum((target_indx_flags == True).int()) != 0:
-                # 2. Get the confidence scores for the target predictions and the the max
-                target_max_score_indx = torch.argmax(
-                    prediction_external_obj['conf_scores_final'][0][target_indx_flags])
-                max_score_target = prediction_external_obj['conf_scores_final'][
-                    0][target_indx_flags][target_max_score_indx]
-                if max_score_target != -1:
-                    scale_factor = object_detector.get_scale_factors()
-                    predicted_bb = project_bboxes(bboxes=prediction_external_obj['proposals'][0][None][None],
-                                                  width_scale_factor=scale_factor[0],
-                                                  height_scale_factor=scale_factor[1],
-                                                  mode='a2p')[0][target_indx_flags][target_max_score_indx]
-                    previous_predicted_bb[0] = torch.round(predicted_bb).int()
-                    # replace bb
-                    bb.append(torch.round(
-                        predicted_bb[None][None].to(device=gpu_id)).int())
-                else:
-                    bb.append(torch.round(previous_predicted_bb[0][None][None].to(
-                        device=gpu_id)).int())
-            else:
-                bb.append(torch.round(previous_predicted_bb[0][None][None].to(
-                    device=gpu_id)).int())
-
-            gt_classes.append(torch.from_numpy(
-                np.array([1])[None][None]).to(device=gpu_id))
 
         if concat_bb:
             action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
@@ -481,6 +425,7 @@ def nut_assembly_eval_demo_cond(model, object_detector, env, context, gpu_id, va
                 target_obj_dec=None,
                 states=states,
                 bb=bb,
+                predict_gt_bb=predict_gt_bb,
                 gt_classes=gt_classes[0],
                 images=images,
                 context=context,
@@ -498,6 +443,7 @@ def nut_assembly_eval_demo_cond(model, object_detector, env, context, gpu_id, va
                 target_obj_dec=None,
                 states=states,
                 bb=None,
+                predict_gt_bb=False,
                 gt_classes=None,
                 images=images,
                 context=context,
@@ -509,9 +455,7 @@ def nut_assembly_eval_demo_cond(model, object_detector, env, context, gpu_id, va
                 target_obj_embedding=target_obj_emb
             )
 
-        if concat_bb and model._object_detector is None and not prediction_with_gt_bb:
-            prediction = prediction_external_obj
-        elif concat_bb and model._object_detector is not None and not prediction_with_gt_bb:
+        if concat_bb and model._object_detector is not None and not predict_gt_bb:
             prediction = prediction_internal_obj
 
         try:
@@ -519,7 +463,7 @@ def nut_assembly_eval_demo_cond(model, object_detector, env, context, gpu_id, va
             # action = clip_action(action, prev_action)
             # prev_action = action
             obs, reward, env_done, info = env.step(action)
-            if concat_bb and not prediction_with_gt_bb:
+            if concat_bb and not predict_gt_bb:
                 # get predicted bb from prediction
                 # 1. Get the index with target class
                 target_indx_flags = prediction['classes_final'][0] == 1
@@ -529,10 +473,7 @@ def nut_assembly_eval_demo_cond(model, object_detector, env, context, gpu_id, va
                         prediction['conf_scores_final'][0][target_indx_flags])
                     max_score_target = prediction['conf_scores_final'][0][target_indx_flags][target_max_score_indx]
                     if max_score_target != -1:
-                        if model._object_detector is not None:
-                            scale_factor = model._object_detector.get_scale_factors()
-                        else:
-                            scale_factor = object_detector.get_scale_factors()
+                        scale_factor = model._object_detector.get_scale_factors()
                         predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
                                                       width_scale_factor=scale_factor[0],
                                                       height_scale_factor=scale_factor[1],
@@ -585,7 +526,7 @@ def nut_assembly_eval_demo_cond(model, object_detector, env, context, gpu_id, va
                 else:
                     obs['gt_bb'] = bb_t_aug
                     image = np.array(obs['camera_front_image'][:, :, ::-1])
-            elif concat_bb and prediction_with_gt_bb:
+            elif concat_bb and predict_gt_bb:
                 obs['gt_bb'] = bb_t_aug[0]
                 obs['predicted_bb'] = bb_t_aug[0]
                 # adjust bb
@@ -611,16 +552,6 @@ def nut_assembly_eval_demo_cond(model, object_detector, env, context, gpu_id, va
             #         f"gt_step_test.png", gt_obs['camera_front_image'][:, :, ::-1])
         except Exception as e:
             print(f"Exception during step {e}")
-
-        # if target_obj_dec is not None:
-        #     info['target_pred'] = target_pred
-        #     info['target_gt'] = agent_target_obj_position
-        #     if np.argmax(target_pred) == agent_target_obj_position:
-        #         avg_prediction += 1
-
-        # if activation_map is not None:
-        #     obs['activation_map'] = activation_map
-        #     cv2.imwrite("prova_activation_map.png", activation_map)
 
         traj.append(obs, reward, done, info, action)
 

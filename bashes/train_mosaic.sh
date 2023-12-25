@@ -16,9 +16,9 @@ SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
 
-EXP_NAME=1Task-Nut-Assembly-100-180-All-Obj-One-Task-Left
+EXP_NAME=1Task-Pick-Place-100-180-All-Obj-One-Task-Left
 PROJECT_NAME=${EXP_NAME}
-TASK_str=nut_assembly #[pick_place,nut_assembly]
+TASK_str=pick_place #[pick_place,nut_assembly]
 ROLLOUT=false
 EPOCH=90
 BSIZE=27 #32 #128 #64 #32
@@ -71,9 +71,9 @@ DIM_W=12 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 HEIGHT=100
 WIDTH=180
 
-RESUME_PATH="/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Mosaic-200-360-Batch27"
-RESUME_STEP=108000
-RESUME=false
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-100-180-All-Obj-One-Task-Left-Batch24/
+RESUME_STEP=149366
+RESUME=true
 
 COSINE_ANNEALING=false
 

@@ -397,7 +397,7 @@ class VideoImitation(nn.Module):
                 f"model_save-{target_obj_detector_step}.pt"),
                 map_location=torch.device('cpu'))
             self._object_detector.load_state_dict(weights)
-            self._object_detector.to("cuda:0")
+            # self._object_detector.to("cuda:0")
             self._object_detector.eval()
         # self._object_detector = None
 
@@ -651,6 +651,7 @@ class VideoImitation(nn.Module):
         context,
         bb=None,
         gt_classes=None,
+        predict_gt_bb=False,
         states=None,
         ret_dist=True,
         eval=False,
@@ -668,21 +669,7 @@ class VideoImitation(nn.Module):
         embed_out = self._embed(
             images, context, compute_activation_map=compute_activation_map)
 
-        # if self._target_object_backbone is not None and not self._freeze_target_obj_detector and target_obj_embedding is None:
-        #     # compute the embedding for the first frame
-        #     first_frame_batch = images[:, 0, :, :, :]
-        #     first_frame_batch = first_frame_batch[:, None, :, :, :]
-        #     target_obj_embedding_in = self._target_object_backbone(
-        #         first_frame_batch, context)
-        # else:
-        #     target_obj_embedding_in = embed_out
-
-        # if self._concat_target_obj_embedding and target_obj_embedding is None:
-        #     # compute the target obj embedding, given the input from the first frame
-        #     target_obj_embedding = self._compute_target_obj_embedding(
-        #         target_obj_embedding_in)
-
-        if self._concat_bb and self._object_detector is not None:
+        if self._concat_bb and not predict_gt_bb:
             # run inference for target object detector
             model_input = dict()
             model_input['demo'] = context
@@ -713,7 +700,8 @@ class VideoImitation(nn.Module):
                     else:
                         print("No bb target for some frames")
                         # Get index for target object
-                        predicted_bb_list.append(torch.zeros(4).to("cuda:0"))
+                        predicted_bb_list.append(torch.zeros(
+                            4).to(device=images.get_device()))
                 predicted_bb = torch.stack(
                     predicted_bb_list, dim=0)[:, None, :]
                 predicted_bb = rearrange(
@@ -724,7 +712,7 @@ class VideoImitation(nn.Module):
                 target_index = gt_classes == 1
                 predicted_bb = bb[target_index, :]
 
-        elif self._concat_bb and self._object_detector is None:
+        elif self._concat_bb and predict_gt_bb:
             # get the target object
             B, T, O, D = bb.shape
             predicted_bb = bb
@@ -746,8 +734,7 @@ class VideoImitation(nn.Module):
                 states=states,
                 eval=eval)
 
-        if self._object_detector is not None:
-            out['target_obj_prediction'] = prediction
+        if self._concat_bb:
             out['predicted_bb'] = predicted_bb
 
         if self._concat_target_obj_embedding:

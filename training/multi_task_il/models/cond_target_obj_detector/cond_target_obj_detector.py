@@ -47,16 +47,16 @@ def conv(ic, oc, k, s, p):
     )
 
 
-def coord_map(shape, start=-1, end=1):
+def coord_map(shape, start=-1, end=1, gpu_id=0):
     """
     Gives, a 2d shape tuple, returns two mxn coordinate maps,
     Ranging min-max in the x and y directions, respectively.
     """
     m, n = shape
     x_coord_row = torch.linspace(
-        start, end, steps=n).type(torch.cuda.FloatTensor)
+        start, end, steps=n).to(device=gpu_id).type(torch.cuda.FloatTensor)
     y_coord_row = torch.linspace(
-        start, end, steps=m).type(torch.cuda.FloatTensor)
+        start, end, steps=m).to(device=gpu_id).type(torch.cuda.FloatTensor)
     x_coords = x_coord_row.unsqueeze(0).expand(torch.Size((m, n))).unsqueeze(0)
     y_coords = y_coord_row.unsqueeze(1).expand(torch.Size((m, n))).unsqueeze(0)
     return Variable(torch.cat([x_coords, y_coords], 0))
@@ -201,7 +201,8 @@ class FiLM(nn.Module):
 
         h = agent_obs_feat.size(2)
         w = agent_obs_feat.size(3)
-        coords = coord_map((h, w))[None].repeat(
+        coords = coord_map(shape=(h, w),
+                           gpu_id=agent_obs_feat.get_device())[None].repeat(
             agent_obs_feat.shape[0], 1, 1, 1).to(agent_obs_feat.get_device())  # B 2 h w
 
         for i, res_block in enumerate(self.res_blocks):

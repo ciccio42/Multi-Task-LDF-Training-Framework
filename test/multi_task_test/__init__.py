@@ -411,7 +411,7 @@ def adjust_bb(bb, crop_params=[20, 25, 80, 75]):
     return [x1, y1, x2, y2]
 
 
-def get_action(model, target_obj_dec, bb, gt_classes, states, images, context, gpu_id, n_steps, max_T=80, baseline=None, action_ranges=[], target_obj_embedding=None, t=-1):
+def get_action(model, target_obj_dec, bb, predict_gt_bb, gt_classes, states, images, context, gpu_id, n_steps, max_T=80, baseline=None, action_ranges=[], target_obj_embedding=None, t=-1):
     s_t = torch.from_numpy(np.concatenate(states, 0).astype(np.float32))[None]
     if isinstance(images[-1], np.ndarray):
         i_t = torch.from_numpy(np.concatenate(
@@ -443,6 +443,7 @@ def get_action(model, target_obj_dec, bb, gt_classes, states, images, context, g
                         context=context,
                         bb=bb,
                         gt_classes=gt_classes,
+                        predict_gt_bb=predict_gt_bb,
                         eval=True,
                         target_obj_embedding=target_obj_embedding,
                         compute_activation_map=True,
