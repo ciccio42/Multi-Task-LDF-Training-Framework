@@ -531,6 +531,10 @@ def _proc(model, config, results_dir, heights, widths, size, shape, color, env_n
         print("Using previous results at {}. Loaded eval traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             json_name, n, task_success_flags['variation_id'], task_success_flags['reached'], task_success_flags['picked'], task_success_flags['success']))
     else:
+        if variation is not None:
+            variation_id = variation[n % len(variation)]
+        else:
+            variation_id = variation
         if ("cond_target_obj_detector" not in model_name) or ("CondPolicy" in model_name):
             return_rollout = rollout_imitation(model,
                                                config,
@@ -543,7 +547,7 @@ def _proc(model, config, results_dir, heights, widths, size, shape, color, env_n
                                                max_T=max_T,
                                                env_name=env_name,
                                                baseline=baseline,
-                                               variation=variation,
+                                               variation=variation_id,
                                                controller_path=controller_path,
                                                seed=seed,
                                                action_ranges=np.array(
@@ -680,7 +684,7 @@ if __name__ == '__main__':
     for try_path in try_path_list:
 
         model_path = os.path.expanduser(try_path)
-        print(model_path)
+        print(f"Testing model {model_path}")
         assert args.env in TASK_MAP.keys(), "Got unsupported environment {}".format(args.env)
 
         if args.variation and args.save_path is None:
@@ -731,12 +735,19 @@ if __name__ == '__main__':
 
         if args.N == -1:
             if not args.variation:
-                args.N = int(args.eval_each_task *
-                             build_task.get('num_variations', 0))
-                if args.eval_subsets:
-                    print("evaluating only first {} subtasks".format(
-                        args.eval_subsets))
-                    args.N = int(args.eval_each_task * args.eval_subsets)
+                if len(config["tasks_cfgs"][args.env].get('skip_ids', [])) == 0:
+                    args.N = int(args.eval_each_task *
+                                 build_task.get('num_variations', 0))
+                    if args.eval_subsets:
+                        print("evaluating only first {} subtasks".format(
+                            args.eval_subsets))
+                        args.N = int(args.eval_each_task * args.eval_subsets)
+                else:
+                    args.N = int(args.eval_each_task *
+                                 len(config["tasks_cfgs"][args.env].get('skip_ids', [])))
+                    args.variation = config["tasks_cfgs"][args.env].get(
+                        'skip_ids', [])
+
             else:
                 args.N = int(args.eval_each_task)
 

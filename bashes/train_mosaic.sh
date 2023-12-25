@@ -15,11 +15,23 @@ POLICY='${mosaic}'
 SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
+DEBUG=false
+WAND_LOG=true
 
 EXP_NAME=1Task-Pick-Place-100-180-All-Obj-One-Task-Left
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place #[pick_place,nut_assembly]
+
+LOAD_TARGET_OBJ_DETECTOR=false
+TARGET_OBJ_DETECTOR_STEP=40455
+TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54
+
 ROLLOUT=false
+
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-100-180-All-Obj-One-Task-Left-Batch24/
+RESUME_STEP=149366
+RESUME=false
+
 EPOCH=90
 BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
@@ -38,9 +50,6 @@ MUL_INTM=0
 BC_MUL=1.0
 INV_MUL=1.0
 
-LOAD_TARGET_OBJ_DETECTOR=false
-TARGET_OBJ_DETECTOR_STEP=40455
-TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54
 FREEZE_TARGET_OBJ_DETECTOR=false
 REMOVE_CLASS_LAYERS=false
 CONCAT_TARGET_OBJ_EMBEDDING=false
@@ -70,10 +79,6 @@ DIM_H=7 #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
 DIM_W=12 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 HEIGHT=100
 WIDTH=180
-
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-100-180-All-Obj-One-Task-Left-Batch24/
-RESUME_STEP=149366
-RESUME=true
 
 COSINE_ANNEALING=false
 
@@ -135,7 +140,7 @@ python ../training/train_scripts/train_any.py \
     bc_mul=${BC_MUL} \
     inv_mul=${INV_MUL} \
     cosine_annealing=${COSINE_ANNEALING} \
-    debug=false \
-    wandb_log=true \
+    debug=${DEBUG} \
+    wandb_log=${WAND_LOG} \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS}

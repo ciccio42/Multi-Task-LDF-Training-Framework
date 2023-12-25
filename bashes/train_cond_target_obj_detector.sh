@@ -5,7 +5,7 @@ export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
@@ -18,10 +18,13 @@ LOG_FREQ=100
 VAL_FREQ=-1
 PRINT_FREQ=100
 
-EXP_NAME=2Task-Pick-Place-Nut-Assembly-Cond-Target-Obj-Detector
+EXP_NAME=1Task-Pick-Place-Cond-Target-Obj-Detector-GT-BB
 PROJECT_NAME=${EXP_NAME}
-TASK_str=["pick_place","nut_assembly"]
-EPOCH=50 # start from 16
+TASK_str=pick_place #["pick_place","nut_assembly"]
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/2Task-Pick-Place-Nut-Assembly-Cond-Target-Obj-Detector-Batch50/
+RESUME_STEP=40095
+RESUME=false
+EPOCH=90 # start from 16
 BSIZE=80 #16 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
@@ -41,10 +44,6 @@ ONLY_FIRST_FRAMES=false
 ROLLOUT=false
 PERFORM_AUGS=true
 NON_SEQUENTIAL=true
-
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/2Task-Pick-Place-Nut-Assembly-Cond-Target-Obj-Detector-Batch50/
-RESUME_STEP=40095
-RESUME=true
 
 DROP_DIM=4      # 2    # 3
 OUT_FEATURE=128 # 512 # 256
@@ -94,7 +93,7 @@ python ../training/train_scripts/train_any.py \
     train_cfg.lr=${LR} \
     train_cfg.weight_decay=${WEIGHT_DECAY} \
     train_cfg.lr_schedule=${SCHEDULER} \
-    debug=false \
-    wandb_log=true \
+    debug=true \
+    wandb_log=false \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS}

@@ -693,6 +693,7 @@ class Trainer:
         # initialize device
         def_device = hydra_cfg.device if hydra_cfg.device != -1 else 0
         self._device = torch.device("cuda:{}".format(def_device))
+        self._device_id = def_device
         self._device_list = None
         self._allow_val_grad = allow_val_grad
         # set of file saving
@@ -758,9 +759,9 @@ class Trainer:
         # wrap model in DataParallel if needed and transfer to correct device
         print('\n-------------------\nTraining stage\nFound {} GPU devices \n'.format(self.device_count))
         model = model.to(self._device)
-        if self.device_count > 1 and not isinstance(model, nn.DataParallel):
-            print("Training stage \n Device list: {}".format(self.device_list))
-            model = nn.DataParallel(model, device_ids=self.device_list)
+        # if self.device_count > 1 and not isinstance(model, nn.DataParallel):
+        #     print("Training stage \n Device list: {}".format(self.device_list))
+        #     model = nn.DataParallel(model, device_ids=self.device_list)
 
         # save model
         # save the model's state dictionary to a file
@@ -836,6 +837,8 @@ class Trainer:
         # summary(model)
 
         step = 0
+        best_fp = np.inf
+        best_avg_success = 0
         for e in range(epochs):
             frac = e / epochs
             # with tqdm(self._train_loader, unit="batch") as tepoch:
@@ -958,7 +961,7 @@ class Trainer:
                         import functools
                         from torch.multiprocessing import Pool
                         target_obj_dec = None
-                        controller_path = "/home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json"
+                        controller_path = "/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json"
                         model_name = self.config.policy._target_
                         for task in self.tasks:
                             import random
@@ -966,11 +969,10 @@ class Trainer:
                             results_dir = os.path.join(
                                 self.save_dir, 'results_{}_{}/'.format(task_name, e))
                             os.makedirs(results_dir, exist_ok=True)
-                            best_fp = np.inf
-                            best_avg_success = 0
+                            # model, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, gt_bb, seed, n, gt_file
+                            gt_bb = True if model._concat_bb and model._object_detector is None else False
                             f = functools.partial(_proc,
                                                   model,
-                                                  target_obj_dec,
                                                   self.config,
                                                   results_dir,
                                                   200,
@@ -984,14 +986,16 @@ class Trainer:
                                                   80,
                                                   controller_path,
                                                   model_name,
-                                                  self.device,
-                                                  False)
+                                                  self._device_id,
+                                                  False,
+                                                  gt_bb
+                                                  )
                             random.seed(42)
                             np.random.seed(42)
-                            n_run = task['n_tasks']*2
-                            seeds = [(random.getrandbits(32), i)
+                            n_run = task['n_tasks']*3
+                            seeds = [(random.getrandbits(32), i, -1)
                                      for i in range(n_run)]
-                            with Pool(5) as p:
+                            with Pool(2) as p:
                                 task_success_flags = p.starmap(f, seeds)
                             if "CondTargetObjectDetector" in self.config.policy._target_:
                                 all_mean_iou = [t['avg_iou']

@@ -5,21 +5,25 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_l
 # export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
 # export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/mnt/sdc1/frosa/opt_dataset/
+EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 POLICY='${mosaic}'
 
 SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
+DEVICE=0
 
-EXP_NAME=2Task-Pick-Place-Nut-Assembly-Mosaic-100-180-Target-Obj-Detector-BB
+EXP_NAME=1Task-Pick-Place-Mosaic-100-180-Target-Obj-Detector-GT-BB
 PROJECT_NAME=${EXP_NAME}
-TASK_str=[pick_place,nut_assembly]
-ROLLOUT=false
+TASK_str=pick_place #[pick_place,nut_assembly]
+RESUME_PATH="/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Mosaic-200-360-Batch27"
+RESUME_STEP=108000
+RESUME=false
+ROLLOUT=true
 EPOCH=90
 BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
@@ -38,9 +42,9 @@ MUL_INTM=0
 BC_MUL=1.0
 INV_MUL=1.0
 
-LOAD_TARGET_OBJ_DETECTOR=true
-TARGET_OBJ_DETECTOR_STEP=43740
-TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/2Task-Pick-Place-Nut-Assembly-Cond-Target-Obj-Detector-Batch50
+LOAD_TARGET_OBJ_DETECTOR=false
+TARGET_OBJ_DETECTOR_STEP=-1
+TARGET_OBJ_DETECTOR_PATH=-1
 FREEZE_TARGET_OBJ_DETECTOR=false
 REMOVE_CLASS_LAYERS=false
 CONCAT_TARGET_OBJ_EMBEDDING=false
@@ -71,16 +75,13 @@ DIM_W=23 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 HEIGHT=100
 WIDTH=180
 
-RESUME_PATH="/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Mosaic-200-360-Batch27"
-RESUME_STEP=108000
-RESUME=false
-
 COSINE_ANNEALING=false
 
 python ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \
+    device=${DEVICE} \
     set_same_n=${SET_SAME_N} \
     task_names=${TASK_str} \
     exp_name=${EXP_NAME} \
@@ -135,7 +136,7 @@ python ../training/train_scripts/train_any.py \
     bc_mul=${BC_MUL} \
     inv_mul=${INV_MUL} \
     cosine_annealing=${COSINE_ANNEALING} \
-    debug=false \
-    wandb_log=true \
+    debug=true \
+    wandb_log=false \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS}

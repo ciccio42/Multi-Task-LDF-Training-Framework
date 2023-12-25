@@ -669,6 +669,9 @@ class VideoImitation(nn.Module):
         embed_out = self._embed(
             images, context, compute_activation_map=compute_activation_map)
 
+        if self._concat_bb and self._object_detector is None:
+            predict_gt_bb = True
+
         if self._concat_bb and not predict_gt_bb:
             # run inference for target object detector
             model_input = dict()
