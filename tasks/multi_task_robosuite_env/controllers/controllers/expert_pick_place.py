@@ -48,7 +48,13 @@ class PickPlaceController:
         # Compute target quaternion that defines the final desired gripper orientation
         # 1. Obtain the orientation of the object wrt to world
         obj_quat = obs['{}_quat'.format(self._object_name)]
-        obj_rot = T.quat2mat(obj_quat)
+        if "nut" in self._object_name:
+            obj_rot = T.quat2mat(obj_quat)
+            obj_rot = np.array([[-1.0, 0.0, 0.0],
+                                [0.0, -1.0, 0.0],
+                                [0.0, 0.0, 1.0]])@obj_rot
+        else:
+            obj_rot = T.quat2mat(obj_quat)
         # 2. compute the new gripper orientation with respect to the gripper
         world_ee_rot = np.matmul(obj_rot, self._target_gripper_wrt_obj_rot)
         return Quaternion(matrix=world_ee_rot)
@@ -112,6 +118,20 @@ class PickPlaceController:
                            'bluebox': 0.018, 'redbox': 0.018}
             dist_ur5e = {'greenbox': 0.05, 'yellowbox': 0.03,
                          'bluebox': 0.03, 'redbox': 0.03}
+        elif self._object_set == 3:
+            # {'greenbox': 0.05, 'yellowbox': 0.018,
+            #  'bluebox': 0.018, 'redbox': 0.018}
+            dist_panda = dict()
+            # {'greenbox': 0.05, 'yellowbox': 0.018,
+            #  'bluebox': 0.018, 'redbox': 0.018}
+            dist_sawyer = dict()
+            # {'greenbox': 0.05, 'yellowbox': 0.03,
+            #  'bluebox': 0.03, 'redbox': 0.03}
+            dist_ur5e = dict()
+            for obj_name in self._env.obj_names:
+                dist_panda[obj_name] = 0.03
+                dist_sawyer[obj_name] = 0.03
+                dist_ur5e[obj_name] = 0.03
 
         if "Panda" in self._env.robot_names:
             self.dist = dist_panda
@@ -270,7 +290,8 @@ def get_expert_trajectory(env_type, controller_type, renderer=False, camera_obs=
                               ranges=action_ranges,
                               render_gpu_device_id=gpu_id,
                               render_camera=render_camera,
-                              **kwargs)
+                              object_set=object_set,
+                              ** kwargs)
                 break
             except RandomizationError:
                 pass
@@ -289,6 +310,7 @@ def get_expert_trajectory(env_type, controller_type, renderer=False, camera_obs=
                           ranges=action_ranges,
                           render_gpu_device_id=gpu_id,
                           render_camera=render_camera,
+                          object_set=object_set,
                           **kwargs)
             break
         except RandomizationError:
@@ -324,8 +346,14 @@ def get_expert_trajectory(env_type, controller_type, renderer=False, camera_obs=
                 os.makedirs("test")
             except:
                 pass
+            image = np.array(obs['camera_front_image'][:, :, ::-1])
+            for obj_name in obs['obj_bb']['camera_front']:
+                obj_bb = obs['obj_bb']['camera_front'][obj_name]
+                color = (0, 0, 255)
+                image = cv2.rectangle(
+                    image, (obj_bb['bottom_right_corner'][0], obj_bb['bottom_right_corner'][1]), (obj_bb['upper_left_corner'][0], obj_bb['upper_left_corner'][1]), color, 1)
             cv2.imwrite(f"test/prova.png",
-                        np.array(obs['camera_front_image'][:, :, ::-1]))
+                        image)
             assert 'status' not in info.keys(
             ), "Don't overwrite information returned from environment. "
 
@@ -368,6 +396,7 @@ if __name__ == '__main__':
     import debugpy
     import os
     import sys
+    import yaml
     debugpy.listen(('0.0.0.0', 5678))
     print("Waiting for debugger attach")
     debugpy.wait_for_client()
@@ -377,6 +406,7 @@ if __name__ == '__main__':
         current_dir, "../config/osc_pose.json")
     controller_config = load_controller_config(
         custom_fpath=controller_config_path)
+
     for i in range(0, 16):
         traj = get_expert_trajectory('UR5e_PickPlaceDistractor',
                                      controller_type=controller_config,
@@ -384,4 +414,4 @@ if __name__ == '__main__':
                                      camera_obs=True,
                                      task=i,
                                      render_camera='camera_front',
-                                     object_set=2)
+                                     object_set=3)

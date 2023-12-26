@@ -1,14 +1,14 @@
 #!/bin/sh
-export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
-# export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
+# export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
+export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/mnt/sdc1/frosa/opt_dataset/
+EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 POLICY='${mosaic}'
 
@@ -19,17 +19,17 @@ DEVICE=0
 DEBUG=false
 WANDB_LOG=true
 
-EXP_NAME=1Task-Nut-Assembly-Mosaic-100-180-Target-Obj-Detector-GT-BB-All-Obj-One-Task-Left
+EXP_NAME=1Task-Pick-Place-Mosaic-100-180-Target-Obj-Detector-BB-All-Obj-One-Task-Left
 PROJECT_NAME=${EXP_NAME}
-TASK_str=nut_assembly #[pick_place,nut_assembly]
+TASK_str=pick_place #[pick_place,nut_assembly]
 
-RESUME_PATH="/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Mosaic-200-360-Batch27"
-RESUME_STEP=108000
-RESUME=false
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-Mosaic-100-180-Target-Obj-Detector-BB-All-Obj-One-Task-Left-Batch28/
+RESUME_STEP=9570
+RESUME=true
 
-LOAD_TARGET_OBJ_DETECTOR=false
-TARGET_OBJ_DETECTOR_STEP=-1
-TARGET_OBJ_DETECTOR_PATH=-1
+LOAD_TARGET_OBJ_DETECTOR=true
+TARGET_OBJ_DETECTOR_STEP=64152
+TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-Cond-Target-Obj-Detector-separate-demo-agent-Batch80/
 CONCAT_BB=true
 
 

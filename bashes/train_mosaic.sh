@@ -18,9 +18,9 @@ VAL_FREQ=-1
 DEBUG=false
 WAND_LOG=true
 
-EXP_NAME=1Task-Pick-Place-100-180-All-Obj-One-Task-Left
+EXP_NAME=1Task-Nut-Assembly-100-180-All-Obj-One-Task-Left
 PROJECT_NAME=${EXP_NAME}
-TASK_str=pick_place #[pick_place,nut_assembly]
+TASK_str=nut_assembly #[pick_place,nut_assembly]
 
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=40455
@@ -28,9 +28,9 @@ TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task
 
 ROLLOUT=false
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-100-180-All-Obj-One-Task-Left-Batch24/
-RESUME_STEP=149366
-RESUME=false
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-100-180-All-Obj-One-Task-Left-Batch16/ #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-100-180-All-Obj-One-Task-Left-Batch28/
+RESUME_STEP=38892 #38280
+RESUME=true
 
 EPOCH=90
 BSIZE=27 #32 #128 #64 #32

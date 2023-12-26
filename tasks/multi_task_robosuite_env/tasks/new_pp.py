@@ -1,7 +1,7 @@
 from collections import OrderedDict
 import numpy as np
 
-from robosuite.utils.transform_utils import convert_quat, quat2mat
+from robosuite.utils.transform_utils import convert_quat, quat2mat, mat2quat
 from robosuite.utils.mjcf_utils import CustomMaterial
 
 from robosuite.environments.manipulation.single_arm_env import SingleArmEnv
@@ -160,7 +160,7 @@ class PickPlace(SingleArmEnv):
                              'bread': [0.045, 0.055, 0.045],
                              'cereal': [0.045, 0.055, 0.045],
                              'can': [0.045, 0.065, 0.045]}
-        else:
+        elif self.object_set == 2:
             self.object_to_id = {"greenbox": 0,
                                  "yellowbox": 1,
                                  "bluebox": 2,
@@ -174,6 +174,8 @@ class PickPlace(SingleArmEnv):
                              'bluebox': [0.05, 0.055, 0.045],
                              'redbox': [0.05, 0.055, 0.045],
                              'bin': [0.64, 0.07, 0.16]}
+        else:
+            self.init_object_dicts()
 
         if object_type is not None:
             assert (
@@ -232,6 +234,62 @@ class PickPlace(SingleArmEnv):
             camera_widths=camera_widths,
             camera_depths=camera_depths,
         )
+
+    def init_object_dicts(self, object_id=0):
+        box_names = ["greenbox",
+                     "yellowbox",
+                     "bluebox",
+                     "redbox"]
+        box_dims = {'greenbox': [0.05, 0.055, 0.045],
+                    'yellowbox': [0.05, 0.055, 0.045],
+                    'bluebox': [0.05, 0.055, 0.045],
+                    'redbox': [0.05, 0.055, 0.045],
+                    'bin': [0.64, 0.07, 0.16]}
+
+        nut_names = ['nut_gray',
+                     'nut_ambra',
+                     'nut_blue']
+        nut_dims = {'nut_gray': [0.16, 0.02, 0.16],
+                    'nut_ambra': [0.16, 0.02, 0.16],
+                    'nut_blue': [0.16, 0.02, 0.16],
+                    'peg1': [0.06, 0.06, 0.11],
+                    'peg2': [0.06, 0.06, 0.11],
+                    'peg3': [0.06, 0.06, 0.11]}
+
+        self.object_to_id = dict()
+        self.obj_names = list()
+        self._obj_dim = dict()
+
+        for i in range(4):
+            # put the target nut insted of target box
+            if i == object_id and i < 3:
+                self.object_to_id[nut_names[i]] = i
+                self.obj_names.append(nut_names[i])
+                self._obj_dim[nut_names[i]] = nut_dims[nut_names[i]]
+            elif i != object_id and i < 3:
+                # put random nut insted of box
+                sub_box = np.random.choice([True, False], 1, p=[0.5, 0.5])
+                if sub_box:
+                    self.object_to_id[nut_names[i]] = i
+                    self.obj_names.append(nut_names[i])
+                    self._obj_dim[nut_names[i]] = nut_dims[nut_names[i]]
+                else:
+                    self.object_to_id[box_names[i]] = i
+                    self.obj_names.append(box_names[i])
+                    self._obj_dim[box_names[i]] = box_dims[box_names[i]]
+            elif i == object_id and i == 3:
+                self.object_to_id[box_names[i]] = i
+                self.obj_names.append(box_names[i])
+                self._obj_dim[box_names[i]] = box_dims[box_names[i]]
+            elif i != object_id and i == 3:
+                # select random box
+                box_names_sample = [box_names[object_id], box_names[i]]
+                box_name = np.random.choice(box_names_sample, 1)[0]
+                self.object_to_id[box_name] = i
+                self.obj_names.append(box_name)
+                self._obj_dim[box_name] = box_dims[box_name]
+
+        self._obj_dim['bin'] = [0.64, 0.07, 0.16]
 
     def reward(self, action):
         """
@@ -321,8 +379,15 @@ class PickPlace(SingleArmEnv):
 
         if self.object_set == 1:
             object_seq = (MilkObject, BreadObject, CerealObject, CanObject)
-        else:
+        elif self.object_set == 2:
             object_seq = (BoxObject, BoxObject, BoxObject, BoxObject)
+        elif self.object_set == 3:
+            object_seq = list()
+            for obj_name in self.obj_names:
+                if "nut" in obj_name:
+                    object_seq.append(NamedRoundNutObject)
+                else:
+                    object_seq.append(BoxObject)
 
         for obj_cls, obj_name in zip(
                 object_seq,
@@ -358,13 +423,18 @@ class PickPlace(SingleArmEnv):
         np.random.shuffle(arr)
 
         for i in range(4):
+            if "nut" in self.obj_names[i]:
+                rotation = [3.14, 3.14 + 1e-4]
+            else:
+                rotation = [0, 0 + 1e-4]
+
             self.placement_initializer.append_sampler(
                 sampler=UniformRandomSampler(
                     name='obj'+str(i)+"Sampler",
                     mujoco_objects=self.objects[i],
                     x_range=self.x_ranges[0],
                     y_range=self.y_ranges[arr[i]],
-                    rotation=[0, 0 + 1e-4],
+                    rotation=rotation,
                     rotation_axis='z',
                     ensure_object_boundary_in_range=False,
                     ensure_valid_placement=True,
@@ -575,11 +645,18 @@ class PickPlace(SingleArmEnv):
 
         for i, obj in enumerate(self.objects):
             obj_str = obj.name
-            obj_pos = np.array(
-                self.sim.data.body_xpos[self.obj_body_id[obj_str]])
-            obj_quat = T.convert_quat(
-                self.sim.data.body_xquat[self.obj_body_id[obj_str]], to="xyzw"
-            )
+            if "nut" in obj_str:
+                obj_pos = self.sim.data.site_xpos[self.sim.model.site_name2id(
+                    f'{obj_str}_handle_site')]
+                obj_quat = T.mat2quat(
+                    np.reshape(self.sim.data.site_xmat[self.sim.model.site_name2id(
+                        f'{obj_str}_handle_site')], (3, 3)))
+            else:
+                obj_pos = np.array(
+                    self.sim.data.body_xpos[self.obj_body_id[obj_str]])
+                obj_quat = T.convert_quat(
+                    self.sim.data.body_xquat[self.obj_body_id[obj_str]], to="xyzw"
+                )
             di["{}_pos".format(obj_str)] = obj_pos
             di["{}_quat".format(obj_str)] = obj_quat
 
@@ -731,16 +808,42 @@ if __name__ == '__main__':
     from robosuite.environments.manipulation.pick_place import PickPlace
     import robosuite
     from robosuite.controllers import load_controller_config
+    import debugpy
+    import yaml
+    import cv2
+
+    debugpy.listen(('0.0.0.0', 5678))
+    print("Waiting for debugger attach")
+    debugpy.wait_for_client()
 
     controller = load_controller_config(default_controller="IK_POSE")
-    env = PandaPickPlace(task_id=0, has_renderer=True, controller_configs=controller,
-                         has_offscreen_renderer=False,
-                         reward_shaping=False, use_camera_obs=False, camera_heights=320, camera_widths=320, render_camera='frontview')
+
+    # load env conf
+    with open('/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/config/PickPlaceDistractor.yaml', 'r') as file:
+        env_conf = yaml.safe_load(file)
+
+    env_conf['object_set'] = 3
+    env = UR5ePickPlace(task_id=0,
+                        has_renderer=False,
+                        controller_configs=controller,
+                        has_offscreen_renderer=True,
+                        reward_shaping=False,
+                        use_camera_obs=True,
+                        camera_heights=env_conf['camera_heights'],
+                        camera_widths=env_conf['camera_widths'],
+                        render_camera='frontview',
+                        camera_depths=False,
+                        camera_names=env_conf['camera_names'],
+                        camera_poses=env_conf['camera_poses'],
+                        camera_attribs=env_conf['camera_attribs'],
+                        camera_gripper=env_conf['camera_gripper'],
+                        env_conf=env_conf,)
     env.reset()
     for i in range(1000):
         if i % 200 == 0:
             env.reset()
         low, high = env.action_spec
         action = np.random.uniform(low=low, high=high)
-        env.step(action)
+        obs = env.step(action)
+        img = obs[0]['camera_front_image']
         env.render()
