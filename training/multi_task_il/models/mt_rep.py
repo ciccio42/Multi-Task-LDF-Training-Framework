@@ -183,7 +183,7 @@ class _TransformerFeatures(nn.Module):
     """
 
     def __init__(
-            self, latent_dim, demo_T=4, dim_H=7, dim_W=12, embed_hidden=256, dropout=0.2, n_attn_layers=2, pos_enc=True, attn_heads=4, attn_ff=128, just_conv=False, pretrained=True, img_cfg=None, drop_dim=2, causal=True, attend_demo=True, demo_out=True, fuse_starts=0):
+            self, latent_dim, demo_T=4, dim_H=7, dim_W=12, embed_hidden=256, dropout=0.2, n_attn_layers=2, pos_enc=True, attn_heads=4, attn_ff=128, just_conv=False, pretrained=True, img_cfg=None, drop_dim=2, causal=True, attend_demo=True, demo_out=True, fuse_starts=0, concat_bb=False):
         super().__init__()
 
         flag, drop_dim = img_cfg.network_flag, img_cfg.drop_dim
@@ -206,9 +206,13 @@ class _TransformerFeatures(nn.Module):
             causal=causal, n_heads=attn_heads, demo_T=demo_T, fuse_starts=fuse_starts,
         )
 
-        # 3000
+        if not concat_bb:
+            max_len = 3000
+        else:
+            max_len = 5000
+
         self._pe = TemporalPositionalEncoding(
-            conv_feature_dim, dropout, max_len=5000) if pos_enc else None
+            conv_feature_dim, dropout, max_len=max_len) if pos_enc else None
         self.demo_out = demo_out
         in_dim = conv_feature_dim * dim_H * dim_W
         print("Linear embedder has input dim: {}x{}x{}={} ".format(
@@ -384,7 +388,7 @@ class VideoImitation(nn.Module):
         self._remove_class_layers = remove_class_layers
         self._concat_bb = concat_bb
         self._embed = _TransformerFeatures(
-            latent_dim=latent_dim, demo_T=demo_T, dim_H=dim_H, dim_W=dim_W, **attn_cfg)
+            latent_dim=latent_dim, demo_T=demo_T, dim_H=dim_H, dim_W=dim_W, concat_bb=concat_bb, **attn_cfg)
 
         self._object_detector = None
         if load_target_obj_detector:
@@ -739,6 +743,7 @@ class VideoImitation(nn.Module):
 
         if self._concat_bb:
             out['predicted_bb'] = predicted_bb
+            out['target_obj_prediction'] = prediction
 
         if self._concat_target_obj_embedding:
             out["target_obj_embedding"] = target_obj_embedding

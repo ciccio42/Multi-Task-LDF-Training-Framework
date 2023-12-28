@@ -62,6 +62,9 @@ class DefaultNutAssembly(SingleArmEnv):
     ):
         # task settings
         self.single_object_mode = single_object_mode
+        self.obj_names = ['round-nut',
+                          'round-nut-2',
+                          'round-nut-3']
         self.nut_to_id = {"nut0": 0, "nut1": 1, "nut2": 2}
         if default_peg is None:
             self.peg_mapping = [0, 1, 2]

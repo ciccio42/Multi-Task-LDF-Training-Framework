@@ -75,9 +75,11 @@ def get_env(env_name, ranges, **kwargs):
     # get env configuration file
     task_name = env_name.split('_')[1]
     env_conf = utils.read_conf_file(task_name=task_name)
-    env_conf['object_set'] = kwargs.get('object_set', 2)
-    kwargs.pop('object_set')
-
+    env_conf['object_set'] = kwargs.get('object_set', 1)
+    try:
+        kwargs.pop('object_set')
+    except:
+        pass
     env = env(
         mount_types=env_conf['mount_types'],
         gripper_types=env_conf['gripper_types'],

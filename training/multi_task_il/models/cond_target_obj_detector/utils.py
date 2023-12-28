@@ -138,6 +138,40 @@ def generate_proposals(anchors, offsets):
     return proposals
 
 
+# def gen_anc_base_optimized(anc_pts_x, anc_pts_y, anc_scales, anc_ratios, out_size):
+#     n_anc_boxes = len(anc_scales) * len(anc_ratios)
+#     batch_size = anc_pts_x.size(0)
+#     anc_base = torch.zeros(batch_size, anc_pts_x.size(
+#         1), anc_pts_y.size(1), n_anc_boxes, 4)
+
+#     # Precompute anchor sizes based on scales and ratios
+#     anchor_sizes = [(scale * ratio, scale)
+#                     for scale in anc_scales for ratio in anc_ratios]
+
+#     for batch_idx in range(batch_size):
+#         for ix in range(anc_pts_x.size(1)):
+#             for jx in range(anc_pts_y.size(1)):
+#                 xc = anc_pts_x[batch_idx, ix]
+#                 yc = anc_pts_y[batch_idx, jx]
+
+#                 # Compute anchor coordinates in a vectorized manner
+#                 xmin = xc - 0.5 * torch.tensor(anchor_sizes)[:, 0]
+#                 ymin = yc - 0.5 * torch.tensor(anchor_sizes)[:, 1]
+#                 xmax = xc + 0.5 * torch.tensor(anchor_sizes)[:, 0]
+#                 ymax = yc + 0.5 * torch.tensor(anchor_sizes)[:, 1]
+
+#                 # Stack the anchor boxes along the last dimension
+#                 anc_boxes = torch.stack([xmin, ymin, xmax, ymax], dim=-1)
+
+#                 # Clip anchor boxes to the image size
+#                 anc_boxes = ops.clip_boxes_to_image(anc_boxes, size=out_size)
+
+#                 # Store the computed anchor boxes in the result tensor
+#                 anc_base[batch_idx, ix, jx, :] = anc_boxes
+
+#     return anc_base
+
+
 def gen_anc_base(anc_pts_x, anc_pts_y, anc_scales, anc_ratios, out_size):
     n_anc_boxes = len(anc_scales) * len(anc_ratios)
     anc_base = torch.zeros(1, anc_pts_x.size(dim=0), anc_pts_y.size(

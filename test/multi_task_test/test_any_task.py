@@ -2,11 +2,6 @@
 Evaluate each task for the same number of --eval_each_task times. 
 """
 import warnings
-from robosuite import load_controller_config
-from multi_task_robosuite_env.controllers.controllers.expert_nut_assembly import \
-    get_expert_trajectory as nut_expert
-from multi_task_robosuite_env.controllers.controllers.expert_pick_place import \
-    get_expert_trajectory as place_expert
 import cv2
 import random
 import os
@@ -28,70 +23,9 @@ from torchvision.transforms import ToTensor
 from torchvision.transforms.functional import resized_crop
 import learn2learn as l2l
 from torchvision.transforms import ToTensor
-from multi_task_test.nut_assembly import nut_assembly_eval
-from multi_task_test.pick_place import pick_place_eval
-from multi_task_test import select_random_frames
+from multi_task_test.utils import *
+from multi_task_test import *
 import re
-
-
-set_start_method('forkserver', force=True)
-LOG_PATH = None
-warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
-
-TASK_MAP = {
-    'nut_assembly':  {
-        'num_variations':   9,
-        'env_fn':   nut_expert,
-        'eval_fn':  nut_assembly_eval,
-        'agent-teacher': ('UR5e_NutAssemblyDistractor', 'Panda_NutAssemblyDistractor'),
-        'render_hw': (200, 360),
-        'object_set': 1,
-    },
-    'pick_place': {
-        'num_variations':   16,
-        'env_fn':   place_expert,
-        'eval_fn':  pick_place_eval,
-        'agent-teacher': ('UR5e_PickPlaceDistractor', 'Panda_PickPlaceDistractor'),
-        'render_hw': (200, 360),  # (150, 270)
-        'object_set': 2,
-    },
-    # 'stack_block': {
-    #     'num_variations':   6,
-    #     'env_fn':   stack_expert,
-    #     'eval_fn':  block_stack_eval,
-    #     'agent-teacher': ('PandaBlockStacking', 'SawyerBlockStacking'),
-    #     'render_hw': (100, 180),  # older models used 100x200!!
-    # },
-    # 'drawer': {
-    #     'num_variations':   8,
-    #     'env_fn':   draw_expert,
-    #     'eval_fn':  draw_eval,
-    #     'agent-teacher': ('PandaDrawer', 'SawyerDrawer'),
-    #     'render_hw': (100, 180),
-    # },
-    # 'button': {
-    #     'num_variations':   6,
-    #     'env_fn':   press_expert,
-    #     'eval_fn':  press_button_eval,
-    #     'agent-teacher': ('PandaButton', 'SawyerButton'),
-    #     'render_hw': (100, 180),
-    # },
-    # 'door': {
-    #     'num_variations':   4,
-    #     'env_fn':   door_expert,
-    #     'eval_fn':  open_door_eval,
-    #     'agent-teacher': ('PandaDoor', 'SawyerDoor'),
-    #     'render_hw': (100, 180),
-    # },
-    # 'basketball': {
-    #     'num_variations':   12,
-    #     'env_fn':   basketball_expert,
-    #     'eval_fn':  basketball_eval,
-    #     'agent-teacher': ('PandaBasketball', 'SawyerBasketball'),
-    #     'render_hw': (100, 180),
-    # },
-
-}
 
 
 def extract_last_number(path):
@@ -99,242 +33,6 @@ def extract_last_number(path):
     check_point_number = path.split(
         '/')[-1].split('_')[-1].split('-')[-1].split('.')[0]
     return int(check_point_number)
-
-
-def build_tvf_formatter(config, env_name='stack'):
-    """Use this for torchvision.transforms in multi-task dataset, 
-    note eval_fn always feeds in traj['obs']['images'], i.e. shape (h,w,3)
-    """
-    dataset_cfg = config.train_cfg.dataset
-    height, width = dataset_cfg.get(
-        'height', 100), dataset_cfg.get('width', 180)
-    task_spec = config.tasks_cfgs.get(env_name, dict())
-
-    crop_params = task_spec.get('crop', [0, 0, 0, 0])
-    # print(crop_params)
-    top, left = crop_params[0], crop_params[2]
-
-    def resize_crop(img):
-        if len(img.shape) == 4:
-            img = img[0]
-        img_h, img_w = img.shape[0], img.shape[1]
-        assert img_h != 3 and img_w != 3, img.shape
-        box_h, box_w = img_h - top - \
-            crop_params[1], img_w - left - crop_params[3]
-        # cv2.imwrite("obs.png", np.array(img))
-        obs = ToTensor()(img.copy())
-        obs = resized_crop(obs, top=top, left=left, height=box_h, width=box_w,
-                           size=(height, width))
-        cv2.imwrite("resized_test.png",
-                    np.moveaxis(obs.numpy(), 0, -1)*255)
-
-        # weak_scale = config.augs.get('weak_crop_scale', (0.8, 1.0))
-        # weak_ratio = [1.0, 1.0]
-        # randcrop = RandomResizedCrop(
-        #     size=(height, width), scale=weak_scale, ratio=weak_ratio)
-        # cv2.imwrite("obs_cropped.png", np.moveaxis(obs.numpy(), 0, -1)*255)
-        # # obs = Normalize(mean=[0.485, 0.456, 0.406],
-        # #                 std=[0.229, 0.224, 0.225])(obs)
-        # obs = randcrop(obs)
-        cv2.imwrite("random_resized_crop_test.png",
-                    np.moveaxis(obs.numpy(), 0, -1)*255)
-        return obs
-    return resize_crop
-
-
-def build_tvf_formatter_obj_detector(config, env_name):
-    """Use this for torchvision.transforms in multi-task dataset, 
-    note eval_fn always feeds in traj['obs']['images'], i.e. shape (h,w,3)
-    """
-
-    def resize_crop(img, bb=None):
-        img_height, img_width = img.shape[:2]
-        """applies to every timestep's RGB obs['camera_front_image']"""
-        task_spec = config.tasks_cfgs.get(env_name, dict())
-        crop_params = task_spec.get('crop', [0, 0, 0, 0])
-        top, left = crop_params[0], crop_params[2]
-        img_height, img_width = img.shape[0], img.shape[1]
-        box_h, box_w = img_height - top - \
-            crop_params[1], img_width - left - crop_params[3]
-
-        img = transforms.ToTensor()(img.copy())
-        # ---- Resized crop ----#
-        img = resized_crop(img, top=top, left=left, height=box_h,
-                           width=box_w, size=(config.dataset_cfg.height, config.dataset_cfg.width))
-        # transforms_pipe = transforms.Compose([
-        #     transforms.ColorJitter(
-        #         brightness=list(config.augs.get(
-        #             "brightness", [0.875, 1.125])),
-        #         contrast=list(config.augs.get(
-        #             "contrast", [0.5, 1.5])),
-        #         saturation=list(config.augs.get(
-        #             "contrast", [0.5, 1.5])),
-        #         hue=list(config.augs.get("hue", [-0.05, 0.05]))
-        #     ),
-        # ])
-        # img = transforms_pipe(img)
-
-        # cv2.imwrite("resized_target_obj.png", np.moveaxis(
-        #     img.numpy()*255, 0, -1))
-
-        if bb is not None:
-            from multi_task_il.datasets.utils import adjust_bb
-            bb = adjust_bb(dataset_loader=config.dataset_cfg,
-                           bb=bb,
-                           obs=img,
-                           img_height=img_height,
-                           img_width=img_width,
-                           top=top,
-                           left=left,
-                           box_w=box_w,
-                           box_h=box_h)
-
-            # image = cv2.rectangle(np.ascontiguousarray(np.array(np.moveaxis(
-            #     img.numpy()*255, 0, -1), dtype=np.uint8)),
-            #     (bb[0][0],
-            #      bb[0][1]),
-            #     (bb[0][2],
-            #      bb[0][3]),
-            #     color=(0, 0, 255),
-            #     thickness=1)
-            # cv2.imwrite("bb_cropped.png", image)
-            return img, bb
-
-        return img
-
-    return resize_crop
-
-
-def build_env(ctr=0, env_name='nut', heights=100, widths=200, size=False, shape=False, color=False, gpu_id=0, variation=None, controller_path=None):
-
-    # create_seed = random.Random(None)
-    # create_seed = create_seed.getrandbits(32)
-    if controller_path == None:
-        controller = load_controller_config(default_controller='IK_POSE')
-    else:
-        # load custom controller
-        controller = load_controller_config(
-            custom_fpath=controller_path)
-    # assert gpu_id != -1
-    build_task = TASK_MAP.get(env_name, None)
-    assert build_task, 'Got unsupported task '+env_name
-    div = int(build_task['num_variations'])
-    env_fn = build_task['env_fn']
-    agent_name, teacher_name = build_task['agent-teacher']
-
-    if variation == None:
-        variation = ctr % div
-    else:
-        variation = variation
-
-    if 'Stack' in teacher_name:
-
-        agent_env = env_fn(agent_name,
-                           size=size,
-                           shape=shape,
-                           color=color,
-                           controller_type=controller,
-                           task=variation,
-                           ret_env=True,
-                           seed=create_seed,
-                           gpu_id=gpu_id,
-                           object_set=TASK_MAP[env_name]['object_set'])
-    else:
-
-        agent_env = env_fn(agent_name,
-                           controller_type=controller,
-                           task=variation,
-                           ret_env=True,
-                           seed=create_seed,
-                           gpu_id=gpu_id,
-                           object_set=TASK_MAP[env_name]['object_set'])
-
-    return agent_env, variation
-
-
-def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights=100, widths=200, size=False, shape=False, color=False, gpu_id=0, variation=None, random_frames=True, controller_path=None, ret_gt_env=False, seed=42):
-
-    print(f"Seed: {seed}")
-    if controller_path == None:
-        controller = load_controller_config(default_controller='IK_POSE')
-    else:
-        # load custom controller
-        controller = load_controller_config(
-            custom_fpath=controller_path)
-    # assert gpu_id != -1
-    build_task = TASK_MAP.get(env_name, None)
-    assert build_task, 'Got unsupported task '+env_name
-    div = int(build_task['num_variations'])
-    env_fn = build_task['env_fn']
-    agent_name, teacher_name = build_task['agent-teacher']
-
-    if variation == None:
-        variation = ctr % div
-    else:
-        variation = variation
-
-    if 'Stack' in teacher_name:
-        teacher_expert_rollout = env_fn(teacher_name,
-                                        controller_type=controller,
-                                        task=variation,
-                                        size=size,
-                                        shape=shape,
-                                        color=color,
-                                        seed=seed,
-                                        gpu_id=gpu_id,
-                                        object_set=TASK_MAP[env_name]['object_set'])
-        agent_env = env_fn(agent_name,
-                           size=size,
-                           shape=shape,
-                           color=color,
-                           controller_type=controller,
-                           task=variation,
-                           ret_env=True,
-                           seed=seed,
-                           gpu_id=gpu_id,
-                           object_set=TASK_MAP[env_name]['object_set'])
-    else:
-        teacher_expert_rollout = env_fn(teacher_name,
-                                        controller_type=controller,
-                                        task=variation,
-                                        seed=seed,
-                                        gpu_id=gpu_id,
-                                        object_set=TASK_MAP[env_name]['object_set'])
-
-        agent_env = env_fn(agent_name,
-                           controller_type=controller,
-                           task=variation,
-                           ret_env=True,
-                           seed=seed,
-                           gpu_id=gpu_id,
-                           object_set=TASK_MAP[env_name]['object_set'])
-
-        if ret_gt_env:
-            gt_env = env_fn(agent_name,
-                            controller_type=controller,
-                            task=variation,
-                            ret_env=True,
-                            seed=seed,
-                            gpu_id=gpu_id,
-                            object_set=TASK_MAP[env_name]['object_set'])
-
-    assert isinstance(teacher_expert_rollout, Trajectory)
-    context = select_random_frames(
-        teacher_expert_rollout, T_context, sample_sides=True, random_frames=random_frames)
-    # convert BGR context image to RGB and scale to 0-1
-    # for i, img in enumerate(context):
-    #     cv2.imwrite(f"context_{i}.png", np.array(img[:, :, ::-1]))
-    context = [img_formatter(i[:, :, ::-1])[None] for i in context]
-    # assert len(context ) == 6
-    if isinstance(context[0], np.ndarray):
-        context = torch.from_numpy(np.concatenate(context, 0))[None]
-    else:
-        context = torch.cat(context, dim=0)[None]
-
-    if ret_gt_env:
-        return agent_env, context, variation, teacher_expert_rollout, gt_env
-    else:
-        return agent_env, context, variation, teacher_expert_rollout
 
 
 def object_detection_inference(model, config, ctr, heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, gt_file=None, gt_bb=False):
@@ -400,7 +98,7 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
 
     build_task = TASK_MAP.get(env_name, None)
     assert build_task, 'Got unsupported task '+env_name
-    eval_fn = build_task['eval_fn']
+    eval_fn = get_eval_fn(env_name=env_name)
     traj, info = eval_fn(model=model,
                          env=env,
                          gt_env=None,
@@ -467,8 +165,7 @@ def rollout_imitation(model, config, ctr,
 
         build_task = TASK_MAP.get(env_name, None)
         assert build_task, 'Got unsupported task '+env_name
-        eval_fn = build_task['eval_fn']
-
+        eval_fn = get_eval_fn(env_name=env_name)
         traj, info = eval_fn(model,
                              env,
                              gt_env,
@@ -501,7 +198,7 @@ def rollout_imitation(model, config, ctr,
 
         build_task = TASK_MAP.get(env_name, None)
         assert build_task, 'Got unsupported task '+env_name
-        eval_fn = build_task['eval_fn']
+        eval_fn = get_eval_fn(env_name=env_name)
         traj, info = eval_fn(model,
                              target_obj_dec,
                              env,
@@ -742,6 +439,7 @@ if __name__ == '__main__':
                         print("evaluating only first {} subtasks".format(
                             args.eval_subsets))
                         args.N = int(args.eval_each_task * args.eval_subsets)
+                        args.variation = [i for i in range(args.eval_subsets)]
                 else:
                     args.N = int(args.eval_each_task *
                                  len(config["tasks_cfgs"][args.env].get('skip_ids', [])))
@@ -749,7 +447,7 @@ if __name__ == '__main__':
                         'skip_ids', [])
 
             else:
-                args.N = int(args.eval_each_task)
+                args.N = int(args.eval_each_task*len(args.variation))
 
         assert args.N, "Need pre-define how many trajs to test for each env"
         print('Found {} GPU devices, using {} parallel workers for evaluating {} total trajectories\n'.format(

@@ -5,7 +5,7 @@
 export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
@@ -18,9 +18,9 @@ VAL_FREQ=-1
 DEBUG=false
 WAND_LOG=true
 
-EXP_NAME=1Task-Nut-Assembly-100-180-All-Obj-One-Task-Left
+EXP_NAME=1Task-Pick-Place-100-180-All-Obj-One-Task-Left
 PROJECT_NAME=${EXP_NAME}
-TASK_str=nut_assembly #[pick_place,nut_assembly]
+TASK_str=pick_place #[pick_place,nut_assembly]
 
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=40455
@@ -28,8 +28,8 @@ TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task
 
 ROLLOUT=false
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-100-180-All-Obj-One-Task-Left-Batch16/ #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-100-180-All-Obj-One-Task-Left-Batch28/
-RESUME_STEP=38892 #38280
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-100-180-All-Obj-One-Task-Left-Batch28/ #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-100-180-All-Obj-One-Task-Left-Batch16/ 
+RESUME_STEP=79750 #38280
 RESUME=true
 
 EPOCH=90

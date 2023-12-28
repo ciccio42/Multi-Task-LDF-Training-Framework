@@ -1,3 +1,4 @@
+import torch.multiprocessing as mp
 import copy
 import torch
 import torch.nn as nn
@@ -16,6 +17,7 @@ from multi_task_il.models.cond_target_obj_detector.utils import *
 from torchvision.models.video import r2plus1d_18, R2Plus1D_18_Weights
 import cv2
 import matplotlib.pyplot as plt
+import time
 
 DEBUG = False
 
@@ -134,7 +136,7 @@ class ClassificationModule(nn.Module):
         # hidden network
         self.avg_pool = nn.AvgPool2d(self.roi_size)
         self.fc = nn.Linear(out_channels, hidden_dim)
-        self.dropout = nn.Dropout(p_dropout)
+        self.dropout = nn.Dropout(p_dropout, inplace=True)
 
         # define classification head
         self.cls_head = nn.Linear(hidden_dim, n_classes)
@@ -225,7 +227,7 @@ class ProposalModule(nn.Module):
         self.n_anchors = n_anchors
         self.conv1 = nn.Conv2d(in_features, hidden_dim,
                                kernel_size=3, padding=1)
-        self.dropout = nn.Dropout(p_dropout)
+        self.dropout = nn.Dropout(p_dropout, inplace=True)
         self.conf_head = nn.Conv2d(hidden_dim, n_anchors, kernel_size=1)
         self.reg_head = nn.Conv2d(hidden_dim, n_anchors * 4, kernel_size=1)
 
@@ -233,11 +235,14 @@ class ProposalModule(nn.Module):
         # determine mode
         if pos_anc_ind is None or neg_anc_ind is None or pos_anc_coords is None:
             mode = 'eval'
+            self.dropout.training = False
         else:
             mode = 'train'
+            self.dropout.training = True
 
         out = self.conv1(feature_map)
-        out = F.relu(self.dropout(out))
+        out = self.dropout(out)
+        out = F.relu(out, inplace=True)
 
         # for each image and for each anchor box the head produces
         reg_offsets_pred = self.reg_head(out)  # (B, A*4, hmap, wmap)
@@ -427,8 +432,10 @@ class AgentModule(nn.Module):
 
         if self.load_film:
             # generate anchors
+            start = time.time()
             anc_pts_x, anc_pts_y = gen_anc_centers(
                 out_size=(self.out_h, self.out_w))
+            # print(f"Gen anc centers {time.time()-start}")
 
             if DEBUG:
                 # # plot anchor boxes
@@ -442,10 +449,12 @@ class AgentModule(nn.Module):
                                            radius=int(1), color=(0, 0, 255), thickness=1)
                 cv2.imwrite("prova_anc_pts.png", image)
 
+            start = time.time()
             anc_base = gen_anc_base(
                 anc_pts_x, anc_pts_y, self.anc_scales, self.anc_ratios, (self.out_h, self.out_w))
             anc_boxes_all = anc_base.repeat(
                 B, 1, 1, 1, 1).to(agent_obs.get_device())  # B, Feature_H, Feature_W,
+            # print(f"Gen_anc_base {time.time()-start}")
 
             if DEBUG:
                 # # Plot anchor boxes to image
@@ -544,14 +553,19 @@ class AgentModule(nn.Module):
                     anc_boxes_flat = anc_boxes_all.reshape(B, -1, 4)
 
                     # get conf scores and offsets
+                    # start = time.time()
                     conf_scores_pred, offsets_pred = self.proposal_module(
                         feature_map)
+                    # print(f"Proposal module {time.time()-start}")
                     conf_scores_pred = conf_scores_pred.reshape(B, -1)
                     offsets_pred = offsets_pred.reshape(B, -1, 4)
 
                     # filter out proposals based on conf threshold and nms threshold for each image
+                    start = time.time()
                     proposals_final = []
                     conf_scores_final = []
+
+                    # Sequential
                     for i in range(B):
                         conf_scores = torch.sigmoid(conf_scores_pred[i])
                         offsets = offsets_pred[i]
@@ -588,6 +602,7 @@ class AgentModule(nn.Module):
                         #         agent_obs.get_device()).float()
                         # proposals_final.append(proposals_pos)
                         # conf_scores_final.append(conf_scores_pos)
+                    # print(f"Sequential {time.time()-start}")
 
                     cls_scores = self.classifier(feature_map, proposals_final)
                     cls_probs = F.softmax(cls_scores, dim=-1)

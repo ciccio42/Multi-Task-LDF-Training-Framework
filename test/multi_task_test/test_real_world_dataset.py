@@ -2,11 +2,6 @@
 Evaluate each task for the same number of --eval_each_task times. 
 """
 import warnings
-from robosuite import load_controller_config
-from multi_task_robosuite_env.controllers.controllers.expert_nut_assembly import \
-    get_expert_trajectory as nut_expert
-from multi_task_robosuite_env.controllers.controllers.expert_pick_place import \
-    get_expert_trajectory as place_expert
 import cv2
 import random
 import os
@@ -23,15 +18,12 @@ import wandb
 from collections import OrderedDict
 import hydra
 from omegaconf import OmegaConf
-from torchvision import transforms
-from torchvision.transforms import ToTensor
-from torchvision.transforms.functional import resized_crop
 import learn2learn as l2l
-from torchvision.transforms import ToTensor
-from multi_task_test.nut_assembly import nut_assembly_eval
-from multi_task_test.pick_place import pick_place_eval
-from multi_task_test import select_random_frames
 import re
+from hydra.utils import instantiate
+from multi_task_test import TASK_MAP
+from multi_task_test.utils import *
+import pickle
 
 
 set_start_method('forkserver', force=True)
@@ -46,108 +38,164 @@ def extract_last_number(path):
     return int(check_point_number)
 
 
-def build_tvf_formatter(config, env_name='stack'):
-    """Use this for torchvision.transforms in multi-task dataset, 
-    note eval_fn always feeds in traj['obs']['images'], i.e. shape (h,w,3)
-    """
-    dataset_cfg = config.train_cfg.dataset
-    height, width = dataset_cfg.get(
-        'height', 100), dataset_cfg.get('width', 180)
-    task_spec = config.tasks_cfgs.get(env_name, dict())
+def object_detection_inference(model, config, ctr, heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, gt_file=None, gt_bb=False):
 
-    crop_params = task_spec.get('crop', [0, 0, 0, 0])
-    # print(crop_params)
-    top, left = crop_params[0], crop_params[2]
+    if gpu_id == -1:
+        gpu_id = int(ctr % torch.cuda.device_count())
+    print(f"Model GPU id {gpu_id}")
+    model = model.cuda(gpu_id)
 
-    def resize_crop(img):
-        if len(img.shape) == 4:
-            img = img[0]
-        img_h, img_w = img.shape[0], img.shape[1]
-        assert img_h != 3 and img_w != 3, img.shape
-        box_h, box_w = img_h - top - \
-            crop_params[1], img_w - left - crop_params[3]
-        # cv2.imwrite("obs.png", np.array(img))
-        obs = ToTensor()(img.copy())
-        obs = resized_crop(obs, top=top, left=left, height=box_h, width=box_w,
-                           size=(height, width))
-        cv2.imwrite("resized_test.png",
-                    np.moveaxis(obs.numpy(), 0, -1)*255)
+    T_context = config.train_cfg.dataset.get('T_context', None)
+    random_frames = config.dataset_cfg.get('select_random_frames', False)
+    if not T_context:
+        assert 'multi' in config.train_cfg.dataset._target_, config.train_cfg.dataset._target_
+        T_context = config.train_cfg.dataset.demo_T
 
-        # weak_scale = config.augs.get('weak_crop_scale', (0.8, 1.0))
-        # weak_ratio = [1.0, 1.0]
-        # randcrop = RandomResizedCrop(
-        #     size=(height, width), scale=weak_scale, ratio=weak_ratio)
-        # cv2.imwrite("obs_cropped.png", np.moveaxis(obs.numpy(), 0, -1)*255)
-        # # obs = Normalize(mean=[0.485, 0.456, 0.406],
-        # #                 std=[0.229, 0.224, 0.225])(obs)
-        # obs = randcrop(obs)
-        cv2.imwrite("random_resized_crop_test.png",
-                    np.moveaxis(obs.numpy(), 0, -1)*255)
-        return obs
-    return resize_crop
+    # Build pre-processing module
+    img_formatter = build_tvf_formatter_obj_detector(config, env_name)
+    traj_data_trj = None
+
+    # Build environments
+    print(f"Create expert demonstration")
+    context, variation_id, expert_traj = build_context(img_formatter,
+                                                       T_context=T_context,
+                                                       ctr=ctr,
+                                                       env_name=env_name,
+                                                       heights=heights,
+                                                       widths=widths,
+                                                       size=size,
+                                                       shape=shape,
+                                                       color=color,
+                                                       gpu_id=gpu_id,
+                                                       variation=variation, random_frames=random_frames,
+                                                       controller_path=controller_path,
+                                                       seed=seed)
+
+    print(
+        f"Considering task {variation} - agent {gt_file.split('/')[-1]}")
+    with open(gt_file, "rb") as f:
+        traj_data = pickle.load(f)
+
+    traj_data_trj = traj_data['traj']
+    # create context data
+
+    build_task = TASK_MAP.get(env_name, None)
+    assert build_task, 'Got unsupported task '+env_name
+    eval_fn = get_eval_fn(env_name=env_name)
+    traj, info = eval_fn(model=model,
+                         env=None,
+                         gt_env=None,
+                         context=context,
+                         gpu_id=gpu_id,
+                         variation_id=variation_id,
+                         img_formatter=img_formatter,
+                         baseline=baseline,
+                         max_T=max_T,
+                         action_ranges=action_ranges,
+                         model_name=model_name,
+                         task_name=env_name,
+                         config=config,
+                         gt_file=traj_data_trj,
+                         gt_bb=gt_bb)
+
+    if "cond_target_obj_detector" in model_name:
+        print("Evaluated traj #{}, task #{}, TP {}, FP {}, FN {}".format(
+            ctr, variation_id, info['avg_tp'], info['avg_fp'], info['avg_fn']))
+    else:
+        print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
+            ctr, variation_id, info['reached'], info['picked'], info['success']))
+        (f"Avg prediction {info['avg_pred']}")
+    return traj, info, expert_traj, context
 
 
-def build_tvf_formatter_obj_detector(config, env_name):
-    """Use this for torchvision.transforms in multi-task dataset, 
-    note eval_fn always feeds in traj['obs']['images'], i.e. shape (h,w,3)
-    """
+def _proc(model, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, gt_bb, seed, n, gt_file):
+    json_name = results_dir + '/traj{}.json'.format(n)
+    pkl_name = results_dir + '/traj{}.pkl'.format(n)
+    if os.path.exists(json_name) and os.path.exists(pkl_name):
+        f = open(json_name)
+        task_success_flags = json.load(f)
+        print("Using previous results at {}. Loaded eval traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
+            json_name, n, task_success_flags['variation_id'], task_success_flags['reached'], task_success_flags['picked'], task_success_flags['success']))
+    else:
+        if variation is not None:
+            variation_id = variation[n % len(variation)]
+        else:
+            variation_id = variation
+        if ("cond_target_obj_detector" not in model_name) or ("CondPolicy" in model_name):
+            pass
+            # return_rollout = rollout_imitation(model,
+            #                                    config,
+            #                                    n,
+            #                                    heights,
+            #                                    widths,
+            #                                    size,
+            #                                    shape,
+            #                                    color,
+            #                                    max_T=max_T,
+            #                                    env_name=env_name,
+            #                                    baseline=baseline,
+            #                                    variation=variation_id,
+            #                                    controller_path=controller_path,
+            #                                    seed=seed,
+            #                                    action_ranges=np.array(
+            #                                        config.dataset_cfg.get('normalization_ranges', [])),
+            #                                    model_name=model_name,
+            #                                    gpu_id=gpu_id,
+            #                                    gt_bb=gt_bb)
+        else:
+            # Perform object detection inference
+            return_rollout = object_detection_inference(model=model,
+                                                        config=config,
+                                                        ctr=n,
+                                                        heights=heights,
+                                                        widths=widths,
+                                                        size=size,
+                                                        shape=shape,
+                                                        color=color,
+                                                        max_T=max_T,
+                                                        env_name=env_name,
+                                                        baseline=baseline,
+                                                        variation=variation_id,
+                                                        controller_path=controller_path,
+                                                        seed=seed,
+                                                        action_ranges=np.array(
+                                                            config.dataset_cfg.get('normalization_ranges', [])),
+                                                        model_name=model_name,
+                                                        gpu_id=gpu_id,
+                                                        gt_file=gt_file)
 
-    def resize_crop(img, bb=None):
-        img_height, img_width = img.shape[:2]
-        """applies to every timestep's RGB obs['camera_front_image']"""
-        task_spec = config.tasks_cfgs.get(env_name, dict())
-        crop_params = task_spec.get('crop', [0, 0, 0, 0])
-        top, left = crop_params[0], crop_params[2]
-        img_height, img_width = img.shape[0], img.shape[1]
-        box_h, box_w = img_height - top - \
-            crop_params[1], img_width - left - crop_params[3]
-
-        img = transforms.ToTensor()(img.copy())
-        # ---- Resized crop ----#
-        img = resized_crop(img, top=top, left=left, height=box_h,
-                           width=box_w, size=(config.dataset_cfg.height, config.dataset_cfg.width))
-        # transforms_pipe = transforms.Compose([
-        #     transforms.ColorJitter(
-        #         brightness=list(config.augs.get(
-        #             "brightness", [0.875, 1.125])),
-        #         contrast=list(config.augs.get(
-        #             "contrast", [0.5, 1.5])),
-        #         saturation=list(config.augs.get(
-        #             "contrast", [0.5, 1.5])),
-        #         hue=list(config.augs.get("hue", [-0.05, 0.05]))
-        #     ),
-        # ])
-        # img = transforms_pipe(img)
-
-        # cv2.imwrite("resized_target_obj.png", np.moveaxis(
-        #     img.numpy()*255, 0, -1))
-
-        if bb is not None:
-            from multi_task_il.datasets.utils import adjust_bb
-            bb = adjust_bb(dataset_loader=config.dataset_cfg,
-                           bb=bb,
-                           obs=img,
-                           img_height=img_height,
-                           img_width=img_width,
-                           top=top,
-                           left=left,
-                           box_w=box_w,
-                           box_h=box_h)
-
-            # image = cv2.rectangle(np.ascontiguousarray(np.array(np.moveaxis(
-            #     img.numpy()*255, 0, -1), dtype=np.uint8)),
-            #     (bb[0][0],
-            #      bb[0][1]),
-            #     (bb[0][2],
-            #      bb[0][3]),
-            #     color=(0, 0, 255),
-            #     thickness=1)
-            # cv2.imwrite("bb_cropped.png", image)
-            return img, bb
-
-        return img
-
-    return resize_crop
+        if "vima" not in model_name:
+            rollout, task_success_flags, expert_traj, context = return_rollout
+            if save:
+                pkl.dump(rollout, open(
+                    results_dir+'/traj{}.pkl'.format(n), 'wb'))
+                pkl.dump(expert_traj, open(
+                    results_dir+'/demo{}.pkl'.format(n), 'wb'))
+                pkl.dump(context, open(
+                    results_dir+'/context{}.pkl'.format(n), 'wb'))
+                res_dict = dict()
+                for k, v in task_success_flags.items():
+                    if v == True or v == False:
+                        res_dict[k] = int(v)
+                    else:
+                        res_dict[k] = v
+                json.dump(res_dict, open(
+                    results_dir+'/traj{}.json'.format(n), 'w'))
+        else:
+            rollout, task_success_flags = return_rollout
+            if save:
+                pkl.dump(rollout, open(
+                    results_dir+'/traj{}.pkl'.format(n), 'wb'))
+                res_dict = dict()
+                for k, v in task_success_flags.items():
+                    if v == True or v == False:
+                        res_dict[k] = int(v)
+                    else:
+                        res_dict[k] = v
+                json.dump(res_dict, open(
+                    results_dir+'/traj{}.json'.format(n), 'w'))
+    del model
+    return task_success_flags
 
 
 if __name__ == '__main__':
@@ -220,7 +268,148 @@ if __name__ == '__main__':
             epoch_numbers = len(try_paths)
             try_path_list = try_paths[-10:]
 
-    # 1. Create dataset
-
     for try_path in try_path_list:
-        pass
+
+        model_path = os.path.expanduser(try_path)
+        print(f"Testing model {model_path}")
+        assert args.env in TASK_MAP.keys(), "Got unsupported environment {}".format(args.env)
+
+        if args.variation and args.save_path is None:
+            results_dir = os.path.join(
+                os.path.dirname(model_path), 'results_{}_{}/'.format(args.env, args.variation))
+        elif not args.variation and args.save_path is None:
+            results_dir = os.path.join(os.path.dirname(
+                model_path), 'results_{}/'.format(args.env))
+        elif args.save_path is not None:
+            results_dir = os.path.join(args.save_path)
+
+        print(f"Result dir {results_dir}")
+
+        assert args.env != '', 'Must specify correct task to evaluate'
+        os.makedirs(results_dir, exist_ok=True)
+        model_saved_step = model_path.split("/")[-1].split("-")
+        model_saved_step.remove("model_save")
+        model_saved_step = model_saved_step[0][:-3]
+        print("loading model from saved training step %s" % model_saved_step)
+        results_dir = os.path.join(results_dir, 'step-'+model_saved_step)
+        os.makedirs(results_dir, exist_ok=True)
+        print("Made new path for results at: %s" % results_dir)
+        config_path = os.path.expanduser(args.config) if args.config else os.path.join(
+            os.path.dirname(model_path), 'config.yaml')
+
+        config = OmegaConf.load(config_path)
+        print('Multi-task dataset, tasks used: ', config.tasks)
+
+        model = hydra.utils.instantiate(config.policy)
+
+        if args.wandb_log:
+            model_name = model_path.split("/")[-2]
+            run = wandb.init(project=args.project_name,
+                             job_type='test',
+                             group=model_name.split("-1gpu")[0],
+                             reinit=True)
+            run.name = model_name + f'-Test_{args.env}-Step_{model_saved_step}'
+            wandb.config.update(args)
+
+        # assert torch.cuda.device_count() <= 5, "Let's restrict visible GPUs to not hurt other processes. E.g. export CUDA_VISIBLE_DEVICES=0,1"
+        build_task = TASK_MAP.get(args.env, None)
+        assert build_task, 'Got unsupported task '+args.env
+
+        if args.N == -1:
+            if not args.variation:
+                if len(config["tasks_cfgs"][args.env].get('skip_ids', [])) == 0:
+                    args.N = int(args.eval_each_task *
+                                 config["tasks_cfgs"][args.env]["n_tasks"])
+                    if args.eval_subsets:
+                        print("evaluating only first {} subtasks".format(
+                            args.eval_subsets))
+                        args.N = int(args.eval_each_task * args.eval_subsets)
+                        args.variation = [i for i in range(args.eval_subsets)]
+                else:
+                    args.N = int(args.eval_each_task *
+                                 len(config["tasks_cfgs"][args.env].get('skip_ids', [])))
+                    args.variation = config["tasks_cfgs"][args.env].get(
+                        'skip_ids', [])
+
+            else:
+                args.N = int(args.eval_each_task*len(args.variation))
+
+        assert args.N, "Need pre-define how many trajs to test for each env"
+        print('Found {} GPU devices, using {} parallel workers for evaluating {} total trajectories\n'.format(
+            torch.cuda.device_count(), args.num_workers, args.N))
+
+        T_context = config.dataset_cfg.demo_T  # a different set of config scheme
+        # heights, widths = config.train_cfg.dataset.get('height', 100), config.train_cfg.dataset.get('width', 200)
+        heights, widths = build_task.get('render_hw', (100, 180))
+        if args.use_h != -1 and args.use_w != -1:
+            print(
+                f"Reset to non-default render sizes {args.use_h}-by-{args.use_w}")
+            heights, widths = args.use_h, args.use_w
+
+        print("Renderer is using size {} \n".format((heights, widths)))
+
+        model._2_point = None
+        model._target_embed = None
+
+        loaded = torch.load(model_path, map_location=torch.device('cpu'))
+        model.load_state_dict(loaded)
+
+        model = model.eval()  # .cuda()
+        n_success = 0
+        size = args.size
+        shape = args.shape
+        color = args.color
+        variation = args.variation
+        seed = args.seed
+        max_T = 95
+
+        parallel = args.num_workers > 1
+
+        model_name = config.policy._target_
+
+        dataset = None
+        from hydra.utils import instantiate
+        config.dataset_cfg.mode = "val"
+        config.dataset_cfg.root_dir = "/raid/home/frosa_Loc/opt_dataset"
+        dataset = instantiate(config.get('dataset_cfg', None))
+        # get list of pkl files
+        pkl_file_dict = dataset.agent_files
+        pkl_file_list = []
+        for task_name in pkl_file_dict.keys():
+            for task_id in pkl_file_dict[task_name].keys():
+                for pkl_file in pkl_file_dict[task_name][task_id]:
+                    pkl_file_list.append(pkl_file)
+
+        print(f"---- Testing model {model_name} ----")
+        f = functools.partial(_proc,
+                              model,
+                              config,
+                              results_dir,
+                              heights,
+                              widths,
+                              size,
+                              shape,
+                              color,
+                              args.env,
+                              args.baseline,
+                              variation,
+                              max_T,
+                              args.controller_path,
+                              model_name,
+                              args.gpu_id,
+                              args.save_files,
+                              args.gt_bb)
+
+        random.seed(42)
+        np.random.seed(42)
+        seeds = []
+        for i in range(args.N):
+            seeds.append((random.getrandbits(32), i,
+                         pkl_file_list[i % len(pkl_file_list)]))
+
+        if parallel:
+            with Pool(args.num_workers) as p:
+                task_success_flags = p.starmap(f, seeds)
+        else:
+            task_success_flags = [f(seeds[i][0], seeds[i][1], seeds[i][2])
+                                  for i, _ in enumerate(seeds)]

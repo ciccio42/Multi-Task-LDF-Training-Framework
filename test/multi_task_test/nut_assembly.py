@@ -3,13 +3,11 @@ import torch
 import numpy as np
 from multi_task_il.datasets import Trajectory
 from multi_task_il.utils import denormalize_action_vima
-from multi_task_test import make_prompt, prepare_obs
 from einops import rearrange
 from multi_task_il.models.vima.utils import *
 import robosuite.utils.transform_utils as T
-from multi_task_test import make_prompt, prepare_obs, adjust_bb
-from multi_task_test import ENV_OBJECTS, TASK_COMMAND, startup_env, get_action, object_detection_inference, check_pick, check_reach, get_gt_bb, clip_action, check_peg
 from multi_task_test.primitive import *
+from multi_task_test.utils import *
 from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
 
 
@@ -397,7 +395,8 @@ def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
         # if concat_bb:
         bb_t, gt_t = get_gt_bb(traj=traj,
                                obs=obs,
-                               task_name=task_name)
+                               task_name=task_name,
+                               env=env)
         previous_predicted_bb = []
         previous_predicted_bb.append(torch.tensor(
             [.0, .0, .0, .0]).to(

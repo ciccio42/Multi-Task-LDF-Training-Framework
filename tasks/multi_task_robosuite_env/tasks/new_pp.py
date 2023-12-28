@@ -235,7 +235,7 @@ class PickPlace(SingleArmEnv):
             camera_depths=camera_depths,
         )
 
-    def init_object_dicts(self, object_id=0):
+    def init_object_dicts(self):
         box_names = ["greenbox",
                      "yellowbox",
                      "bluebox",
@@ -262,11 +262,11 @@ class PickPlace(SingleArmEnv):
 
         for i in range(4):
             # put the target nut insted of target box
-            if i == object_id and i < 3:
+            if i == self.object_id and i < 3:
                 self.object_to_id[nut_names[i]] = i
                 self.obj_names.append(nut_names[i])
                 self._obj_dim[nut_names[i]] = nut_dims[nut_names[i]]
-            elif i != object_id and i < 3:
+            elif i != self.object_id and i < 3:
                 # put random nut insted of box
                 sub_box = np.random.choice([True, False], 1, p=[0.5, 0.5])
                 if sub_box:
@@ -277,13 +277,13 @@ class PickPlace(SingleArmEnv):
                     self.object_to_id[box_names[i]] = i
                     self.obj_names.append(box_names[i])
                     self._obj_dim[box_names[i]] = box_dims[box_names[i]]
-            elif i == object_id and i == 3:
+            elif i == self.object_id and i == 3:
                 self.object_to_id[box_names[i]] = i
                 self.obj_names.append(box_names[i])
                 self._obj_dim[box_names[i]] = box_dims[box_names[i]]
-            elif i != object_id and i == 3:
+            elif i != self.object_id and i == 3:
                 # select random box
-                box_names_sample = [box_names[object_id], box_names[i]]
+                box_names_sample = [box_names[self.object_id], box_names[i]]
                 box_name = np.random.choice(box_names_sample, 1)[0]
                 self.object_to_id[box_name] = i
                 self.obj_names.append(box_name)
@@ -491,8 +491,16 @@ class PickPlace(SingleArmEnv):
                     obj_bb[camera_name][obj_name] = dict()
 
                     # convert obj pos in camera coordinate
-                    obj_pos = np.array(
-                        self.sim.data.body_xpos[self.obj_body_id[obj_name]])
+                    if "nut" in obj_name:
+                        obj_pos = self.sim.data.site_xpos[self.sim.model.site_name2id(
+                            f'{obj_name}_handle_site')]
+                        obj_quat = T.mat2quat(
+                            np.reshape(self.sim.data.site_xmat[self.sim.model.site_name2id(
+                                f'{obj_name}_handle_site')], (3, 3)))
+                    else:
+                        obj_pos = np.array(
+                            self.sim.data.body_xpos[self.obj_body_id[obj_name]])
+
                     if obj_name == 'bin':
                         obj_pos[2] = obj_pos[2] + 0.08
                     obj_quat = T.convert_quat(
