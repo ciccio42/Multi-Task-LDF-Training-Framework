@@ -15,8 +15,8 @@ POLICY='${mosaic}'
 SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
-DEVICE=2
-DEBUG=true
+DEVICE=0
+DEBUG=false
 WANDB_LOG=false
 
 EXP_NAME=1Task-Pick-Place-Mosaic-100-180-Target-Obj-Detector-BB-All-Obj-One-Task-Left
@@ -39,10 +39,10 @@ BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=2
+SET_SAME_N=3
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=8
+LOADER_WORKERS=16
 NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=true

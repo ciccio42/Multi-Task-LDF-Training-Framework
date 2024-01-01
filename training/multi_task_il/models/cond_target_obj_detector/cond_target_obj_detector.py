@@ -412,6 +412,17 @@ class AgentModule(nn.Module):
                 n_classes=n_classes,
                 roi_size=(2, 2))
 
+            # generate anchors
+            start = time.time()
+            self.anc_pts_x, self.anc_pts_y = gen_anc_centers(
+                out_size=(self.out_h, self.out_w))
+            print(f"Gen anc centers {time.time()-start}")
+
+            start = time.time()
+            self.anc_base = gen_anc_base(
+                self.anc_pts_x, self.anc_pts_y, self.anc_scales, self.anc_ratios, (self.out_h, self.out_w))
+            print(f"Gen_anc_base {time.time()-start}")
+
         self.load_film = load_film
 
     def forward(self, agent_obs, task_embedding, gt_bb=None, gt_classes=None, inference=False):
@@ -431,16 +442,11 @@ class AgentModule(nn.Module):
         B, C, H, W = agent_obs.shape
 
         if self.load_film:
-            # generate anchors
-            start = time.time()
-            anc_pts_x, anc_pts_y = gen_anc_centers(
-                out_size=(self.out_h, self.out_w))
-            # print(f"Gen anc centers {time.time()-start}")
 
             if DEBUG:
                 # # plot anchor boxes
-                anc_pts_x_image = anc_pts_x.clone() * self.width_scale_factor
-                anc_pts_y_image = anc_pts_y.clone() * self.height_scale_factor
+                anc_pts_x_image = self.anc_pts_x.clone() * self.width_scale_factor
+                anc_pts_y_image = self.anc_pts_y.clone() * self.height_scale_factor
                 image = np.array(np.moveaxis(
                     agent_obs[0, :, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
                 for anc_x in anc_pts_x_image.numpy():
@@ -449,12 +455,8 @@ class AgentModule(nn.Module):
                                            radius=int(1), color=(0, 0, 255), thickness=1)
                 cv2.imwrite("prova_anc_pts.png", image)
 
-            start = time.time()
-            anc_base = gen_anc_base(
-                anc_pts_x, anc_pts_y, self.anc_scales, self.anc_ratios, (self.out_h, self.out_w))
-            anc_boxes_all = anc_base.repeat(
+            anc_boxes_all = self.anc_base.repeat(
                 B, 1, 1, 1, 1).to(agent_obs.get_device())  # B, Feature_H, Feature_W,
-            # print(f"Gen_anc_base {time.time()-start}")
 
             if DEBUG:
                 # # Plot anchor boxes to image
@@ -549,7 +551,7 @@ class AgentModule(nn.Module):
             else:
                 # model is in inference mode
                 with torch.no_grad():
-
+                    start = time.time()
                     anc_boxes_flat = anc_boxes_all.reshape(B, -1, 4)
 
                     # get conf scores and offsets
@@ -561,9 +563,50 @@ class AgentModule(nn.Module):
                     offsets_pred = offsets_pred.reshape(B, -1, 4)
 
                     # filter out proposals based on conf threshold and nms threshold for each image
-                    start = time.time()
+
                     proposals_final = []
                     conf_scores_final = []
+
+                    # Parallel
+                    # # Process multiple images (B) in parallel (batch processing)
+                    # conf_scores = torch.sigmoid(conf_scores_pred)
+                    # offsets = offsets_pred
+                    # anc_boxes = anc_boxes_flat
+
+                    # # Generate proposals for the entire batch
+                    # proposals = generate_proposals(anc_boxes.to(
+                    #     agent_obs.get_device()), offsets.to(agent_obs.get_device()))
+
+                    # # Filter based on confidence threshold for the entire batch
+                    # conf_idx = torch.where(conf_scores >= self.conf_thresh)
+
+                    # # Apply NMS for the entire batch
+                    # proposal_pos = proposals[conf_idx]
+                    # conf_scores_pos = conf_scores[conf_idx]
+                    # nms_idx = ops.nms(
+                    #     proposal_pos, conf_scores_pos, self.nms_thresh)
+
+                    # # Extract filtered proposals and confidence scores
+                    # # No need for list comprehension
+                    # proposals_pos = proposal_pos[nms_idx]
+                    # # No need for list comprehension
+                    # conf_scores_pos = conf_scores_pos[nms_idx]
+
+                    # # Classifier forward pass for the entire batch of proposals
+                    # cls_scores = self.classifier(feature_map, proposals_pos)
+                    # cls_probs = F.softmax(cls_scores, dim=-1)
+
+                    # # Get classes with the highest probability for the entire batch
+                    # classes_all = torch.argmax(cls_probs, dim=-1)
+
+                    # # Slice classes to map to their corresponding images
+                    # classes_final = []
+                    # c = 0
+                    # for i in range(B):
+                    #     # Determine the number of proposals for this image
+                    #     n_proposals = len(proposals_pos[i])
+                    #     classes_final.append(classes_all[c: c + n_proposals])
+                    #     c += n_proposals
 
                     # Sequential
                     for i in range(B):
@@ -618,6 +661,7 @@ class AgentModule(nn.Module):
                         classes_final.append(classes_all[c: c+n_proposals])
                         c += n_proposals
 
+                    # print(f"Inference time {time.time()-start}")
                     ret_dict['proposals'] = proposals_final
                     ret_dict['conf_scores_final'] = conf_scores_final
                     ret_dict['cls_scores'] = cls_scores

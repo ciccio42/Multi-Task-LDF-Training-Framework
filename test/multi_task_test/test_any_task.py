@@ -319,6 +319,9 @@ if __name__ == '__main__':
     parser.add_argument('--use_h', default=-1, type=int)
     parser.add_argument('--use_w', default=-1, type=int)
     parser.add_argument('--num_workers', default=3, type=int)
+    parser.add_argument('--obj_detector_path',
+                        default="/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-Cond-Target-Obj-Detector-separate-demo-agent-Batch80/", type=str)
+    parser.add_argument('--obj_detector_step',  default=64152, type=int)
     # for block stacking only!
     parser.add_argument('--size', action='store_true')
     parser.add_argument('--shape', action='store_true')
@@ -480,6 +483,11 @@ if __name__ == '__main__':
                 allow_unused=True)
         else:
             model.load_state_dict(loaded)
+
+        if not args.gt_bb and model._object_detector is None:
+            model.load_target_obj_detector(target_obj_detector_path=args.obj_detector_path,
+                                           target_obj_detector_step=args.obj_detector_step,
+                                           gpu_id=args.gpu_id)
 
         # model.set_conv_layer_reference(model)
 

@@ -212,7 +212,7 @@ class _TransformerFeatures(nn.Module):
             max_len = 5000
 
         self._pe = TemporalPositionalEncoding(
-            conv_feature_dim, dropout, max_len=max_len) if pos_enc else None
+            conv_feature_dim, dropout, max_len=5000) if pos_enc else None
         self.demo_out = demo_out
         in_dim = conv_feature_dim * dim_H * dim_W
         print("Linear embedder has input dim: {}x{}x{}={} ".format(
@@ -392,18 +392,9 @@ class VideoImitation(nn.Module):
 
         self._object_detector = None
         if load_target_obj_detector:
-            conf_file = OmegaConf.load(os.path.join(
-                target_obj_detector_path, "config.yaml"))
-            self._object_detector = hydra.utils.instantiate(
-                conf_file.policy)
-            weights = torch.load(os.path.join(
-                target_obj_detector_path,
-                f"model_save-{target_obj_detector_step}.pt"),
-                map_location=torch.device('cpu'))
-            self._object_detector.load_state_dict(weights)
-            # self._object_detector.to("cuda:0")
-            self._object_detector.eval()
-        # self._object_detector = None
+            self.load_target_obj_detector(target_obj_detector_path=target_obj_detector_path,
+                                          target_obj_detector_step=target_obj_detector_step,
+                                          )
 
         # else:
         #     # load target object detector module
@@ -516,6 +507,19 @@ class VideoImitation(nn.Module):
         print('Total params in Imitation module:', params)
         print("\n---- Complete model ----\n")
         # summary(self)
+
+    def load_target_obj_detector(self, target_obj_detector_path=None, target_obj_detector_step=-1, gpu_id=0):
+        conf_file = OmegaConf.load(os.path.join(
+            target_obj_detector_path, "config.yaml"))
+        self._object_detector = hydra.utils.instantiate(
+            conf_file.policy)
+        weights = torch.load(os.path.join(
+            target_obj_detector_path,
+            f"model_save-{target_obj_detector_step}.pt"),
+            map_location=torch.device(gpu_id))
+        self._object_detector.load_state_dict(weights)
+        # self._object_detector.to("cuda:0")
+        self._object_detector.eval()
 
     def _load_model(self, model_path=None, step=0, conf_file=None, remove_class_layers=True, freeze=True):
         if model_path:
@@ -743,7 +747,8 @@ class VideoImitation(nn.Module):
 
         if self._concat_bb:
             out['predicted_bb'] = predicted_bb
-            out['target_obj_prediction'] = prediction
+            if not predict_gt_bb:
+                out['target_obj_prediction'] = prediction
 
         if self._concat_target_obj_embedding:
             out["target_obj_embedding"] = target_obj_embedding
