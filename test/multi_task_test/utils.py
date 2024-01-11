@@ -515,11 +515,11 @@ def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0):
                 bottom_right_x = obs['obj_bb']["camera_front"][obj_name]['upper_left_corner'][0]
                 bottom_right_y = obs['obj_bb']["camera_front"][obj_name]['upper_left_corner'][1]
             except:
-                top_left_x = obs['obj_bb'][obj_name]['bottom_right_corner'][0]
-                top_left_y = obs['obj_bb'][obj_name]['bottom_right_corner'][1]
+                top_left_x = obs['obj_bb'][obj_name]['upper_left_corner'][0]
+                top_left_y = obs['obj_bb'][obj_name]['upper_left_corner'][1]
                 # print(f"Top-Left X {top_left_x} - Top-Left Y {top_left_y}")
-                bottom_right_x = obs['obj_bb'][obj_name]['upper_left_corner'][0]
-                bottom_right_y = obs['obj_bb'][obj_name]['upper_left_corner'][1]
+                bottom_right_x = obs['obj_bb'][obj_name]['bottom_right_corner'][0]
+                bottom_right_y = obs['obj_bb'][obj_name]['bottom_right_corner'][1]
             bb_t = np.array(
                 [[top_left_x, top_left_y, bottom_right_x, bottom_right_y]])
             gt_t = np.array(1)
@@ -843,14 +843,19 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
         info = {}
         # take current observation
         for t in range(len(gt_traj)):
-            if t == 1:
+            if True:  # t == 1:
                 agent_obs = gt_traj[t]['obs']['camera_front_image']
                 bb_t, gt_t = get_gt_bb(traj=gt_traj,
                                        obs=gt_traj[t]['obs'],
                                        task_name=task_name,
                                        t=t)
-                formatted_img, bb_t = img_formatter(
-                    agent_obs[:, :, ::-1], bb_t)
+
+                if perform_augs:
+                    formatted_img, bb_t = img_formatter(
+                        agent_obs[:, :, ::-1], bb_t)
+                else:
+                    cv2.imwrite("agent_obs.png", agent_obs)
+                    formatted_img = ToTensor()(agent_obs.copy())
 
                 model_input = dict()
                 model_input['demo'] = context.to(device=gpu_id)
@@ -868,9 +873,13 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                 # 1. Get the index with target class
                 target_indx_flags = prediction['classes_final'][0] == 1
                 # 2. Get the confidence scores for the target predictions and the the max
-                target_max_score_indx = prediction['conf_scores_final'][0][target_indx_flags]
-                max_score_target = prediction['conf_scores_final'][0]
-
+                try:
+                    target_max_score_indx = torch.argmax(
+                        prediction['conf_scores_final'][0][target_indx_flags])  # prediction['conf_scores_final'][0][target_indx_flags]
+                    max_score_target = prediction['conf_scores_final'][0]
+                except:
+                    print("No target bb found")
+                    max_score_target = [-1]
                 if max_score_target[0] != -1:
                     if perform_augs:
                         scale_factor = model.get_scale_factors()
@@ -881,15 +890,17 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                                                       height_scale_factor=scale_factor[1],
                                                       mode='a2p')[0][:10]
                     else:
-                        image = formatted_img.cpu().numpy()
-                        predicted_bb = prediction['proposals'][0]
+                        image = np.array(np.moveaxis(
+                            formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+                        scale_factor = model.get_scale_factors()
+                        predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
+                                                      width_scale_factor=scale_factor[0],
+                                                      height_scale_factor=scale_factor[1],
+                                                      mode='a2p')[0][target_indx_flags][target_max_score_indx][None]
 
                     if True:
                         for indx, bb in enumerate(predicted_bb):
-                            if prediction['classes_final'][0][indx] == 0:
-                                color = (255, 0, 0)
-                            else:
-                                color = (0, 0, 255)
+                            color = (255, 0, 0)
                             image = cv2.rectangle(np.ascontiguousarray(image),
                                                   (int(bb[0]),
                                                    int(bb[1])),
@@ -911,26 +922,41 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                                                int(bb_t[0][3])),
                                               color=(0, 255, 0), thickness=1)
 
+                        gt_traj[t]['obs']['predicted_bb'] = predicted_bb
+                        gt_traj[t]['obs']['gt_bb'] = bb_t
                         cv2.imwrite("predicted_bb.png", image)
 
                         # compute IoU over time
-                        # iou_t = box_iou(boxes1=torch.from_numpy(
-                        #     bb_t).to(device=gpu_id), boxes2=predicted_bb[None])
-                        # iou += iou_t[0][0].cpu().numpy()
+                        iou_t = box_iou(boxes1=torch.from_numpy(
+                            bb_t).to(device=gpu_id), boxes2=predicted_bb)
+                        gt_traj[t]['obs']['iou'] = iou_t[0][0].cpu().numpy()
 
-                        # if iou_t[0][0].cpu().numpy() < 0.5:
-                        #     fp += 1
-                        # else:
-                        #     tp += 1
+                        # check if there are TP
+                        if iou_t[0][0].cpu().numpy() < 0.5:
+                            fp += 1
+                            gt_traj[t]['obs']['fp'] = 1
+
+                        else:
+                            tp += 1
+                            gt_traj[t]['obs']['tp'] = 1
+
+                        iou += iou_t[0][0].cpu().numpy()
+                        gt_traj[t]['obs']['iou'] = iou_t[0][0].cpu().numpy()
+                        # traj.append(obs)
 
                 else:
+                    gt_traj[t]['obs']['predicted_bb'] = np.array([0, 0, 0, 0])[
+                        None]
+                    gt_traj[t]['obs']['gt_bb'] = bb_t
+                    gt_traj[t]['obs']['iou'] = 0.0
+                    gt_traj[t]['obs']['fn'] = 1
                     fn += 1
 
-        info["avg_iou"] = iou
-        info["avg_tp"] = tp  # /(len(gt_traj)-1)
-        info["avg_fp"] = fp  # /(len(gt_traj)-1)
-        info["avg_fn"] = fn  # /(len(gt_traj)-1)
-        return None, info
+        info["avg_iou"] = iou/(len(gt_traj)-1)
+        info["avg_tp"] = tp/(len(gt_traj)-1)
+        info["avg_fp"] = fp/(len(gt_traj)-1)
+        info["avg_fn"] = fn/(len(gt_traj)-1)
+        return gt_traj, info
 
 
 def select_random_frames(frames, n_select, sample_sides=True, random_frames=True):
@@ -1117,8 +1143,8 @@ def build_tvf_formatter_obj_detector(config, env_name):
         # ])
         # img = transforms_pipe(img)
 
-        # cv2.imwrite("resized_target_obj.png", np.moveaxis(
-        #     img.numpy()*255, 0, -1))
+        cv2.imwrite("resized_target_obj.png", np.moveaxis(
+            img.numpy()*255, 0, -1))
 
         if bb is not None:
             from multi_task_il.datasets.utils import adjust_bb

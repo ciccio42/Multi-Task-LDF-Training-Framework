@@ -23,7 +23,7 @@ from multi_task_il.utils import normalize_action
 import time
 import math
 from tqdm import tqdm
-
+from robosuite.utils.transform_utils import quat2axisangle
 import logging
 import time
 
@@ -492,7 +492,7 @@ def create_data_aug(dataset_loader=object):
             # ---- Resized crop ----#
             obs = resized_crop(obs, top=top, left=left, height=box_h,
                                width=box_w, size=(dataset_loader.height, dataset_loader.width))
-            if DEBUG:
+            if True:
                 cv2.imwrite(f"resized_target_obj_{frame_number}.png", np.moveaxis(
                     obs.numpy()*255, 0, -1))
             if bb is not None and class_frame is not None:
@@ -683,7 +683,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
             image = copy.copy(
                 step_t['obs']['camera_front_image'])
 
-        if DEBUG:
+        if True:
             cv2.imwrite("original_image.png", image)
 
         # Create GT BB
@@ -753,8 +753,19 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
         if load_action and j >= 1:
             action_time = time.time()
             # Load action
-            action = step_t['action'] if not dataset_loader._normalize_action else normalize_action(
-                action=step_t['action'], n_action_bin=dataset_loader._n_action_bin, action_ranges=dataset_loader._normalization_ranges)
+            if "real" in dataset_loader.agent_name:
+                action = step_t['action']
+                rot_quat = action[3:7]
+                rot_axis_angle = quat2axisangle(rot_quat)
+                action = normalize_action(
+                    action=np.concatenate(
+                        (action[:3], rot_axis_angle, [action[7]])),
+                    n_action_bin=dataset_loader._n_action_bin,
+                    action_ranges=dataset_loader._normalization_ranges)
+
+            else:
+                action = step_t['action'] if not dataset_loader._normalize_action else normalize_action(
+                    action=step_t['action'], n_action_bin=dataset_loader._n_action_bin, action_ranges=dataset_loader._normalization_ranges)
             actions.append(action)
             logger.debug(f"Action: {time.time()-action_time}")
 

@@ -484,11 +484,13 @@ if __name__ == '__main__':
         else:
             model.load_state_dict(loaded)
 
-        if not args.gt_bb and model._object_detector is None:
-            model.load_target_obj_detector(target_obj_detector_path=args.obj_detector_path,
-                                           target_obj_detector_step=args.obj_detector_step,
-                                           gpu_id=args.gpu_id)
-
+        if not args.gt_bb and getattr(model, "_object_detector", None) is None:
+            try:
+                model.load_target_obj_detector(target_obj_detector_path=args.obj_detector_path,
+                                               target_obj_detector_step=args.obj_detector_step,
+                                               gpu_id=args.gpu_id)
+            except:
+                print("Exception not loading target obj detector")
         # model.set_conv_layer_reference(model)
 
         model = model.eval()  # .cuda()

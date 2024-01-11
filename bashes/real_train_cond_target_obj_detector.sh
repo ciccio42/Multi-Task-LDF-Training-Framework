@@ -5,7 +5,7 @@ export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=1
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
@@ -13,23 +13,25 @@ SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/
 POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
 TASKS_CONFIG=7_tasks_real
+DEBUG=false
+WANDB_LOG=true
 
 SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
 PRINT_FREQ=100
 
-EXP_NAME=Real-1Task-Pick-Place-Cond-Target-Obj-Detector
+EXP_NAME=Real-1Task-Pick-Place-Cond-Target-Obj-Detector-2
 PROJECT_NAME=${EXP_NAME}
 TASK_str="pick_place"
-EPOCH=50 # start from 16
+EPOCH=150 
 BSIZE=80 #16 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector_real.yaml
 LOADER_WORKERS=1
 BALANCING_POLICY=0
-SET_SAME_N=2
+SET_SAME_N=4
 OBS_T=7
 
 AGENT_NAME=real_ur5e
@@ -38,7 +40,7 @@ EARLY_STOPPING_PATIECE=-1
 OPTIMIZER='AdamW'
 LR=0.00001
 WEIGHT_DECAY=5
-SCHEDULER='ReduceLROnPlateau'
+SCHEDULER=None
 FIRST_FRAMES=false
 ONLY_FIRST_FRAMES=false
 ROLLOUT=false
@@ -46,9 +48,9 @@ PERFORM_AUGS=true
 PERFORM_SCALE_RESIZE=false
 NON_SEQUENTIAL=true
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/2Task-Pick-Place-Nut-Assembly-Cond-Target-Obj-Detector-Batch50/
-RESUME_STEP=40095
-RESUME=false
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-1Task-Pick-Place-Cond-Target-Obj-Detector-2-Batch16/
+RESUME_STEP=36000
+RESUME=true
 
 DROP_DIM=4      # 2    # 3
 OUT_FEATURE=128 # 512 # 256
@@ -101,7 +103,7 @@ python ../training/train_scripts/train_any.py \
     train_cfg.lr=${LR} \
     train_cfg.weight_decay=${WEIGHT_DECAY} \
     train_cfg.lr_schedule=${SCHEDULER} \
-    debug=false \
-    wandb_log=true \
+    debug=${DEBUG} \
+    wandb_log=${WANDB_LOG} \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS}

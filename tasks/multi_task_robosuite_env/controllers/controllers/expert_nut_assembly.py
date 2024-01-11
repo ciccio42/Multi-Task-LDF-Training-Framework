@@ -242,11 +242,11 @@ def get_expert_trajectory(env_type, controller_type, renderer=False, camera_obs=
     if gpu_id == 3:
         gpu_id = 0
     elif gpu_id == 0:
-        gpu_id = 1
+        gpu_id = 3
     elif gpu_id == 1:
         gpu_id = 2
     elif gpu_id == 2:
-        gpu_id = 3
+        gpu_id = 1
 
     seed = seed if seed is not None else random.getrandbits(32)
     env_seed = seed if env_seed is None else env_seed

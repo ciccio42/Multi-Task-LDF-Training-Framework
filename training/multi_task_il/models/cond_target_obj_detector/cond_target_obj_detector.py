@@ -18,7 +18,6 @@ from torchvision.models.video import r2plus1d_18, R2Plus1D_18_Weights
 import cv2
 import matplotlib.pyplot as plt
 import time
-
 DEBUG = False
 
 
@@ -524,7 +523,7 @@ class AgentModule(nn.Module):
                     feature_map, pos_proposals_list, GT_class_pos)
 
                 ret_dict['feature_map'] = feature_map
-                ret_dict['proposals'] = proposals
+                ret_dict['proposals'] = pos_proposals_list
                 ret_dict['GT_offsets'] = GT_offsets
                 ret_dict['offsets_pos'] = offsets_pos
                 ret_dict['conf_scores_pos'] = conf_scores_pos

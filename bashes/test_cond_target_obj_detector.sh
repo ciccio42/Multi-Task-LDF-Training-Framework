@@ -41,18 +41,18 @@ export HYDRA_FULL_ERROR=1
 # done
 
 BASE_PATH=/raid/home/frosa_Loc/Multi-Task-LFD-Framework
-PROJECT_NAME=2Task-Pick-Place-Nut-Assembly-Cond-Target-Obj-Detector
-NUM_WORKERS=7
-MODEL_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/2Task-Pick-Place-Nut-Assembly-Cond-Target-Obj-Detector-Batch50/
+PROJECT_NAME=1Task-Pick-Place-Cond-Target-Obj-Detector-separate-demo-agent 
+NUM_WORKERS=1
+MODEL_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${PROJECT_NAME}-Batch80/
 CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
 
 for MODEL in ${MODEL_PATH}; do
     for COUNT in 1; do
         for S in -1; do #81000 89100; do
-            for TASK in pick_place nut_assembly; do
-                SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/2Task-Pick-Place-Nut-Assembly-Cond-Target-Obj-Detector-Batch50/results_${TASK}/run_${COUNT}
+            for TASK in pick_place; do
+                SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
 
-                python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id 0 --save_path ${SAVE_PATH} --save_files --wandb_log
+                python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id 0 --debug #--save_path ${SAVE_PATH} --save_files --wandb_log
             done
         done
     done

@@ -15,25 +15,27 @@ POLICY='${mosaic}'
 SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
-DEVICE=0
-DEBUG=false
-WANDB_LOG=true
+DEVICE=2
+DEBUG=true
+WANDB_LOG=false
 
-EXP_NAME=1Task-Nut-Assembly-Mosaic-100-180-Target-Obj-Detector-BB-All-Obj-One-Task-Left
+EXP_NAME=Real-1Task-Pick-Place-MOSAIC-Cond-Target-Obj-Detector
 PROJECT_NAME=${EXP_NAME}
-TASK_str=nut_assembly #[pick_place,nut_assembly]
+TASK_str=pick_place #[pick_place,nut_assembly]
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Mosaic-100-180-Target-Obj-Detector-BB-All-Obj-One-Task-Left-Batch24/
-RESUME_STEP=120380
-RESUME=true
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-1Task-Pick-Place-MOSAIC-Cond-Target-Obj-Detector-Batch12/
+RESUME_STEP=27807
+RESUME=false
 
 LOAD_TARGET_OBJ_DETECTOR=true
-TARGET_OBJ_DETECTOR_STEP=65250
-TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54/
+TARGET_OBJ_DETECTOR_STEP=36000
+TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-1Task-Pick-Place-Cond-Target-Obj-Detector-Batch8
 CONCAT_BB=true
 
+AGENT_NAME=real_ur5e
 
-ROLLOUT=true
+
+ROLLOUT=false
 EPOCH=90
 BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
@@ -41,7 +43,7 @@ COMPUTE_OBJ_DISTRIBUTION=false
 BALANCING_POLICY=0
 SET_SAME_N=3
 CONFIG_PATH=../experiments
-CONFIG_NAME=config.yaml
+CONFIG_NAME=config_real.yaml
 LOADER_WORKERS=8
 NORMALIZE_ACTION=true
 
@@ -97,6 +99,7 @@ python ../training/train_scripts/train_any.py \
     bsize=${BSIZE} \
     vsize=${BSIZE} \
     epochs=${EPOCH} \
+    dataset_cfg.agent_name=${AGENT_NAME} \
     rollout=${ROLLOUT} \
     dataset_cfg.normalize_action=${NORMALIZE_ACTION} \
     dataset_cfg.compute_obj_distribution=${COMPUTE_OBJ_DISTRIBUTION} \

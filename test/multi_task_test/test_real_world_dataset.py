@@ -38,7 +38,7 @@ def extract_last_number(path):
     return int(check_point_number)
 
 
-def object_detection_inference(model, config, ctr, heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, gt_file=None, gt_bb=False):
+def object_detection_inference(model, config, ctr, heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, traj_file=None, context_file=None, gt_bb=False, build_context_flag=False):
 
     if gpu_id == -1:
         gpu_id = int(ctr % torch.cuda.device_count())
@@ -57,23 +57,49 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
 
     # Build environments
     print(f"Create expert demonstration")
-    context, variation_id, expert_traj = build_context(img_formatter,
-                                                       T_context=T_context,
-                                                       ctr=ctr,
-                                                       env_name=env_name,
-                                                       heights=heights,
-                                                       widths=widths,
-                                                       size=size,
-                                                       shape=shape,
-                                                       color=color,
-                                                       gpu_id=gpu_id,
-                                                       variation=variation, random_frames=random_frames,
-                                                       controller_path=controller_path,
-                                                       seed=seed)
+    if build_context_flag:
+        context, variation_id, expert_traj = build_context(img_formatter,
+                                                           T_context=T_context,
+                                                           ctr=ctr,
+                                                           env_name=env_name,
+                                                           heights=heights,
+                                                           widths=widths,
+                                                           size=size,
+                                                           shape=shape,
+                                                           color=color,
+                                                           gpu_id=gpu_id,
+                                                           variation=variation, random_frames=random_frames,
+                                                           controller_path=controller_path,
+                                                           seed=seed)
+    else:
+        env = None
+        variation_id = None
+        expert_traj = None
+        # open context pk file
+        print(
+            f"Considering task {variation} - context {context_file.split('/')[-1]} - agent {traj_file.split('/')[-1]}")
+        import pickle
+        with open(context_file, "rb") as f:
+            context_data = pickle.load(f)
+
+        # create context data
+        context_data_trj = context_data['traj']
+        assert isinstance(context_data_trj, Trajectory)
+        context = select_random_frames(
+            context_data_trj, T_context, sample_sides=True, random_frames=random_frames)
+        # convert BGR context image to RGB and scale to 0-1
+        for i, img in enumerate(context):
+            cv2.imwrite(f"context_{i}.png", np.array(img[:, :, ::-1]))
+        context = [img_formatter(i[:, :, ::-1])[None] for i in context]
+        # assert len(context ) == 6
+        if isinstance(context[0], np.ndarray):
+            context = torch.from_numpy(np.concatenate(context, 0))[None]
+        else:
+            context = torch.cat(context, dim=0)[None]
 
     print(
-        f"Considering task {variation} - agent {gt_file.split('/')[-1]}")
-    with open(gt_file, "rb") as f:
+        f"Considering task {variation} - agent {traj_file.split('/')[-1]}")
+    with open(traj_file, "rb") as f:
         traj_data = pickle.load(f)
 
     traj_data_trj = traj_data['traj']
@@ -82,6 +108,7 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
     build_task = TASK_MAP.get(env_name, None)
     assert build_task, 'Got unsupported task '+env_name
     eval_fn = get_eval_fn(env_name=env_name)
+    config.dataset_cfg['perform_augs'] = True if "real" not in config.dataset_cfg['agent_name'] else False
     traj, info = eval_fn(model=model,
                          env=None,
                          gt_env=None,
@@ -108,7 +135,7 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
     return traj, info, expert_traj, context
 
 
-def _proc(model, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, gt_bb, seed, n, gt_file):
+def _proc(model, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, gt_bb, seed, n, traj_file, context_file):
     json_name = results_dir + '/traj{}.json'.format(n)
     pkl_name = results_dir + '/traj{}.pkl'.format(n)
     if os.path.exists(json_name) and os.path.exists(pkl_name):
@@ -162,15 +189,17 @@ def _proc(model, config, results_dir, heights, widths, size, shape, color, env_n
                                                             config.dataset_cfg.get('normalization_ranges', [])),
                                                         model_name=model_name,
                                                         gpu_id=gpu_id,
-                                                        gt_file=gt_file)
+                                                        traj_file=traj_file,
+                                                        context_file=context_file,
+                                                        build_context_flag=False)
 
         if "vima" not in model_name:
             rollout, task_success_flags, expert_traj, context = return_rollout
             if save:
                 pkl.dump(rollout, open(
                     results_dir+'/traj{}.pkl'.format(n), 'wb'))
-                pkl.dump(expert_traj, open(
-                    results_dir+'/demo{}.pkl'.format(n), 'wb'))
+                # pkl.dump(expert_traj, open(
+                #     results_dir+'/demo{}.pkl'.format(n), 'wb'))
                 pkl.dump(context, open(
                     results_dir+'/context{}.pkl'.format(n), 'wb'))
                 res_dict = dict()
@@ -369,16 +398,43 @@ if __name__ == '__main__':
 
         dataset = None
         from hydra.utils import instantiate
+        config.tasks[0] = {
+            "name": "pick_place",
+            "n_tasks": 4,
+            "crop": [0,
+                     30,
+                     50,
+                     0],
+            "n_per_task": 2,
+            "task_ids":
+            [0,
+             1,
+             2,
+             3],
+            "loss_mul": 1,
+            "task_per_batch": 16,
+            "traj_per_subtask": 36,
+            "demo_per_subtask": 100}
+
         config.dataset_cfg.mode = "val"
+        config.dataset_cfg.agent_name = "real_ur5e"
         config.dataset_cfg.root_dir = "/raid/home/frosa_Loc/opt_dataset"
         dataset = instantiate(config.get('dataset_cfg', None))
         # get list of pkl files
-        pkl_file_dict = dataset.agent_files
-        pkl_file_list = []
-        for task_name in pkl_file_dict.keys():
-            for task_id in pkl_file_dict[task_name].keys():
-                for pkl_file in pkl_file_dict[task_name][task_id]:
-                    pkl_file_list.append(pkl_file)
+        build_context_flag = False
+        if build_context_flag:
+            pkl_file_dict = dataset.agent_files
+            pkl_file_list = []
+            for task_name in pkl_file_dict.keys():
+                for task_id in pkl_file_dict[task_name].keys():
+                    for pkl_file in pkl_file_dict[task_name][task_id]:
+                        pkl_file_list.append(pkl_file)
+        else:
+            file_pairs = dataset.all_file_pairs
+            pkl_file_list = []
+            for pkl_file in file_pairs.values():
+                pkl_file_list.append((pkl_file[3], pkl_file[2]))
+            args.N = len(pkl_file_list)
 
         print(f"---- Testing model {model_name} ----")
         f = functools.partial(_proc,
@@ -404,12 +460,41 @@ if __name__ == '__main__':
         np.random.seed(42)
         seeds = []
         for i in range(args.N):
-            seeds.append((random.getrandbits(32), i,
-                         pkl_file_list[i % len(pkl_file_list)]))
+            if build_context_flag:
+                seeds.append((random.getrandbits(32), i,
+                              pkl_file_list[i % len(pkl_file_list)], -1))
+            else:
+                seeds.append((random.getrandbits(32), i,
+                              pkl_file_list[i % len(pkl_file_list)][0],
+                              pkl_file_list[i % len(pkl_file_list)][1]))
 
         if parallel:
             with Pool(args.num_workers) as p:
                 task_success_flags = p.starmap(f, seeds)
         else:
-            task_success_flags = [f(seeds[i][0], seeds[i][1], seeds[i][2])
+            task_success_flags = [f(seeds[i][0], seeds[i][1], seeds[i][2], seeds[i][3])
                                   for i, _ in enumerate(seeds)]
+
+        all_avg_iou = np.mean([t['avg_iou'] for t in task_success_flags])
+        all_avg_tp = np.mean([t['avg_tp'] for t in task_success_flags])
+        all_avg_fp = np.mean([t['avg_fp'] for t in task_success_flags])
+        all_avg_fn = np.mean([t['avg_fn'] for t in task_success_flags])
+        print(f"TP {all_avg_tp} - FP {all_avg_fp} - FN {all_avg_fn}")
+        final_results = dict()
+        final_results['N'] = int(args.N)
+        final_results['model_saved'] = model_saved_step
+        final_results['avg_iou'] = all_avg_iou
+        final_results['avg_tp'] = all_avg_tp
+        final_results['avg_fp'] = all_avg_fp
+        final_results['avg_fn'] = all_avg_fn
+
+        json.dump({k: v for k, v in final_results.items()}, open(
+            results_dir+'/test_across_{}trajs.json'.format(args.N), 'w'))
+
+        if args.wandb_log:
+            log = dict()
+            for i, k in enumerate(final_results):
+                log['episode'] = i
+                log[k] = float(final_results[k]) if k != "variation_id" else int(
+                    final_results[k])
+            wandb.log(log)

@@ -61,11 +61,20 @@ class MultiTaskPairedDataset(Dataset):
         self.demo_subtask_to_idx = OrderedDict()
         self.agent_files = dict()
         self.demo_files = dict()
+        self.agent_name = agent_name
         self.mode = mode
 
         self.select_random_frames = select_random_frames
         self.balance_target_obj_pos = balance_target_obj_pos
         self.compute_obj_distribution = compute_obj_distribution
+        if "real" in agent_name:
+            self.real = True
+            self.perform_scale_resize = False
+
+        else:
+            self.real = False
+            self.perform_scale_resize = True
+
         self.object_distribution = OrderedDict()
         self.object_distribution_to_indx = OrderedDict()
 

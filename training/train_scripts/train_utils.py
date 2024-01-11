@@ -32,6 +32,7 @@ import learn2learn as l2l
 from torchvision.ops import box_iou
 from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
 from torchmetrics.classification import Accuracy
+import gc
 
 
 torch.autograd.set_detect_anomaly(True)
@@ -243,6 +244,10 @@ def calculate_maml_loss(config, device, meta_model, model_inputs):
 
 def loss_func_bb(config, train_cfg, device, model, inputs, w_conf=1, w_reg=5):
 
+    def compute_average_iou(gt_bb, pred_bb, batch_size):
+        iou_t = box_iou(boxes1=torch.from_numpy(
+            gt_bb), boxes2=pred_bb)
+
     def calc_cls_loss(conf_scores_pos, conf_scores_neg, batch_size):
         target_pos = torch.ones_like(conf_scores_pos)
         target_neg = torch.zeros_like(conf_scores_neg)
@@ -345,6 +350,8 @@ def loss_func_bb(config, train_cfg, device, model, inputs, w_conf=1, w_reg=5):
         cls_scores=predictions_dict['cls_scores'],
         gt_cls=predictions_dict['GT_class_pos'])
     all_losses["class_accuracy"] = class_accuracy
+
+    # avg_iou = compute_average_iou(gt_bb=)
 
     # # compute average precision
     # proposals = predictions_dict['proposals'][:, None, None, :]
@@ -838,7 +845,7 @@ class Trainer:
 
         step = 0
         best_fp = np.inf
-        best_avg_success = 0
+        best_avg_success = 0.0
         for e in range(epochs):
             frac = e / epochs
             # with tqdm(self._train_loader, unit="batch") as tepoch:
@@ -846,8 +853,9 @@ class Trainer:
                 tolog = {}
                 # Save stats
                 if save_freq != 0 and self._step % save_freq == 0 and e != 0:  # stats
-                    self.save_checkpoint(
-                        model, optimizer, weights_fn, save_fn)
+                    if not self.config.get("rollout", False):
+                        self.save_checkpoint(
+                            model, optimizer, weights_fn, save_fn)
                     if save_fn is not None:
                         save_fn(self._save_fname, self._step)
                     else:
@@ -898,7 +906,7 @@ class Trainer:
                         print(train_print)
 
                 #### ---- Validation step ----####
-                if self._step != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
+                if self._step % val_freq == 0 and not self.config.get("use_daml", False):
                     print("Validation")
                     rollout = self.config.get("rollout", False)
                     model = model.eval()
@@ -960,17 +968,37 @@ class Trainer:
                         from multi_task_test.test_any_task import _proc
                         import functools
                         from torch.multiprocessing import Pool
+
+                        del inputs
+                        gc.collect()
+                        torch.cuda.empty_cache()
+
                         target_obj_dec = None
                         controller_path = "/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json"
                         model_name = self.config.policy._target_
+
                         for task in self.tasks:
                             import random
                             task_name = task['name']
                             results_dir = os.path.join(
                                 self.save_dir, 'results_{}_{}/'.format(task_name, e))
                             os.makedirs(results_dir, exist_ok=True)
+                            random.seed(42)
+                            np.random.seed(42)
+                            n_run_per_task = 5
+                            N_step = 90
                             # model, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, gt_bb, seed, n, gt_file
                             gt_bb = True if model._concat_bb and model._object_detector is None else False
+                            if len(self.config["tasks_cfgs"][task['name']].get('skip_ids', [])) == 0:
+                                n_run = int(n_run_per_task *
+                                            self.config["tasks_cfgs"][task['name']].get('n_tasks', 0))
+                                variation = None
+                            else:
+                                n_run = int(n_run_per_task *
+                                            len(self.config["tasks_cfgs"][task['name']].get('skip_ids', [])))
+                                variation = self.config["tasks_cfgs"][task['name']].get(
+                                    'skip_ids', [])
+
                             f = functools.partial(_proc,
                                                   model,
                                                   self.config,
@@ -982,17 +1010,14 @@ class Trainer:
                                                   False,
                                                   task_name,
                                                   None,
-                                                  None,
-                                                  80,
+                                                  variation,
+                                                  N_step,
                                                   controller_path,
                                                   model_name,
                                                   self._device_id,
                                                   False,
                                                   gt_bb
                                                   )
-                            random.seed(42)
-                            np.random.seed(42)
-                            n_run = task['n_tasks']*3
                             seeds = [(random.getrandbits(32), i, -1)
                                      for i in range(n_run)]
                             with Pool(2) as p:
@@ -1027,8 +1052,9 @@ class Trainer:
                                     all_picked_flags)
                                 tolog['avg_prediction'] = np.mean(
                                     all_avg_pred)
+                                tolog['train_step'] = self._step
 
-                                if best_avg_success <= tolog['avg_success']:
+                                if tolog['avg_success'] > best_avg_success:
                                     print(
                                         f"Save model best_avg_success from {best_avg_success} to {tolog['avg_success']}")
                                     best_avg_success = tolog['avg_success']
