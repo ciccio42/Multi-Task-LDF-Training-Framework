@@ -538,8 +538,8 @@ class PressButton(SingleArmEnv):
                     obj_bb[camera_name][obj_name]['bottom_right_corner'] = [
                         x_min, y_min]
 
-                    plot_bb(img=np.array(di[f'{camera_name}_image'][::-1, :, ::-1]),
-                            obj_bb=obj_bb[camera_name])
+                    # plot_bb(img=np.array(di[f'{camera_name}_image'][::-1, :, ::-1]),
+                    #         obj_bb=obj_bb[camera_name])
         return obj_bb
 
     def _check_success(self):

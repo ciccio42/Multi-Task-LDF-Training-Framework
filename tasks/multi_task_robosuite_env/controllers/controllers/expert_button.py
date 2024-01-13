@@ -310,7 +310,7 @@ if __name__ == '__main__':
         current_dir, "../config/osc_pose.json")
     controller_config = load_controller_config(
         custom_fpath=controller_config_path)
-    for i in range(6):
+    for i in range(3, 6):
         traj = get_expert_trajectory('UR5e_Button',
                                      controller_type=controller_config,
                                      renderer=False,

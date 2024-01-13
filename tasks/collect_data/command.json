@@ -49,5 +49,21 @@
         "6": "Pick the blue nut and insert it into the first peg",
         "7": "Pick the blue nut and insert it into the center peg",
         "8": "Pick the blue nut and insert it into the left peg"
+    },
+    "block_stacking": {
+        "0": "Stack the red block on the green block",
+        "1": "Stack the red block on the blue block",
+        "2": "Stack the blue block on the green block",
+        "3": "Stack the blue block on the red block",
+        "4": "Stack the green block on the red block",
+        "5": "Stack the green block on the blue block"
+    },
+    "press_button": {
+        "0": "Press the central right button",
+        "1": "Press the upper right button",
+        "2": "Press the bottom right button",
+        "3": "Press the central left button",
+        "4": "Press the bottom left button",
+        "5": "Press the upper left button"
     }
 }

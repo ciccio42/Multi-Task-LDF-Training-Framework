@@ -3,6 +3,10 @@ from multi_task_robosuite_env.controllers.controllers.expert_pick_place import \
     get_expert_trajectory as place_expert
 from multi_task_robosuite_env.controllers.controllers.expert_nut_assembly import \
     get_expert_trajectory as nut_expert
+from multi_task_robosuite_env.controllers.controllers.expert_block_stacking import \
+    get_expert_trajectory as block_stacking_expert
+from multi_task_robosuite_env.controllers.controllers.expert_button import \
+    get_expert_trajectory as button_expert
 import functools
 import os
 import pickle as pkl
@@ -47,6 +51,22 @@ TASK_ENV_MAP = {
         'ur5e':     'UR5e_NutAssemblyDistractor',
         'object_set': 1,
     },
+    'block_stacking':  {
+        'n_task':   6,
+        'env_fn':   block_stacking_expert,
+        'panda':    'Panda_BlockStacking',
+        'sawyer':   'Sawyer_BlockStacking',
+        'ur5e':     'UR5e_BlockStacking',
+        'object_set': 1,
+    },
+    'press_button':  {
+        'n_task':   6,
+        'env_fn':   button_expert,
+        'panda':    'Panda_Button',
+        'sawyer':   'Sawyer_Button',
+        'ur5e':     'UR5e_Button',
+        'object_set': 1,
+    },
 }
 
 ROBOT_NAMES = ['panda', 'sawyer', 'ur5e']
@@ -86,11 +106,11 @@ def save_rollout(N, task_name, env_type, env_func, save_dir, n_tasks, env_seed=F
                             seed=seed,
                             env_seed=env_seed,
                             gpu_id=gpu_id_indx,
-                            render_camera="camera_lateral_right",
+                            render_camera="camera_front",
                             object_set=TASK_ENV_MAP[task_name]['object_set'])
             if len(traj) < 5:  # try again
                 traj = env_func(env_type, controller_type=config, renderer=renderer, camera_obs=camera_obs, task=task,
-                                seed=seed, env_seed=env_seed, gpu_id=gpu_id_indx, render_camera="camera_lateral_right")
+                                seed=seed, env_seed=env_seed, gpu_id=gpu_id_indx, render_camera="camera_front")
 
         # let's make a new folder structure for easier dataloader construct:
         # env_type/task_id/traj_idx.pkl, where idxes start from 0 within each sub-task
