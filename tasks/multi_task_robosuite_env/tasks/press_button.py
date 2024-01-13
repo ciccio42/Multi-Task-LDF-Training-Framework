@@ -1,17 +1,14 @@
 from collections import OrderedDict
 import numpy as np
-
-from robosuite.utils.transform_utils import convert_quat
-from robosuite.utils.mjcf_utils import CustomMaterial
-
 from robosuite.environments.manipulation.single_arm_env import SingleArmEnv
-
-from robosuite.models.arenas import TableArena
-from robosuite.models.objects import BoxObject, PlateWithHoleObject, PotWithHandlesObject, HammerObject
-multi_task_robosuite_env.objects.custom_xml_objects import SpriteCan, CanObject2, CerealObject3, Banana, CerealObject2
+from multi_task_robosuite_env.arena import TableArena
+from multi_task_robosuite_env.objects.custom_xml_objects import SpriteCan, CanObject2, CerealObject3, Banana, CerealObject2
 from robosuite.models.tasks import ManipulationTask
 from robosuite.utils.placement_samplers import UniformRandomSampler, SequentialCompositeSampler
-multi_task_robosuite_env.objects.meta_xml_objects import ButtonMachine, Mug
+from multi_task_robosuite_env.objects.meta_xml_objects import ButtonMachine, Mug
+from robosuite.utils.transform_utils import convert_quat, quat2mat
+import robosuite.utils.transform_utils as T
+OFFSET = 0.0
 
 
 class PressButton(SingleArmEnv):
@@ -96,10 +93,13 @@ class PressButton(SingleArmEnv):
             robots,
             env_configuration="default",
             controller_configs=None,
+            mount_types="default",
             gripper_types="default",
+            robot_offset=None,
             initialization_noise="default",
-            table_full_size=(0.8, 1, 0.05),
+            table_full_size=(0.8, 0.8, 0.05),
             table_friction=(1., 5e-3, 1e-4),
+            table_offset=(0, 0, 0.82),
             use_camera_obs=True,
             use_object_obs=True,
             reward_scale=1.0,
@@ -119,13 +119,37 @@ class PressButton(SingleArmEnv):
             camera_heights=256,
             camera_widths=256,
             camera_depths=False,
+            camera_poses=None,
+            camera_attribs=None,
+            camera_gripper=None,
             task_id=0,
+            object_type=None,
+            y_ranges=[[0.16, 0.19], [0.05, 0.09],
+                      [-0.08, -0.03], [-0.19, -0.15]],
+            env_conf=None,
+            arena="Table"
     ):
         # settings for table top
         self.table_full_size = table_full_size
         self.table_friction = table_friction
-        self.table_offset = np.array((0, 0, 0.8))
+        self.table_offset = np.array(table_offset)
+        self.robot_offset = robot_offset
+        self.object_set = env_conf['object_set']
         self.task_id = task_id
+        self.names = ['machine1_goal1', 'machine1_goal2', 'machine1_goal3',
+                      'machine2_goal1', 'machine2_goal2', 'machine2_goal3']
+        self._obj_dim = {'machine1_goal1': [0.07, 0.07, 0.07],
+                         'machine1_goal2': [0.07, 0.07, 0.07],
+                         'machine1_goal3': [0.07, 0.07, 0.07],
+                         'machine2_goal1': [0.07, 0.07, 0.07],
+                         'machine2_goal2': [0.07, 0.07, 0.07],
+                         'machine2_goal3': [0.07, 0.07, 0.07]}
+
+        print(f"Object set {self.object_set}")
+        print(f"Target {self.names[task_id]}")
+
+        self.y_ranges = env_conf['y_ranges']
+        self.x_ranges = env_conf['x_ranges']
 
         # reward configuration
         self.reward_scale = reward_scale
@@ -137,11 +161,19 @@ class PressButton(SingleArmEnv):
         # object placement initializer
         self.placement_initializer = placement_initializer
 
+        # camera poses and attributes
+        self.camera_names = camera_names
+        self.camera_poses = camera_poses
+        self.camera_attribs = camera_attribs
+        self.camera_gripper = camera_gripper
+        self.camera_height = camera_heights
+        self.camera_width = camera_widths
+
         super().__init__(
             robots=robots,
             env_configuration=env_configuration,
             controller_configs=controller_configs,
-            mount_types="default",
+            mount_types=mount_types,
             gripper_types=gripper_types,
             initialization_noise=initialization_noise,
             use_camera_obs=use_camera_obs,
@@ -195,7 +227,11 @@ class PressButton(SingleArmEnv):
         super()._load_model()
 
         # Adjust base pose accordingly
-        xpos = self.robots[0].robot_model.base_xpos_offset["table"](self.table_full_size[0])
+        if self.robot_offset is None:
+            xpos = self.robots[0].robot_model.base_xpos_offset["table"](
+                self.table_full_size[0])
+        else:
+            xpos = self.robot_offset
         self.robots[0].robot_model.set_base_xpos(xpos)
 
         # load model for table top workspace
@@ -205,10 +241,31 @@ class PressButton(SingleArmEnv):
             table_offset=self.table_offset,
         )
 
+        # add desired cameras
+        if self.camera_poses is not None:
+            for camera_name in self.camera_names:
+                if camera_name != "robot0_eye_in_hand":
+                    mujoco_arena.set_camera(camera_name=camera_name,
+                                            pos=self.camera_poses[camera_name][0],
+                                            quat=self.camera_poses[camera_name][1],
+                                            camera_attribs=self.camera_attribs)
+
+        # modify robot0_eye_in_hand
+        if self.robots[0].robot_model.default_gripper == "Robotiq85Gripper":
+            self.robots[0].robot_model.set_camera(camera_name="eye_in_hand",
+                                                  pos=self.camera_gripper["Robotiq85Gripper"]["pose"][0],
+                                                  quat=self.camera_gripper["Robotiq85Gripper"]["pose"][1],
+                                                  root=self.camera_gripper["Robotiq85Gripper"]["root"],
+                                                  camera_attribs=self.camera_attribs)
+
         # Arena always gets set to zero origin
         mujoco_arena.set_origin([0, 0, 0])
 
-        self.objects = [ButtonMachine(name='machine1'), ButtonMachine(name='machine2')]
+        self.objects = [
+            ButtonMachine(
+                name='machine1'),
+            ButtonMachine(
+                name='machine2')]
         # Create placement initializer
 
         self._get_placement_initializer()
@@ -228,13 +285,14 @@ class PressButton(SingleArmEnv):
         """
         Helper function for defining placement initializer and object sampling bounds.
         """
-        self.placement_initializer = SequentialCompositeSampler(name="ObjectSampler")
+        self.placement_initializer = SequentialCompositeSampler(
+            name="ObjectSampler")
         self.placement_initializer.append_sampler(
             UniformRandomSampler(
                 name="RightSampler",
                 mujoco_objects=self.objects[0],
-                x_range=[0.06, 0.10],
-                y_range=[0.28, 0.32],
+                x_range=self.x_ranges,
+                y_range=self.y_ranges[0],
                 rotation=[0, 0+1e-4],
                 rotation_axis='z',
                 ensure_object_boundary_in_range=True,
@@ -248,8 +306,8 @@ class PressButton(SingleArmEnv):
             UniformRandomSampler(
                 name="LeftSampler",
                 mujoco_objects=self.objects[1],
-                x_range=[0.06, 0.10],
-                y_range=[-0.32, -0.28],
+                x_range=self.x_ranges,
+                y_range=self.y_ranges[1],
                 rotation=[np.pi, np.pi + 1e-4],
                 rotation_axis='z',
                 ensure_object_boundary_in_range=True,
@@ -268,10 +326,8 @@ class PressButton(SingleArmEnv):
         super()._get_reference()
 
         # Additional object references from this env
-        names = ['machine1_goal1', 'machine1_goal2', 'machine1_goal3', 'machine2_goal1', 'machine2_goal2', 'machine2_goal3']
-        self.target_button_id = self.sim.model.site_name2id(names[self.task_id])
-
-
+        self.target_button_id = self.sim.model.site_name2id(
+            self.names[self.task_id])
 
     def _reset_internal(self):
         """
@@ -287,8 +343,8 @@ class PressButton(SingleArmEnv):
 
             # Loop through all objects and reset their positions
             for obj_pos, obj_quat, obj in object_placements.values():
-                self.sim.data.set_joint_qpos(obj.joints[-1], np.concatenate([np.array(obj_pos), np.array(obj_quat)]))
-
+                self.sim.data.set_joint_qpos(
+                    obj.joints[-1], np.concatenate([np.array(obj_pos), np.array(obj_quat)]))
 
     def _get_observation(self):
         """
@@ -303,16 +359,188 @@ class PressButton(SingleArmEnv):
             OrderedDict: Observations from the environment
         """
         di = super()._get_observation()
-        if self.use_camera_obs:
-            cam_name = self.camera_names[0]
-            di['image'] = di[cam_name + '_image'].copy()
-            del di[cam_name + '_image']
-            if self.camera_depths[0]:
-                di['depth'] = di[cam_name + '_depth'].copy()
-                di['depth'] = ((di['depth'] - 0.95) / 0.05 * 255).astype(np.uint8)
-
-        # low-level object information
+        di['obj_bb'] = self._create_bb(di)
+        # if self.use_camera_obs:
+        #     cam_name = self.camera_names[0]
+        #     di['image'] = di[cam_name + '_image'].copy()
+        #     del di[cam_name + '_image']
+        #     if self.camera_depths[0]:
+        #         di['depth'] = di[cam_name + '_depth'].copy()
+        #         di['depth'] = ((di['depth'] - 0.95) /
+        #                        0.05 * 255).astype(np.uint8)
         return di
+
+    def _create_bb(self, di):
+        """
+            Create bb around each object in the scene for each camera of interest
+        """
+
+        def plot_bb(img, obj_bb):
+            import cv2
+            # draw bb
+            for obj_name in obj_bb.keys():
+                center = obj_bb[obj_name]['center']
+                upper_left_corner = obj_bb[obj_name]['upper_left_corner']
+                bottom_right_corner = obj_bb[obj_name]['bottom_right_corner']
+                img = cv2.circle(
+                    img, center, radius=1, color=(0, 0, 255), thickness=-1)
+                img = cv2.rectangle(
+                    img, upper_left_corner,
+                    bottom_right_corner, (255, 0, 0), 1)
+            cv2.imwrite("test_bb.png", img)
+            # cv2.imshow("Test", img)
+            # cv2.waitKey(0)
+            # cv2.destroyAllWindows()
+
+        import logging
+        logging.basicConfig(
+            format='%(levelname)s:%(message)s', level=logging.INFO)
+        logger = logging.getLogger("BB-Creator")
+
+        obj_bb = OrderedDict()
+        # 1. For each camera of interest get the pose
+        for camera_name in self.camera_names:
+            if "in_hand" not in camera_name:
+                obj_bb[camera_name] = OrderedDict()
+                r_camera_world = quat2mat(convert_quat(
+                    np.array(self.camera_poses[camera_name][1]), to="xyzw")).T
+                p_camera_world = - \
+                    r_camera_world @  np.reshape(np.expand_dims(
+                        np.array(self.camera_poses[camera_name][0]), axis=0), (3, 1))
+                # Transformation matrix
+                T_camera_world = np.concatenate(
+                    (r_camera_world, p_camera_world), axis=1)
+                T_camera_world = np.concatenate(
+                    (T_camera_world, np.array([[0, 0, 0, 1]])), axis=0)
+
+                # 2. For each object compute bb
+                for i, obj_name in enumerate(self.names):
+                    obj_pos = np.array(
+                        self.sim.data.site_xpos[self.sim.model.site_name2id(
+                            self.names[i])])
+
+                    obj_quat = T.mat2quat(
+                        np.reshape(np.array(self.sim.data.site_xmat[self.sim.model.site_name2id(
+                            self.names[i])]), (3, 3)))
+
+                    obj_bb[camera_name][obj_name] = dict()
+
+                    # 2. Create transformation matrix
+                    T_camera_world = np.concatenate(
+                        (r_camera_world, p_camera_world), axis=1)
+                    T_camera_world = np.concatenate(
+                        (T_camera_world, np.array([[0, 0, 0, 1]])), axis=0)
+                    # logger.debug(T_camera_world)
+                    p_world_object = np.expand_dims(
+                        np.insert(obj_pos, 3, 1), 0).T
+                    p_camera_object = T_camera_world @ p_world_object
+                    logger.debug(
+                        f"\nP_world_object:\n{p_world_object} - \nP_camera_object:\n {p_camera_object}")
+
+                    # 3. Cnversion into pixel coordinates of object center
+                    f = 0.5 * self.camera_height / \
+                        np.tan(int(self.camera_attribs['fovy']) * np.pi / 360)
+
+                    p_x_center = int(
+                        (p_camera_object[0][0] / - p_camera_object[2][0]) * f + self.camera_width / 2)
+
+                    p_y_center = int(
+                        (- p_camera_object[1][0] / - p_camera_object[2][0]) * f + self.camera_height / 2)
+                    logger.debug(
+                        f"\nImage coordinate: px {p_x_center}, py {p_y_center}")
+
+                    p_x_corner_list = []
+                    p_y_corner_list = []
+                    # 3.1 create a box around the object
+                    for i in range(8):
+                        if i == 0:  # upper-left front corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[self._obj_dim[obj_name][2]/2],
+                                        [-self._obj_dim[obj_name][0]/2-OFFSET],
+                                        [self._obj_dim[obj_name][1]/2+OFFSET],
+                                        [0]])
+                        elif i == 1:  # upper-right front corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[self._obj_dim[obj_name][2]/2],
+                                        [self._obj_dim[obj_name][0]/2+OFFSET],
+                                        [self._obj_dim[obj_name][1]/2+OFFSET],
+                                        [0]])
+                        elif i == 2:  # bottom-left front corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[self._obj_dim[obj_name][2]/2],
+                                        [-self._obj_dim[obj_name][0]/2-OFFSET],
+                                        [-self._obj_dim[obj_name][1]/2-OFFSET],
+                                        [0]])
+                        elif i == 3:  # bottom-right front corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[self._obj_dim[obj_name][2]/2],
+                                        [self._obj_dim[obj_name][0]/2+OFFSET],
+                                        [-self._obj_dim[obj_name][1]/2-OFFSET],
+                                        [0]])
+                        elif i == 4:  # upper-left back corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[-self._obj_dim[obj_name][2]/2],
+                                        [-self._obj_dim[obj_name][0]/2-OFFSET],
+                                        [self._obj_dim[obj_name][1]/2+OFFSET],
+                                        [0]])
+                        elif i == 5:  # upper-right back corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[-self._obj_dim[obj_name][2]/2],
+                                        [self._obj_dim[obj_name][0]/2+OFFSET],
+                                        [self._obj_dim[obj_name][1]/2+OFFSET],
+                                        [0]])
+                        elif i == 6:  # bottom-left back corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[-self._obj_dim[obj_name][2]/2],
+                                        [-self._obj_dim[obj_name][0]/2-OFFSET],
+                                        [-self._obj_dim[obj_name][1]/2-OFFSET],
+                                        [0]])
+                        elif i == 7:  # bottom-right back corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[-self._obj_dim[obj_name][2]/2],
+                                        [self._obj_dim[obj_name][0]/2+OFFSET],
+                                        [-self._obj_dim[obj_name][1]/2-OFFSET],
+                                        [0]])
+
+                        p_camera_object_corner = T_camera_world @ p_world_object_corner
+                        logger.debug(
+                            f"\nP_world_object_upper_left:\n{p_world_object_corner} -   \nP_camera_object_upper_left:\n {p_camera_object_corner}")
+
+                        # 3.1 Upper-left corner and bottom right corner in pixel coordinate
+                        p_x_corner = int(
+                            (p_camera_object_corner[0][0] / - p_camera_object_corner[2][0]) * f + self.camera_width / 2)
+
+                        p_y_corner = int(
+                            (- p_camera_object_corner[1][0] / - p_camera_object_corner[2][0]) * f + self.camera_height / 2)
+                        logger.debug(
+                            f"\nImage coordinate upper_left corner: px {p_x_corner}, py {p_y_corner}")
+
+                        p_x_corner_list.append(p_x_corner)
+                        p_y_corner_list.append(p_y_corner)
+
+                    x_min = min(p_x_corner_list)
+                    y_min = min(p_y_corner_list)
+                    x_max = max(p_x_corner_list)
+                    y_max = max(p_y_corner_list)
+                    # save bb
+                    obj_bb[camera_name][obj_name]['center'] = [
+                        p_x_center, p_y_center]
+                    obj_bb[camera_name][obj_name]['upper_left_corner'] = [
+                        x_max, y_max]
+                    obj_bb[camera_name][obj_name]['bottom_right_corner'] = [
+                        x_min, y_min]
+
+                    plot_bb(img=np.array(di[f'{camera_name}_image'][::-1, :, ::-1]),
+                            obj_bb=obj_bb[camera_name])
+        return obj_bb
 
     def _check_success(self):
         """
@@ -321,7 +549,8 @@ class PressButton(SingleArmEnv):
             bool: True if blocks are correctly stacked
         """
 
-        qpos = self.sim.data.get_joint_qpos(self.objects[self.task_id // 3].joints[self.task_id % 3])
+        qpos = self.sim.data.get_joint_qpos(
+            self.objects[self.task_id // 3].joints[self.task_id % 3])
         if qpos >= 0.04:
             return True
         else:
@@ -340,7 +569,9 @@ class PressButton(SingleArmEnv):
 
         # Color the gripper visualization site according to its distance to the cube
         if vis_settings["grippers"]:
-            self._visualize_gripper_to_target(gripper=self.robots[0].gripper, target=self.button_machine)
+            self._visualize_gripper_to_target(
+                gripper=self.robots[0].gripper, target=self.button_machine)
+
 
 class PandaButton(PressButton):
     """
@@ -353,6 +584,7 @@ class PandaButton(PressButton):
             task_id = np.random.randint(0, 3)
         super().__init__(robots=['Panda'], task_id=task_id, **kwargs)
 
+
 class SawyerButton(PressButton):
     """
     Easier version of task - place one object into its bin.
@@ -364,21 +596,59 @@ class SawyerButton(PressButton):
             task_id = np.random.randint(0, 3)
         super().__init__(robots=['Sawyer'], task_id=task_id, **kwargs)
 
+
+class UR5eButton(PressButton):
+    """
+    Easier version of task - place one object into its bin.
+    A new object is sampled on every reset.
+    """
+
+    def __init__(self, task_id=None, **kwargs):
+        if task_id is None:
+            task_id = np.random.randint(0, 3)
+        super().__init__(robots=['UR5e'], task_id=task_id, **kwargs)
+
+
 if __name__ == '__main__':
     from robosuite.environments.manipulation.pick_place import PickPlace
     import robosuite
     from robosuite.controllers import load_controller_config
+    import debugpy
+    import yaml
+    import cv2
 
+    debugpy.listen(('0.0.0.0', 5678))
+    print("Waiting for debugger attach")
+    debugpy.wait_for_client()
 
     controller = load_controller_config(default_controller="IK_POSE")
-    env = PandaButton(has_renderer=True, controller_configs=controller,
-                            has_offscreen_renderer=False,
-                            reward_shaping=False, use_camera_obs=False, camera_heights=320, camera_widths=320, render_camera='frontview')
+
+    # load env conf
+    with open('/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/config/Button.yaml', 'r') as file:
+        env_conf = yaml.safe_load(file)
+
+    env = UR5eButton(task_id=0,
+                     has_renderer=False,
+                     mount_types=env_conf['mount_types'],
+                     controller_configs=controller,
+                     has_offscreen_renderer=True,
+                     reward_shaping=False,
+                     use_camera_obs=True,
+                     camera_heights=env_conf['camera_heights'],
+                     camera_widths=env_conf['camera_widths'],
+                     render_camera='camera_front',
+                     camera_depths=False,
+                     camera_names=env_conf['camera_names'],
+                     camera_poses=env_conf['camera_poses'],
+                     camera_attribs=env_conf['camera_attribs'],
+                     camera_gripper=env_conf['camera_gripper'],
+                     env_conf=env_conf)
     env.reset()
     for i in range(1000):
         if i % 200 == 0:
             env.reset()
         low, high = env.action_spec
         action = np.random.uniform(low=low, high=high)
-        env.step(action)
-        env.render()
+        obs, _, _, _ = env.step(action)
+        cv2.imwrite("debug.png", obs['camera_front_image'][::-1, :, ::-1])
+        # env.render()

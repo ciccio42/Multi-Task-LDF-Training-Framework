@@ -5,7 +5,7 @@
 export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
@@ -15,10 +15,11 @@ POLICY='${mosaic}'
 SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
+DEVICE=0
 DEBUG=false
 WAND_LOG=true
 
-EXP_NAME=1Task-Pick-Place-100-180-All-Obj-One-Task-Left
+EXP_NAME=1Task-Pick-Place-100-180-One-Obj-Left
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place #[pick_place,nut_assembly]
 
@@ -26,10 +27,10 @@ LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=40455
 TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54
 
-ROLLOUT=false
+ROLLOUT=true
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-100-180-All-Obj-One-Task-Left-Batch28/ #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-100-180-All-Obj-One-Task-Left-Batch16/ 
-RESUME_STEP=79750 #38280
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-100-180-One-Obj-Left-Batch48/
+RESUME_STEP=106664
 RESUME=true
 
 EPOCH=90
@@ -37,7 +38,7 @@ BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=2
+SET_SAME_N=4
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
 LOADER_WORKERS=16
@@ -86,6 +87,7 @@ python ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \
+    device=${DEVICE} \
     set_same_n=${SET_SAME_N} \
     task_names=${TASK_str} \
     exp_name=${EXP_NAME} \

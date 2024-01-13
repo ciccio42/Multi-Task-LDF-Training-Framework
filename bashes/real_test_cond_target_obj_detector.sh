@@ -16,7 +16,7 @@ MODEL_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${PROJECT_NAME}-Bat
 CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
 
 for MODEL in ${MODEL_PATH}; do
-    for S in -1; do #81000 89100; do   
+    for S in 52560 33120; do #81000 89100; do   
         for TASK in pick_place; do
             for COUNT in 1; do
                 SAVE_PATH=${MODEL}/results_${TASK}/run_${COUNT}

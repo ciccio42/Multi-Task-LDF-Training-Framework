@@ -15,21 +15,21 @@ POLICY='${mosaic}'
 SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
-DEVICE=0
+DEVICE=2
 DEBUG=false
 WANDB_LOG=true
 
-EXP_NAME=1Task-Nut-Assembly-Mosaic-100-180-Target-Obj-Detector-BB-All-Obj-One-Task-Left
+EXP_NAME=1Task-Pick-Place-100-180-GT-BB-One-Obj-Left
 PROJECT_NAME=${EXP_NAME}
-TASK_str=nut_assembly #[pick_place,nut_assembly]
+TASK_str=pick_place #[pick_place,nut_assembly]
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Mosaic-100-180-Target-Obj-Detector-BB-All-Obj-One-Task-Left-Batch24/
-RESUME_STEP=120380
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-100-180-GT-BB-One-Obj-Left-Batch36
+RESUME_STEP=31845
 RESUME=true
 
-LOAD_TARGET_OBJ_DETECTOR=true
-TARGET_OBJ_DETECTOR_STEP=65250
-TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54/
+LOAD_TARGET_OBJ_DETECTOR=false
+TARGET_OBJ_DETECTOR_STEP=-1 #65250
+TARGET_OBJ_DETECTOR_PATH=None #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54/
 CONCAT_BB=true
 
 

@@ -63,6 +63,9 @@ def get_env(env_name, ranges, **kwargs):
     elif env_name == 'Sawyer_Button':
         from multi_task_robosuite_env.tasks.press_button import SawyerButton
         env = SawyerButton
+    elif env_name == 'UR5e_Button':
+        from multi_task_robosuite_env.tasks.press_button import UR5eButton
+        env = UR5eButton
     elif env_name == 'Panda_Door':
         from multi_task_robosuite_env.tasks.door import PandaDoor
         env = PandaDoor

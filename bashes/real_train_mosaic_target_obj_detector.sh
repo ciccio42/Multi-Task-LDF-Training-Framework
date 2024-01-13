@@ -15,7 +15,7 @@ POLICY='${mosaic}'
 SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
-DEVICE=2
+DEVICE=3
 DEBUG=true
 WANDB_LOG=false
 
@@ -28,8 +28,8 @@ RESUME_STEP=27807
 RESUME=false
 
 LOAD_TARGET_OBJ_DETECTOR=true
-TARGET_OBJ_DETECTOR_STEP=36000
-TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-1Task-Pick-Place-Cond-Target-Obj-Detector-Batch8
+TARGET_OBJ_DETECTOR_STEP=52560
+TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-1Task-Pick-Place-Cond-Target-Obj-Detector-2-Batch16
 CONCAT_BB=true
 
 AGENT_NAME=real_ur5e
@@ -44,7 +44,7 @@ BALANCING_POLICY=0
 SET_SAME_N=3
 CONFIG_PATH=../experiments
 CONFIG_NAME=config_real.yaml
-LOADER_WORKERS=8
+LOADER_WORKERS=1
 NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=true

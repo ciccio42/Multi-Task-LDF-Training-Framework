@@ -18,7 +18,7 @@ from collections import OrderedDict
 from robosuite.utils.transform_utils import convert_quat, quat2mat
 
 
-NAMES = {'r': 'red block', 'g': 'green block', 'b': 'blue block'}
+NAMES = {'r': 'red_block', 'g': 'green_block', 'b': 'blue_block'}
 OFFSET = 0.0
 
 
@@ -75,7 +75,7 @@ class Stack(DefaultStack):
         self.object_set = env_conf['object_set']
         print(f"Object set {self.object_set}")
 
-        self.y_ranges = y_ranges
+        self.y_ranges = env_conf['y_ranges']
         self.x_ranges = env_conf['x_ranges']
 
         # reward configuration
@@ -173,8 +173,8 @@ class Stack(DefaultStack):
         color_dict = {'g': [0, 1, 0, 1], 'r': [1, 0, 0, 1], 'b': [0, 0, 1, 1]}
         task_name = ['rgb', 'rbg', 'bgr', 'brg', 'grb', 'gbr']
         task = task_name[self.task_id]
+        print(f"Task-name {task} - First block on second block")
         size_noise = 0
-
         if self.random_size:
             while np.abs(size_noise) < 0.0015:
                 size_noise = np.random.uniform(-0.004, 0.004)
@@ -271,7 +271,7 @@ class Stack(DefaultStack):
                 ensure_valid_placement=True,
                 reference_pos=self.table_offset,
                 z_offset=0.000,
-                addtional_dist=0.008
+                addtional_dist=0.05
             )
         )
 
@@ -505,8 +505,8 @@ class PandaBlockStacking(Stack):
     A new object is sampled on every reset.
     """
 
-    def __init__(self, force_object=None, **kwargs):
-        obj = np.random.randint(6) if force_object is None else force_object
+    def __init__(self, task_id=None, **kwargs):
+        obj = np.random.randint(6) if task_id is None else task_id
         super().__init__(task_id=obj, robots=['Panda'], **kwargs)
 
 
@@ -516,8 +516,8 @@ class UR5eBlockStacking(Stack):
     A new object is sampled on every reset.
     """
 
-    def __init__(self, force_object=None, **kwargs):
-        obj = np.random.randint(6) if force_object is None else force_object
+    def __init__(self, task_id=None, **kwargs):
+        obj = np.random.randint(6) if task_id is None else task_id
         super().__init__(task_id=obj, robots=['UR5e'], **kwargs)
 
 
@@ -528,18 +528,34 @@ if __name__ == '__main__':
     import debugpy
     import os
     import sys
+    import yaml
     debugpy.listen(('0.0.0.0', 5678))
     print("Waiting for debugger attach")
     debugpy.wait_for_client()
     import cv2
 
     controller = load_controller_config(default_controller="IK_POSE")
-    env = SawyerBlockStacking(has_renderer=False, controller_configs=controller,
-                              has_offscreen_renderer=True,
-                              reward_shaping=False,
-                              use_camera_obs=True,
-                              camera_heights=320,
-                              camera_widths=320)
+
+    # load env conf
+    with open('/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/config/BlockStacking.yaml', 'r') as file:
+        env_conf = yaml.safe_load(file)
+
+    env = UR5eBlockStacking(task_id=1,
+                            has_renderer=False,
+                            controller_configs=controller,
+                            has_offscreen_renderer=True,
+                            reward_shaping=False,
+                            use_camera_obs=True,
+                            camera_heights=env_conf['camera_heights'],
+                            camera_widths=env_conf['camera_widths'],
+                            render_camera='frontview',
+                            camera_depths=False,
+                            camera_names=env_conf['camera_names'],
+                            camera_poses=env_conf['camera_poses'],
+                            camera_attribs=env_conf['camera_attribs'],
+                            camera_gripper=env_conf['camera_gripper'],
+                            env_conf=env_conf)
+
     for i in range(1000):
         if i % 200 == 0:
             env.reset()

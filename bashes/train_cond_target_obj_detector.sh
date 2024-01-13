@@ -22,10 +22,12 @@ EXP_NAME=1Task-Pick-Place-Cond-Target-Obj-Detector-GT-BB
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place #["pick_place","nut_assembly"]
 RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/2Task-Pick-Place-Nut-Assembly-Cond-Target-Obj-Detector-Batch50/
+
 RESUME_STEP=40095
 RESUME=false
 EPOCH=90 # start from 16
 BSIZE=80 #16 #32
+
 COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector.yaml

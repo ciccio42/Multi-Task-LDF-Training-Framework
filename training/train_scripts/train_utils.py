@@ -1020,7 +1020,7 @@ class Trainer:
                                                   )
                             seeds = [(random.getrandbits(32), i, -1)
                                      for i in range(n_run)]
-                            with Pool(2) as p:
+                            with Pool(5) as p:
                                 task_success_flags = p.starmap(f, seeds)
                             if "CondTargetObjectDetector" in self.config.policy._target_:
                                 all_mean_iou = [t['avg_iou']
@@ -1054,7 +1054,7 @@ class Trainer:
                                     all_avg_pred)
                                 tolog['train_step'] = self._step
 
-                                if tolog['avg_success'] > best_avg_success:
+                                if tolog['avg_success'] >= best_avg_success:
                                     print(
                                         f"Save model best_avg_success from {best_avg_success} to {tolog['avg_success']}")
                                     best_avg_success = tolog['avg_success']

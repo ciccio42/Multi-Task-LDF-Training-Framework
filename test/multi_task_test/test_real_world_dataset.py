@@ -267,6 +267,9 @@ if __name__ == '__main__':
         print("Waiting for debugger attach")
         debugpy.wait_for_client()
 
+    random.seed(42)
+    np.random.seed(42)
+
     try_path = args.model
     # if 'log' not in args.model and 'mosaic' not in args.model:
     #     print("Appending dir to given exp_name: ", args.model)
@@ -416,7 +419,7 @@ if __name__ == '__main__':
             "traj_per_subtask": 36,
             "demo_per_subtask": 100}
 
-        config.dataset_cfg.mode = "val"
+        config.dataset_cfg.mode = "train"
         config.dataset_cfg.agent_name = "real_ur5e"
         config.dataset_cfg.root_dir = "/raid/home/frosa_Loc/opt_dataset"
         dataset = instantiate(config.get('dataset_cfg', None))
@@ -456,8 +459,6 @@ if __name__ == '__main__':
                               args.save_files,
                               args.gt_bb)
 
-        random.seed(42)
-        np.random.seed(42)
         seeds = []
         for i in range(args.N):
             if build_context_flag:

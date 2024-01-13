@@ -94,10 +94,10 @@ class BlockStackingController:
         # define the initial orientation of the gripper site
         self._base_quat = Quaternion(matrix=np.reshape(
             self._env.sim.data.site_xmat[self._env.robots[0].eef_site_id], (3, 3)))
-        print(
-            f"Starting position:\n{self._env.sim.data.site_xpos[self._env.robots[0].eef_site_id]}")
-        print(
-            f"Base rot:\n{np.reshape(self._env.sim.data.site_xmat[self._env.robots[0].eef_site_id], (3,3))}")
+        # print(
+        #     f"Starting position:\n{self._env.sim.data.site_xpos[self._env.robots[0].eef_site_id]}")
+        # print(
+        #     f"Base rot:\n{np.reshape(self._env.sim.data.site_xmat[self._env.robots[0].eef_site_id], (3,3))}")
 
         self._t = 0
         self._intermediate_reached = False
@@ -221,7 +221,7 @@ class BlockStackingController:
 
         self._t += 1
         self._status = status
-        print(f"Status {status}")
+        # print(f"Status {status}")
         return action, status
 
     def disconnect(self):
@@ -233,8 +233,15 @@ def get_expert_trajectory(env_type, controller_type, renderer=False, camera_obs=
     assert 'gpu' in str(mujoco_py.cymj), 'Make sure to render with GPU.'
     # reassign the gpu id
     visible_ids = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
-    gpu_id = int(visible_ids[gpu_id])
-
+    if gpu_id == 3:
+        gpu_id = 0
+    elif gpu_id == 0:
+        gpu_id = 3  # 1
+    elif gpu_id == 1:
+        gpu_id = 2
+    elif gpu_id == 2:
+        gpu_id = 1  # 3
+    print(f"GPU-ID {gpu_id}")
     seed = seed if seed is not None else random.getrandbits(32)
     env_seed = seed if env_seed is None else env_seed
     seed_offset = sum([int(a) for a in bytes(env_type, 'ascii')])
@@ -258,15 +265,17 @@ def get_expert_trajectory(env_type, controller_type, renderer=False, camera_obs=
         while True:
             try:
                 env = get_env(env_type,
-                              force_object=use_object,
                               controller_configs=controller_type,
+                              task_id=task,
                               has_renderer=renderer,
                               has_offscreen_renderer=camera_obs,
                               reward_shaping=False,
                               use_camera_obs=camera_obs,
                               ranges=action_ranges,
                               render_gpu_device_id=gpu_id,
-                              **kwargs)
+                              render_camera=render_camera,
+                              object_set=object_set,
+                              ** kwargs)
                 break
             except RandomizationError:
                 pass
@@ -276,8 +285,8 @@ def get_expert_trajectory(env_type, controller_type, renderer=False, camera_obs=
     while True:
         try:
             env = get_env(env_type,
-                          force_object=use_object,
                           controller_configs=controller_type,
+                          task_id=task,
                           has_renderer=renderer,
                           has_offscreen_renderer=camera_obs,
                           reward_shaping=False,
@@ -285,7 +294,8 @@ def get_expert_trajectory(env_type, controller_type, renderer=False, camera_obs=
                           ranges=action_ranges,
                           render_gpu_device_id=gpu_id,
                           render_camera=render_camera,
-                          **kwargs)
+                          object_set=object_set,
+                          ** kwargs)
 
             break
         except RandomizationError:
@@ -348,10 +358,10 @@ if __name__ == '__main__':
     controller_config = load_controller_config(
         custom_fpath=controller_config_path)
     for i in range(6):
-        traj = get_expert_trajectory('UR5e_BlockStacking',
+        traj = get_expert_trajectory('Panda_BlockStacking',
                                      controller_type=controller_config,
                                      renderer=False,
                                      camera_obs=True,
                                      task=i,
-                                     render_camera='camera_lateral_left',
+                                     render_camera='camera_front',
                                      object_set=1)

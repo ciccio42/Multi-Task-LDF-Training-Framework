@@ -492,8 +492,8 @@ def create_data_aug(dataset_loader=object):
             # ---- Resized crop ----#
             obs = resized_crop(obs, top=top, left=left, height=box_h,
                                width=box_w, size=(dataset_loader.height, dataset_loader.width))
-            if True:
-                cv2.imwrite(f"resized_target_obj_{frame_number}.png", np.moveaxis(
+            if DEBUG:
+                cv2.imwrite(f"resized_{frame_number}.png", np.moveaxis(
                     obs.numpy()*255, 0, -1))
             if bb is not None and class_frame is not None:
                 bb = adjust_bb(dataset_loader=dataset_loader,
@@ -683,7 +683,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
             image = copy.copy(
                 step_t['obs']['camera_front_image'])
 
-        if True:
+        if DEBUG:
             cv2.imwrite("original_image.png", image)
 
         # Create GT BB
@@ -711,6 +711,8 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
             end_aug = time.time()
             logger.debug(f"Aug time: {end_aug-aug_time}")
             images.append(processed)
+            # cv2.imwrite("augmented_obs.png", np.array(np.moveaxis(
+            #     copy.deepcopy(processed).cpu().numpy()*255, 0, -1), dtype=np.uint8))
         else:
             bb_aug = bb_frame
 
