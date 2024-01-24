@@ -1,4 +1,0 @@
-Collecting 600 trajs for block_stacking, using 12 subtasks
-Saving path:  /user/frosa/multi_task_lfd/ur_multitask_dataset/block_stacking/panda/
-Making environment Panda_BlockStacking for robot panda, using env builder <function get_expert_trajectory at 0x7f389e108af0>
-Distributing work to 4 GPUs

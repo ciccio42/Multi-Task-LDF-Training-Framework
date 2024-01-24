@@ -1,0 +1,2554 @@
+Task pick_place
+wandb: Currently logged in as: francescorosa97. Use `wandb login --relogin` to force relogin
+wandb: wandb version 0.16.2 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.15.10
+wandb: Run data is saved locally in /raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes/wandb/run-20240120_213619-0opb1tka
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run comfy-wood-21
+wandb: ⭐️ View project at https://wandb.ai/francescorosa97/1Task-Pick-Place-Mosaic-cropped-no-normalized
+wandb: 🚀 View run at https://wandb.ai/francescorosa97/1Task-Pick-Place-Mosaic-cropped-no-normalized/runs/0opb1tka
+pybullet build time: Sep  9 2023 15:14:45
+Found 8 GPUs for rendering. Using device 3.
+Task pick_place
+wandb: Currently logged in as: francescorosa97. Use `wandb login --relogin` to force relogin
+wandb: wandb version 0.16.2 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.15.10
+wandb: Run data is saved locally in /raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes/wandb/run-20240120_213737-szrvd76a
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run grateful-oath-22
+wandb: ⭐️ View project at https://wandb.ai/francescorosa97/1Task-Pick-Place-Mosaic-cropped-no-normalized
+wandb: 🚀 View run at https://wandb.ai/francescorosa97/1Task-Pick-Place-Mosaic-cropped-no-normalized/runs/szrvd76a
+120000
+Appending saved step 120000
+Testing model /user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-Mosaic-cropped-no-normalized-Batch32/model_save-120000.pt
+Result dir /user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-Mosaic-cropped-no-normalized-Batch32//results_pick_place/run_1_gt_action
+loading model from saved training step 120000
+Made new path for results at: /user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-Mosaic-cropped-no-normalized-Batch32//results_pick_place/run_1_gt_action/step-120000
+Multi-task dataset, tasks used:  [{'name': 'pick_place', 'n_tasks': 16, 'crop': [20, 25, 80, 75], 'n_per_task': 2, 'task_ids': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 'loss_mul': 1, 'task_per_batch': 16, 'traj_per_subtask': 100, 'demo_per_subtask': 100}]
+pretrain False
+---- Backbone summary of resnet ----
+A total of 2 layers, cross demo-obs attention starts at layer idx 0
+Position embedding shape: torch.Size([1, 256, 3000]) 
+
+Linear embedder has input dim: 256x7x12=21504 
+Image feature dimensions: torch.Size([1, 11, 256, 7, 12])
+Contrastive MLP using hidden dim:  512
+Concat-ing embedded demo to action head? False, to distribution head? True
+Total params in Imitation module: 37829638
+
+---- Complete model ----
+
+Found 4 GPU devices, using 7 parallel workers for evaluating 160 total trajectories
+
+Renderer is using size (200, 360) 
+
+---- Testing model multi_task_il.models.mt_rep.VideoImitation ----
+pybullet build time: Sep  9 2023 15:14:45
+Found 8 GPUs for rendering. Using device 3.
+pybullet build time: Sep  9 2023 15:14:45
+Found 8 GPUs for rendering. Using device 3.
+pybullet build time: Sep  9 2023 15:14:45
+Found 8 GPUs for rendering. Using device 3.
+/raid/home/frosa_Loc/conda/envs/multi_task_lfd/lib/python3.9/multiprocessing/resource_tracker.py:216: UserWarning: resource_tracker: There appear to be 6 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '
+Task pick_place
+wandb: Currently logged in as: francescorosa97. Use `wandb login --relogin` to force relogin
+wandb: wandb version 0.16.2 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.15.10
+wandb: Run data is saved locally in /raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes/wandb/run-20240120_214000-kodls0sh
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run polished-monkey-23
+wandb: ⭐️ View project at https://wandb.ai/francescorosa97/1Task-Pick-Place-Mosaic-cropped-no-normalized
+wandb: 🚀 View run at https://wandb.ai/francescorosa97/1Task-Pick-Place-Mosaic-cropped-no-normalized/runs/kodls0sh
+120000
+Appending saved step 120000
+Testing model /user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-Mosaic-cropped-no-normalized-Batch32/model_save-120000.pt
+Result dir /user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-Mosaic-cropped-no-normalized-Batch32//results_pick_place/run_1_gt_action
+loading model from saved training step 120000
+Made new path for results at: /user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-Mosaic-cropped-no-normalized-Batch32//results_pick_place/run_1_gt_action/step-120000
+Multi-task dataset, tasks used:  [{'name': 'pick_place', 'n_tasks': 16, 'crop': [20, 25, 80, 75], 'n_per_task': 2, 'task_ids': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 'loss_mul': 1, 'task_per_batch': 16, 'traj_per_subtask': 100, 'demo_per_subtask': 100}]
+pretrain False
+---- Backbone summary of resnet ----
+A total of 2 layers, cross demo-obs attention starts at layer idx 0
+Position embedding shape: torch.Size([1, 256, 3000]) 
+
+Linear embedder has input dim: 256x7x12=21504 
+Image feature dimensions: torch.Size([1, 11, 256, 7, 12])
+Contrastive MLP using hidden dim:  512
+Concat-ing embedded demo to action head? False, to distribution head? True
+Total params in Imitation module: 37829638
+
+---- Complete model ----
+
+Found 4 GPU devices, using 7 parallel workers for evaluating 160 total trajectories
+
+Renderer is using size (200, 360) 
+
+---- Testing model multi_task_il.models.mt_rep.VideoImitation ----
+pybullet build time: Sep  9 2023 15:14:45
+Found 8 GPUs for rendering. Using device 3.
+pybullet build time: Sep  9 2023 15:14:45
+Found 8 GPUs for rendering. Using device 3.
+pybullet build time: Sep  9 2023 15:14:45
+Found 8 GPUs for rendering. Using device 3.
+pybullet build time: Sep  9 2023 15:14:45
+Found 8 GPUs for rendering. Using device 3.
+pybullet build time: Sep  9 2023 15:14:45
+Found 8 GPUs for rendering. Using device 3.
+pybullet build time: Sep  9 2023 15:14:45
+Found 8 GPUs for rendering. Using device 3.
+pybullet build time: Sep  9 2023 15:14:45
+Found 8 GPUs for rendering. Using device 3.
+Model GPU id 0
+Seed: 127978094
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 2, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #18, task#2, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 402418010
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 3, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #19, task#3, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 939042955
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 4, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #20, task#4, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 999270936
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 5, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #21, task#5, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2170484433
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 6, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #22, task#6, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2585650756
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 7, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #23, task#7, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2998485882
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 10, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #42, task#10, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1815115025
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 11, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #43, task#11, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1461364854
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 12, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #44, task#12, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1193448329
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 13, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #45, task#13, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 667779376
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 14, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #46, task#14, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 924765563
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 15, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #47, task#15, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 978815630
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 4, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #84, task#4, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3320303242
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 5, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #85, task#5, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1242911821
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+Model GPU id 0
+Seed: 958682846
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 6, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #6, task#6, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 599310825
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 7, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #7, task#7, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3163119785
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 8, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #8, task#8, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 440213415
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 9, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #9, task#9, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2906402157
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 10, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #10, task#10, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3181143731
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 11, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #11, task#11, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 415393687
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 6, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #54, task#6, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1541804686
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 7, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #55, task#7, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3639960595
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 8, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #56, task#8, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1477278577
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 9, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #57, task#9, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2592983555
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 10, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #58, task#10, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1136108454
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 11, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #59, task#11, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2730243887
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 0, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #96, task#0, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3582477022
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 1, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #97, task#1, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1566942273
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+Model GPU id 0
+Seed: 2746317213
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 0, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #0, task#0, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 478163327
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 1, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #1, task#1, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 107420369
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 2, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #2, task#2, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3184935163
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 3, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #3, task#3, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1181241943
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 4, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #4, task#4, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1051802512
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 5, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #5, task#5, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 4111198819
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 0, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #48, task#0, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3279182318
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 1, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #49, task#1, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1445662585
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 2, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #50, task#2, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 438989805
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 3, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #51, task#3, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 398340369
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 4, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #52, task#4, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1631775357
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 5, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #53, task#5, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 999829240
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 10, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #90, task#10, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3721519026
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 11, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #91, task#11, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 433797840
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+Model GPU id 0
+Seed: 2340505846
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 14, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #30, task#14, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1801823908
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 15, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #31, task#15, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 946785248
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 0, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #32, task#0, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1929338154
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 1, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #33, task#1, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2530876844
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 2, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #34, task#2, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1194819984
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 3, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #35, task#3, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3562265906
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 8, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #72, task#8, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2699987374
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 9, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #73, task#9, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2656522106
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 10, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #74, task#10, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3802986287
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 11, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #75, task#11, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3701002945
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 12, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #76, task#12, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1553210608
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 13, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #77, task#13, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 899825838
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 6, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #102, task#6, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2878380452
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 7, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #103, task#7, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1146660997
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+Model GPU id 0
+Seed: 3476477323
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 4, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #36, task#4, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3733616459
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 5, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #37, task#5, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 27911967
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 6, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #38, task#6, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3259052811
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 7, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #39, task#7, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3460967357
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 8, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #40, task#8, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 685731524
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 9, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #41, task#9, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 4179500364
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 2, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #66, task#2, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3961228449
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 3, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #67, task#3, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1625792787
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 4, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #68, task#4, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 338444264
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 5, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #69, task#5, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2370996465
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 6, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #70, task#6, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1259191105
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 7, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #71, task#7, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2783290795
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 12, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #108, task#12, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 306671447
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 13, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #109, task#13, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2616197747
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+Model GPU id 0
+Seed: 113971123
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 8, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #24, task#8, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2410529190
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 9, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #25, task#9, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 854001193
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 10, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #26, task#10, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3075280817
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 11, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #27, task#11, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2791232393
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 12, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #28, task#12, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3012167820
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 13, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #29, task#13, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3466589567
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 12, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #60, task#12, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 186618211
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 13, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #61, task#13, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3134174160
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 14, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #62, task#14, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1973214822
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 15, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #63, task#15, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2303082117
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 0, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #64, task#0, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 536124280
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 1, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #65, task#1, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3131575764
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 2, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #114, task#2, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1051454923
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 3, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #115, task#3, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 701808367
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+Model GPU id 0
+Seed: 3831882064
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 12, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #12, task#12, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2342331444
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 13, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #13, task#13, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 373399426
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 14, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #14, task#14, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2536146025
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 15, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #15, task#15, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1812140441
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 0, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #16, task#0, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 136505587
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 1, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #17, task#1, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2479708607
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 14, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #78, task#14, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 825873196
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 15, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #79, task#15, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3026113008
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 0, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #80, task#0, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 298737106
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 1, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #81, task#1, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 196814233
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 2, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #82, task#2, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2840104345
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+Target object greenbox
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 3, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #83, task#3, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 4249970406
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 8, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #120, task#8, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3974524834
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 9, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #121, task#9, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2748778024
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 12, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #92, task#12, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1632629719
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 13, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #93, task#13, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1193887545
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 14, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #94, task#14, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1947382419
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 15, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #95, task#15, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1149938334
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 10, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #138, task#10, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 284277889
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 11, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #139, task#11, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 906164396
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 12, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #140, task#12, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3921889760
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 13, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #141, task#13, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 4049766372
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 14, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #142, task#14, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2436019774
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object redbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 15, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #143, task#15, reached? False picked? False success? False 
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 4, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #116, task#4, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1985392498
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 5, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #117, task#5, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1629748727
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 6, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #118, task#6, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1159417075
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 7, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #119, task#7, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1699226064
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 6, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #150, task#6, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3799685197
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 7, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #151, task#7, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3927951973
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 8, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #152, task#8, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2761027762
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 9, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #153, task#9, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1970753705
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 10, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #154, task#10, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 613628803
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 11, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #155, task#11, reached? False picked? False success? False 
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 8, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #104, task#8, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3014295294
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 9, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #105, task#9, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 4022900809
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 10, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #106, task#10, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2935814872
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object bluebox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 11, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #107, task#11, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3763970286
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 0, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #144, task#0, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 3083418319
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 1, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #145, task#1, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 1351531223
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 2, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #146, task#2, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 913224047
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object greenbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 3, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #147, task#3, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2815087637
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 4, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #148, task#4, reached? False picked? False success? False 
+Model GPU id 0
+Seed: 2144181937
+GPU-ID 3
+Panda_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Target object yellowbox
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+GPU-ID 3
+UR5e_PickPlaceDistractor
+Render GPU id 3
+Object set 2
+Max-t 95
+{'success': False, 'reached': False, 'picked': False, 'variation_id': 5, 'reached_wrong': 0.0, 'picked_wrong': 0.0, 'place_wrong': 0.0, 'place_wrong_correct_obj': 0.0, 'place_wrong_wrong_obj': 0.0, 'place_correct_bin_wrong_obj': 0.0}
+Evaluated traj #149, task#5, reached? False picked? False success? False 
+Task reached, rate 0.0
+Task picked, rate 0.0
+Task success, rate 0.0
+Task reached_wrong, rate 0.0
+Task picked_wrong, rate 0.0
+Task place_wrong, rate 0.0
+Success rate on task#0 0.0
+Success rate on task#1 0.0
+Success rate on task#2 0.0
+Success rate on task#3 0.0
+Success rate on task#4 0.0
+Success rate on task#5 0.0
+Success rate on task#6 0.0
+Success rate on task#7 0.0
+Success rate on task#8 0.0
+Success rate on task#9 0.0
+Success rate on task#10 0.0
+Success rate on task#11 0.0
+Success rate on task#12 0.0
+Success rate on task#13 0.0
+Success rate on task#14 0.0
+Success rate on task#15 0.0
+wandb: Waiting for W&B process to finish... (success).
+wandb: 
+wandb: Run history:
+wandb:                    avg_avg_pred ▁
+wandb:                      avg_picked ▁
+wandb:                avg_picked_wrong ▁
+wandb: avg_place_correct_bin_wrong_obj ▁
+wandb:                 avg_place_wrong ▁
+wandb:     avg_place_wrong_correct_obj ▁
+wandb:       avg_place_wrong_wrong_obj ▁
+wandb:                        avg_pred ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                     avg_reached ▁
+wandb:               avg_reached_wrong ▁
+wandb:                     avg_success ▁
+wandb:                avg_variation_id ▁
+wandb:                         episode ▁▁▁▂▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇▇███
+wandb:                          picked ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                    picked_wrong ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:     place_correct_bin_wrong_obj ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                     place_wrong ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:         place_wrong_correct_obj ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:           place_wrong_wrong_obj ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                         reached ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                   reached_wrong ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                         success ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                    variation_id ▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅▇▁▃▅█
+wandb: 
+wandb: Run summary:
+wandb:                    avg_avg_pred 0.0
+wandb:                      avg_picked 0.0
+wandb:                avg_picked_wrong 0.0
+wandb: avg_place_correct_bin_wrong_obj 0.0
+wandb:                 avg_place_wrong 0.0
+wandb:     avg_place_wrong_correct_obj 0.0
+wandb:       avg_place_wrong_wrong_obj 0.0
+wandb:                        avg_pred 0.0
+wandb:                     avg_reached 0.0
+wandb:               avg_reached_wrong 0.0
+wandb:                     avg_success 0.0
+wandb:                avg_variation_id 7.5
+wandb:                         episode 159
+wandb:                          picked 0.0
+wandb:                    picked_wrong 0.0
+wandb:     place_correct_bin_wrong_obj 0.0
+wandb:                     place_wrong 0.0
+wandb:         place_wrong_correct_obj 0.0
+wandb:           place_wrong_wrong_obj 0.0
+wandb:                         reached 0.0
+wandb:                   reached_wrong 0.0
+wandb:                         success 0.0
+wandb:                    variation_id 15
+wandb: 
+wandb: 🚀 View run polished-monkey-23 at: https://wandb.ai/francescorosa97/1Task-Pick-Place-Mosaic-cropped-no-normalized/runs/kodls0sh
+wandb: ️⚡ View job at https://wandb.ai/francescorosa97/1Task-Pick-Place-Mosaic-cropped-no-normalized/jobs/QXJ0aWZhY3RDb2xsZWN0aW9uOjEzMTEwNDIxMg==/version_details/v4
+wandb: Synced 6 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20240120_214000-kodls0sh/logs
+pybullet build time: Sep  9 2023 15:14:45

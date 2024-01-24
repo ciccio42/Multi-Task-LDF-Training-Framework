@@ -18,7 +18,7 @@ def _clip_delta(delta, max_step=0.015):
     return delta / norm_delta * max_step
 
 
-def nut_assembly_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="nut_assembly", config=None, gt_file=None, gt_bb=False):
+def nut_assembly_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="nut_assembly", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action_any_T=4):
 
     if "vima" in model_name:
         return nut_assembly_eval_vima(model=model,
@@ -365,6 +365,9 @@ def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
     tasks["reached_wrong"] = 0.0
     tasks["picked_wrong"] = 0.0
     tasks["place_wrong"] = 0.0
+    tasks["place_wrong_correct_obj"] = 0.0
+    tasks["place_wrong_wrong_obj"] = 0.0
+    tasks["place_correct_wrong_obj"] = 0.0
     print(f"Max-t {max_T}")
 
     while not done:
@@ -383,7 +386,7 @@ def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
                     tasks['reached_wrong'] = tasks['reached_wrong'] or np.linalg.norm(
                         handle_obj_loc - obs['eef_pos']) < 0.045
                     tasks['picked_wrong'] = tasks['picked_wrong'] or (
-                        tasks['reached_wrong'] and obs[obj_key][2] - start_z > 0.05)
+                        tasks['reached_wrong'] and handle_obj_loc[2] - start_z > 0.05)
 
         if baseline and len(states) >= 5:
             states, images, bb = [], [], []
@@ -463,6 +466,7 @@ def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
             # prev_action = action
             obs, reward, env_done, info = env.step(action)
             if concat_bb and not predict_gt_bb:
+                
                 # get predicted bb from prediction
                 # 1. Get the index with target class
                 target_indx_flags = prediction['classes_final'][0] == 1
@@ -564,8 +568,8 @@ def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
                     obj_pos = obs[f"{ENV_OBJECTS['nut_assembly']['obj_names'][obs['target-object']]}_pos"]
                     if check_peg(peg_pos=peg_pos,
                                  obj_pos=obj_pos,
-                                 current_peg=tasks.get("place_wrong", 0.0)):
-                        tasks["place_wrong"] = 1.0
+                                 current_peg=tasks.get("place_wrong_correct_obj", 0.0)):
+                        tasks["place_wrong_correct_obj"] = 1.0
                 # if i != obs['target-box-id']:
                 #     bin_pos = obs[f"{bin_name}_pos"]
                 #     if check_bin(threshold=0.03,
@@ -575,6 +579,24 @@ def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
                 #                      "place_wrong", 0.0)
                 #                  ):
                 #         tasks["place_wrong"] = 1.0
+
+            for obj_id, obj_name, in enumerate(env.env.obj_names):
+                if obj_id != traj.get(0)['obs']['target-object']:
+                    for i, peg_name in enumerate(ENV_OBJECTS['nut_assembly']['peg_names']):
+                        if i != obs['target-peg']:
+                            peg_pos = obs[f"peg{i+1}_pos"]
+                            obj_pos = obs[f"{ENV_OBJECTS['nut_assembly']['obj_names'][obj_id]}_pos"]
+                            if check_peg(peg_pos=peg_pos,
+                                         obj_pos=obj_pos,
+                                         current_peg=tasks.get("place_wrong_wrong_obj", 0.0)):
+                                tasks["place_wrong_wrong_obj"] = 1.0
+                        else:
+                            peg_pos = obs[f"peg{i+1}_pos"]
+                            obj_pos = obs[f"{ENV_OBJECTS['nut_assembly']['obj_names'][obj_id]}_pos"]
+                            if check_peg(peg_pos=peg_pos,
+                                         obj_pos=obj_pos,
+                                         current_peg=tasks.get("place_correct_wrong_obj", 0.0)):
+                                tasks["place_correct_wrong_obj"] = 1.0
 
         n_steps += 1
         if env_done or reward or n_steps > max_T:

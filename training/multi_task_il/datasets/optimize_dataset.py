@@ -169,6 +169,7 @@ def opt_traj(task_name, task_spec, out_path, pkl_file_path):
                 img = sample['traj'].get(t)['obs'].get(
                     f"{camera_name}_image", None)
                 if img is not None:
+                    cv2.imwrite("original.png", img)
                     bb_dict = sample['traj'].get(
                         t)['obs'].get("obj_bb", None)
                     bb = None
@@ -183,7 +184,15 @@ def opt_traj(task_name, task_spec, out_path, pkl_file_path):
                         t)['obs'][f"{camera_name}_image"] = img_res
                     sample['traj'].get(
                         t)['obs']['obj_bb'][camera_name] = adj_bb
-                    # cv2.imwrite("prova.png", img)
+                    sample['traj'].get(
+                        t)['obs']["target-object"] = int(int(sample['task_id'])/4)
+                    img = copy.deepcopy(img_res)
+                    for obj_name in adj_bb:
+                        img = cv2.rectangle(img, adj_bb[obj_name]['upper_left_corner'],
+                                            adj_bb[obj_name]['bottom_right_corner'],
+                                            (0, 255, 0),
+                                            1)
+                    cv2.imwrite("prova.png", img)
 
     trj_name = pkl_file_path.split('/')[-1]
     out_pkl_file_path = os.path.join(out_path, trj_name)
@@ -214,9 +223,9 @@ if __name__ == '__main__':
         debugpy.wait_for_client()
 
     # 1. Load the dataset
-    folder_path = os.path.join(
-        args.dataset_path, args.task_name, f"{args.robot_name}_{args.task_name}")
-
+    # folder_path = os.path.join(
+    #     args.dataset_path, args.task_name, f"{args.robot_name}_{args.task_name}")
+    folder_path = "/user/frosa/multi_task_lfd/ur_multitask_dataset/pick_place/real_ur5e_pick_place/only_frontal/pick_place/"
     if args.out_path is None:
         out_path = os.path.join(args.dataset_path,
                                 f"{args.task_name}_opt",
@@ -249,7 +258,7 @@ if __name__ == '__main__':
             i = 0
             trj_list = glob.glob(f"{task_path}/*.pkl")
 
-            with Pool(10) as p:
+            with Pool(1) as p:
                 f = functools.partial(opt_traj,
                                       args.task_name,
                                       task_conf,

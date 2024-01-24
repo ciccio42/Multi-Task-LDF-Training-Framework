@@ -223,7 +223,7 @@ def pick_place_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None, 
     return traj, tasks
 
 
-def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False):
+def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False, sub_action=False, gt_action_any_T=4):
 
     start_up_env_return = \
         startup_env(model=model,
@@ -252,11 +252,15 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
     # compute the average prediction over the whole trajectory
     avg_prediction = 0
     target_obj_emb = None
+    consecutive_gt_action_cnt = 0
 
     print(f"Max-t {max_T}")
     tasks["reached_wrong"] = 0.0
     tasks["picked_wrong"] = 0.0
     tasks["place_wrong"] = 0.0
+    tasks["place_wrong_correct_obj"] = 0.0
+    tasks["place_wrong_wrong_obj"] = 0.0
+    tasks["place_correct_bin_wrong_obj"] = 0.0
 
     while not done:
 
@@ -283,7 +287,7 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
                 if check_pick(threshold=0.05,
                               obj_z=obs[obj_name + "_pos"][2],
                               start_z=start_z,
-                              reached=tasks['reached'],
+                              reached=tasks['reached_wrong'],
                               picked=tasks.get(
                                   "picked_wrong", 0.0)):
                     tasks['picked_wrong'] = 1.0
@@ -359,6 +363,12 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
             prediction = prediction_internal_obj
 
         try:
+            if sub_action and n_steps % gt_action_any_T == 0:
+                consecutive_gt_action_cnt = 0
+            if consecutive_gt_action_cnt < 4:
+                consecutive_gt_action_cnt += 1
+                action, _ = controller.act(gt_obs)
+
             obs, reward, env_done, info = env.step(action)
             if concat_bb and not predict_gt_bb:
                 # get predicted bb from prediction
@@ -441,13 +451,36 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
                                  bin_pos=bin_pos,
                                  obj_pos=obs[f"{object_name_target}_pos"],
                                  current_bin=tasks.get(
-                                     "place_wrong", 0.0)
+                                     "place_wrong_correct_obj", 0.0)
                                  ):
-                        tasks["place_wrong"] = 1.0
+                        tasks["place_wrong_correct_obj"] = 1.0
+
+            for obj_id, obj_name, in enumerate(env.env.obj_names):
+                if obj_id != traj.get(0)['obs']['target-object'] and obj_name != "bin":
+                    for i, bin_name in enumerate(ENV_OBJECTS['pick_place']['bin_names']):
+                        if i != obs['target-box-id']:
+                            bin_pos = obs[f"{bin_name}_pos"]
+                            if check_bin(threshold=0.03,
+                                         bin_pos=bin_pos,
+                                         obj_pos=obs[f"{obj_name}_pos"],
+                                         current_bin=tasks.get(
+                                             "place_wrong_wrong_obj", 0.0)
+                                         ):
+                                tasks["place_wrong_wrong_obj"] = 1.0
+                        else:
+                            bin_pos = obs[f"{bin_name}_pos"]
+                            if check_bin(threshold=0.03,
+                                         bin_pos=bin_pos,
+                                         obj_pos=obs[f"{obj_name}_pos"],
+                                         current_bin=tasks.get(
+                                             "place_correct_bin_wrong_obj", 0.0)
+                                         ):
+                                tasks["place_correct_bin_wrong_obj"] = 1.0
 
         n_steps += 1
         if env_done or reward or n_steps > max_T:
             done = True
+    print(tasks)
     env.close()
     tasks['avg_pred'] = avg_prediction/len(traj)
     del env
@@ -458,7 +491,7 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
     return traj, tasks
 
 
-def pick_place_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None, gt_bb=False):
+def pick_place_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action_any_T=4):
 
     if "vima" in model_name:
         return pick_place_eval_vima(model=model,
@@ -545,5 +578,7 @@ def pick_place_eval(model, env, gt_env, context, gpu_id, variation_id, img_forma
                                              "concat_bb", False),
                                          task_name=task_name,
                                          config=config,
-                                         predict_gt_bb=gt_bb
+                                         predict_gt_bb=gt_bb,
+                                         sub_action=sub_action,
+                                         gt_action_any_T=gt_action_any_T
                                          )

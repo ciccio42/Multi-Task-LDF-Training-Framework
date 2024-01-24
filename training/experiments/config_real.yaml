@@ -99,7 +99,7 @@ dataset_cfg:
   # x, y, z, e_x, e_y, e_z
   normalization_ranges: [[-0.35,  0.35],
                         [0.20,  0.90],
-                        [ -0.10,  0.20],
+                        [ -0.11,  0.20],
                         [-3.14911766,  3.14911766],
                         [-3.14911766, 3.14911766],
                         [-3.14911766,  3.14911766]]
@@ -108,7 +108,7 @@ dataset_cfg:
   data_augs:        ${augs}
   non_sequential:   False
   crop_twice:       True
-  state_spec:       null #[ee_aa, gripper_qpos]
+  state_spec:       [eef_pos, ee_aa, gripper_qpos]
   allow_val_skip:   ${val_skip}
   allow_train_skip: ${train_skip}
   use_strong_augs:  True 
@@ -191,7 +191,7 @@ mosaic:
   load_contrastive: True
   concat_target_obj_embedding: False
   latent_dim:         40
-  sdim:               8
+  sdim:               7
   concat_state:       True
   concat_bb:       True
   height:             ${train_cfg.dataset.height}

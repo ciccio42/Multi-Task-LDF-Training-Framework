@@ -15,17 +15,17 @@ POLICY='${mosaic}'
 SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
-DEVICE=2
-DEBUG=false
-WANDB_LOG=true
+DEVICE=0
+DEBUG=true
+WANDB_LOG=false
 
-EXP_NAME=1Task-Pick-Place-100-180-GT-BB-One-Obj-Left
+EXP_NAME=Prova
 PROJECT_NAME=${EXP_NAME}
-TASK_str=pick_place #[pick_place,nut_assembly]
+TASK_str=button #[pick_place,nut_assembly, stack_block, button]
 
 RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-100-180-GT-BB-One-Obj-Left-Batch36
 RESUME_STEP=31845
-RESUME=true
+RESUME=false
 
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=-1 #65250
@@ -42,7 +42,7 @@ BALANCING_POLICY=0
 SET_SAME_N=3
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=8
+LOADER_WORKERS=1
 NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=true

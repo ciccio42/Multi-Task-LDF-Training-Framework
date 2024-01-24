@@ -79,7 +79,7 @@ samplers:
   shuffle:            True 
   # Policy 1: At each slot is assigned a RandomSampler
   balancing_policy: 1 # 0, 1, 2 
-val_skip:             False # whether to let the samplers skip some **sub**tasks
+val_skip:             True # whether to let the samplers skip some **sub**tasks
 train_skip:           True
 
 dataset_cfg:
@@ -158,6 +158,8 @@ cond_target_obj_detector_cfg:
   agent_backbone_name: resnet18
   cond_video: True
   pretrained: False
+  anc_scales: [1.0, 1.5, 2.0, 3.0, 4.0] 
+  anc_ratios: [0.2, 0.5, 0.8, 1, 1.2, 1.5, 2.0]
   dim_H: 14
   dim_W: 14
   n_channels: 256

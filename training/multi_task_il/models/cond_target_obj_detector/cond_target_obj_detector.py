@@ -352,7 +352,7 @@ class CondModule(nn.Module):
 
 class AgentModule(nn.Module):
 
-    def __init__(self, height=120, width=160, obs_T=4, model_name="resnet18", pretrained=False, load_film=True, n_res_blocks=6, n_classes=2, task_embedding_dim=128, dim_H=7, dim_W=7, conv_drop_dim=3):
+    def __init__(self, height=120, width=160, obs_T=4, model_name="resnet18", pretrained=False, load_film=True, n_res_blocks=6, n_classes=2, task_embedding_dim=128, dim_H=7, dim_W=7, conv_drop_dim=3, anc_scales=[1.0, 1.5, 2.0, 3.0, 4.0], anc_ratios=[0.2, 0.5, 0.8, 1, 1.2, 1.5, 2.0]):
         super().__init__()
         if not load_film:
             self._module = get_backbone(backbone_name=model_name,
@@ -389,10 +389,8 @@ class AgentModule(nn.Module):
             self.height_scale_factor = self.img_height // self.out_h
 
             # scales and ratios for anchor boxes
-            self.anc_scales = [1.0, 1.5, 2.0, 3.0, 4.0]
-            # [0.5, 1, 1.5] #height/width
-            # [0.2, 0.5, 0.8, 1, 1.2, 1.5, 2.0]
-            self.anc_ratios = [0.2, 0.5, 0.8, 1, 1.2, 1.5, 2.0]
+            self.anc_scales = anc_scales
+            self.anc_ratios = anc_ratios
             self.n_anc_boxes = len(self.anc_scales) * len(self.anc_ratios)
 
             # IoU thresholds for +ve and -ve anchors
@@ -705,7 +703,9 @@ class CondTargetObjectDetector(nn.Module):
                                           dim_H=cond_target_obj_detector_cfg.dim_H,
                                           dim_W=cond_target_obj_detector_cfg.dim_W,
                                           conv_drop_dim=cond_target_obj_detector_cfg.conv_drop_dim,
-                                          task_embedding_dim=cond_target_obj_detector_cfg.task_embedding_dim)
+                                          task_embedding_dim=cond_target_obj_detector_cfg.task_embedding_dim,
+                                          anc_ratios=cond_target_obj_detector_cfg.anc_ratios,
+                                          anc_scales=cond_target_obj_detector_cfg.anc_scales)
 
         # summary(self)
         model_parameters = filter(lambda p: p.requires_grad, self.parameters())

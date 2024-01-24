@@ -468,23 +468,24 @@ def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None
     if gt_env != None:
         while True:
             try:
-                gt_obs = gt_env.reset()
-                for obj_name in env.object_to_id.keys():
-                    gt_obj = gt_env.objects[env.object_to_id[obj_name]]
-                    # set object position based on trajectory file
-                    obj_pos = obs[f"{obj_name}_pos"]
-                    obj_quat = obs[f"{obj_name}_quat"]
-                    gt_env.env.sim.data.set_joint_qpos(
-                        gt_obj.joints[0], np.concatenate([obj_pos, obj_quat]))
+                if gt_env.env_name != "press_button":
+                    gt_obs = gt_env.reset()
+                    for obj_name in env.object_to_id.keys():
+                        gt_obj = gt_env.objects[env.object_to_id[obj_name]]
+                        # set object position based on trajectory file
+                        obj_pos = obs[f"{obj_name}_pos"]
+                        obj_quat = obs[f"{obj_name}_quat"]
+                        gt_env.env.sim.data.set_joint_qpos(
+                            gt_obj.joints[0], np.concatenate([obj_pos, obj_quat]))
 
-                # make a "null step" to stabilize all objects
-                current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
-                current_gripper_orientation = T.quat2axisangle(T.mat2quat(np.reshape(
-                    env.sim.data.site_xmat[env.robots[0].eef_site_id], (3, 3))))
-                current_gripper_pose = np.concatenate(
-                    (current_gripper_position, current_gripper_orientation, np.array([-1])), axis=-1)
-                gt_obs, gt_reward, gt_env_done, gt_info = env.step(
-                    current_gripper_pose)
+                    # make a "null step" to stabilize all objects
+                    current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
+                    current_gripper_orientation = T.quat2axisangle(T.mat2quat(np.reshape(
+                        env.sim.data.site_xmat[env.robots[0].eef_site_id], (3, 3))))
+                    current_gripper_pose = np.concatenate(
+                        (current_gripper_position, current_gripper_orientation, np.array([-1])), axis=-1)
+                    gt_obs, gt_reward, gt_env_done, gt_info = env.step(
+                        current_gripper_pose)
                 break
             except:
                 pass
@@ -501,13 +502,21 @@ def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None
 
 def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0):
     # Get GT Bounding Box
-    agent_target_obj_id = traj.get(t)['obs']['target-object']
+    if task_name != 'stack_block':
+        agent_target_obj_id = traj.get(t)['obs']['target-object']
+    else:
+        agent_target_obj_id = "cubeA"
+
     if env is not None:
-        obj_name_list = env.env.obj_names
+
+        if env.env.env_name == "press_button":
+            obj_name_list = env.env.names
+        else:
+            obj_name_list = env.env.obj_names
     else:
         obj_name_list = ENV_OBJECTS[task_name]["obj_names"]
     for id, obj_name in enumerate(obj_name_list):
-        if id == agent_target_obj_id:
+        if id == agent_target_obj_id or obj_name == agent_target_obj_id:
             try:
                 top_left_x = obs['obj_bb']["camera_front"][obj_name]['bottom_right_corner'][0]
                 top_left_y = obs['obj_bb']["camera_front"][obj_name]['bottom_right_corner'][1]
@@ -623,7 +632,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
             object_name = env.objects[env.object_id].name
             obj_delta_key = object_name + '_to_robot0_eef_pos'
 
-        else:
+        elif task_name == "nut_assembly":
             object_name = env.nuts[env.nut_id].name
             obj_key = object_name + '_pos'
             if env.nut_id == 0:
@@ -1368,5 +1377,11 @@ def get_eval_fn(env_name):
     elif "nut_assembly" in env_name:
         from multi_task_test.nut_assembly import nut_assembly_eval
         return nut_assembly_eval
+    elif "button" in env_name:
+        from multi_task_test.button_press import press_button_eval
+        return press_button_eval
+    elif "stack" in env_name:
+        from multi_task_test.block_stack import block_stack_eval
+        return block_stack_eval
     else:
-        assert "Not Implemented Error"
+        assert NotImplementedError

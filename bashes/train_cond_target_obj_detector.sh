@@ -17,11 +17,14 @@ SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
 PRINT_FREQ=100
+DEVICE=3
+DEBUG=false
+WANDB_LOG=true
 
-EXP_NAME=1Task-Pick-Place-Cond-Target-Obj-Detector-GT-BB
+EXP_NAME=1Task-Pick-Place-Cond-Target-Obj-Detector-One-Obj-Left
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place #["pick_place","nut_assembly"]
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/2Task-Pick-Place-Nut-Assembly-Cond-Target-Obj-Detector-Batch50/
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch24/
 
 RESUME_STEP=40095
 RESUME=false
@@ -58,6 +61,7 @@ python ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \
+    device=${DEVICE} \
     task_names=${TASK_str} \
     set_same_n=${SET_SAME_N} \
     rollout=${ROLLOUT} \
@@ -95,7 +99,7 @@ python ../training/train_scripts/train_any.py \
     train_cfg.lr=${LR} \
     train_cfg.weight_decay=${WEIGHT_DECAY} \
     train_cfg.lr_schedule=${SCHEDULER} \
-    debug=true \
-    wandb_log=false \
+    debug=${DEBUG} \
+    wandb_log=${WANDB_LOG} \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS}

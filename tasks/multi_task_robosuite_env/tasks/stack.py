@@ -74,7 +74,7 @@ class Stack(DefaultStack):
         self.robot_offset = robot_offset
         self.object_set = env_conf['object_set']
         print(f"Object set {self.object_set}")
-
+        self.env_name = "block_stack"
         self.y_ranges = env_conf['y_ranges']
         self.x_ranges = env_conf['x_ranges']
 

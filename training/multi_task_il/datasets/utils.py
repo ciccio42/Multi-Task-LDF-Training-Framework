@@ -44,6 +44,19 @@ ENV_OBJECTS = {
     'nut_assembly': {
         'obj_names': ['nut0', 'nut1', 'nut2'],
         'ranges': [[0.10, 0.31], [-0.10, 0.10], [-0.31, -0.10]]
+    },
+    'stack_block': {
+        'obj_names': ['cubeA', 'cubeB', 'cubeC'],
+    },
+    'button': {
+        'obj_names': ['machine1_goal1', 'machine1_goal2', 'machine1_goal3',
+                      'machine2_goal1', 'machine2_goal2', 'machine2_goal3'],
+        'obj_names_to_id': {'machine1_goal1': 0,
+                            'machine1_goal2': 1,
+                            'machine1_goal3': 2,
+                            'machine2_goal1': 3,
+                            'machine2_goal2': 4,
+                            'machine2_goal3': 5}
     }
 }
 
@@ -139,9 +152,10 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
             dataset_loader.demo_files[name][_id] = deepcopy(demo_files)
 
             dataset_loader.object_distribution[name][task_id] = OrderedDict()
-            dataset_loader.object_distribution_to_indx[name][task_id] = [
-                [] for i in range(len(ENV_OBJECTS[name]['ranges']))]
+
             if dataset_loader.compute_obj_distribution:
+                dataset_loader.object_distribution_to_indx[name][task_id] = [
+                    [] for i in range(len(ENV_OBJECTS[name]['ranges']))]
                 # for each subtask, create a dict with the object name
                 # assign the slot at each file
                 for agent in agent_files:
@@ -222,7 +236,9 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
             num_objects = NUM_VARIATION_PER_OBEJECT[name][1]
 
             # for each sub-task
-            for _id in range(spec.get('n_tasks')):
+            n_tasks = len(spec.get('task_ids', [])) - \
+                len(spec.get('skip_ids', []))
+            for _id in range(n_tasks):
 
                 # for each demo_file
                 demo_files = dataset_loader.demo_files[name][_id]
@@ -236,7 +252,7 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                         dataset_loader.agent_files[name][_id], int(same_variation_number/2))
                     # take indices for different manipulated objects
                     target_obj_id = int(_id/num_variation_per_object)
-                    for sub_task_id in range(spec.get('n_tasks')):
+                    for sub_task_id in range(n_tasks):
                         if not (sub_task_id >= target_obj_id*num_variation_per_object and sub_task_id < ((target_obj_id*num_variation_per_object)+num_variation_per_object)):
                             # the following index has a differnt object
                             agent_files.extend(random.sample(
@@ -493,7 +509,7 @@ def create_data_aug(dataset_loader=object):
             obs = resized_crop(obs, top=top, left=left, height=box_h,
                                width=box_w, size=(dataset_loader.height, dataset_loader.width))
             if DEBUG:
-                cv2.imwrite(f"resized_{frame_number}.png", np.moveaxis(
+                cv2.imwrite(f"prova_resized_{frame_number}.png", np.moveaxis(
                     obs.numpy()*255, 0, -1))
             if bb is not None and class_frame is not None:
                 bb = adjust_bb(dataset_loader=dataset_loader,
@@ -564,12 +580,19 @@ def create_data_aug(dataset_loader=object):
 def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, command=None, subtask_id=-1):
     bb = []
     cl = []
+
     if subtask_id == -1:
         # 1. Get Target Object
-        target_obj_id = step_t['obs']['target-object']
+        if task_name != "stack_block":
+            target_obj_id = step_t['obs']['target-object']
+        else:
+            target_obj_id = -1
     else:
-        target_obj_id = int(
-            subtask_id/NUM_VARIATION_PER_OBEJECT[task_name][0])
+        if task_name != "stack_block":
+            target_obj_id = int(
+                subtask_id/NUM_VARIATION_PER_OBEJECT[task_name][0])
+        else:
+            target_obj_id = -1
         # if target_obj_id != step_t['obs']['target-object']:
         #     print("different-objects")
 
@@ -577,12 +600,19 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         num_objects = 3
     elif task_name == 'nut_assembly':
         num_objects = 2
+    elif task_name == 'button':
+        num_objects = 5
+        target_obj_id = ENV_OBJECTS['button']['obj_names_to_id'][target_obj_id]
 
-    # select randomly another object
-    no_target_obj_id = target_obj_id
-    while no_target_obj_id == target_obj_id:
-        no_target_obj_id = random.randint(
-            0, num_objects)
+    if task_name != "stack_block":
+        # select randomly another object
+
+        no_target_obj_id = target_obj_id
+        while no_target_obj_id == target_obj_id:
+            no_target_obj_id = random.randint(
+                0, num_objects)
+    else:
+        no_target_obj_name = random.choice(["cubeB", "cubeC"])
 
     try:
         dict_keys = list(step_t['obs']['obj_bb']['camera_front'].keys())
@@ -595,11 +625,16 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         end = 1
 
     for i in range(end):
-
-        if i == 0:
-            object_name = dict_keys[target_obj_id]
-        elif i != 0 and distractor:
-            object_name = dict_keys[no_target_obj_id]
+        if task_name != "stack_block":
+            if i == 0:
+                object_name = dict_keys[target_obj_id]
+            elif i != 0 and distractor:
+                object_name = dict_keys[no_target_obj_id]
+        else:
+            if i == 0:
+                object_name = "cubeA"
+            elif i != 0 and distractor:
+                object_name = no_target_obj_name
 
         try:
             top_left = step_t['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner']
@@ -632,7 +667,7 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
                                   thickness=1)
             if i == 0:
                 if DEBUG:
-                    cv2.imwrite("GT_bb.png", image)
+                    cv2.imwrite("GT_bb_prova.png", image)
 
         bb.append([top_left_x, top_left_y,
                    bottom_right_x, bottom_right_y])
@@ -785,10 +820,15 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                     norm_end = time.time()
                     # print(f"Norm time {norm_end-norm_start}")
                 else:
-                    state_component = step_t['obs'][k]
+                    if isinstance(step_t['obs'][k], int):
+                        state_component = np.array(
+                            [step_t['obs'][k]], dtype=np.float32)
+                    else:
+                        state_component = np.array(
+                            step_t['obs'][k], dtype=np.float32)
                 state.append(state_component)
             states.append(np.concatenate(state))
-            logger.debug(f"State: {time.time()-state}")
+            logger.debug(f"State: {time.time()-state_time}")
 
         # test GT
         if DEBUG:
@@ -941,9 +981,9 @@ class DIYBatchSampler(Sampler):
                 _ids and n), 'Must specify which subtask ids to use and how many is contained in each batch'
             info = self.task_info[name]
             subtask_names = info.get('sub_id_to_name')
-            for _id in _ids:
-                subtask = subtask_names[_id]
+            for subtask in subtask_names.values():
                 for _ in range(n):
+                    # position idx of batch is a sample of task [name] subtask [subtask]
                     self.idx_map[idx] = (name, subtask)
                     idx += 1
                 sub_length = int(info['traj_per_subtask'] / n)

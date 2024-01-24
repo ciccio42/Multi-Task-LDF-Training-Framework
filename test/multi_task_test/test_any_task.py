@@ -126,7 +126,7 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
 
 
 def rollout_imitation(model, config, ctr,
-                      heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, gt_bb=False):
+                      heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, gt_bb=False, sub_action=False, gt_action_any_T=4):
     if gpu_id == -1:
         gpu_id = int(ctr % torch.cuda.device_count())
     print(f"Model GPU id {gpu_id}")
@@ -178,7 +178,9 @@ def rollout_imitation(model, config, ctr,
                              action_ranges=action_ranges,
                              model_name=model_name,
                              config=config,
-                             gt_bb=gt_bb)
+                             gt_bb=gt_bb,
+                             sub_action=sub_action,
+                             gt_action_any_T=gt_action_any_T)
         print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             ctr, variation_id, info['reached'], info['picked'], info['success']))
         # print(f"Avg prediction {info['avg_pred']}")
@@ -200,7 +202,6 @@ def rollout_imitation(model, config, ctr,
         assert build_task, 'Got unsupported task '+env_name
         eval_fn = get_eval_fn(env_name=env_name)
         traj, info = eval_fn(model,
-                             target_obj_dec,
                              env,
                              None,
                              gpu_id,
@@ -219,7 +220,7 @@ def rollout_imitation(model, config, ctr,
         return traj, info
 
 
-def _proc(model, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, gt_bb, seed, n, gt_file):
+def _proc(model, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, gt_bb, sub_action, gt_action_any_T, seed, n, gt_file):
     json_name = results_dir + '/traj{}.json'.format(n)
     pkl_name = results_dir + '/traj{}.pkl'.format(n)
     if os.path.exists(json_name) and os.path.exists(pkl_name):
@@ -251,7 +252,9 @@ def _proc(model, config, results_dir, heights, widths, size, shape, color, env_n
                                                    config.dataset_cfg.get('normalization_ranges', [])),
                                                model_name=model_name,
                                                gpu_id=gpu_id,
-                                               gt_bb=gt_bb)
+                                               gt_bb=gt_bb,
+                                               sub_action=sub_action,
+                                               gt_action_any_T=gt_action_any_T)
         else:
             # Perform object detection inference
             return_rollout = object_detection_inference(model=model,
@@ -342,6 +345,9 @@ if __name__ == '__main__':
     parser.add_argument('--test_gt', action='store_true')
     parser.add_argument('--save_files', action='store_true')
     parser.add_argument('--gt_bb', action='store_true')
+    parser.add_argument(
+        '--sub_action', action='store_true')
+    parser.add_argument('--gt_action_any_T', default=4, type=int)
 
     args = parser.parse_args()
 
@@ -484,7 +490,7 @@ if __name__ == '__main__':
         else:
             model.load_state_dict(loaded)
 
-        if not args.gt_bb and getattr(model, "_object_detector", None) is None:
+        if not args.gt_bb and getattr(model, "_object_detector", None) is None and config.get('concat_bb', False):
             try:
                 model.load_target_obj_detector(target_obj_detector_path=args.obj_detector_path,
                                                target_obj_detector_step=args.obj_detector_step,
@@ -535,7 +541,9 @@ if __name__ == '__main__':
                               model_name,
                               args.gpu_id,
                               args.save_files,
-                              args.gt_bb)
+                              args.gt_bb,
+                              args.sub_action,
+                              args.gt_action_any_T)
 
         random.seed(42)
         np.random.seed(42)
@@ -603,27 +611,48 @@ if __name__ == '__main__':
                 wandb.log(log)
 
             if "cond_target_obj_detector" not in model_name:
-                all_succ_flags = [t['success'] for t in task_success_flags]
-                all_reached_flags = [t['reached'] for t in task_success_flags]
-                all_picked_flags = [t['picked'] for t in task_success_flags]
-                all_reached_wrong_flags = [t['reached_wrong']
-                                           for t in task_success_flags]
-                all_picked_wrong_flags = [t['picked_wrong']
-                                          for t in task_success_flags]
-                all_place_wrong_flags = [t['place_wrong']
-                                         for t in task_success_flags]
-                all_avg_pred = [t['avg_pred'] for t in task_success_flags]
+                to_log = dict()
+                flags = dict()
+                for t in task_success_flags:
+                    for k in t.keys():
+                        if flags.get(k, None) is None:
+                            flags[k] = [int(t[k])]
+                        else:
+                            flags[k].append(int(t[k]))
+                for k in flags.keys():
+                    avg_flags = np.mean(flags[k])
+                    to_log[f'avg_{k}'] = avg_flags
+                wandb.log(to_log)
+                # all_succ_flags = [t['success'] for t in task_success_flags]
+                # all_reached_flags = [t['reached'] for t in task_success_flags]
+                # all_picked_flags = [t['picked'] for t in task_success_flags]
+                # all_reached_wrong_flags = [t['reached_wrong']
+                #                            for t in task_success_flags]
+                # all_picked_wrong_flags = [t['picked_wrong']
+                #                           for t in task_success_flags]
+                # all_place_wrong_flags = [t['place_wrong']
+                #                          for t in task_success_flags]
+                # all_place_wrong_correct_obj_flags = [t['place_wrong_correct_obj']
+                #                                      for t in task_success_flags]
+                # all_place_correct_bin_wrong_obj_flags = [t['place_correct_bin_wrong_obj']
+                #                                          for t in task_success_flags]
+                # all_place_wrong_wrong_obj_flags = [t['place_wrong_wrong_obj']
+                #                                    for t in task_success_flags]
+                # all_avg_pred = [t['avg_pred'] for t in task_success_flags]
 
-                wandb.log({
-                    'avg_success': np.mean(all_succ_flags),
-                    'avg_reached': np.mean(all_reached_flags),
-                    'avg_picked': np.mean(all_picked_flags),
-                    'avg_prediction': np.mean(all_avg_pred),
-                    'avg_reached_wrong': np.mean(all_reached_wrong_flags),
-                    'avg_picked_wrong': np.mean(all_picked_wrong_flags),
-                    'avg_place_wrong': np.mean(all_place_wrong_flags),
-                    'success_err': np.mean(all_succ_flags) / np.sqrt(args.N),
-                })
+                # wandb.log({
+                #     'avg_success': np.mean(all_succ_flags),
+                #     'avg_reached': np.mean(all_reached_flags),
+                #     'avg_picked': np.mean(all_picked_flags),
+                #     'avg_prediction': np.mean(all_avg_pred),
+                #     'avg_reached_wrong': np.mean(all_reached_wrong_flags),
+                #     'avg_picked_wrong': np.mean(all_picked_wrong_flags),
+                #     'avg_place_wrong': np.mean(all_place_wrong_flags),
+                #     'avg_place_wrong_correct_obj': np.mean(all_place_wrong_correct_obj_flags),
+                #     'avg_place_correct_bin_wrong_obj': np.mean(all_place_correct_bin_wrong_obj_flags),
+                #     'avg_place_wrong_wrong_obj': np.mean(all_place_wrong_wrong_obj_flags),
+                #     'success_err': np.mean(all_succ_flags) / np.sqrt(args.N),
+                # })
             else:
                 wandb.log({
                     'avg_iou': np.mean(all_avg_iou)})

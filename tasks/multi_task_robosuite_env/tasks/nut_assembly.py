@@ -84,6 +84,7 @@ class DefaultNutAssembly(SingleArmEnv):
         self.y_ranges = y_ranges
         self.peg_positions = env_conf["peg_positions"]
         self.object_set = env_conf['object_set']
+        self.env_name = "nut_assembly"
 
         self._obj_dim = {'round-nut': [0.16, 0.02, 0.16],
                          'round-nut-2': [0.16, 0.02, 0.16],

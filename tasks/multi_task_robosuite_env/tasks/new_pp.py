@@ -152,6 +152,7 @@ class PickPlace(SingleArmEnv):
         self.bin_size = np.array((0.16, 0.16))
         self.object_set = env_conf['object_set']
         print(f"Object set {self.object_set}")
+        self.env_name = "pick_place"
 
         if self.object_set == 1:
             self.object_to_id = {"milk": 0, "bread": 1, "cereal": 2, "can": 3}

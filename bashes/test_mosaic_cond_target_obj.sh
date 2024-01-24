@@ -4,47 +4,98 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 
 # BASE_PATH=/raid/home/frosa_Loc/Multi-Task-LFD-Framework
-# PROJECT_NAME=1Task-Nut-Assembly-Mosaic-100-180-Target-Obj-Detector-GT-BB-All-Obj-One-Task-Left
+# PROJECT_NAME=1Task-Pick-Place-100-180-BB-inference
 # NUM_WORKERS=7
 # GPU_ID=0
-# MODEL_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${PROJECT_NAME}-Batch16/
+# MODEL_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${PROJECT_NAME}-Batch32/
 # CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
-
 # for MODEL in ${MODEL_PATH}; do
-#     for S in  219462; do #81000 89100; do
-#         for TASK in nut_assembly; do
+#     for S in 85050; do #81000 89100; do
+#         for TASK in pick_place; do
 #             for COUNT in 1 2 3; do    
 #                 if [ $COUNT -eq 1 ]; then
 #                     SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
-#                     python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --gt_bb --wandb_log --save_path ${SAVE_PATH} --save_files
+#                     python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log #--save_path ${SAVE_PATH} --save_files
 #                 else
-#                     SAVE_PATH=${MODEL_PATH}/results_${TASK}_gt_bb/run_${COUNT}
-#                     python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --gt_bb --wandb_log 
+#                     SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
+#                     python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log
+#                 fi
+#             done
+
+#             for COUNT in 1 2 3; do    
+#                 if [ $COUNT -eq 1 ]; then
+#                     SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
+#                     python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log --gt_bb #--save_path ${SAVE_PATH} --save_files
+#                 else
+#                     SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
+#                     python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log --gt_bb 
 #                 fi
 #             done
 #         done
 #     done
 # done
 
-BASE_PATH=/raid/home/frosa_Loc/Multi-Task-LFD-Framework
-PROJECT_NAME=1Task-Pick-Place-Mosaic-100-180-Target-Obj-Detector-BB-All-Obj-One-Task-Left
-NUM_WORKERS=5
-GPU_ID=3
-MODEL_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-Mosaic-100-180-Target-Obj-Detector-BB-All-Obj-One-Task-Left-Batch28/
-CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
 
+BASE_PATH=/raid/home/frosa_Loc/Multi-Task-LFD-Framework
+PROJECT_NAME=1Task-Nut-Assembly-100-180-PREDICTED-BB-2
+NUM_WORKERS=7
+GPU_ID=0
+MODEL_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${PROJECT_NAME}-Batch27/
+CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
 for MODEL in ${MODEL_PATH}; do
-    for S in 220110 239250 252010; do #81000 89100; do
-        for TASK in pick_place; do
+    for S in 94500; do #81000 89100; do
+        for TASK in nut_assembly; do
             for COUNT in 1 2 3; do    
                 if [ $COUNT -eq 1 ]; then
-                    SAVE_PATH=${MODEL_PATH}/results_${TASK}/pred_bb/run_${COUNT}
+                    SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
                     python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log --save_path ${SAVE_PATH} --save_files
                 else
-                    SAVE_PATH=${MODEL_PATH}/results_${TASK}/pred_bb/run_${COUNT}
+                    SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
                     python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log
                 fi
             done
+        
+            # for COUNT in 1 2 3; do    
+            #     if [ $COUNT -eq 1 ]; then
+            #         SAVE_PATH=${MODEL_PATH}/results_${TASK}/gt_bb/run_${COUNT}
+            #         python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log --gt_bb #--save_path ${SAVE_PATH} --save_files
+            #     else
+            #         SAVE_PATH=${MODEL_PATH}/results_${TASK}/gt_bb/run_${COUNT}
+            #         python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log --gt_bb
+            #     fi
+            # done
         done
     done
 done
+
+# BASE_PATH=/raid/home/frosa_Loc/Multi-Task-LFD-Framework
+# PROJECT_NAME=2Task-Pick-Place-Nut-Assembly-Mosaic-100-180-Target-Obj-Detector-BB
+# NUM_WORKERS=1
+# GPU_ID=0
+# MODEL_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${PROJECT_NAME}-Batch50/
+# CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
+# for MODEL in ${MODEL_PATH}; do
+#     for S in 269104 ; do #81000 89100; do
+#         for TASK in pick_place nut_assembly; do
+#             for COUNT in 1 2 3; do    
+#                 if [ $COUNT -eq 1 ]; then
+#                     SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
+#                     python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log #--save_path ${SAVE_PATH} --save_files
+#                 else
+#                     SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
+#                     python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log
+#                 fi
+#             done
+        
+#             for COUNT in 1 2 3; do    
+#                 if [ $COUNT -eq 1 ]; then
+#                     SAVE_PATH=${MODEL_PATH}/results_${TASK}/gt_bb/run_${COUNT}
+#                     python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log --gt_bb #--save_path ${SAVE_PATH} --save_files
+#                 else
+#                     SAVE_PATH=${MODEL_PATH}/results_${TASK}/gt_bb/run_${COUNT}
+#                     python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log --gt_bb
+#                 fi
+#             done
+#         done
+#     done
+# done

@@ -6,6 +6,10 @@ from multi_task_robosuite_env.controllers.controllers.expert_nut_assembly import
     get_expert_trajectory as nut_expert
 from multi_task_robosuite_env.controllers.controllers.expert_pick_place import \
     get_expert_trajectory as place_expert
+from multi_task_robosuite_env.controllers.controllers.expert_button import \
+    get_expert_trajectory as button_expert
+from multi_task_robosuite_env.controllers.controllers.expert_block_stacking import \
+    get_expert_trajectory as stack_block_expert
 
 commad_path = os.path.join(os.path.dirname(
     mtre.__file__), "../collect_data/command.json")
@@ -30,8 +34,16 @@ ENV_OBJECTS = {
         'peg_names': ['peg1', 'peg2', 'peg3'],
         'splitted_obj_names': ['grey nut', 'brown nut', 'blue nut'],
         'ranges': [[0.10, 0.31], [-0.10, 0.10], [-0.31, -0.10]]
+    },
+    'stack_block': {
+        'obj_names': ['cubeA', 'cubeB', 'cubeC'],
+    },
+    'button': {
+        'obj_names': ['machine1_goal1', 'machine1_goal2', 'machine1_goal3',
+                      'machine2_goal1', 'machine2_goal2', 'machine2_goal3'],
     }
 }
+
 
 TASK_MAP = {
     'nut_assembly':  {
@@ -48,40 +60,18 @@ TASK_MAP = {
         'render_hw': (200, 360),  # (150, 270)
         'object_set': 2,
     },
-    # 'stack_block': {
-    #     'num_variations':   6,
-    #     'env_fn':   stack_expert,
-    #     'eval_fn':  block_stack_eval,
-    #     'agent-teacher': ('PandaBlockStacking', 'SawyerBlockStacking'),
-    #     'render_hw': (100, 180),  # older models used 100x200!!
-    # },
-    # 'drawer': {
-    #     'num_variations':   8,
-    #     'env_fn':   draw_expert,
-    #     'eval_fn':  draw_eval,
-    #     'agent-teacher': ('PandaDrawer', 'SawyerDrawer'),
-    #     'render_hw': (100, 180),
-    # },
-    # 'button': {
-    #     'num_variations':   6,
-    #     'env_fn':   press_expert,
-    #     'eval_fn':  press_button_eval,
-    #     'agent-teacher': ('PandaButton', 'SawyerButton'),
-    #     'render_hw': (100, 180),
-    # },
-    # 'door': {
-    #     'num_variations':   4,
-    #     'env_fn':   door_expert,
-    #     'eval_fn':  open_door_eval,
-    #     'agent-teacher': ('PandaDoor', 'SawyerDoor'),
-    #     'render_hw': (100, 180),
-    # },
-    # 'basketball': {
-    #     'num_variations':   12,
-    #     'env_fn':   basketball_expert,
-    #     'eval_fn':  basketball_eval,
-    #     'agent-teacher': ('PandaBasketball', 'SawyerBasketball'),
-    #     'render_hw': (100, 180),
-    # },
-
+    'stack_block': {
+        'num_variations':   6,
+        'env_fn':   stack_block_expert,
+        'agent-teacher': ('UR5e_BlockStacking', 'Panda_BlockStacking'),
+        'render_hw': (200, 360),  # (150, 270)
+        'object_set': 1,
+    },
+    'button': {
+        'num_variations':   6,
+        'env_fn':   button_expert,
+        'agent-teacher': ('UR5e_Button', 'Panda_Button'),
+        'render_hw': (200, 360),  # (150, 270)
+        'object_set': 1,
+    },
 }

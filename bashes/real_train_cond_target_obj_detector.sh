@@ -8,20 +8,20 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 export CUDA_VISIBLE_DEVICES=1
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
+EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset_only_front_camera
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/
 POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
 TASKS_CONFIG=7_tasks_real
 DEBUG=false
-WANDB_LOG=true
+WANDB_LOG=false
 
 SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
 PRINT_FREQ=100
 
-EXP_NAME=Real-1Task-Pick-Place-Cond-Target-Obj-Detector-2
+EXP_NAME=PROVA-SOLO-FRONTALE-CTOD
 PROJECT_NAME=${EXP_NAME}
 TASK_str="pick_place"
 EPOCH=150 
@@ -50,7 +50,7 @@ NON_SEQUENTIAL=true
 
 RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-1Task-Pick-Place-Cond-Target-Obj-Detector-2-Batch16/
 RESUME_STEP=36000
-RESUME=true
+RESUME=false
 
 DROP_DIM=4      # 2    # 3
 OUT_FEATURE=128 # 512 # 256

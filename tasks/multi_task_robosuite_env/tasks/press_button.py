@@ -144,6 +144,7 @@ class PressButton(SingleArmEnv):
                          'machine2_goal1': [0.07, 0.07, 0.07],
                          'machine2_goal2': [0.07, 0.07, 0.07],
                          'machine2_goal3': [0.07, 0.07, 0.07]}
+        self.env_name = "press_button"
 
         print(f"Object set {self.object_set}")
         print(f"Target {self.names[task_id]}")
@@ -360,6 +361,7 @@ class PressButton(SingleArmEnv):
         """
         di = super()._get_observation()
         di['obj_bb'] = self._create_bb(di)
+        di['target-object'] = self.names[self.task_id]
         # if self.use_camera_obs:
         #     cam_name = self.camera_names[0]
         #     di['image'] = di[cam_name + '_image'].copy()

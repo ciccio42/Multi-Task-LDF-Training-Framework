@@ -19,9 +19,9 @@ DEVICE=0
 DEBUG=false
 WAND_LOG=true
 
-EXP_NAME=1Task-Pick-Place-100-180-One-Obj-Left
+EXP_NAME=1Task-MOSAIC-Button
 PROJECT_NAME=${EXP_NAME}
-TASK_str=pick_place #[pick_place,nut_assembly]
+TASK_str=button #[pick_place,nut_assembly]
 
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=40455
@@ -31,14 +31,14 @@ ROLLOUT=true
 
 RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-100-180-One-Obj-Left-Batch48/
 RESUME_STEP=106664
-RESUME=true
+RESUME=false
 
 EPOCH=90
 BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=4
+SET_SAME_N=5
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
 LOADER_WORKERS=16

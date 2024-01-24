@@ -8,18 +8,18 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
+EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset_only_front_camera
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 POLICY='${mosaic}'
 
 SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
-DEVICE=3
-DEBUG=true
-WANDB_LOG=false
+DEVICE=2
+DEBUG=false
+WANDB_LOG=true
 
-EXP_NAME=Real-1Task-Pick-Place-MOSAIC-Cond-Target-Obj-Detector
+EXP_NAME=PROVA-SOLO-FRONTALE #Real-1Task-Pick-Place-MOSAIC-Cond-Target-Obj-Detector-State
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place #[pick_place,nut_assembly]
 
@@ -44,7 +44,7 @@ BALANCING_POLICY=0
 SET_SAME_N=3
 CONFIG_PATH=../experiments
 CONFIG_NAME=config_real.yaml
-LOADER_WORKERS=1
+LOADER_WORKERS=16
 NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=true
@@ -60,11 +60,11 @@ CONCAT_TARGET_OBJ_EMBEDDING=false
 CONCAT_STATE=false
 
 ACTION_DIM=7
-N_MIXTURES=7 #3 Pick-place
-OUT_DIM=64 #128 Pick-place
-ATTN_FF=128 #256 Pick-place
-COMPRESSOR_DIM=128 #256 Pick-place
-HIDDEN_DIM=128 #512 Pick-place
+N_MIXTURES=3 #7 MT #3 Pick-place
+OUT_DIM=128 #64 MT #128 Pick-place
+ATTN_FF=256 #128 MT #256 Pick-place
+COMPRESSOR_DIM=256 #128 MT #256 Pick-place
+HIDDEN_DIM=512 #128 MT #512 Pick-place
 CONCAT_DEMO_HEAD=false
 CONCAT_DEMO_ACT=true
 PRETRAINED=false
