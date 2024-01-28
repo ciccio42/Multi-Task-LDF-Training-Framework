@@ -291,6 +291,10 @@ class Stack(DefaultStack):
             )
         )
 
+    def _get_reference(self):
+        super()._get_reference()
+        self.cubeC_body_id = self.sim.model.body_name2id(self.cubeC.root_body)
+
     def _get_observation(self):
         """
         Returns an OrderedDict containing observations [(name_string, np.array), ...].
@@ -305,6 +309,14 @@ class Stack(DefaultStack):
                 contains a rendered depth map from the simulation
         """
         di = super()._get_observation()
+
+        # position and rotation of the second cube
+        cubeC_pos = np.array(self.sim.data.body_xpos[self.cubeC_body_id])
+        cubeC_quat = convert_quat(
+            np.array(self.sim.data.body_xquat[self.cubeC_body_id]), to="xyzw"
+        )
+        di["cubeC_pos"] = cubeC_pos
+        di["cubeC_quat"] = cubeC_quat
 
         di['obj_bb'] = self._create_bb(di)
 

@@ -66,7 +66,8 @@ JITTER_FACTORS = {'brightness': 0.4,
 
 #
 NUM_VARIATION_PER_OBEJECT = {'pick_place': (4, 4),
-                             'nut_assembly': (3, 3)}
+                             'nut_assembly': (3, 3),
+                             'button': (1, 6)}
 
 
 def collate_by_task(batch):
@@ -602,8 +603,8 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         num_objects = 2
     elif task_name == 'button':
         num_objects = 5
-        target_obj_id = ENV_OBJECTS['button']['obj_names_to_id'][target_obj_id]
-
+        target_obj_id = ENV_OBJECTS['button']['obj_names_to_id'][ENV_OBJECTS['button']
+                                                                 ['obj_names'][target_obj_id]]
     if task_name != "stack_block":
         # select randomly another object
 

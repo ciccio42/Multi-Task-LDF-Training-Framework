@@ -17,7 +17,7 @@ def press_button_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None
     return NotImplementedError
 
 
-def press_button_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False):
+def press_button_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False,  sub_action=False, gt_action_any_T=4):
 
     start_up_env_return = \
         startup_env(model=model,
@@ -38,7 +38,7 @@ def press_button_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
     n_steps = 0
 
     button_loc = np.array(env.sim.data.site_xpos[env.target_button_id])
-    dist = 0.030
+    dist = 0.090
 
     # compute the average prediction over the whole trajectory
     avg_prediction = 0
@@ -228,7 +228,7 @@ def press_button_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
     return traj, tasks
 
 
-def press_button_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None, gt_bb=False):
+def press_button_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action_any_T=4):
 
     if "vima" in model_name:
         return press_button_eval_vima(model=model,
@@ -315,5 +315,7 @@ def press_button_eval(model, env, gt_env, context, gpu_id, variation_id, img_for
                                                "concat_bb", False),
                                            task_name=task_name,
                                            config=config,
-                                           predict_gt_bb=gt_bb
+                                           predict_gt_bb=gt_bb,
+                                           sub_action=sub_action,
+                                           gt_action_any_T=gt_action_any_T
                                            )

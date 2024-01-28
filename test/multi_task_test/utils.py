@@ -468,7 +468,7 @@ def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None
     if gt_env != None:
         while True:
             try:
-                if gt_env.env_name != "press_button":
+                if gt_env.env_name != "press_button" and gt_env.env_name != "block_stack":
                     gt_obs = gt_env.reset()
                     for obj_name in env.object_to_id.keys():
                         gt_obj = gt_env.objects[env.object_to_id[obj_name]]
@@ -486,7 +486,29 @@ def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None
                         (current_gripper_position, current_gripper_orientation, np.array([-1])), axis=-1)
                     gt_obs, gt_reward, gt_env_done, gt_info = env.step(
                         current_gripper_pose)
+                elif gt_env.env_name == "block_stack":
+                    gt_obs = gt_env.reset()
+                    for i, gt_obj in enumerate(env.cubes):
+                        obj_name = gt_obj.name
+                        obj_pos = np.array(
+                            env.sim.data.body_xpos[env.sim.model.body_name2id(gt_obj.root_body)])
+                        obj_quat = T.convert_quat(
+                            env.sim.data.body_xquat[env.sim.model.body_name2id(
+                                gt_obj.root_body)], to="xyzw"
+                        )
+                        gt_env.env.sim.data.set_joint_qpos(
+                            gt_obj.joints[0], np.concatenate([obj_pos, obj_quat]))
+
+                    # make a "null step" to stabilize all objects
+                    current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
+                    current_gripper_orientation = T.quat2axisangle(T.mat2quat(np.reshape(
+                        env.sim.data.site_xmat[env.robots[0].eef_site_id], (3, 3))))
+                    current_gripper_pose = np.concatenate(
+                        (current_gripper_position, current_gripper_orientation, np.array([-1])), axis=-1)
+                    gt_obs, gt_reward, gt_env_done, gt_info = env.step(
+                        current_gripper_pose)
                 break
+
             except:
                 pass
 
@@ -511,6 +533,8 @@ def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0):
 
         if env.env.env_name == "press_button":
             obj_name_list = env.env.names
+        elif env.env.env_name == "block_stack":
+            obj_name_list = env.env.cube_names.keys()
         else:
             obj_name_list = env.env.obj_names
     else:
@@ -1251,50 +1275,50 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights
     else:
         variation = variation
 
-    if 'Stack' in teacher_name:
-        teacher_expert_rollout = env_fn(teacher_name,
-                                        controller_type=controller,
-                                        task=variation,
-                                        size=size,
-                                        shape=shape,
-                                        color=color,
-                                        seed=seed,
-                                        gpu_id=gpu_id,
-                                        object_set=TASK_MAP[env_name]['object_set'])
-        agent_env = env_fn(agent_name,
-                           size=size,
-                           shape=shape,
-                           color=color,
-                           controller_type=controller,
-                           task=variation,
-                           ret_env=True,
-                           seed=seed,
-                           gpu_id=gpu_id,
-                           object_set=TASK_MAP[env_name]['object_set'])
-    else:
-        teacher_expert_rollout = env_fn(teacher_name,
-                                        controller_type=controller,
-                                        task=variation,
-                                        seed=seed,
-                                        gpu_id=gpu_id,
-                                        object_set=TASK_MAP[env_name]['object_set'])
+    # if 'Stack' in teacher_name:
+    #     teacher_expert_rollout = env_fn(teacher_name,
+    #                                     controller_type=controller,
+    #                                     task=variation,
+    #                                     size=size,
+    #                                     shape=shape,
+    #                                     color=color,
+    #                                     seed=seed,
+    #                                     gpu_id=gpu_id,
+    #                                     object_set=TASK_MAP[env_name]['object_set'])
+    #     agent_env = env_fn(agent_name,
+    #                        size=size,
+    #                        shape=shape,
+    #                        color=color,
+    #                        controller_type=controller,
+    #                        task=variation,
+    #                        ret_env=True,
+    #                        seed=seed,
+    #                        gpu_id=gpu_id,
+    #                        object_set=TASK_MAP[env_name]['object_set'])
+    # else:
+    teacher_expert_rollout = env_fn(teacher_name,
+                                    controller_type=controller,
+                                    task=variation,
+                                    seed=seed,
+                                    gpu_id=gpu_id,
+                                    object_set=TASK_MAP[env_name]['object_set'])
 
-        agent_env = env_fn(agent_name,
-                           controller_type=controller,
-                           task=variation,
-                           ret_env=True,
-                           seed=seed,
-                           gpu_id=gpu_id,
-                           object_set=TASK_MAP[env_name]['object_set'])
+    agent_env = env_fn(agent_name,
+                       controller_type=controller,
+                       task=variation,
+                       ret_env=True,
+                       seed=seed,
+                       gpu_id=gpu_id,
+                       object_set=TASK_MAP[env_name]['object_set'])
 
-        if ret_gt_env:
-            gt_env = env_fn(agent_name,
-                            controller_type=controller,
-                            task=variation,
-                            ret_env=True,
-                            seed=seed,
-                            gpu_id=gpu_id,
-                            object_set=TASK_MAP[env_name]['object_set'])
+    if ret_gt_env:
+        gt_env = env_fn(agent_name,
+                        controller_type=controller,
+                        task=variation,
+                        ret_env=True,
+                        seed=seed,
+                        gpu_id=gpu_id,
+                        object_set=TASK_MAP[env_name]['object_set'])
 
     assert isinstance(teacher_expert_rollout, Trajectory)
     context = select_random_frames(

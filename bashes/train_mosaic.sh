@@ -19,15 +19,15 @@ DEVICE=0
 DEBUG=false
 WAND_LOG=true
 
-EXP_NAME=1Task-MOSAIC-Button
+EXP_NAME=1Task-MOSAIC-STACK-BLOCk
 PROJECT_NAME=${EXP_NAME}
-TASK_str=button #[pick_place,nut_assembly]
+TASK_str=stack_block #[pick_place,nut_assembly,button]
 
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=40455
 TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54
 
-ROLLOUT=true
+ROLLOUT=false
 
 RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-100-180-One-Obj-Left-Batch48/
 RESUME_STEP=106664

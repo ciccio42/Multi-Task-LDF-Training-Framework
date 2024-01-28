@@ -180,7 +180,8 @@ def rollout_imitation(model, config, ctr,
                              config=config,
                              gt_bb=gt_bb,
                              sub_action=sub_action,
-                             gt_action_any_T=gt_action_any_T)
+                             gt_action_any_T=gt_action_any_T,
+                             task_name=env_name)
         print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             ctr, variation_id, info['reached'], info['picked'], info['success']))
         # print(f"Avg prediction {info['avg_pred']}")
@@ -210,7 +211,8 @@ def rollout_imitation(model, config, ctr,
                              baseline=baseline,
                              max_T=max_T,
                              action_ranges=action_ranges,
-                             model_name=model_name)
+                             model_name=model_name,
+                             task_name=env_name)
         if "cond_target_obj_detector" not in model_name:
             print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
                 ctr, variation_id, info['reached'], info['picked'], info['success']))

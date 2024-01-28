@@ -17,15 +17,15 @@ SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
 PRINT_FREQ=100
-DEVICE=3
+DEVICE=2
 DEBUG=false
 WANDB_LOG=true
 
-EXP_NAME=1Task-Pick-Place-Cond-Target-Obj-Detector-One-Obj-Left
+EXP_NAME=1Task-Button-Cond-Target-Obj-Detector
 PROJECT_NAME=${EXP_NAME}
-TASK_str=pick_place #["pick_place","nut_assembly"]
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch24/
+TASK_str=button #["pick_place","nut_assembly", "button"]
 
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch24/
 RESUME_STEP=40095
 RESUME=false
 EPOCH=90 # start from 16
