@@ -643,8 +643,12 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
                 object_name = no_target_obj_name
 
         try:
-            top_left = step_t['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner']
-            bottom_right = step_t['obs']['obj_bb']["camera_front"][object_name]['upper_left_corner']
+            if not getattr(dataset_loader, "real", False):
+                top_left = step_t['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner']
+                bottom_right = step_t['obs']['obj_bb']["camera_front"][object_name]['upper_left_corner']
+            else:
+                top_left = step_t['obs']['obj_bb']["camera_front"][object_name]['upper_left_corner']
+                bottom_right = step_t['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner']
         except:
             top_left = step_t['obs']['obj_bb'][object_name]['upper_left_corner']
             bottom_right = step_t['obs']['obj_bb'][object_name]['bottom_right_corner']
