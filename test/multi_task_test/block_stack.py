@@ -308,7 +308,8 @@ def block_stack_eval(model, env, gt_env, context, gpu_id, variation_id, img_form
                                           perform_augs=config.dataset_cfg.get(
                                               'perform_augs', True),
                                           config=config,
-                                          gt_traj=gt_file
+                                          gt_traj=gt_file,
+                                          task_name=task_name
                                           )
     else:
         # Instantiate Controller

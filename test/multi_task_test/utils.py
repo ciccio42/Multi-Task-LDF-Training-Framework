@@ -671,6 +671,9 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
         elif task_name == 'button':
             button_loc = np.array(env.sim.data.site_xpos[env.target_button_id])
             dist = 0.090
+        elif task_name == 'stack_block':
+            object_name = 'cubeA'
+            target_obj_loc = env.sim.data.body_xpos[env.cubeA_body_id]
 
         if task_name != 'button':
             obj_key = object_name + '_pos'
@@ -700,6 +703,11 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                     np.linalg.norm(obs['eef_pos'] - button_loc) < dist
                 tasks['picked'] = tasks['picked'] or \
                     (tasks['reached'])
+            elif task_name == 'stack_block':
+                tasks['reached'] = tasks['reached'] or np.linalg.norm(
+                    target_obj_loc - obs['eef_pos']) < 0.045
+                tasks['picked'] = tasks['picked'] or (
+                    tasks['reached'] and obs[obj_key][2] - start_z > 0.05)
 
             bb_t, gt_t = get_gt_bb(traj=traj,
                                    obs=obs,

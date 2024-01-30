@@ -1056,12 +1056,12 @@ class Trainer:
                                     all_avg_pred)
                                 tolog['train_step'] = self._step
 
-                                if tolog['avg_success'] >= best_avg_success:
-                                    print(
-                                        f"Save model best_avg_success from {best_avg_success} to {tolog['avg_success']}")
-                                    best_avg_success = tolog['avg_success']
-                                    self.save_checkpoint(
-                                        model, optimizer, weights_fn, save_fn)
+                                # if tolog['avg_success'] >= best_avg_success:
+                                print(
+                                    f"Save model best_avg_success from {best_avg_success} to {tolog['avg_success']}")
+                                best_avg_success = tolog['avg_success']
+                                self.save_checkpoint(
+                                    model, optimizer, weights_fn, save_fn)
 
                             if self.config.wandb_log:
                                 wandb.log(tolog)

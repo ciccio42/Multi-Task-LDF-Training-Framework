@@ -15,7 +15,7 @@ POLICY='${mosaic}'
 SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
-DEVICE=0
+DEVICE=3
 DEBUG=false
 WAND_LOG=true
 
@@ -38,7 +38,7 @@ BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=5
+SET_SAME_N=2
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
 LOADER_WORKERS=16
@@ -57,11 +57,11 @@ CONCAT_TARGET_OBJ_EMBEDDING=false
 CONCAT_STATE=false
 
 ACTION_DIM=7
-N_MIXTURES=7 #3 Pick-place
-OUT_DIM=64 #128 Pick-place
-ATTN_FF=128 #256 Pick-place
-COMPRESSOR_DIM=128 #256 Pick-place
-HIDDEN_DIM=128 #512 Pick-place
+N_MIXTURES=14 #7 2Task, Nut, button, stack #3 Pick-place
+OUT_DIM=64 #64 2Task, Nut, button, stack #128 Pick-place
+ATTN_FF=256 #128 2Task, Nut, button, stack #256 Pick-place
+COMPRESSOR_DIM=256 #128 2Task, Nut, button, stack #256 Pick-place
+HIDDEN_DIM=256 #128 2Task, Nut, button, stack #512 Pick-place
 CONCAT_DEMO_HEAD=false
 CONCAT_DEMO_ACT=true
 PRETRAINED=false

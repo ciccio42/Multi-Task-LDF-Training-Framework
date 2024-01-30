@@ -193,6 +193,7 @@ def opt_traj(task_name, task_spec, out_path, pkl_file_path):
                                             (0, 255, 0),
                                             1)
                     cv2.imwrite("prova.png", img)
+                    print("prova image")
 
     trj_name = pkl_file_path.split('/')[-1]
     out_pkl_file_path = os.path.join(out_path, trj_name)
@@ -225,7 +226,7 @@ if __name__ == '__main__':
     # 1. Load the dataset
     # folder_path = os.path.join(
     #     args.dataset_path, args.task_name, f"{args.robot_name}_{args.task_name}")
-    folder_path = "/user/frosa/multi_task_lfd/ur_multitask_dataset/pick_place/real_ur5e_pick_place/only_frontal/pick_place/"
+    folder_path = "/user/frosa/multi_task_lfd/ur_multitask_dataset/pick_place/real_ur5e_pick_place/only_frontal/"
     if args.out_path is None:
         out_path = os.path.join(args.dataset_path,
                                 f"{args.task_name}_opt",

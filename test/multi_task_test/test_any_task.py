@@ -657,10 +657,10 @@ if __name__ == '__main__':
                 # })
             else:
                 wandb.log({
-                    'avg_iou': np.mean(all_avg_iou)})
+                    'all_avg_iou': all_avg_iou})
                 wandb.log({
-                    'avg_tp': np.mean(all_avg_tp)})
+                    'all_avg_tp': all_avg_tp})
                 wandb.log({
-                    'avg_fp': np.mean(all_avg_fp)})
+                    'all_avg_fp': all_avg_fp})
                 wandb.log({
-                    'avg_fn': np.mean(all_avg_fn)})
+                    'all_avg_fn': all_avg_fn})

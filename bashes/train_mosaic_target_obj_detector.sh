@@ -25,10 +25,10 @@ TASK_str=button #[pick_place,nut_assembly, stack_block, button]
 
 RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Button-MOSAIC-Cond-Target-Obj-Detector-Batch30/
 RESUME_STEP=11343
-RESUME=true
+RESUME=false
 
 LOAD_TARGET_OBJ_DETECTOR=true
-TARGET_OBJ_DETECTOR_STEP=153000 #65250
+TARGET_OBJ_DETECTOR_STEP=198900 #65250
 TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Button-Cond-Target-Obj-Detector-Batch12 #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54/
 CONCAT_BB=true
 
