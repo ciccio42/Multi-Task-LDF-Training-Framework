@@ -126,7 +126,7 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
 
 
 def rollout_imitation(model, config, ctr,
-                      heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, gt_bb=False, sub_action=False, gt_action_any_T=4):
+                      heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, gt_bb=False, sub_action=False, gt_action=4):
     if gpu_id == -1:
         gpu_id = int(ctr % torch.cuda.device_count())
     print(f"Model GPU id {gpu_id}")
@@ -180,7 +180,7 @@ def rollout_imitation(model, config, ctr,
                              config=config,
                              gt_bb=gt_bb,
                              sub_action=sub_action,
-                             gt_action_any_T=gt_action_any_T,
+                             gt_action=gt_action,
                              task_name=env_name)
         print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             ctr, variation_id, info['reached'], info['picked'], info['success']))
@@ -222,7 +222,7 @@ def rollout_imitation(model, config, ctr,
         return traj, info
 
 
-def _proc(model, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, gt_bb, sub_action, gt_action_any_T, seed, n, gt_file):
+def _proc(model, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, gt_bb, sub_action, gt_action, seed, n, gt_file):
     json_name = results_dir + '/traj{}.json'.format(n)
     pkl_name = results_dir + '/traj{}.pkl'.format(n)
     if os.path.exists(json_name) and os.path.exists(pkl_name):
@@ -256,7 +256,7 @@ def _proc(model, config, results_dir, heights, widths, size, shape, color, env_n
                                                gpu_id=gpu_id,
                                                gt_bb=gt_bb,
                                                sub_action=sub_action,
-                                               gt_action_any_T=gt_action_any_T)
+                                               gt_action=gt_action)
         else:
             # Perform object detection inference
             return_rollout = object_detection_inference(model=model,
@@ -349,7 +349,7 @@ if __name__ == '__main__':
     parser.add_argument('--gt_bb', action='store_true')
     parser.add_argument(
         '--sub_action', action='store_true')
-    parser.add_argument('--gt_action_any_T', default=4, type=int)
+    parser.add_argument('--gt_action', default=4, type=int)
 
     args = parser.parse_args()
 
@@ -545,7 +545,7 @@ if __name__ == '__main__':
                               args.save_files,
                               args.gt_bb,
                               args.sub_action,
-                              args.gt_action_any_T)
+                              args.gt_action)
 
         random.seed(42)
         np.random.seed(42)
@@ -568,7 +568,7 @@ if __name__ == '__main__':
 
         if "cond_target_obj_detector" not in model_name:
             final_results = dict()
-            for k in ['reached', 'picked', 'success', 'reached_wrong', 'picked_wrong', 'place_wrong']:
+            for k in task_success_flags[0].keys():
                 n_success = sum([t[k] for t in task_success_flags])
                 print('Task {}, rate {}'.format(k, n_success / float(args.N)))
                 final_results[k] = n_success / float(args.N)

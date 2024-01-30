@@ -856,19 +856,19 @@ class Trainer:
                     if not self.config.get("rollout", False):
                         self.save_checkpoint(
                             model, optimizer, weights_fn, save_fn)
-                    if save_fn is not None:
-                        save_fn(self._save_fname, self._step)
-                    else:
-                        save_module = model
-                        if weights_fn is not None:
-                            save_module = weights_fn()
-                        elif isinstance(model, nn.DataParallel):
-                            save_module = model.module
-                        torch.save(save_module.state_dict(),
-                                   self._save_fname + '-{}.pt'.format(self._step))
-                    if self.config.get('save_optim', False):
-                        torch.save(optimizer.state_dict(
-                        ), self._save_fname + '-optim-{}.pt'.format(self._step))
+                        if save_fn is not None:
+                            save_fn(self._save_fname, self._step)
+                        else:
+                            save_module = model
+                            if weights_fn is not None:
+                                save_module = weights_fn()
+                            elif isinstance(model, nn.DataParallel):
+                                save_module = model.module
+                            torch.save(save_module.state_dict(),
+                                       self._save_fname + '-{}.pt'.format(self._step))
+                        if self.config.get('save_optim', False):
+                            torch.save(optimizer.state_dict(
+                            ), self._save_fname + '-optim-{}.pt'.format(self._step))
 
                     stats_save_name = join(
                         self.save_dir, 'stats', '{}.json'.format('train_val_stats'))
@@ -906,7 +906,7 @@ class Trainer:
                         print(train_print)
 
                 #### ---- Validation step ----####
-                if e != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
+                if self._step % val_freq == 0 and not self.config.get("use_daml", False):
                     print("Validation")
                     rollout = self.config.get("rollout", False)
                     model = model.eval()
@@ -1016,7 +1016,9 @@ class Trainer:
                                                   model_name,
                                                   self._device_id,
                                                   False,
-                                                  gt_bb
+                                                  gt_bb,
+                                                  -1,
+                                                  -1,
                                                   )
                             seeds = [(random.getrandbits(32), i, -1)
                                      for i in range(n_run)]

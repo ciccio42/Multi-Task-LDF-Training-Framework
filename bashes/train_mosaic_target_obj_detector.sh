@@ -16,20 +16,20 @@ SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
 DEVICE=0
-DEBUG=true
-WANDB_LOG=false
+DEBUG=false
+WANDB_LOG=true
 
-EXP_NAME=Prova
+EXP_NAME=1Task-Button-MOSAIC-Cond-Target-Obj-Detector
 PROJECT_NAME=${EXP_NAME}
 TASK_str=button #[pick_place,nut_assembly, stack_block, button]
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-100-180-GT-BB-One-Obj-Left-Batch36
-RESUME_STEP=31845
-RESUME=false
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Button-MOSAIC-Cond-Target-Obj-Detector-Batch30/
+RESUME_STEP=11343
+RESUME=true
 
-LOAD_TARGET_OBJ_DETECTOR=false
-TARGET_OBJ_DETECTOR_STEP=-1 #65250
-TARGET_OBJ_DETECTOR_PATH=None #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54/
+LOAD_TARGET_OBJ_DETECTOR=true
+TARGET_OBJ_DETECTOR_STEP=153000 #65250
+TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Button-Cond-Target-Obj-Detector-Batch12 #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54/
 CONCAT_BB=true
 
 
@@ -39,10 +39,10 @@ BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=3
+SET_SAME_N=5
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=1
+LOADER_WORKERS=8
 NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=true

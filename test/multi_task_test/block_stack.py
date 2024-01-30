@@ -47,7 +47,12 @@ def block_stack_eval_demo_cond(model, env, context, gpu_id, variation_id, img_fo
     print(f"Max-t {max_T}")
     tasks["reached_wrong"] = 0.0
     tasks["picked_wrong"] = 0.0
-    tasks["place_wrong"] = 0.0
+    tasks['place_correct_wrong_obj'] = 0.0
+    tasks['fall_correct_obj'] = 0.0
+    tasks['fall_wrong_obj'] = 0.0
+    tasks['fall_correct_obj'] = 0.0
+    reward_cnt = 0
+    reward_flag = False
 
     while not done:
         tasks['reached'] = tasks['reached'] or np.linalg.norm(
@@ -65,7 +70,7 @@ def block_stack_eval_demo_cond(model, env, context, gpu_id, variation_id, img_fo
             tasks['reached_wrong'] = tasks['reached_wrong'] or np.linalg.norm(
                 other_obj_loc - obs['eef_pos']) < 0.045
             tasks['picked_wrong'] = tasks['picked_wrong'] or (
-                tasks['reached_wrong'] and - start_z > 0.05)
+                tasks['reached_wrong'] and (other_obj_loc[2] - start_z) > 0.05)
 
         states.append(np.concatenate(
             (obs['ee_aa'], obs['gripper_qpos'])).astype(np.float32)[None])
@@ -206,14 +211,32 @@ def block_stack_eval_demo_cond(model, env, context, gpu_id, variation_id, img_fo
 
         traj.append(obs, reward, done, info, action)
 
-        tasks['success'] = reward or tasks['success']
+        if bool(reward):
+            reward_cnt += 1
+            reward_flag = True
+
+        if reward_flag and reward != 1.0:
+            tasks['success'] = 0.0
+            tasks['fall_correct_obj'] = 1.0
+
+        if reward_cnt > 3:
+            tasks['success'] = 1.0
+
+        if tasks['picked_wrong']:
+            picked_obj_loc = env.sim.data.body_xpos[env.cubeC_body_id]
+            placed_obj_loc = env.sim.data.body_xpos[env.cubeB_body_id]
+            if (abs(picked_obj_loc[0]-placed_obj_loc[0]) < 0.03 and abs(picked_obj_loc[1]-placed_obj_loc[1]) < 0.03 and abs(picked_obj_loc[2]-placed_obj_loc[2]) > 0.02) or tasks['place_correct_wrong_obj']:
+                tasks['place_correct_wrong_obj'] = 1.0
+            elif (abs(picked_obj_loc[0]-placed_obj_loc[0]) < 0.10 and abs(picked_obj_loc[1]-placed_obj_loc[1]) < 0.10 and abs(picked_obj_loc[2]-placed_obj_loc[2]) < 0.03) or tasks['fall_wrong_obj']:
+                tasks['fall_wrong_obj'] = 1.0
+                tasks['place_correct_wrong_obj'] = 0.0
 
         # check if the object has been placed in a different bin
         if not tasks['success']:
             pass
 
         n_steps += 1
-        if env_done or reward or n_steps > max_T:
+        if env_done or tasks['success'] or n_steps > max_T:
             done = True
     env.close()
     tasks['avg_pred'] = avg_prediction/len(traj)

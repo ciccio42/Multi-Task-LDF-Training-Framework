@@ -67,7 +67,8 @@ JITTER_FACTORS = {'brightness': 0.4,
 #
 NUM_VARIATION_PER_OBEJECT = {'pick_place': (4, 4),
                              'nut_assembly': (3, 3),
-                             'button': (1, 6)}
+                             'button': (1, 6),
+                             'stack_block': (2, 6)}
 
 
 def collate_by_task(batch):
@@ -585,7 +586,11 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
     if subtask_id == -1:
         # 1. Get Target Object
         if task_name != "stack_block":
-            target_obj_id = step_t['obs']['target-object']
+            if task_name != "button":
+                target_obj_id = step_t['obs']['target-object']
+            else:
+                target_obj_id = ENV_OBJECTS['button']['obj_names_to_id'][step_t['obs']
+                                                                         ['target-object']]
         else:
             target_obj_id = -1
     else:

@@ -19,9 +19,9 @@ DEVICE=0
 DEBUG=false
 WAND_LOG=true
 
-EXP_NAME=1Task-MOSAIC-STACK-BLOCk
+EXP_NAME=4Task-MOSAIC
 PROJECT_NAME=${EXP_NAME}
-TASK_str=stack_block #[pick_place,nut_assembly,button]
+TASK_str=[pick_place,nut_assembly,button,stack_block]
 
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=40455

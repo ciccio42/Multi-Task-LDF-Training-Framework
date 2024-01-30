@@ -442,6 +442,19 @@ class CokeCan(MujocoXMLObject):
                          obj_type="all", duplicate_collision_geoms=True)
 
 
+class CokeCan2(MujocoXMLObject):
+    """
+    Coke can object (used in SawyerPickPlace)
+    """
+    # coke_1 or coke
+
+    def __init__(self, name='can'):
+        super().__init__(os.path.join(BASE_DIR, 'coke_1.xml'),
+                         name=name, joints=[
+                             dict(type="free", damping="0.0005")],
+                         obj_type="all", duplicate_collision_geoms=True)
+
+
 CanObject = CokeCan
 
 

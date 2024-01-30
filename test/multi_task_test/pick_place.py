@@ -10,6 +10,7 @@ import robosuite.utils.transform_utils as T
 from multi_task_test.primitive import *
 from multi_task_test.utils import *
 from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
+from sklearn.metrics import mean_squared_error
 
 
 def pick_place_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None, img_formatter=None, max_T=85, baseline=False, action_ranges=[]):
@@ -223,7 +224,7 @@ def pick_place_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None, 
     return traj, tasks
 
 
-def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False, sub_action=False, gt_action_any_T=4):
+def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False, sub_action=False, gt_action=4):
 
     start_up_env_return = \
         startup_env(model=model,
@@ -363,11 +364,9 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
             prediction = prediction_internal_obj
 
         try:
-            if sub_action and n_steps % gt_action_any_T == 0:
-                consecutive_gt_action_cnt = 0
-            if consecutive_gt_action_cnt < 4:
-                consecutive_gt_action_cnt += 1
-                action, _ = controller.act(gt_obs)
+            if sub_action:
+                if n_steps < gt_action:
+                    action, _ = controller.act(obs)
 
             obs, reward, env_done, info = env.step(action)
             if concat_bb and not predict_gt_bb:
@@ -491,7 +490,7 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
     return traj, tasks
 
 
-def pick_place_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action_any_T=4):
+def pick_place_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action=4):
 
     if "vima" in model_name:
         return pick_place_eval_vima(model=model,
@@ -580,5 +579,5 @@ def pick_place_eval(model, env, gt_env, context, gpu_id, variation_id, img_forma
                                          config=config,
                                          predict_gt_bb=gt_bb,
                                          sub_action=sub_action,
-                                         gt_action_any_T=gt_action_any_T
+                                         gt_action=gt_action
                                          )

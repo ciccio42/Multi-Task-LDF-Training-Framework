@@ -668,9 +668,13 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
             else:
                 handle_loc = env.sim.data.site_xpos[env.sim.model.site_name2id(
                     'round-nut-3_handle_site')]
+        elif task_name == 'button':
+            button_loc = np.array(env.sim.data.site_xpos[env.target_button_id])
+            dist = 0.090
 
-        obj_key = object_name + '_pos'
-        start_z = obs[obj_key][2]
+        if task_name != 'button':
+            obj_key = object_name + '_pos'
+            start_z = obs[obj_key][2]
         bb_queue = []
         while not done:
             if task_name == 'pick_place':
@@ -684,11 +688,18 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                                              reached=tasks['reached'],
                                              picked=tasks['picked'])
 
-            else:
+            elif task_name == "nut_assembly":
                 tasks['reached'] = tasks['reached'] or np.linalg.norm(
                     handle_loc - obs['eef_pos']) < 0.045
                 tasks['picked'] = tasks['picked'] or (
                     tasks['reached'] and obs[obj_key][2] - start_z > 0.05)
+            elif task_name == 'button':
+                button_loc = np.array(
+                    env.sim.data.site_xpos[env.target_button_id])
+                tasks['reached'] = tasks['reached'] or \
+                    np.linalg.norm(obs['eef_pos'] - button_loc) < dist
+                tasks['picked'] = tasks['picked'] or \
+                    (tasks['reached'])
 
             bb_t, gt_t = get_gt_bb(traj=traj,
                                    obs=obs,

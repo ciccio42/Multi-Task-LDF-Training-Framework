@@ -21,9 +21,9 @@ DEVICE=2
 DEBUG=false
 WANDB_LOG=true
 
-EXP_NAME=1Task-Button-Cond-Target-Obj-Detector
+EXP_NAME=1Task-STACK-BLOCK-Cond-Target-Obj-Detector
 PROJECT_NAME=${EXP_NAME}
-TASK_str=button #["pick_place","nut_assembly", "button"]
+TASK_str=stack_block #["pick_place","nut_assembly", "button"]
 
 RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch24/
 RESUME_STEP=40095
@@ -36,7 +36,7 @@ CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector.yaml
 LOADER_WORKERS=8
 BALANCING_POLICY=0
-SET_SAME_N=2
+SET_SAME_N=5
 OBS_T=7
 
 EARLY_STOPPING_PATIECE=-1

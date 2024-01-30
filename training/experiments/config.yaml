@@ -229,7 +229,8 @@ attn:
   fuse_starts:      0   # default 0 so attend everywhere
   causal:           True
   attend_demo:      True
-  demo_out:         True     
+  demo_out:         True
+  max_len:          5000    
   img_cfg:           
     network_flag:   0 # e.g Res18  
     out_feature:    256

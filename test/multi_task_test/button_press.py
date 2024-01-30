@@ -17,7 +17,7 @@ def press_button_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None
     return NotImplementedError
 
 
-def press_button_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False,  sub_action=False, gt_action_any_T=4):
+def press_button_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False,  sub_action=False, gt_action=4):
 
     start_up_env_return = \
         startup_env(model=model,
@@ -228,7 +228,7 @@ def press_button_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
     return traj, tasks
 
 
-def press_button_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action_any_T=4):
+def press_button_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action=4):
 
     if "vima" in model_name:
         return press_button_eval_vima(model=model,
@@ -243,7 +243,7 @@ def press_button_eval(model, env, gt_env, context, gpu_id, variation_id, img_for
         policy = False
         if gt_file is None:
             # Instantiate Controller
-            if task_name == "press_button" and "CondPolicy" not in model_name:
+            if task_name == "button" and "CondPolicy" not in model_name:
                 from multi_task_robosuite_env.controllers.controllers.expert_button import ButtonPressController
                 controller = ButtonPressController(
                     env=env.env,
@@ -287,6 +287,7 @@ def press_button_eval(model, env, gt_env, context, gpu_id, variation_id, img_for
                                           policy=policy,
                                           perform_augs=config.dataset_cfg.get(
                                               'perform_augs', True),
+                                          task_name=task_name,
                                           config=config,
                                           gt_traj=gt_file
                                           )
@@ -317,5 +318,5 @@ def press_button_eval(model, env, gt_env, context, gpu_id, variation_id, img_for
                                            config=config,
                                            predict_gt_bb=gt_bb,
                                            sub_action=sub_action,
-                                           gt_action_any_T=gt_action_any_T
+                                           gt_action=gt_action
                                            )

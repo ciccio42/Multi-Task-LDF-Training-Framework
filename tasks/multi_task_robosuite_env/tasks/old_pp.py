@@ -7,13 +7,14 @@ from robosuite.utils.transform_utils import convert_quat, quat2mat
 from robosuite.utils.mjcf_utils import CustomMaterial
 
 from robosuite.environments.manipulation.single_arm_env import SingleArmEnv
+
 from robosuite.models.objects import (
     MilkVisualObject,
     BreadVisualObject,
     CerealVisualObject,
     CanVisualObject,
 )
-from multi_task_robosuite_env.arena import BinsArena
+from multi_task_robosuite_env.arena import TableArena, BinsArena
 from multi_task_robosuite_env.objects.custom_xml_objects import *
 from multi_task_robosuite_env.sampler import BoundarySampler
 from robosuite.models.tasks import ManipulationTask
@@ -25,8 +26,9 @@ import robosuite.utils.transform_utils as T
 OFFSET = 0.0
 
 
-class PickPlace(DefaultPickPlace):
-    def __init__(self, robots,
+class PickPlace(SingleArmEnv):
+    def __init__(self,
+                 robots,
                  randomize_goal=False,
                  single_object_mode=0,
                  default_bin=3,
@@ -36,19 +38,20 @@ class PickPlace(DefaultPickPlace):
                  num_objects=4,
                  env_configuration="default",
                  controller_configs=None,
+                 mount_types="default",
                  gripper_types="default",
+                 robot_offset=None,
                  initialization_noise="default",
                  table_full_size=(0.39, 0.49, 0.82),
-                 table_friction=(1, 0.005, 0.0001),
+                 table_friction=(1., 5e-3, 1e-4),
                  bin1_pos=(0.1, -0.25, 0.8),
                  bin2_pos=(0.1, 0.28, 0.8),
-                 z_offset=0.,
-                 z_rotation=None,
+                 table_offset=(0, 0, 0.82),
                  use_camera_obs=True,
                  use_object_obs=True,
                  reward_scale=1.0,
                  reward_shaping=False,
-                 object_type=None,
+                 placement_initializer=None,
                  has_renderer=False,
                  has_offscreen_renderer=True,
                  render_camera="frontview",
@@ -63,10 +66,16 @@ class PickPlace(DefaultPickPlace):
                  camera_heights=256,
                  camera_widths=256,
                  camera_depths=False,
-                 camera_segmentations=None,  # {None, instance, class, element}
-                 renderer="mujoco",
-                 renderer_config=None,
+                 camera_poses=None,
+                 camera_attribs=None,
+                 camera_gripper=None,
+                 task_id=0,
+                 object_type=None,
+                 y_ranges=[[0.16, 0.19], [0.05, 0.09],
+                           [-0.08, -0.03], [-0.19, -0.15]],
+                 env_conf=None,
                  **kwargs):
+
         self._randomize_goal = randomize_goal
         self._no_clear = no_clear
         self._default_bin = default_bin
@@ -76,8 +85,54 @@ class PickPlace(DefaultPickPlace):
         self._num_objects = num_objects
         if randomize_goal:
             assert single_object_mode == 2, "only works with single_object_mode==2!"
-        super().__init__(robots=robots, single_object_mode=single_object_mode,
-                         initialization_noise=None, **kwargs)
+
+        # task settings
+        self.single_object_mode = single_object_mode
+        self.object_to_id = {"milk": 0, "bread": 1, "cereal": 2, "can": 3}
+        self.obj_names = ["Milk", "Bread", "Cereal", "Can"]
+        if object_type is not None:
+            assert (
+                object_type in self.object_to_id.keys()
+            ), "invalid @object_type argument - choose one of {}".format(
+                list(self.object_to_id.keys())
+            )
+            self.object_id = self.object_to_id[
+                object_type
+            ]  # use for convenient indexing
+        self.obj_to_use = None
+
+        # settings for table top
+        self.table_full_size = table_full_size
+        self.table_friction = table_friction
+        self.robot_offset = robot_offset
+
+        # settings for bin position
+        self.bin1_pos = np.array(bin1_pos)
+        self.bin2_pos = np.array(bin2_pos)
+
+        # reward configuration
+        self.reward_scale = reward_scale
+        self.reward_shaping = reward_shaping
+
+        # whether to use ground-truth object states
+        self.use_object_obs = use_object_obs
+
+        # camera poses and attributes
+        self.camera_names = camera_names
+        self.camera_poses = camera_poses
+        self.camera_attribs = camera_attribs
+        self.camera_gripper = camera_gripper
+        self.camera_height = camera_heights
+        self.camera_width = camera_widths
+
+        super().__init__(robots=robots,
+                         mount_types=mount_types,
+                         gripper_types=gripper_types,
+                         initialization_noise=None,
+                         camera_names=camera_names,
+                         camera_heights=camera_heights,
+                         camera_widths=camera_widths,
+                         **kwargs)
 
     def _get_placement_initializer(self):
         """
@@ -110,10 +165,14 @@ class PickPlace(DefaultPickPlace):
         """
         Loads an xml model, puts it in self.model
         """
-        SingleArmEnv._load_model(self)
+        super()._load_model()
 
         # Adjust base pose accordingly
-        xpos = self.robots[0].robot_model.base_xpos_offset["bins"]
+        if self.robot_offset is None:
+            xpos = self.robots[0].robot_model.base_xpos_offset["bins"](
+                self.table_full_size[0])
+        else:
+            xpos = self.robot_offset
         self.robots[0].robot_model.set_base_xpos(xpos)
 
         # load model for table top workspace
@@ -122,6 +181,23 @@ class PickPlace(DefaultPickPlace):
             table_full_size=self.table_full_size,
             table_friction=self.table_friction
         )
+
+        # add desired cameras
+        if self.camera_poses is not None:
+            for camera_name in self.camera_names:
+                if camera_name != "robot0_eye_in_hand":
+                    mujoco_arena.set_camera(camera_name=camera_name,
+                                            pos=self.camera_poses[camera_name][0],
+                                            quat=self.camera_poses[camera_name][1],
+                                            camera_attribs=self.camera_attribs)
+
+        # modify robot0_eye_in_hand
+        if self.robots[0].robot_model.default_gripper == "Robotiq85Gripper":
+            self.robots[0].robot_model.set_camera(camera_name="eye_in_hand",
+                                                  pos=self.camera_gripper["Robotiq85Gripper"]["pose"][0],
+                                                  quat=self.camera_gripper["Robotiq85Gripper"]["pose"][1],
+                                                  root=self.camera_gripper["Robotiq85Gripper"]["root"],
+                                                  camera_attribs=self.camera_attribs)
 
         # Arena always gets set to zero origin
         mujoco_arena.set_origin([0, 0, 0])
@@ -150,7 +226,7 @@ class PickPlace(DefaultPickPlace):
                                                                              ], randomized_object_list[2][idx[2]],
                 randomized_object_list[3][idx[3]])
         else:
-            object_seq = (MilkObject, BreadObject, CerealObject, CanObject)
+            object_seq = (MilkObject3, BreadObject3, CerealObject, CokeCan2)
 
         object_seq = object_seq[:self._num_objects]
 
@@ -182,6 +258,36 @@ class PickPlace(DefaultPickPlace):
 
     def _get_reference(self):
         super()._get_reference()
+
+        # Additional object references from this env
+        self.obj_body_id = {}
+        self.obj_geom_id = {}
+
+        # object-specific ids
+        for obj in (self.visual_objects + self.objects):
+            self.obj_body_id[obj.name] = self.sim.model.body_name2id(
+                obj.root_body)
+            self.obj_geom_id[obj.name] = [
+                self.sim.model.geom_name2id(g) for g in obj.contact_geoms]
+
+        # keep track of which objects are in their corresponding bins
+        self.objects_in_bins = np.zeros(len(self.objects))
+
+        # target locations in bin for each object type
+        self.target_bin_placements = np.zeros((len(self.objects), 3))
+        for i, obj in enumerate(self.objects):
+            bin_id = i
+            bin_x_low = self.bin2_pos[0]
+            bin_y_low = self.bin2_pos[1]
+            if bin_id == 0 or bin_id == 2:
+                bin_x_low -= self.bin_size[0] / 2.
+            if bin_id < 2:
+                bin_y_low -= self.bin_size[1] / 2.
+            bin_x_low += self.bin_size[0] / 4.
+            bin_y_low += self.bin_size[1] / 4.
+            self.target_bin_placements[i, :] = [
+                bin_x_low, bin_y_low, self.bin2_pos[2]]
+
         if self.single_object_mode == 2:
             self.target_bin_placements = self.target_bin_placements[self._bin_mappings]
 
@@ -199,7 +305,41 @@ class PickPlace(DefaultPickPlace):
     def reward(self, action=None):
         if self.single_object_mode == 2:
             return float(self._check_success())
-        return super().reward(action)
+        else:
+            # compute sparse rewards
+            self._check_success()
+            reward = np.sum(self.objects_in_bins)
+
+            # add in shaped rewards
+            if self.reward_shaping:
+                staged_rewards = self.staged_rewards()
+                reward += max(staged_rewards)
+            if self.reward_scale is not None:
+                reward *= self.reward_scale
+                if self.single_object_mode == 0:
+                    reward /= 4.0
+            return reward
+
+    def not_in_bin(self, obj_pos, bin_id):
+
+        bin_x_low = self.bin2_pos[0]
+        bin_y_low = self.bin2_pos[1]
+        if bin_id == 0 or bin_id == 2:
+            bin_x_low -= self.bin_size[0] / 2
+        if bin_id < 2:
+            bin_y_low -= self.bin_size[1] / 2
+
+        bin_x_high = bin_x_low + self.bin_size[0] / 2
+        bin_y_high = bin_y_low + self.bin_size[1] / 2
+
+        res = True
+        if (
+            bin_x_low < obj_pos[0] < bin_x_high
+            and bin_y_low < obj_pos[1] < bin_y_high
+            and self.bin2_pos[2] < obj_pos[2] < self.bin2_pos[2] + 0.1
+        ):
+            res = False
+        return res
 
     def _check_success(self):
         """
@@ -209,7 +349,23 @@ class PickPlace(DefaultPickPlace):
             obj_str = self.objects[self.object_id].name
             obj_pos = self.sim.data.body_xpos[self.obj_body_id[obj_str]]
             return not self.not_in_bin(obj_pos, self._bin_mappings[self.object_id])
-        return super()._check_success()
+        else:
+            # remember objects that are in the correct bins
+            gripper_site_pos = self.sim.data.site_xpos[self.robots[0].eef_site_id]
+            for i, obj in enumerate(self.objects):
+                obj_str = obj.name
+                obj_pos = self.sim.data.body_xpos[self.obj_body_id[obj_str]]
+                dist = np.linalg.norm(gripper_site_pos - obj_pos)
+                r_reach = 1 - np.tanh(10.0 * dist)
+                self.objects_in_bins[i] = int(
+                    (not self.not_in_bin(obj_pos, i)) and r_reach < 0.6)
+
+            # returns True if a single object is in the correct bin
+            if self.single_object_mode in {1, 2}:
+                return np.sum(self.objects_in_bins) > 0
+
+            # returns True if all objects are in correct bins
+            return np.sum(self.objects_in_bins) == len(self.objects)
 
     def _get_observation(self):
         """
@@ -225,17 +381,7 @@ class PickPlace(DefaultPickPlace):
                 contains a rendered depth map from the simulation
         """
         di = super()._get_observation()
-        if self.use_camera_obs:
-            cam_name = self.camera_names[0]
-            # in_hand_cam_name = self.camera_names[1]
-            di['image'] = di[cam_name + '_image'].copy()
-            # di['hand_image'] = di[in_hand_cam_name + '_image'].copy()
-            del di[cam_name + '_image']
-            # del di[in_hand_cam_name + '_image']
-            if self.camera_depths[0]:
-                di['depth'] = di[cam_name + '_depth'].copy()
-                di['depth'] = ((di['depth'] - 0.95) /
-                               0.05 * 255).astype(np.uint8)
+
         if self.single_object_mode == 2:
             di['target-box-id'] = self._bin_mappings[self.object_id]
             di['target-object'] = self.object_id
@@ -282,60 +428,92 @@ class PickPlace(DefaultPickPlace):
         super().initialize_time(control_freq)
 
 
-class UR5ePickPlace(PickPlace):
+class UR5ePickPlaceDistractor(PickPlace):
     """
     Easier version of task - place one object into its bin.
     A new object is sampled on every reset.
     """
 
-    def __init__(self, force_object=None, **kwargs):
+    def __init__(self, force_object=None, randomize_goal=True, **kwargs):
         assert "single_object_mode" not in kwargs, "invalid set of arguments"
         items = ['milk', 'bread', 'cereal', 'can']
         obj = np.random.choice(items) if force_object is None else force_object
         obj = items[obj] if isinstance(obj, int) else obj
-        super().__init__(robots=['Ur5e'], single_object_mode=2,
-                         object_type=obj, no_clear=True,  **kwargs)
+        super().__init__(robots=['UR5e'], single_object_mode=2,
+                         object_type=obj, no_clear=True, randomize_goal=randomize_goal, **kwargs)
 
 
-class PandaPickPlace(PickPlace):
+class SawyerPickPlaceDistractor(PickPlace):
     """
     Easier version of task - place one object into its bin.
     A new object is sampled on every reset.
     """
 
-    def __init__(self, force_object=None, **kwargs):
+    def __init__(self, force_object=None, randomize_goal=True, **kwargs):
         assert "single_object_mode" not in kwargs, "invalid set of arguments"
         items = ['milk', 'bread', 'cereal', 'can']
         obj = np.random.choice(items) if force_object is None else force_object
         obj = items[obj] if isinstance(obj, int) else obj
-        super().__init__(robots=['Panda'], single_object_mode=2,
-                         object_type=obj, no_clear=True,  **kwargs)
+        super().__init__(robots=['Sawyer'], single_object_mode=2,
+                         object_type=obj, no_clear=True, randomize_goal=randomize_goal, **kwargs)
 
 
-class SawyerPickPlace(PickPlace):
-    def __init__(self, force_object=None, **kwargs):
+class PandaPickPlaceDistractor(PickPlace):
+    """
+    Easier version of task - place one object into its bin.
+    A new object is sampled on every reset.
+    """
+
+    def __init__(self, force_object=None, randomize_goal=True, **kwargs):
         assert "single_object_mode" not in kwargs, "invalid set of arguments"
         items = ['milk', 'bread', 'cereal', 'can']
         obj = np.random.choice(items) if force_object is None else force_object
         obj = items[obj] if isinstance(obj, int) else obj
-        super().__init__(robots=['Panda'], single_object_mode=2,
-                         object_type=obj, no_clear=True,  **kwargs)
+        super().__init__(robots=['Panda'], single_object_mode=2, object_type=obj,
+                         no_clear=True, randomize_goal=randomize_goal, **kwargs)
 
 
 if __name__ == '__main__':
+    from robosuite.controllers import load_controller_config
     from robosuite.environments.manipulation.pick_place import PickPlace
     import robosuite
     from robosuite.controllers import load_controller_config
+    import debugpy
+    import yaml
+    import cv2
+
+    debugpy.listen(('0.0.0.0', 5678))
+    print("Waiting for debugger attach")
+    debugpy.wait_for_client()
 
     controller = load_controller_config(default_controller="IK_POSE")
-    env = PandaPickPlace(task_id=0, has_renderer=False, controller_configs=controller,
-                         has_offscreen_renderer=False,
-                         reward_shaping=False, use_camera_obs=False, camera_heights=320, camera_widths=320, render_camera='frontview')
+    # load env conf
+    with open('/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/config/OldPickPlaceDistractor.yaml', 'r') as file:
+        env_conf = yaml.safe_load(file)
+
+    env = UR5ePickPlaceDistractor(has_renderer=False,
+                                  controller_configs=controller,
+                                  has_offscreen_renderer=True,
+                                  reward_shaping=False,
+                                  use_camera_obs=True,
+                                  camera_heights=env_conf['camera_heights'],
+                                  camera_widths=env_conf['camera_widths'],
+                                  render_camera='frontview',
+                                  camera_depths=False,
+                                  camera_names=env_conf['camera_names'],
+                                  camera_poses=env_conf['camera_poses'],
+                                  camera_attribs=env_conf['camera_attribs'],
+                                  camera_gripper=env_conf['camera_gripper'],
+                                  robot_offset=env_conf['robot_offset'],
+                                  mount_types=env_conf['mount_types'],
+                                  env_conf=env_conf)
     env.reset()
-    for i in range(1000):
+    for i in range(10000):
         if i % 200 == 0:
             env.reset()
         low, high = env.action_spec
         action = np.random.uniform(low=low, high=high)
-        env.step(action)
-        env.render()
+        obs, _, _, _ = env.step(action)
+        cv2.imwrite(
+            "debug.png", obs['camera_lateral_right_image'][::-1, :, ::-1])
+        # env.render()
