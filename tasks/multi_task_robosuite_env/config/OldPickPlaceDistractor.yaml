@@ -8,7 +8,7 @@ gripper_types: "default"
 
 # Robot offset
 # -0.03-(mounting/2)-(table_full_size/2) 
-robot_offset: [-0.612, 0, 0.860] 
+robot_offset: [-0.40, 0, 0.860] 
 
 # Table dimension
 table_full_size: [0.39, 0.49, 0.82]

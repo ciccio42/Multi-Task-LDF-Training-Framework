@@ -635,7 +635,7 @@ def plot_activation_map(activation_map, agent_obs, save_path="activation_map.png
     plt.show()
 
 
-def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None, action_ranges=[], policy=True, perform_augs=False, config=None, gt_traj=None, activation_map=True):
+def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None, action_ranges=[], policy=True, perform_augs=False, config=None, gt_traj=None, activation_map=True, real=True):
 
     if gt_traj is None:
         done, states, images, context, obs, traj, tasks, bb, gt_classes, _, prev_action = \
@@ -718,7 +718,9 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
 
             bb_t, gt_t = get_gt_bb(traj=traj,
                                    obs=obs,
-                                   task_name=task_name)
+                                   task_name=task_name,
+                                   real=real
+                                   )
 
             if baseline and len(states) >= 5:
                 states, images = [], []

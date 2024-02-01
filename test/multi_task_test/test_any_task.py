@@ -35,7 +35,7 @@ def extract_last_number(path):
     return int(check_point_number)
 
 
-def object_detection_inference(model, config, ctr, heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, gt_file=None, gt_bb=False):
+def object_detection_inference(model, config, ctr, heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, gt_file=None, gt_bb=False, real=False):
 
     if gpu_id == -1:
         gpu_id = int(ctr % torch.cuda.device_count())
@@ -113,7 +113,8 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
                          task_name=env_name,
                          config=config,
                          gt_file=traj_data_trj,
-                         gt_bb=gt_bb)
+                         gt_bb=gt_bb,
+                         real=real)
 
     if "cond_target_obj_detector" in model_name:
         print("Evaluated traj #{}, task #{}, TP {}, FP {}, FN {}".format(
@@ -126,7 +127,7 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
 
 
 def rollout_imitation(model, config, ctr,
-                      heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, gt_bb=False, sub_action=False, gt_action=4):
+                      heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, gt_bb=False, sub_action=False, gt_action=4, real=True):
     if gpu_id == -1:
         gpu_id = int(ctr % torch.cuda.device_count())
     print(f"Model GPU id {gpu_id}")
@@ -181,7 +182,8 @@ def rollout_imitation(model, config, ctr,
                              gt_bb=gt_bb,
                              sub_action=sub_action,
                              gt_action=gt_action,
-                             task_name=env_name)
+                             task_name=env_name,
+                             real=real)
         print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             ctr, variation_id, info['reached'], info['picked'], info['success']))
         # print(f"Avg prediction {info['avg_pred']}")
@@ -222,7 +224,7 @@ def rollout_imitation(model, config, ctr,
         return traj, info
 
 
-def _proc(model, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, gt_bb, sub_action, gt_action, seed, n, gt_file):
+def _proc(model, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, gt_bb, sub_action, gt_action, real, seed, n, gt_file):
     json_name = results_dir + '/traj{}.json'.format(n)
     pkl_name = results_dir + '/traj{}.pkl'.format(n)
     if os.path.exists(json_name) and os.path.exists(pkl_name):
@@ -256,7 +258,8 @@ def _proc(model, config, results_dir, heights, widths, size, shape, color, env_n
                                                gpu_id=gpu_id,
                                                gt_bb=gt_bb,
                                                sub_action=sub_action,
-                                               gt_action=gt_action)
+                                               gt_action=gt_action,
+                                               real=real)
         else:
             # Perform object detection inference
             return_rollout = object_detection_inference(model=model,
@@ -277,7 +280,8 @@ def _proc(model, config, results_dir, heights, widths, size, shape, color, env_n
                                                             config.dataset_cfg.get('normalization_ranges', [])),
                                                         model_name=model_name,
                                                         gpu_id=gpu_id,
-                                                        gt_file=gt_file)
+                                                        gt_file=gt_file,
+                                                        real=real)
 
         if "vima" not in model_name:
             rollout, task_success_flags, expert_traj, context = return_rollout
@@ -360,6 +364,7 @@ if __name__ == '__main__':
         debugpy.wait_for_client()
 
     try_path = args.model
+    real = True if "Real" in try_path else False
     # if 'log' not in args.model and 'mosaic' not in args.model:
     #     print("Appending dir to given exp_name: ", args.model)
     #     try_path = join(LOG_PATH, args.model)
@@ -545,7 +550,8 @@ if __name__ == '__main__':
                               args.save_files,
                               args.gt_bb,
                               args.sub_action,
-                              args.gt_action)
+                              args.gt_action,
+                              real)
 
         random.seed(42)
         np.random.seed(42)

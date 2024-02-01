@@ -18,7 +18,7 @@ def _clip_delta(delta, max_step=0.015):
     return delta / norm_delta * max_step
 
 
-def nut_assembly_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="nut_assembly", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action_any_T=4):
+def nut_assembly_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="nut_assembly", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action_any_T=4, real=True):
 
     if "vima" in model_name:
         return nut_assembly_eval_vima(model=model,
@@ -77,7 +77,8 @@ def nut_assembly_eval(model, env, gt_env, context, gpu_id, variation_id, img_for
                                               'perform_augs', True),
                                           config=config,
                                           gt_traj=gt_file,
-                                          task_name=task_name
+                                          task_name=task_name,
+                                          real=real
                                           )
     else:
         # Instantiate Controller
@@ -322,7 +323,7 @@ def nut_assembly_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None
     return traj, tasks
 
 
-def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False):
+def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False, real=True):
 
     start_up_env_return = \
         startup_env(model=model,
@@ -399,7 +400,8 @@ def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
         bb_t, gt_t = get_gt_bb(traj=traj,
                                obs=obs,
                                task_name=task_name,
-                               env=env)
+                               env=env,
+                               real=real)
         previous_predicted_bb = []
         previous_predicted_bb.append(torch.tensor(
             [.0, .0, .0, .0]).to(
@@ -466,7 +468,7 @@ def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
             # prev_action = action
             obs, reward, env_done, info = env.step(action)
             if concat_bb and not predict_gt_bb:
-                
+
                 # get predicted bb from prediction
                 # 1. Get the index with target class
                 target_indx_flags = prediction['classes_final'][0] == 1

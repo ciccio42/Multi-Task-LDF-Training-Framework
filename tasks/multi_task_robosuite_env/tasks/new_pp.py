@@ -159,8 +159,9 @@ class PickPlace(SingleArmEnv):
             self.obj_names = ["Milk", "Bread", "Cereal", "Can"]
             self._obj_dim = {'milk': [0.05, 0.12, 0.045],
                              'bread': [0.045, 0.055, 0.045],
-                             'cereal': [0.045, 0.055, 0.045],
-                             'can': [0.045, 0.065, 0.045]}
+                             'cereal': [0.062, 0.062, 0.074],
+                             'can': [0.045, 0.065, 0.045],
+                             'bin': [0.64, 0.07, 0.16]}
         elif self.object_set == 2:
             self.object_to_id = {"greenbox": 0,
                                  "yellowbox": 1,
@@ -379,7 +380,7 @@ class PickPlace(SingleArmEnv):
                 self.visual_objects.append(vis_obj)
 
         if self.object_set == 1:
-            object_seq = (MilkObject, BreadObject, CerealObject, CanObject)
+            object_seq = (MilkObject, BreadObject, CerealObject, CokeCan2)
         elif self.object_set == 2:
             object_seq = (BoxObject, BoxObject, BoxObject, BoxObject)
         elif self.object_set == 3:

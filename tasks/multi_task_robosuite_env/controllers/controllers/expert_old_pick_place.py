@@ -31,7 +31,16 @@ object_to_id = {"greenbox": 0, "yellowbox": 1, "bluebox": 2, "redbox": 3}
 
 
 def _clip_delta(delta, max_step=0.015):
+    return delta
+    # norm_delta = np.linalg.norm(delta)
+    # if norm_delta < max_step:
+    #     return delta
+    # return delta / norm_delta * max_step
+
+
+def _clip_delta(delta, max_step=0.015):
     norm_delta = np.linalg.norm(delta)
+
     if norm_delta < max_step:
         return delta
     return delta / norm_delta * max_step
@@ -39,120 +48,57 @@ def _clip_delta(delta, max_step=0.015):
 
 class PickPlaceController:
     def __init__(self, env, ranges, tries=0, object_set=1):
+        assert env.single_object_mode == 2, "only supports single object environments at this point!"
         self._env = env
+        self._g_tol = 5e-2 ** (tries + 1)
         self.ranges = ranges
-        self._object_set = object_set
         self.reset()
 
-    def _calculate_quat(self, obs):
-        # Compute target quaternion that defines the final desired gripper orientation
-        # 1. Obtain the orientation of the object wrt to world
-        obj_quat = obs['{}_quat'.format(self._object_name)]
-        if "nut" in self._object_name:
-            obj_rot = T.quat2mat(obj_quat)
-            obj_rot = np.array([[-1.0, 0.0, 0.0],
-                                [0.0, -1.0, 0.0],
-                                [0.0, 0.0, 1.0]])@obj_rot
-        else:
-            obj_rot = T.quat2mat(obj_quat)
-        # 2. compute the new gripper orientation with respect to the gripper
-        world_ee_rot = np.matmul(obj_rot, self._target_gripper_wrt_obj_rot)
-        return Quaternion(matrix=world_ee_rot)
+    def _calculate_quat(self, angle):
+        if "Sawyer" in self._env.robot_names:
+            new_rot = np.array([[np.cos(angle), -np.sin(angle), 0],
+                               [np.sin(angle), np.cos(angle), 0], [0, 0, 1]])
+            return Quaternion(matrix=self._base_rot.dot(new_rot))
+        return self._base_quat
 
     def reset(self):
         self._object_name = self._env.objects[self._env.object_id].name
+        self._target_loc = self._env.target_bin_placements[self._env.object_id] + [
+            0, 0, 0.3]
         # TODO this line violates abstraction barriers but so does the reference implementation in robosuite
         self._jpos_getter = lambda: np.array(self._env._joint_positions)
-        self._clearance = 0.03  # 0.03 if 'milk' not in self._object_name else -0.01
+        self._clearance = 0.03 if 'milk' not in self._object_name else -0.01
 
         if "Sawyer" in self._env.robot_names:
             self._obs_name = 'eef_pos'
-            self._default_speed = 0.02
+            self._default_speed = 0.13
             self._final_thresh = 1e-2
-            # define the target gripper orientation with respect to the object
-            self._target_gripper_wrt_obj_rot = np.array(
-                [[1, 0, 0.], [0, -1, 0.], [0., 0., -1.]])
-            self._g_tol = 1e-2
+            self._base_rot = np.array([[1, 0, 0.], [0, -1, 0.], [0., 0., -1.]])
+            self._base_quat = Quaternion(matrix=self._base_rot)
         elif "Panda" in self._env.robot_names:
             self._obs_name = 'eef_pos'
-            self._default_speed = 0.02
+            self._default_speed = 0.13
             self._final_thresh = 6e-2
-            # define the target gripper orientation with respect to the object
-            self._target_gripper_wrt_obj_rot = np.array(
-                [[0, 1, 0.], [1, 0, 0.], [0., 0., -1.]])
-            self._g_tol = 5e-2
-        elif "UR5e" in self._env.robot_names:
-            self._obs_name = 'eef_pos'
-            self._default_speed = 0.02
-            self._final_thresh = 6e-2
-            # define the target gripper orientation with respect to the object
-            self._target_gripper_wrt_obj_rot = np.array(
-                [[1, 0, 0.], [0, -1, 0.], [0., 0., -1.]])
-            self._g_tol = 5e-2
+            self._base_rot = np.array([[1, 0, 0.], [0, -1, 0.], [0., 0., -1.]])
+            self._base_quat = Quaternion(matrix=self._base_rot)
         else:
             raise NotImplementedError
 
-        # define the initial orientation of the gripper site
-        self._base_quat = Quaternion(matrix=np.reshape(
-            self._env.sim.data.site_xmat[self._env.robots[0].eef_site_id], (3, 3)))
-        pick_place_logger.debug(
-            f"Starting position:\n{self._env.sim.data.site_xpos[self._env.robots[0].eef_site_id]}")
-        pick_place_logger.debug(
-            f"Base rot:\n{np.reshape(self._env.sim.data.site_xmat[self._env.robots[0].eef_site_id], (3,3))}")
-
         self._t = 0
         self._intermediate_reached = False
-        self._hover_delta = 0.20
-        self._obj_thr = 0.10
-        if self._object_set == 1:
-            dist_panda = {'milk': 0.05, 'can': 0.018,
-                          'cereal': 0.018, 'bread': 0.018}
-            dist_sawyer = {'milk': 0.05, 'can': 0.018,
-                           'cereal': 0.018, 'bread': 0.018}
-            dist_ur5e = {'milk': 0.05, 'can': 0.03,
-                         'cereal': 0.03, 'bread': 0.03}
-            self.final_placing = [0, 0, 0.12]
-        elif self._object_set == 2:
-            dist_panda = {'greenbox': 0.05, 'yellowbox': 0.018,
-                          'bluebox': 0.018, 'redbox': 0.018}
-            dist_sawyer = {'greenbox': 0.05, 'yellowbox': 0.018,
-                           'bluebox': 0.018, 'redbox': 0.018}
-            dist_ur5e = {'greenbox': 0.05, 'yellowbox': 0.03,
-                         'bluebox': 0.03, 'redbox': 0.03}
-            self.final_placing = [0, 0, 0.12]
-        elif self._object_set == 3:
-            # {'greenbox': 0.05, 'yellowbox': 0.018,
-            #  'bluebox': 0.018, 'redbox': 0.018}
-            dist_panda = dict()
-            # {'greenbox': 0.05, 'yellowbox': 0.018,
-            #  'bluebox': 0.018, 'redbox': 0.018}
-            dist_sawyer = dict()
-            # {'greenbox': 0.05, 'yellowbox': 0.03,
-            #  'bluebox': 0.03, 'redbox': 0.03}
-            dist_ur5e = dict()
-            for obj_name in self._env.obj_names:
-                dist_panda[obj_name] = 0.03
-                dist_sawyer[obj_name] = 0.03
-                dist_ur5e[obj_name] = 0.03
-
-        if "Panda" in self._env.robot_names:
-            self.dist = dist_panda
-            # gripper depth defines the distance between the TCP and the edge of the gripper
-            self._gripper_depth = 0.01
-        elif "Sawyer" in self._env.robot_names:
-            self.dist = dist_sawyer
-            # gripper depth defines the distance between the TCP and the edge of the gripper
-            self._gripper_depth = 0.038/2
-        elif "UR5e" in self._env.robot_names:
-            self.dist = dist_ur5e
-            # gripper depth defines the distance between the TCP and the edge of the gripper
-            self._gripper_depth = 0.038/2
+        self._hover_delta = 0.25
 
     def _object_in_hand(self, obs):
-        # if np.linalg.norm(obs['{}_pos'.format(self._object_name)] - obs[self._obs_name]) < self.dist[self._object_name] \
-        #    and (obs['{}_pos'.format(self._object_name)][2] - obs[self._obs_name][2]) > 0 \
-        #    and (obs['{}_pos'.format(self._object_name)][2] - obs[self._obs_name][2]) <= self._gripper_depth:
-        if np.linalg.norm(obs['{}_pos'.format(self._object_name)] - obs[self._obs_name]) < self.dist[self._object_name]:
+        dist_panda = {'milk': 0.045, 'can': 0.03,
+                      'cereal': 0.017, 'bread': 0.018}
+        dist_sawyer = {'milk': 0.042, 'can': 0.025,
+                       'cereal': 0.015, 'bread': 0.015}
+        if "Panda" in self._env.robot_names:
+            dist = dist_panda
+        else:
+            dist = dist_sawyer
+
+        if np.linalg.norm(obs['{}_pos'.format(self._object_name)] - obs[self._obs_name]) < dist[self._object_name]:
             return True
         return False
 
@@ -168,34 +114,38 @@ class PickPlaceController:
         return np.concatenate((delta_pos + base_pos, aa))
 
     def act(self, obs):
-        self._target_loc = np.array(
-            self._env.sim.data.body_xpos[self._env.bin_bodyid]) + [0, 0, self._hover_delta]
         status = 'start'
         if self._t == 0:
             self._start_grasp = -1
             self._finish_grasp = False
-            self._target_quat = self._calculate_quat(obs)
-            self._move_up = False
+            try:
+                y = -(obs['{}_pos'.format(self._object_name)]
+                      [1] - obs[self._obs_name][1])
+                x = obs['{}_pos'.format(self._object_name)
+                        ][0] - obs[self._obs_name][0]
+            except:
+                import pdb
+                pdb.set_trace()
+            angle = np.arctan2(
+                y, x) - np.pi / 3 if 'cereal' in self._object_name else np.arctan2(y, x)
+            self._target_quat = self._calculate_quat(angle)
 
-        # Phase 1
-        if self._start_grasp < 0:
-            # check if the "prepare_grasp" phase is over
-            if np.linalg.norm(obs['{}_pos'.format(self._object_name)][:2] - obs[self._obs_name][:2]) < self._g_tol:
+        if self._start_grasp < 0 and self._t < 15:
+            if np.linalg.norm(obs['{}_pos'.format(self._object_name)] - obs[self._obs_name] + [0, 0,
+                                                                                               self._hover_delta]) < self._g_tol or self._t == 14:
                 self._start_grasp = self._t
 
-            # perform the inteporpolation between _base_quat and _target_quat
             quat_t = Quaternion.slerp(
-                self._base_quat, self._target_quat, min(1, float(self._t) / 20))
+                self._base_quat, self._target_quat, min(1, float(self._t) / 5))
             eef_pose = self._get_target_pose(
                 obs['{}_pos'.format(self._object_name)] -
                 obs[self._obs_name] + [0, 0, self._hover_delta],
                 obs['eef_pos'], quat_t)
             action = np.concatenate((eef_pose, [-1]))
             status = 'prepare_grasp'
-        # Phase 2
-        elif self._start_grasp > 0 and not self._finish_grasp:
+
+        elif self._t < self._start_grasp + 30 and not self._finish_grasp:
             if not self._object_in_hand(obs):
-                # the object is not in the hand, approaching the object
                 eef_pose = self._get_target_pose(
                     obs['{}_pos'.format(self._object_name)] -
                     obs[self._obs_name] - [0, 0, self._clearance],
@@ -204,34 +154,24 @@ class PickPlaceController:
                 self.object_pos = obs['{}_pos'.format(self._object_name)]
                 status = 'reaching_obj'
             else:
-                # the object is in the hand, close the gripper and start the new phase
-                eef_pose = self._get_target_pose(
-                    self.object_pos - obs[self._obs_name], obs['eef_pos'], self._target_quat)
+                eef_pose = self._get_target_pose(self.object_pos - obs[self._obs_name] + [0, 0, self._hover_delta],
+                                                 obs['eef_pos'], self._target_quat)
                 action = np.concatenate((eef_pose, [1]))
-                self._finish_grasp = True
+                if np.linalg.norm(self.object_pos - obs[self._obs_name] + [0, 0, self._hover_delta]) < self._g_tol:
+                    self._finish_grasp = True
                 status = 'obj_in_hand'
-        # Phase 3
+
         elif np.linalg.norm(
                 self._target_loc - obs[self._obs_name]) > self._final_thresh and not self._intermediate_reached:
-            if not self._move_up:
-                self._init_obj_pos = obs['{}_pos'.format(self._object_name)]
-                self._move_up = True
-            # check the current object height
-            if (abs(self._init_obj_pos[2] - obs['{}_pos'.format(self._object_name)][2]) < self._obj_thr):
-                # target location is the current gripper position + security threshold
-                target = obs['eef_pos'] + [0, 0, self._obj_thr]
-            else:
-                target = self._target_loc
-            # moving towards the goal bin
+            target = self._target_loc
             eef_pose = self._get_target_pose(
                 target - obs[self._obs_name], obs['eef_pos'], self._target_quat)
             action = np.concatenate((eef_pose, [1]))
             status = 'moving'
-        # Phase 4
         else:
             self._intermediate_reached = True
-            if np.linalg.norm(self._target_loc - self.final_placing - obs[self._obs_name]) > self._final_thresh:
-                target = self._target_loc - self.final_placing
+            if np.linalg.norm(self._target_loc - [0, 0, 0.12] - obs[self._obs_name]) > self._final_thresh:
+                target = self._target_loc - [0, 0, 0.12]
                 eef_pose = self._get_target_pose(
                     target - obs[self._obs_name], obs['eef_pos'], self._target_quat)
                 action = np.concatenate((eef_pose, [1]))
@@ -242,7 +182,6 @@ class PickPlaceController:
             status = 'placing'
 
         self._t += 1
-        pick_place_logger.info(f"Status {status}")
         return action, status
 
 
@@ -348,7 +287,7 @@ def get_expert_trajectory(env_type, controller_type, renderer=False, camera_obs=
                 os.makedirs("test")
             except:
                 pass
-            image = np.array(obs['camera_front_image'][:, :, ::-1])
+            image = np.array(obs['camera_lateral_right_image'][:, :, ::-1])
             for obj_name in obs['obj_bb']['camera_front']:
                 obj_bb = obs['obj_bb']['camera_front'][obj_name]
                 color = (0, 0, 255)
@@ -409,11 +348,12 @@ if __name__ == '__main__':
     controller_config = load_controller_config(
         custom_fpath=controller_config_path)
 
-    for i in [8, 12]:  # range(0, 16):
-        traj = get_expert_trajectory('UR5e_PickPlaceDistractor',
-                                     controller_type=controller_config,
-                                     renderer=False,
-                                     camera_obs=True,
-                                     task=i,
-                                     render_camera='camera_front',
-                                     object_set=1)
+    for i in range(0, 16):
+        traj = get_expert_trajectory(
+            'Panda_OldPickPlaceDistractor',
+            controller_type=controller_config,
+            renderer=False,
+            camera_obs=True,
+            task=i,
+            render_camera='camera_front',
+            object_set=1)

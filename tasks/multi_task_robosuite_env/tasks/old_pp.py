@@ -125,6 +125,11 @@ class PickPlace(SingleArmEnv):
         self.camera_height = camera_heights
         self.camera_width = camera_widths
 
+        self._obj_dim = {'milk': [0.05, 0.12, 0.080],
+                         'bread': [0.045, 0.055, 0.045],
+                         'cereal': [0.045, 0.055, 0.045],
+                         'can': [0.045, 0.065, 0.045]}
+
         super().__init__(robots=robots,
                          mount_types=mount_types,
                          gripper_types=gripper_types,
@@ -132,6 +137,7 @@ class PickPlace(SingleArmEnv):
                          camera_names=camera_names,
                          camera_heights=camera_heights,
                          camera_widths=camera_widths,
+                         camera_depths=camera_depths,
                          **kwargs)
 
     def _get_placement_initializer(self):
@@ -152,7 +158,7 @@ class PickPlace(SingleArmEnv):
                 mujoco_objects=self.objects,
                 x_range=[-bin_x_half, bin_x_half],
                 y_range=[-bin_y_half, bin_y_half],
-                rotation=[0, np.pi / 4],
+                rotation=[0, 0],
                 rotation_axis='z',
                 ensure_object_boundary_in_range=True,
                 ensure_valid_placement=True,
@@ -292,6 +298,30 @@ class PickPlace(SingleArmEnv):
             self.target_bin_placements = self.target_bin_placements[self._bin_mappings]
 
     def _reset_internal(self):
+
+        # Reset all object positions using initializer sampler if we're not directly loading from an xml
+        if not self.deterministic_reset:
+
+            # Sample from the placement initializer for all objects
+            object_placements = self.placement_initializer.sample()
+
+            # Loop through all objects and reset their positions
+            for obj_pos, obj_quat, obj in object_placements.values():
+                # Set the visual object body locations
+                if "visual" in obj.name.lower():
+                    self.sim.model.body_pos[self.obj_body_id[obj.name]] = obj_pos
+                    self.sim.model.body_quat[self.obj_body_id[obj.name]] = obj_quat
+                else:
+                    # Set the collision object joints
+                    self.sim.data.set_joint_qpos(obj.joints[0], np.concatenate(
+                        [np.array(obj_pos), np.array(obj_quat)]))
+
+        # Set the bins to the desired position
+        self.sim.model.body_pos[self.sim.model.body_name2id(
+            "bin1")] = self.bin1_pos
+        self.sim.model.body_pos[self.sim.model.body_name2id(
+            "bin2")] = self.bin2_pos
+
         self._was_closed = False
         if self.single_object_mode == 2:
             # randomly target bins if in single_object_mode==2
@@ -300,6 +330,7 @@ class PickPlace(SingleArmEnv):
                 np.random.shuffle(self._bin_mappings)
             else:
                 self._bin_mappings[:] = self._default_bin
+
         super()._reset_internal()
 
     def reward(self, action=None):
@@ -421,7 +452,171 @@ class PickPlace(SingleArmEnv):
 
         di["object-state"] = np.concatenate([di[k] for k in object_state_keys])
 
+        di['obj_bb'] = self._create_bb(di)
+
         return di
+
+    def _create_bb(self, di):
+        """
+            Create bb around each object in the scene for each camera of interest
+        """
+        import logging
+        logging.basicConfig(
+            format='%(levelname)s:%(message)s', level=logging.INFO)
+        logger = logging.getLogger("BB-Creator")
+
+        obj_bb = OrderedDict()
+        # 1. For each camera of interest get the pose
+        for camera_name in self.camera_names:
+            if "in_hand" not in camera_name:
+                obj_bb[camera_name] = OrderedDict()
+                r_camera_world = quat2mat(convert_quat(
+                    np.array(self.camera_poses[camera_name][1]), to="xyzw")).T
+                p_camera_world = - \
+                    r_camera_world @  np.reshape(np.expand_dims(
+                        np.array(self.camera_poses[camera_name][0]), axis=0), (3, 1))
+                # Transformation matrix
+                T_camera_world = np.concatenate(
+                    (r_camera_world, p_camera_world), axis=1)
+                T_camera_world = np.concatenate(
+                    (T_camera_world, np.array([[0, 0, 0, 1]])), axis=0)
+
+                # 2. For each object compute bb
+                for i, obj in enumerate(self.objects):
+                    obj_name = obj.name
+                    obj_bb[camera_name][obj_name] = dict()
+
+                    # convert obj pos in camera coordinate
+                    if "nut" in obj_name:
+                        obj_pos = self.sim.data.site_xpos[self.sim.model.site_name2id(
+                            f'{obj_name}_handle_site')]
+                        obj_quat = T.mat2quat(
+                            np.reshape(self.sim.data.site_xmat[self.sim.model.site_name2id(
+                                f'{obj_name}_handle_site')], (3, 3)))
+                    else:
+                        obj_pos = np.array(
+                            self.sim.data.body_xpos[self.obj_body_id[obj_name]])
+
+                    if obj_name == 'bin':
+                        obj_pos[2] = obj_pos[2] + 0.08
+                    obj_quat = T.convert_quat(
+                        self.sim.data.body_xquat[self.obj_body_id[obj_name]], to="xyzw"
+                    )
+
+                    # 2. Create transformation matrix
+                    T_camera_world = np.concatenate(
+                        (r_camera_world, p_camera_world), axis=1)
+                    T_camera_world = np.concatenate(
+                        (T_camera_world, np.array([[0, 0, 0, 1]])), axis=0)
+                    # logger.debug(T_camera_world)
+                    p_world_object = np.expand_dims(
+                        np.insert(obj_pos, 3, 1), 0).T
+                    p_camera_object = T_camera_world @ p_world_object
+                    logger.debug(
+                        f"\nP_world_object:\n{p_world_object} - \nP_camera_object:\n {p_camera_object}")
+
+                    # 3. Cnversion into pixel coordinates of object center
+                    f = 0.5 * self.camera_height / \
+                        np.tan(int(self.camera_attribs['fovy']) * np.pi / 360)
+
+                    p_x_center = int(
+                        (p_camera_object[0][0] / - p_camera_object[2][0]) * f + self.camera_width / 2)
+
+                    p_y_center = int(
+                        (- p_camera_object[1][0] / - p_camera_object[2][0]) * f + self.camera_height / 2)
+                    logger.debug(
+                        f"\nImage coordinate: px {p_x_center}, py {p_y_center}")
+
+                    p_x_corner_list = []
+                    p_y_corner_list = []
+                    # 3.1 create a box around the object
+                    for i in range(8):
+                        if i == 0:  # upper-left front corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[self._obj_dim[obj_name][2]/2],
+                                        [-self._obj_dim[obj_name][0]/2-OFFSET],
+                                        [self._obj_dim[obj_name][1]/2+OFFSET],
+                                        [0]])
+                        elif i == 1:  # upper-right front corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[self._obj_dim[obj_name][2]/2],
+                                        [self._obj_dim[obj_name][0]/2+OFFSET],
+                                        [self._obj_dim[obj_name][1]/2+OFFSET],
+                                        [0]])
+                        elif i == 2:  # bottom-left front corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[self._obj_dim[obj_name][2]/2],
+                                        [-self._obj_dim[obj_name][0]/2-OFFSET],
+                                        [-self._obj_dim[obj_name][1]/2-OFFSET],
+                                        [0]])
+                        elif i == 3:  # bottom-right front corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[self._obj_dim[obj_name][2]/2],
+                                        [self._obj_dim[obj_name][0]/2+OFFSET],
+                                        [-self._obj_dim[obj_name][1]/2-OFFSET],
+                                        [0]])
+                        elif i == 4:  # upper-left back corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[-self._obj_dim[obj_name][2]/2],
+                                        [-self._obj_dim[obj_name][0]/2-OFFSET],
+                                        [self._obj_dim[obj_name][1]/2+OFFSET],
+                                        [0]])
+                        elif i == 5:  # upper-right back corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[-self._obj_dim[obj_name][2]/2],
+                                        [self._obj_dim[obj_name][0]/2+OFFSET],
+                                        [self._obj_dim[obj_name][1]/2+OFFSET],
+                                        [0]])
+                        elif i == 6:  # bottom-left back corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[-self._obj_dim[obj_name][2]/2],
+                                        [-self._obj_dim[obj_name][0]/2-OFFSET],
+                                        [-self._obj_dim[obj_name][1]/2-OFFSET],
+                                        [0]])
+                        elif i == 7:  # bottom-right back corner
+                            p_world_object_corner = p_world_object + \
+                                np.array(
+                                    [[-self._obj_dim[obj_name][2]/2],
+                                        [self._obj_dim[obj_name][0]/2+OFFSET],
+                                        [-self._obj_dim[obj_name][1]/2-OFFSET],
+                                        [0]])
+
+                        p_camera_object_corner = T_camera_world @ p_world_object_corner
+                        logger.debug(
+                            f"\nP_world_object_upper_left:\n{p_world_object_corner} -   \nP_camera_object_upper_left:\n {p_camera_object_corner}")
+
+                        # 3.1 Upper-left corner and bottom right corner in pixel coordinate
+                        p_x_corner = int(
+                            (p_camera_object_corner[0][0] / - p_camera_object_corner[2][0]) * f + self.camera_width / 2)
+
+                        p_y_corner = int(
+                            (- p_camera_object_corner[1][0] / - p_camera_object_corner[2][0]) * f + self.camera_height / 2)
+                        logger.debug(
+                            f"\nImage coordinate upper_left corner: px {p_x_corner}, py {p_y_corner}")
+
+                        p_x_corner_list.append(p_x_corner)
+                        p_y_corner_list.append(p_y_corner)
+
+                    x_min = min(p_x_corner_list)
+                    y_min = min(p_y_corner_list)
+                    x_max = max(p_x_corner_list)
+                    y_max = max(p_y_corner_list)
+                    # save bb
+                    obj_bb[camera_name][obj_name]['center'] = [
+                        p_x_center, p_y_center]
+                    obj_bb[camera_name][obj_name]['upper_left_corner'] = [
+                        x_max, y_max]
+                    obj_bb[camera_name][obj_name]['bottom_right_corner'] = [
+                        x_min, y_min]
+
+        return obj_bb
 
     def initialize_time(self, control_freq):
         self.sim.model.vis.quality.offsamples = 8
@@ -434,11 +629,14 @@ class UR5ePickPlaceDistractor(PickPlace):
     A new object is sampled on every reset.
     """
 
-    def __init__(self, force_object=None, randomize_goal=True, **kwargs):
+    def __init__(self, force_object=None, randomize_goal=True, task_id=None, **kwargs):
         assert "single_object_mode" not in kwargs, "invalid set of arguments"
         items = ['milk', 'bread', 'cereal', 'can']
-        obj = np.random.choice(items) if force_object is None else force_object
-        obj = items[obj] if isinstance(obj, int) else obj
+        if task_id is None:
+            obj_id = np.random.randint(0, 4)
+            obj = items[obj_id]
+        else:
+            obj = items[int(task_id/len(items))]
         super().__init__(robots=['UR5e'], single_object_mode=2,
                          object_type=obj, no_clear=True, randomize_goal=randomize_goal, **kwargs)
 
@@ -449,11 +647,14 @@ class SawyerPickPlaceDistractor(PickPlace):
     A new object is sampled on every reset.
     """
 
-    def __init__(self, force_object=None, randomize_goal=True, **kwargs):
+    def __init__(self, force_object=None, randomize_goal=True, task_id=None, **kwargs):
         assert "single_object_mode" not in kwargs, "invalid set of arguments"
         items = ['milk', 'bread', 'cereal', 'can']
-        obj = np.random.choice(items) if force_object is None else force_object
-        obj = items[obj] if isinstance(obj, int) else obj
+        if task_id is None:
+            obj_id = np.random.randint(0, 8)
+            obj = items[obj_id]
+        else:
+            obj = items[int(task_id/len(items))]
         super().__init__(robots=['Sawyer'], single_object_mode=2,
                          object_type=obj, no_clear=True, randomize_goal=randomize_goal, **kwargs)
 
@@ -464,11 +665,14 @@ class PandaPickPlaceDistractor(PickPlace):
     A new object is sampled on every reset.
     """
 
-    def __init__(self, force_object=None, randomize_goal=True, **kwargs):
+    def __init__(self, force_object=None, randomize_goal=True, task_id=None, **kwargs):
         assert "single_object_mode" not in kwargs, "invalid set of arguments"
         items = ['milk', 'bread', 'cereal', 'can']
-        obj = np.random.choice(items) if force_object is None else force_object
-        obj = items[obj] if isinstance(obj, int) else obj
+        if task_id is None:
+            obj_id = np.random.randint(0, 8)
+            obj = items[obj_id]
+        else:
+            obj = items[int(task_id/len(items))]
         super().__init__(robots=['Panda'], single_object_mode=2, object_type=obj,
                          no_clear=True, randomize_goal=randomize_goal, **kwargs)
 
@@ -507,7 +711,9 @@ if __name__ == '__main__':
                                   robot_offset=env_conf['robot_offset'],
                                   mount_types=env_conf['mount_types'],
                                   env_conf=env_conf)
-    env.reset()
+    obs = env.reset()
+    cv2.imwrite(
+        "debug.png", obs['camera_lateral_right_image'][::-1, :, ::-1])
     for i in range(10000):
         if i % 200 == 0:
             env.reset()
