@@ -522,7 +522,7 @@ def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None
         return done, states, images, context, obs, traj, tasks, gt_obs, current_gripper_pose
 
 
-def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0):
+def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0, real=True):
     # Get GT Bounding Box
     if task_name != 'stack_block':
         agent_target_obj_id = traj.get(t)['obs']['target-object']
@@ -542,11 +542,18 @@ def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0):
     for id, obj_name in enumerate(obj_name_list):
         if id == agent_target_obj_id or obj_name == agent_target_obj_id:
             try:
-                top_left_x = obs['obj_bb']["camera_front"][obj_name]['bottom_right_corner'][0]
-                top_left_y = obs['obj_bb']["camera_front"][obj_name]['bottom_right_corner'][1]
-                # print(f"Top-Left X {top_left_x} - Top-Left Y {top_left_y}")
-                bottom_right_x = obs['obj_bb']["camera_front"][obj_name]['upper_left_corner'][0]
-                bottom_right_y = obs['obj_bb']["camera_front"][obj_name]['upper_left_corner'][1]
+                if real:
+                    top_left_x = obs['obj_bb']["camera_front"][obj_name]['upper_left_corner'][0]
+                    top_left_y = obs['obj_bb']["camera_front"][obj_name]['upper_left_corner'][1]
+
+                    bottom_right_x = obs['obj_bb']["camera_front"][obj_name]['bottom_right_corner'][0]
+                    bottom_right_y = obs['obj_bb']["camera_front"][obj_name]['bottom_right_corner'][1]
+                else:
+                    top_left_x = obs['obj_bb']["camera_front"][obj_name]['bottom_right_corner'][0]
+                    top_left_y = obs['obj_bb']["camera_front"][obj_name]['bottom_right_corner'][1]
+                    # print(f"Top-Left X {top_left_x} - Top-Left Y {top_left_y}")
+                    bottom_right_x = obs['obj_bb']["camera_front"][obj_name]['upper_left_corner'][0]
+                    bottom_right_y = obs['obj_bb']["camera_front"][obj_name]['upper_left_corner'][1]
             except:
                 top_left_x = obs['obj_bb'][obj_name]['upper_left_corner'][0]
                 top_left_y = obs['obj_bb'][obj_name]['upper_left_corner'][1]

@@ -45,7 +45,8 @@ button:
 pick_place:
   name:              'pick_place'
   n_tasks:           1
-  crop:              [0, 30, 120, 0] # Render: top, distance_bottom, left, distance_right
+  demo_crop:         [20, 25, 80, 75]
+  agent_crop:        [0, 30, 120, 0] # Render: top, distance_bottom, left, distance_right
   n_per_task:        2
   task_ids:          [0] #[0,1,2,3] #[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
   loss_mul:          1

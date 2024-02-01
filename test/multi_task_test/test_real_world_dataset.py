@@ -401,27 +401,27 @@ if __name__ == '__main__':
 
         dataset = None
         from hydra.utils import instantiate
-        config.tasks[0] = {
-            "name": "pick_place",
-            "n_tasks": 4,
-            "crop": [0,
-                     30,
-                     50,
-                     0],
-            "n_per_task": 2,
-            "task_ids":
-            [0,
-             1,
-             2,
-             3],
-            "loss_mul": 1,
-            "task_per_batch": 16,
-            "traj_per_subtask": 36,
-            "demo_per_subtask": 100}
+        # config.tasks[0] = {
+        #     "name": "pick_place",
+        #     "n_tasks": 4,
+        #     "crop": [0,
+        #              30,
+        #              50,
+        #              0],
+        #     "n_per_task": 2,
+        #     "task_ids":
+        #     [0,
+        #      1,
+        #      2,
+        #      3],
+        #     "loss_mul": 1,
+        #     "task_per_batch": 16,
+        #     "traj_per_subtask": 36,
+        #     "demo_per_subtask": 100}
 
-        config.dataset_cfg.mode = "train"
+        config.dataset_cfg.mode = "val"
         config.dataset_cfg.agent_name = "real_ur5e"
-        config.dataset_cfg.root_dir = "/raid/home/frosa_Loc/opt_dataset"
+        # config.dataset_cfg.root_dir = "/raid/home/frosa_Loc/opt_dataset"
         dataset = instantiate(config.get('dataset_cfg', None))
         # get list of pkl files
         build_context_flag = False

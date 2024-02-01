@@ -268,7 +268,16 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                         count += 1
 
         print('Done loading Task {}, agent/demo trajctores pairs reach a count of: {}'.format(name, count))
-        dataset_loader.task_crops[name] = spec.get('crop', [0, 0, 0, 0])
+
+        if spec.get('demo_crop', None) is not None:
+            dataset_loader.demo_crop[name] = spec.get(
+                'demo_crop', [0, 0, 0, 0])
+        if spec.get('agent_crop', None) is not None:
+            dataset_loader.agent_crop[name] = spec.get(
+                'agent_crop', [0, 0, 0, 0])
+        if spec.get('task_crops', None) is not None:
+            dataset_loader.task_crops[name] = spec.get(
+                'task_crops', [0, 0, 0, 0])
 
     return count
 
@@ -350,7 +359,8 @@ def make_demo(dataset, traj, task_name):
             processed = dataset.frame_aug(task_name,
                                           obs,
                                           perform_aug=False,
-                                          perform_scale_resize=dataset.perform_scale_resize)
+                                          perform_scale_resize=dataset.perform_scale_resize,
+                                          agent=False)
             frames.append(processed)
             if dataset.aug_twice:
                 cp_frames.append(dataset.frame_aug(
@@ -494,13 +504,21 @@ def create_data_aug(dataset_loader=object):
                     bb[obj_indx] = np.array([[x1_new, y1, x2_new, y2]])
         return obs, bb
 
-    def frame_aug(task_name, obs, second=False, bb=None, class_frame=None, perform_aug=True, frame_number=-1, perform_scale_resize=True):
+    def frame_aug(task_name, obs, second=False, bb=None, class_frame=None, perform_aug=True, frame_number=-1, perform_scale_resize=True, agent=False):
 
         if perform_scale_resize:
             img_height, img_width = obs.shape[:2]
             """applies to every timestep's RGB obs['camera_front_image']"""
-            crop_params = dataset_loader.task_crops.get(
-                task_name, [0, 0, 0, 0])
+            if len(getattr(dataset_loader, "demo_crop", OrderedDict())) != 0 and not agent:
+                crop_params = dataset_loader.demo_crop.get(
+                    task_name, [0, 0, 0, 0])
+            if len(getattr(dataset_loader, "agent_crop", OrderedDict())) != 0 and agent:
+                crop_params = dataset_loader.agent_crop.get(
+                    task_name, [0, 0, 0, 0])
+            if len(getattr(dataset_loader, "task_crops", OrderedDict())) != 0:
+                crop_params = dataset_loader.task_crops.get(
+                    task_name, [0, 0, 0, 0])
+
             top, left = crop_params[0], crop_params[2]
             img_height, img_width = obs.shape[0], obs.shape[1]
             box_h, box_w = img_height - top - \
@@ -752,7 +770,9 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                 False,
                 bb_frame,
                 class_frame,
-                perform_scale_resize=getattr(dataset_loader, "perform_scale_resize", True))
+                perform_scale_resize=getattr(
+                    dataset_loader, "perform_scale_resize", True),
+                agent=True)
             end_aug = time.time()
             logger.debug(f"Aug time: {end_aug-aug_time}")
             images.append(processed)
@@ -769,7 +789,9 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
             image_cp = dataset_loader.frame_aug(task_name,
                                                 image,
                                                 True,
-                                                perform_scale_resize=getattr(dataset_loader, "perform_scale_resize", True))
+                                                perform_scale_resize=getattr(
+                                                    dataset_loader, "perform_scale_resize", True),
+                                                agent=True)
             images_cp.append(image_cp)
             logger.debug(f"Aug twice time: {time.time()-aug_twice_time}")
 

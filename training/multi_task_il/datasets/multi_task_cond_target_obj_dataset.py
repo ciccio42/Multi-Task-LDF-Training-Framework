@@ -65,6 +65,8 @@ class CondTargetObjDetectorDataset(Dataset):
             ** params):
 
         self.task_crops = OrderedDict()
+        self.demo_crop = OrderedDict()
+        self.agent_crop = OrderedDict()
         # each idx i maps to a unique tuple of (task_name, sub_task_id, agent.pkl, demo.pkl)
         self.all_file_pairs = OrderedDict()
         self.all_agent_files = OrderedDict()
