@@ -906,7 +906,7 @@ class Trainer:
                         print(train_print)
 
                 #### ---- Validation step ----####
-                if self._step % val_freq == 0 and not self.config.get("use_daml", False):
+                if e != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
                     print("Validation")
                     rollout = self.config.get("rollout", False)
                     model = model.eval()
@@ -1080,7 +1080,7 @@ class Trainer:
                 if self.config.wandb_log:
                     wandb.log(tolog)
                 self._step += 1
-                if not getattr(model, "_load_target_obj_detector", True) or not getattr(model, "_freeze_target_obj_detector", True):
+                if getattr(model, '_load_contrastive', True):
                     # update target params
                     mod = model.module if isinstance(
                         model, nn.DataParallel) else model

@@ -419,7 +419,7 @@ if __name__ == '__main__':
         #     "traj_per_subtask": 36,
         #     "demo_per_subtask": 100}
 
-        config.dataset_cfg.mode = "val"
+        config.dataset_cfg.mode = "train"
         config.dataset_cfg.agent_name = "real_ur5e"
         # config.dataset_cfg.root_dir = "/raid/home/frosa_Loc/opt_dataset"
         dataset = instantiate(config.get('dataset_cfg', None))

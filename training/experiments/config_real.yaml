@@ -227,6 +227,7 @@ attn:
   attn_heads:       4
   attn_ff:          128
   pos_enc:          True 
+  max_len:          5000    
   fuse_starts:      0   # default 0 so attend everywhere
   causal:           True
   attend_demo:      True

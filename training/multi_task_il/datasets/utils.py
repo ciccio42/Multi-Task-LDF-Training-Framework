@@ -275,9 +275,9 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
         if spec.get('agent_crop', None) is not None:
             dataset_loader.agent_crop[name] = spec.get(
                 'agent_crop', [0, 0, 0, 0])
-        if spec.get('task_crops', None) is not None:
+        if spec.get('crop', None) is not None:
             dataset_loader.task_crops[name] = spec.get(
-                'task_crops', [0, 0, 0, 0])
+                'crop', [0, 0, 0, 0])
 
     return count
 
@@ -359,7 +359,7 @@ def make_demo(dataset, traj, task_name):
             processed = dataset.frame_aug(task_name,
                                           obs,
                                           perform_aug=False,
-                                          perform_scale_resize=dataset.perform_scale_resize,
+                                          perform_scale_resize=True,
                                           agent=False)
             frames.append(processed)
             if dataset.aug_twice:
@@ -368,7 +368,7 @@ def make_demo(dataset, traj, task_name):
                     obs,
                     True,
                     perform_aug=False,
-                    perform_scale_resize=dataset.perform_scale_resize))
+                    perform_scale_resize=True))
 
     ret_dict = dict()
     ret_dict['demo'] = torch.stack(frames)

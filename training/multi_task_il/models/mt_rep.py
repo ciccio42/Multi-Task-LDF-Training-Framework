@@ -833,6 +833,7 @@ class VideoImitation(nn.Module):
 
     def soft_param_update(self):
         self._byol.soft_param_update()
+        self._simclr.soft_param_update()
         tau = 1 - self._byol.mom
         for param, target_param in zip(self._embed.parameters(), self._target_embed.parameters()):
             target_param.data.copy_(

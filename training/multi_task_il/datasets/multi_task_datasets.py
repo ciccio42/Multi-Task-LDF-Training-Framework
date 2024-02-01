@@ -46,11 +46,14 @@ class MultiTaskPairedDataset(Dataset):
             normalization_ranges=[],
             n_action_bin=256,
             perform_augs=True,
+            perform_scale_resize=True,
             change_command_epoch=True,
             load_eef_point=False,
             ** params):
 
         self.task_crops = OrderedDict()
+        self.demo_crop = OrderedDict()
+        self.agent_crop = OrderedDict()
         # each idx i maps to a unique tuple of (task_name, sub_task_id, agent.pkl, demo.pkl)
         self.all_file_pairs = OrderedDict()
         self.all_agent_files = OrderedDict()
@@ -69,11 +72,9 @@ class MultiTaskPairedDataset(Dataset):
         self.compute_obj_distribution = compute_obj_distribution
         if "real" in agent_name:
             self.real = True
-            self.perform_scale_resize = False
 
         else:
             self.real = False
-            self.perform_scale_resize = True
 
         self.object_distribution = OrderedDict()
         self.object_distribution_to_indx = OrderedDict()
@@ -91,6 +92,7 @@ class MultiTaskPairedDataset(Dataset):
         self._load_state_spec = True if state_spec is not None else False
         self._change_command_epoch = change_command_epoch
         self._load_eef_point = load_eef_point
+        self.perform_scale_resize = perform_scale_resize
 
         # Frame distribution for each trajectory
         self._frame_distribution = OrderedDict()
