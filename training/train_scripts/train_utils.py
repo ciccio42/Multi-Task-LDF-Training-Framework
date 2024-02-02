@@ -1019,6 +1019,7 @@ class Trainer:
                                                   gt_bb,
                                                   -1,
                                                   -1,
+                                                  False
                                                   )
                             seeds = [(random.getrandbits(32), i, -1)
                                      for i in range(n_run)]
@@ -1080,7 +1081,7 @@ class Trainer:
                 if self.config.wandb_log:
                     wandb.log(tolog)
                 self._step += 1
-                if getattr(model, '_load_contrastive', True):
+                if getattr(model, '_load_contrastive', True) and not 'cond_target_obj_detector' in self.config.policy._target_:
                     # update target params
                     mod = model.module if isinstance(
                         model, nn.DataParallel) else model
@@ -1219,11 +1220,12 @@ class Workspace(object):
             print('load model from ...%s' % self._rpath)
             self.action_model.load_state_dict(torch.load(
                 self._rpath, map_location=torch.device('cpu')))
+            self.optimizer_state_dict = None
             # create path for loading state dict
-            optimizer_state_dict = join(
-                cfg.save_path, cfg.resume_path, f"model_save-optim-{cfg.resume_step}.pt")
-            self.optimizer_state_dict = torch.load(
-                optimizer_state_dict, map_location=torch.device('cpu'))
+            # optimizer_state_dict = join(
+            #     cfg.save_path, cfg.resume_path, f"model_save-optim-{cfg.resume_step}.pt")
+            # self.optimizer_state_dict = torch.load(
+            #     optimizer_state_dict, map_location=torch.device('cpu'))
         else:
             self.optimizer_state_dict = None
 

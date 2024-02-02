@@ -25,10 +25,10 @@ EXP_NAME=1Task-STACK-BLOCK-Cond-Target-Obj-Detector
 PROJECT_NAME=${EXP_NAME}
 TASK_str=stack_block #["pick_place","nut_assembly", "button"]
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch24/
-RESUME_STEP=40095
-RESUME=false
-EPOCH=90 # start from 16
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch30/
+RESUME_STEP=131220
+RESUME=true
+EPOCH=180 # start from 16
 BSIZE=80 #16 #32
 
 COMPUTE_OBJ_DISTRIBUTION=false

@@ -185,7 +185,8 @@ class CondTargetObjDetectorDataset(Dataset):
             if self.non_sequential and self._obs_T > 1 and not self._only_first_frame:
                 end = len(traj)
                 chosen_t = torch.randperm(end)
-                chosen_t = chosen_t[chosen_t != 0][:self._obs_T]
+                chosen_t = chosen_t[:self._obs_T]
+                chosen_t[random.sample(range(self._obs_T), 1)] = 0
             elif not self.non_sequential and not self._only_first_frame:
                 end = len(traj)
                 start = self._obs_T if self._first_frames else 1

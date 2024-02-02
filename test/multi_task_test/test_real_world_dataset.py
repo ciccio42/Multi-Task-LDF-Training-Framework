@@ -135,6 +135,102 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
     return traj, info, expert_traj, context
 
 
+def rollout_imitation(model, config, ctr,
+                      heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, traj_file=None, context_file=None, gt_bb=False, build_context_flag=False):
+    if gpu_id == -1:
+        gpu_id = int(ctr % torch.cuda.device_count())
+    print(f"Model GPU id {gpu_id}")
+    try:
+        model = model.cuda(gpu_id)
+    except:
+        print("Error")
+
+    if "CondPolicy" not in model_name and config.augs.get("old_aug", True):
+        img_formatter = build_tvf_formatter(config, env_name)
+    else:
+        img_formatter = build_tvf_formatter_obj_detector(config=config,
+                                                         env_name=env_name)
+
+    T_context = config.train_cfg.dataset.get('T_context', None)
+    random_frames = config.dataset_cfg.get('select_random_frames', False)
+
+    # Build environments
+    print(f"Create expert demonstration")
+    if build_context_flag:
+        context, variation_id, expert_traj = build_context(img_formatter,
+                                                           T_context=T_context,
+                                                           ctr=ctr,
+                                                           env_name=env_name,
+                                                           heights=heights,
+                                                           widths=widths,
+                                                           size=size,
+                                                           shape=shape,
+                                                           color=color,
+                                                           gpu_id=gpu_id,
+                                                           variation=variation, random_frames=random_frames,
+                                                           controller_path=controller_path,
+                                                           seed=seed)
+    else:
+        env = None
+        variation_id = None
+        expert_traj = None
+        # open context pk file
+        print(
+            f"Considering task {variation} - context {context_file.split('/')[-1]} - agent {traj_file.split('/')[-1]}")
+        import pickle
+        with open(context_file, "rb") as f:
+            context_data = pickle.load(f)
+
+        # create context data
+        context_data_trj = context_data['traj']
+        assert isinstance(context_data_trj, Trajectory)
+        context = select_random_frames(
+            context_data_trj, T_context, sample_sides=True, random_frames=random_frames)
+        # convert BGR context image to RGB and scale to 0-1
+        for i, img in enumerate(context):
+            cv2.imwrite(f"context_{i}.png", np.array(img[:, :, ::-1]))
+        context = [img_formatter(i[:, :, ::-1])[None] for i in context]
+        # assert len(context ) == 6
+        if isinstance(context[0], np.ndarray):
+            context = torch.from_numpy(np.concatenate(context, 0))[None]
+        else:
+            context = torch.cat(context, dim=0)[None]
+
+    print(
+        f"Considering task {variation} - agent {traj_file.split('/')[-1]}")
+    with open(traj_file, "rb") as f:
+        traj_data = pickle.load(f)
+
+    traj_data_trj = traj_data['traj']
+
+    build_task = TASK_MAP.get(env_name, None)
+    assert build_task, 'Got unsupported task '+env_name
+    eval_fn = get_eval_fn(env_name=env_name)
+    config.dataset_cfg['perform_augs'] = True if "real" not in config.dataset_cfg['agent_name'] else False
+    traj, info = eval_fn(model=model,
+                         env=None,
+                         gt_env=None,
+                         context=context,
+                         gpu_id=gpu_id,
+                         variation_id=variation_id,
+                         img_formatter=img_formatter,
+                         baseline=baseline,
+                         max_T=max_T,
+                         action_ranges=action_ranges,
+                         model_name=model_name,
+                         task_name=env_name,
+                         config=config,
+                         gt_file=traj_data_trj,
+                         gt_bb=gt_bb)
+    if "cond_target_obj_detector" not in model_name:
+        print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
+            ctr, variation_id, info['reached'], info['picked'], info['success']))
+        print(f"Avg prediction {info['avg_pred']}")
+    else:
+        print()
+    return traj, info
+
+
 def _proc(model, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, gt_bb, seed, n, traj_file, context_file):
     json_name = results_dir + '/traj{}.json'.format(n)
     pkl_name = results_dir + '/traj{}.pkl'.format(n)
@@ -150,25 +246,27 @@ def _proc(model, config, results_dir, heights, widths, size, shape, color, env_n
             variation_id = variation
         if ("cond_target_obj_detector" not in model_name) or ("CondPolicy" in model_name):
             pass
-            # return_rollout = rollout_imitation(model,
-            #                                    config,
-            #                                    n,
-            #                                    heights,
-            #                                    widths,
-            #                                    size,
-            #                                    shape,
-            #                                    color,
-            #                                    max_T=max_T,
-            #                                    env_name=env_name,
-            #                                    baseline=baseline,
-            #                                    variation=variation_id,
-            #                                    controller_path=controller_path,
-            #                                    seed=seed,
-            #                                    action_ranges=np.array(
-            #                                        config.dataset_cfg.get('normalization_ranges', [])),
-            #                                    model_name=model_name,
-            #                                    gpu_id=gpu_id,
-            #                                    gt_bb=gt_bb)
+            return_rollout = rollout_imitation(model,
+                                               config,
+                                               n,
+                                               heights,
+                                               widths,
+                                               size,
+                                               shape,
+                                               color,
+                                               max_T=max_T,
+                                               env_name=env_name,
+                                               baseline=baseline,
+                                               variation=variation_id,
+                                               controller_path=controller_path,
+                                               seed=seed,
+                                               action_ranges=np.array(
+                                                   config.dataset_cfg.get('normalization_ranges', [])),
+                                               model_name=model_name,
+                                               gpu_id=gpu_id,
+                                               traj_file=traj_file,
+                                               context_file=context_file,
+                                               build_context_flag=False)
         else:
             # Perform object detection inference
             return_rollout = object_detection_inference(model=model,
