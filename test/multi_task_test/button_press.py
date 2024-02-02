@@ -38,7 +38,7 @@ def press_button_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
     n_steps = 0
 
     button_loc = np.array(env.sim.data.site_xpos[env.target_button_id])
-    dist = 0.090
+    dist = 0.015
 
     # compute the average prediction over the whole trajectory
     avg_prediction = 0
@@ -47,25 +47,36 @@ def press_button_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
     print(f"Max-t {max_T}")
     tasks["reached_wrong"] = 0.0
     tasks["picked_wrong"] = 0.0
-    tasks["place_wrong"] = 0.0
+    tasks["pressed_wrong"] = 0.0
 
     while not done:
         button_loc = np.array(env.sim.data.site_xpos[env.target_button_id])
-        tasks['reached'] = tasks['reached'] or \
-            np.linalg.norm(obs['eef_pos'] - button_loc) < dist
-        tasks['picked'] = tasks['picked'] or \
-            (tasks['reached'])
+        if abs(obs['eef_pos'][0] - button_loc[0]) < 0.05 and abs(obs['eef_pos'][1] - button_loc[1]) < 0.05 and abs(obs['eef_pos'][2] - button_loc[2]) < 0.03 or tasks['reached']:
+            tasks['reached'] = 1.0
+            tasks['picked'] = tasks['picked'] or \
+                (tasks['reached'])
 
         for obj_id, obj_name, in enumerate(env.env.names):
             if obj_name != traj.get(0)['obs']['target-object']:
-                other_button_loc = env.env.sim.model.site_name2id(
-                    env.env.names[obj_id])
-                tasks['reached_wrong'] = tasks.get(
-                    "reached_wrong", 0.0) or \
-                    np.linalg.norm(obs['eef_pos'] - other_button_loc) < dist
+                other_button_loc = np.array(env.sim.data.site_xpos[env.env.sim.model.site_name2id(
+                    env.env.names[obj_id])])
+                if abs(obs['eef_pos'][0] - other_button_loc[0]) < 0.05 and abs(obs['eef_pos'][1] - other_button_loc[1]) < 0.05 and abs(obs['eef_pos'][2] - other_button_loc[2]) < 0.03 or tasks['reached']:
+                    tasks['reached'] = 1.0
+                    tasks['picked'] = tasks['picked'] or \
+                        (tasks['reached'])
 
-                tasks['picked_wrong'] = tasks['picked_wrong'] or \
-                    (tasks['reached_wrong'])
+                qpos = env.sim.data.get_joint_qpos(
+                    env.objects[obj_id//3].joints[obj_id % 3])
+                if qpos >= 0.04:
+                    print("Pressed Wrong")
+                    tasks["pressed_wrong"] = 1.0
+
+            #        qpos = self.sim.data.get_joint_qpos(
+            #     self.objects[self.task_id // 3].joints[self.task_id % 3])
+            # if qpos >= 0.04:
+            #     return True
+            # else:
+            #     return False
 
         if baseline and len(states) >= 5:
             states, images, bb = [], [], []
@@ -212,12 +223,14 @@ def press_button_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
 
         tasks['success'] = reward or tasks['success']
 
+        if tasks['success'] and not tasks['reached']:
+            print("Fermati")
         # check if the object has been placed in a different bin
         if not tasks['success']:
             pass
 
         n_steps += 1
-        if env_done or reward or n_steps > max_T:
+        if env_done or tasks['success'] or tasks['pressed_wrong'] or n_steps > max_T:
             done = True
     env.close()
     tasks['avg_pred'] = avg_prediction/len(traj)
@@ -320,5 +333,6 @@ def press_button_eval(model, env, gt_env, context, gpu_id, variation_id, img_for
                                            config=config,
                                            predict_gt_bb=gt_bb,
                                            sub_action=sub_action,
-                                           gt_action=gt_action
+                                           gt_action=gt_action,
+                                           real=real
                                            )

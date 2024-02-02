@@ -155,6 +155,12 @@ class CondTargetObjDetectorDataset(Dataset):
             agent_file) = self.all_file_pairs[idx]
         demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
 
+        agent_task_id = agent_file.split('/')[-2].split('_')[-1].lstrip('0')
+        if agent_task_id == '':
+            agent_task_id = 0
+        else:
+            agent_task_id = int(agent_task_id)
+
         # start_demo = time.time()
         demo_data = make_demo(self, demo_traj[0], task_name)
         # end_demo = time.time()
@@ -162,7 +168,7 @@ class CondTargetObjDetectorDataset(Dataset):
 
         # start_trj = time.time()
         traj = self._make_traj(
-            agent_traj[0], demo_traj[1], task_name, sub_task_id)
+            agent_traj[0], demo_traj[1], task_name, sub_task_id, agent_task_id)
         # end_trj = time.time()
         # print(f"Trj-time {end_trj-start_trj}")
 
@@ -171,7 +177,7 @@ class CondTargetObjDetectorDataset(Dataset):
         # print("Elapsed time: ", elapsed_time)
         return {'demo_data': demo_data, 'traj': traj, 'task_name': task_name, 'task_id': sub_task_id}
 
-    def _make_traj(self, traj, command, task_name, sub_task_id):
+    def _make_traj(self, traj, command, task_name, sub_task_id, agent_task_id):
         # get the first frame from the trajectory
         ret_dict = {}
         # print(f"Command {command}")
@@ -179,7 +185,7 @@ class CondTargetObjDetectorDataset(Dataset):
         assert not self._first_frames or not self._only_first_frame, f"First frames and only first frames cannot be both True"
         if self._first_frames and not self._only_first_frame:
             take_first_frames = random.choices(
-                [True, False], weights=[0.5, 0.50])
+                [True, False], weights=[0.5, 0.50])[0]
 
         if not take_first_frames:
             if self.non_sequential and self._obs_T > 1 and not self._only_first_frame:
@@ -200,8 +206,8 @@ class CondTargetObjDetectorDataset(Dataset):
                 chosen_t = [j + start for j in range(self._obs_T+1)]
         else:
             end = self._obs_T
-            start = torch.Tensor([1]).int()
-            chosen_t = [j + start for j in range(self._obs_T+1)]
+            start = torch.Tensor([0]).int()
+            chosen_t = [j + start for j in range(self._obs_T)]
 
         # start_create_sample = time.time()
         images, images_cp, bb, obj_classes, actions, states, points = create_sample(
@@ -213,7 +219,8 @@ class CondTargetObjDetectorDataset(Dataset):
             load_action=self._load_action,
             load_state=self._load_state,
             distractor=True,
-            subtask_id=sub_task_id)
+            subtask_id=sub_task_id,
+            agent_task_id=agent_task_id)
         # end_create_sample = time.time()
         # print(f"Create sample time {end_create_sample-start_create_sample}")
 

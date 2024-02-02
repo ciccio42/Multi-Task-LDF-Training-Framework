@@ -895,6 +895,7 @@ class Trainer:
                         self._step, task_losses, raw_stats, prefix='train')
                     if self.config.wandb_log:
                         tolog['Train Step'] = self._step
+                        tolog['Epoch'] = e
                         for task_name, losses in task_losses.items():
                             for loss_name, loss_val in losses.items():
                                 tolog[f'train/{loss_name}/{task_name}'] = loss_val
@@ -906,7 +907,7 @@ class Trainer:
                         print(train_print)
 
                 #### ---- Validation step ----####
-                if e != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
+                if self._step % val_freq == 0 and not self.config.get("use_daml", False):
                     print("Validation")
                     rollout = self.config.get("rollout", False)
                     model = model.eval()

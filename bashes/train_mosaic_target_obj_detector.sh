@@ -15,7 +15,7 @@ POLICY='${mosaic}'
 SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
-DEVICE=0
+DEVICE=1
 DEBUG=false
 WANDB_LOG=true
 
@@ -24,7 +24,7 @@ PROJECT_NAME=${EXP_NAME}
 TASK_str=button #[pick_place,nut_assembly, stack_block, button]
 
 RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch30/
-RESUME_STEP=47670
+RESUME_STEP=26865
 RESUME=false
 
 LOAD_TARGET_OBJ_DETECTOR=false

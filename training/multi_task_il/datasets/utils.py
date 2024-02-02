@@ -70,6 +70,13 @@ NUM_VARIATION_PER_OBEJECT = {'pick_place': (4, 4),
                              'button': (1, 6),
                              'stack_block': (2, 6)}
 
+STACK_BLOCK_TASK_ID_SEQUENCE = {0: 'rgb',
+                                1: 'rbg',
+                                2: 'bgr',
+                                3: 'brg',
+                                4: 'grb',
+                                5: 'gbr', }
+
 
 def collate_by_task(batch):
     """ Use this for validation: groups data by task names to compute per-task losses """
@@ -597,7 +604,7 @@ def create_data_aug(dataset_loader=object):
     return frame_aug
 
 
-def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, command=None, subtask_id=-1):
+def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, command=None, subtask_id=-1, agent_task_id=-1):
     bb = []
     cl = []
 
@@ -610,13 +617,15 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
                 target_obj_id = ENV_OBJECTS['button']['obj_names_to_id'][step_t['obs']
                                                                          ['target-object']]
         else:
-            target_obj_id = -1
+            agent_target = 0
     else:
         if task_name != "stack_block":
             target_obj_id = int(
                 subtask_id/NUM_VARIATION_PER_OBEJECT[task_name][0])
         else:
-            target_obj_id = -1
+            demo_target = STACK_BLOCK_TASK_ID_SEQUENCE[subtask_id][0]
+            agent_target = STACK_BLOCK_TASK_ID_SEQUENCE[agent_task_id].find(
+                demo_target)
         # if target_obj_id != step_t['obs']['target-object']:
         #     print("different-objects")
 
@@ -636,7 +645,9 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
             no_target_obj_id = random.randint(
                 0, num_objects)
     else:
-        no_target_obj_name = random.choice(["cubeB", "cubeC"])
+        obj_list = ["cubeA", "cubeB", "cubeC"]
+        agent_target_name = obj_list.pop(agent_target)
+        no_target_obj_name = random.choice(obj_list)
 
     try:
         dict_keys = list(step_t['obs']['obj_bb']['camera_front'].keys())
@@ -656,7 +667,7 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
                 object_name = dict_keys[no_target_obj_id]
         else:
             if i == 0:
-                object_name = "cubeA"
+                object_name = agent_target_name
             elif i != 0 and distractor:
                 object_name = no_target_obj_name
 
@@ -723,7 +734,7 @@ def adjust_points(points, frame_dims, crop_params, height, width):
     return tuple([int(min(x, d - 1)) for x, d in zip([h, w], (height, width))])
 
 
-def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_action=False, load_state=False, load_eef_point=False, distractor=False, subtask_id=-1):
+def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_action=False, load_state=False, load_eef_point=False, distractor=False, subtask_id=-1, agent_task_id=-1):
 
     images = []
     images_cp = []
@@ -757,7 +768,8 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                                              task_name=task_name,
                                              distractor=distractor,
                                              command=command,
-                                             subtask_id=subtask_id)
+                                             subtask_id=subtask_id,
+                                             agent_task_id=agent_task_id)
         logger.debug(f"BB time {time.time()-bb_time}")
         # print(f"BB time: {end_bb-start_bb}")
 
