@@ -18,16 +18,16 @@ LOG_FREQ=100
 VAL_FREQ=-1
 PRINT_FREQ=100
 DEVICE=2
-DEBUG=true
-WANDB_LOG=false
+DEBUG=false
+WANDB_LOG=true
 
-EXP_NAME=1Task-Button-Cond-Target-Obj-Detector
+EXP_NAME=1Task-STACK-BLOCK-Cond-Target-Obj-Detector
 PROJECT_NAME=${EXP_NAME}
-TASK_str=button #["pick_place","nut_assembly", "stack_block", "button"]
+TASK_str=stack_block #["pick_place","nut_assembly", "stack_block", "button"]
 
 RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch30/
-RESUME_STEP=131220
-RESUME=false
+RESUME_STEP=64152
+RESUME=true
 EPOCH=90 # start from 16
 BSIZE=80 #16 #32
 
@@ -44,7 +44,7 @@ OPTIMIZER='AdamW'
 LR=0.00001
 WEIGHT_DECAY=5
 SCHEDULER='ReduceLROnPlateau'
-FIRST_FRAMES=false
+FIRST_FRAMES=true
 ONLY_FIRST_FRAMES=false
 ROLLOUT=false
 PERFORM_AUGS=true

@@ -15,7 +15,7 @@ POLICY='${mosaic}'
 SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
-DEVICE=3
+DEVICE=1
 DEBUG=false
 WAND_LOG=true
 
@@ -30,7 +30,7 @@ TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task
 ROLLOUT=false
 
 RESUME_PATH=4Task-MOSAIC-Batch74
-RESUME_STEP=58149
+RESUME_STEP=96915
 RESUME=true
 
 EPOCH=90
