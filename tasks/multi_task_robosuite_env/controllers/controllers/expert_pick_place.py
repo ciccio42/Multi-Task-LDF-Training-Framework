@@ -242,7 +242,7 @@ class PickPlaceController:
             status = 'placing'
 
         self._t += 1
-        pick_place_logger.info(f"Status {status}")
+        pick_place_logger.debug(f"Status {status}")
         return action, status
 
 

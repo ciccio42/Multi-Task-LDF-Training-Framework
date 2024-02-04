@@ -27,7 +27,7 @@ TASK_str=stack_block #["pick_place","nut_assembly", "stack_block", "button"]
 
 RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch30/
 RESUME_STEP=64152
-RESUME=true
+RESUME=false
 EPOCH=90 # start from 16
 BSIZE=80 #16 #32
 

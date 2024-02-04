@@ -581,5 +581,6 @@ def pick_place_eval(model, env, gt_env, context, gpu_id, variation_id, img_forma
                                          config=config,
                                          predict_gt_bb=gt_bb,
                                          sub_action=sub_action,
-                                         gt_action=gt_action
+                                         gt_action=gt_action,
+                                         real=real
                                          )

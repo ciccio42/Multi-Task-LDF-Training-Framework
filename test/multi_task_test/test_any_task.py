@@ -461,6 +461,8 @@ if __name__ == '__main__':
                                  len(config["tasks_cfgs"][args.env].get('skip_ids', [])))
                     args.variation = config["tasks_cfgs"][args.env].get(
                         'skip_ids', [])
+                    print(
+                        f"Testing model on variation {config['tasks_cfgs'][args.env].get('skip_ids', [])}")
 
             else:
                 args.N = int(args.eval_each_task*len(args.variation))

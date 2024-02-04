@@ -183,7 +183,7 @@ class _TransformerFeatures(nn.Module):
     """
 
     def __init__(
-            self, latent_dim, demo_T=4, dim_H=7, dim_W=12, embed_hidden=256, dropout=0.2, n_attn_layers=2, pos_enc=True, attn_heads=4, attn_ff=128, just_conv=False, pretrained=True, img_cfg=None, drop_dim=2, causal=True, attend_demo=True, demo_out=True, fuse_starts=0, concat_bb=False, max_len=3000):
+            self, latent_dim, demo_T=4, dim_H=7, dim_W=12, embed_hidden=256, dropout=0.2, n_attn_layers=2, pos_enc=True, attn_heads=4, attn_ff=128, just_conv=False, pretrained=True, img_cfg=None, drop_dim=2, causal=True, attend_demo=True, demo_out=True, fuse_starts=0, concat_bb=False, max_len=5000):
         super().__init__()
 
         flag, drop_dim = img_cfg.network_flag, img_cfg.drop_dim

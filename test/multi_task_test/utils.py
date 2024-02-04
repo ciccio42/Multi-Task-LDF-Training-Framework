@@ -468,7 +468,11 @@ def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None
     if gt_env != None:
         while True:
             try:
-                if gt_env.env_name != "press_button" and gt_env.env_name != "block_stack":
+                if gt_env.env_name == 'nut_assembly':
+                    print(f"GT_ENV for {gt_env.env_name} not implemented")
+                elif gt_env.env_name == 'press_button':
+                    print(f"GT_ENV for {gt_env.env_name} not implemented")
+                elif gt_env.env_name == "pick_place":
                     gt_obs = gt_env.reset()
                     for obj_name in env.object_to_id.keys():
                         gt_obj = gt_env.objects[env.object_to_id[obj_name]]
@@ -507,6 +511,7 @@ def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None
                         (current_gripper_position, current_gripper_orientation, np.array([-1])), axis=-1)
                     gt_obs, gt_reward, gt_env_done, gt_info = env.step(
                         current_gripper_pose)
+
                 break
 
             except:
