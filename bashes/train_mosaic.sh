@@ -8,20 +8,20 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
+EXPERT_DATA=/mnt/sdc1/frosa/opt_dataset
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 POLICY='${mosaic}'
 
 SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
-DEVICE=1
+DEVICE=0
 DEBUG=false
 WAND_LOG=true
 
-EXP_NAME=4Task-MOSAIC
+EXP_NAME=1Task-MOSAIC-STACK-BLOCk
 PROJECT_NAME=${EXP_NAME}
-TASK_str=[pick_place,nut_assembly,button,stack_block] #[pick_place,nut_assembly,button,stack_block]
+TASK_str=stack_block #[pick_place,nut_assembly,button,stack_block] 
 
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=40455
@@ -31,14 +31,14 @@ ROLLOUT=false
 
 RESUME_PATH=4Task-MOSAIC-Batch74
 RESUME_STEP=96915
-RESUME=true
+RESUME=false
 
 EPOCH=90
 BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=2
+SET_SAME_N=5
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
 LOADER_WORKERS=8

@@ -23,9 +23,9 @@ EXP_NAME=Real-Pick-Place-MOSAIC-CTOD-Only-Front #Real-1Task-Pick-Place-MOSAIC-Co
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place #[pick_place,nut_assembly]
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-1Task-Pick-Place-MOSAIC-Cond-Target-Obj-Detector-Batch12/
-RESUME_STEP=27807
-RESUME=false
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-Pick-Place-MOSAIC-CTOD-Only-Front-Batch32/
+RESUME_STEP=69660
+RESUME=true
 
 LOAD_TARGET_OBJ_DETECTOR=true
 TARGET_OBJ_DETECTOR_STEP=23490
@@ -36,7 +36,7 @@ AGENT_NAME=real_ur5e
 
 
 ROLLOUT=false
-EPOCH=90
+EPOCH=180
 BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler

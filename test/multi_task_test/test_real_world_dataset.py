@@ -151,7 +151,7 @@ def rollout_imitation(model, config, ctr,
         img_formatter = build_tvf_formatter_obj_detector(config=config,
                                                          env_name=env_name)
 
-    T_context = config.train_cfg.dataset.get('T_context', None)
+    T_context = config.train_cfg.dataset.get('demo_T', None)
     random_frames = config.dataset_cfg.get('select_random_frames', False)
 
     # Build environments
@@ -519,8 +519,10 @@ if __name__ == '__main__':
 
         config.dataset_cfg.mode = "train"
         config.dataset_cfg.agent_name = "real_ur5e"
+        config.dataset_cfg.change_command_epoch = False
         # config.dataset_cfg.root_dir = "/raid/home/frosa_Loc/opt_dataset"
         dataset = instantiate(config.get('dataset_cfg', None))
+        dataset._mix_demo_agent = False
         # get list of pkl files
         build_context_flag = False
         if build_context_flag:
