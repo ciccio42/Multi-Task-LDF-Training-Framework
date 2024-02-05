@@ -18,7 +18,7 @@ def _clip_delta(delta, max_step=0.015):
     return delta / norm_delta * max_step
 
 
-def nut_assembly_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="nut_assembly", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action_any_T=4, real=True):
+def nut_assembly_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="nut_assembly", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action=4, real=True):
 
     if "vima" in model_name:
         return nut_assembly_eval_vima(model=model,
@@ -84,12 +84,10 @@ def nut_assembly_eval(model, env, gt_env, context, gpu_id, variation_id, img_for
         # Instantiate Controller
         if task_name == "nut_assembly":
             from multi_task_robosuite_env.controllers.controllers.expert_nut_assembly import NutAssemblyController
-            # controller = NutAssemblyController(
-            #     env=env.env,
-            #     tries=0,
-            #     ranges=[])
-            controller = None
-            gt_env = None
+            controller = NutAssemblyController(
+                env=env.env,
+                tries=0,
+                ranges=[])
         return nut_assembly_eval_demo_cond(model=model,
                                            env=env,
                                            gt_env=gt_env,
@@ -105,7 +103,10 @@ def nut_assembly_eval(model, env, gt_env, context, gpu_id, variation_id, img_for
                                                "concat_bb", False),
                                            task_name=task_name,
                                            config=config,
-                                           predict_gt_bb=gt_bb
+                                           predict_gt_bb=gt_bb,
+                                           sub_action=sub_action,
+                                           gt_action=gt_action,
+                                           real=real
                                            )
 
 
@@ -323,7 +324,7 @@ def nut_assembly_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None
     return traj, tasks
 
 
-def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False, real=True):
+def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False, sub_action=False, gt_action=4, real=True):
 
     start_up_env_return = \
         startup_env(model=model,
@@ -463,7 +464,9 @@ def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
             prediction = prediction_internal_obj
 
         try:
-
+            if sub_action:
+                if n_steps < gt_action:
+                    action, _ = controller.act(obs)
             # action = clip_action(action, prev_action)
             # prev_action = action
             obs, reward, env_done, info = env.step(action)
