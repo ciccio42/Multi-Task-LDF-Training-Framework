@@ -38,7 +38,7 @@ button:
   crop:             [10, 10, 70, 70]     # 0420: [40,70,90,90] 0419: [30, 70, 85, 85], 0418: [10,40,45,45] 
   n_per_task:       5
   task_ids:         [0,1,2,3,4,5]
-  skip_ids:         []
+  skip_ids:         [5]
   loss_mul:         1
   task_per_batch:   6
   traj_per_subtask:  100
@@ -62,7 +62,7 @@ stack_block:
   crop:              [20, 25, 80, 75]
   n_per_task:        5
   task_ids:          [0,1,2,3,4,5]
-  skip_ids:         []
+  skip_ids:         [5]
   loss_mul:          1
   task_per_batch:    6
   traj_per_subtask:  100
