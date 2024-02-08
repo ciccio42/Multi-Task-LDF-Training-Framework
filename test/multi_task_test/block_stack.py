@@ -143,6 +143,7 @@ def block_stack_eval_demo_cond(model, env, context, gpu_id, variation_id, img_fo
         try:
             if sub_action:
                 if n_steps < gt_action:
+                    print("GT-action")
                     action, _ = controller.act(obs)
 
             obs, reward, env_done, info = env.step(action)
@@ -204,7 +205,7 @@ def block_stack_eval_demo_cond(model, env, context, gpu_id, variation_id, img_fo
                 image = np.array(obs['camera_front_image'][:, :, ::-1])
 
             cv2.imwrite(
-                f"step_test.png", image)
+                f"step_test_block.png", image)
             # if controller is not None and gt_env is not None:
             #     gt_action, gt_status = controller.act(gt_obs)
             #     gt_obs, gt_reward, gt_env_done, gt_info = gt_env.step(

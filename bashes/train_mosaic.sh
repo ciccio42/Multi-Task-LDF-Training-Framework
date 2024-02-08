@@ -15,19 +15,19 @@ POLICY='${mosaic}'
 SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
-DEVICE=0
+DEVICE=2
 DEBUG=false
 WAND_LOG=true
 
-EXP_NAME=1Task-MOSAIC-STACK-BLOCk
+EXP_NAME=1Task-BUTTON-MOSAIC-ALL-OBJ-One-Variation-Left
 PROJECT_NAME=${EXP_NAME}
-TASK_str=stack_block #[pick_place,nut_assembly,button,stack_block] 
+TASK_str=button #[pick_place,nut_assembly,button,stack_block] #[pick_place,nut_assembly,button,stack_block]
 
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=40455
 TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54
 
-ROLLOUT=false
+ROLLOUT=true
 
 RESUME_PATH=4Task-MOSAIC-Batch74
 RESUME_STEP=96915
@@ -57,11 +57,11 @@ CONCAT_TARGET_OBJ_EMBEDDING=false
 CONCAT_STATE=false
 
 ACTION_DIM=7
-N_MIXTURES=14 #7 2Task, Nut, button, stack #3 Pick-place
-OUT_DIM=64 #64 2Task, Nut, button, stack #128 Pick-place
-ATTN_FF=256 #128 2Task, Nut, button, stack #256 Pick-place
-COMPRESSOR_DIM=256 #128 2Task, Nut, button, stack #256 Pick-place
-HIDDEN_DIM=256 #128 2Task, Nut, button, stack #512 Pick-place
+N_MIXTURES=7 #14 #7 2Task, Nut, button, stack #3 Pick-place
+OUT_DIM=64 #64 #64 2Task, Nut, button, stack #128 Pick-place
+ATTN_FF=128 #256 #128 2Task, Nut, button, stack #256 Pick-place
+COMPRESSOR_DIM=128 #256 #128 2Task, Nut, button, stack #256 Pick-place
+HIDDEN_DIM=128 #256 #128 2Task, Nut, button, stack #512 Pick-place
 CONCAT_DEMO_HEAD=false
 CONCAT_DEMO_ACT=true
 PRETRAINED=false

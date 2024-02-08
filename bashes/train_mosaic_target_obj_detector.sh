@@ -15,7 +15,7 @@ POLICY='${mosaic}'
 SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
-DEVICE=0
+DEVICE=3
 DEBUG=false
 WANDB_LOG=true
 
@@ -28,8 +28,8 @@ RESUME_STEP=39999
 RESUME=false
 
 LOAD_TARGET_OBJ_DETECTOR=false
-TARGET_OBJ_DETECTOR_STEP=-1 #129762 #198900 #65250
-TARGET_OBJ_DETECTOR_PATH=None #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-STACK-BLOCK-Cond-Target-Obj-Detector-Batch30/ #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Button-Cond-Target-Obj-Detector-Batch12 #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54/
+TARGET_OBJ_DETECTOR_STEP=-1 #68526 #129762 #198900 #65250
+TARGET_OBJ_DETECTOR_PATH=None #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-STACK-BLOCK-Cond-Target-Obj-Detector-Batch30/ #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-STACK-BLOCK-Cond-Target-Obj-Detector-Batch30/ #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Button-Cond-Target-Obj-Detector-Batch12 #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54/
 CONCAT_BB=true
 
 

@@ -150,6 +150,11 @@ def press_button_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
             prediction = prediction_internal_obj
 
         try:
+
+            if sub_action:
+                if n_steps < gt_action:
+                    action, _ = controller.act(obs)
+
             obs, reward, env_done, info = env.step(action)
             if concat_bb and not predict_gt_bb:
                 # get predicted bb from prediction
