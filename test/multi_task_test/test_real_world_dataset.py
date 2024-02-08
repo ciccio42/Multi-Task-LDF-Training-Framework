@@ -222,13 +222,16 @@ def rollout_imitation(model, config, ctr,
                          config=config,
                          gt_file=traj_data_trj,
                          gt_bb=gt_bb)
-    if "cond_target_obj_detector" not in model_name:
-        print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
-            ctr, variation_id, info['reached'], info['picked'], info['success']))
-        print(f"Avg prediction {info['avg_pred']}")
-    else:
-        print()
-    return traj, info
+
+    for k in info.keys():
+        print(f"Key: {k}, Value: {info[k]}\n")
+    # if "cond_target_obj_detector" not in model_name:
+    #     print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
+    #         ctr, variation_id, info['reached'], info['picked'], info['success']))
+    #     print(f"Avg prediction {info['avg_pred']}")
+    # else:
+    #     print()
+    return traj, context, info
 
 
 def _proc(model, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, gt_bb, seed, n, traj_file, context_file):
@@ -237,8 +240,9 @@ def _proc(model, config, results_dir, heights, widths, size, shape, color, env_n
     if os.path.exists(json_name) and os.path.exists(pkl_name):
         f = open(json_name)
         task_success_flags = json.load(f)
-        print("Using previous results at {}. Loaded eval traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
-            json_name, n, task_success_flags['variation_id'], task_success_flags['reached'], task_success_flags['picked'], task_success_flags['success']))
+        print(f"Using previous results")
+        # print("Using previous results at {}. Loaded eval traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
+        #     json_name, n, task_success_flags['variation_id'], task_success_flags['reached'], task_success_flags['picked'], task_success_flags['success']))
     else:
         if variation is not None:
             variation_id = variation[n % len(variation)]
@@ -292,7 +296,7 @@ def _proc(model, config, results_dir, heights, widths, size, shape, color, env_n
                                                         build_context_flag=False)
 
         if "vima" not in model_name:
-            rollout, task_success_flags, expert_traj, context = return_rollout
+            rollout, context, task_success_flags = return_rollout
             if save:
                 pkl.dump(rollout, open(
                     results_dir+'/traj{}.pkl'.format(n), 'wb'))
@@ -367,6 +371,7 @@ if __name__ == '__main__':
 
     random.seed(42)
     np.random.seed(42)
+    torch.manual_seed(42)
 
     try_path = args.model
     # if 'log' not in args.model and 'mosaic' not in args.model:
@@ -535,8 +540,12 @@ if __name__ == '__main__':
         else:
             file_pairs = dataset.all_file_pairs
             pkl_file_list = []
+            # for pkl_file in file_pairs.values():
+            #     pkl_file_list.append((pkl_file[3], pkl_file[2]))
             for pkl_file in file_pairs.values():
-                pkl_file_list.append((pkl_file[3], pkl_file[2]))
+                if 'traj079.pkl' in pkl_file[3]:
+                    pkl_file_list.append((pkl_file[3], '/mnt/sdc1/frosa/opt_dataset/pick_place/panda_pick_place/task_00/traj000.pkl'
+                                          ))
             args.N = len(pkl_file_list)
 
         print(f"---- Testing model {model_name} ----")
@@ -575,27 +584,51 @@ if __name__ == '__main__':
         else:
             task_success_flags = [f(seeds[i][0], seeds[i][1], seeds[i][2], seeds[i][3])
                                   for i, _ in enumerate(seeds)]
-
-        all_avg_iou = np.mean([t['avg_iou'] for t in task_success_flags])
-        all_avg_tp = np.mean([t['avg_tp'] for t in task_success_flags])
-        all_avg_fp = np.mean([t['avg_fp'] for t in task_success_flags])
-        all_avg_fn = np.mean([t['avg_fn'] for t in task_success_flags])
-        print(f"TP {all_avg_tp} - FP {all_avg_fp} - FN {all_avg_fn}")
-        final_results = dict()
-        final_results['N'] = int(args.N)
-        final_results['model_saved'] = model_saved_step
-        final_results['avg_iou'] = all_avg_iou
-        final_results['avg_tp'] = all_avg_tp
-        final_results['avg_fp'] = all_avg_fp
-        final_results['avg_fn'] = all_avg_fn
-
-        json.dump({k: v for k, v in final_results.items()}, open(
-            results_dir+'/test_across_{}trajs.json'.format(args.N), 'w'))
-
         if args.wandb_log:
-            log = dict()
-            for i, k in enumerate(final_results):
+
+            for i, t in enumerate(task_success_flags):
+                log = dict()
                 log['episode'] = i
-                log[k] = float(final_results[k]) if k != "variation_id" else int(
-                    final_results[k])
-            wandb.log(log)
+                for k in t.keys():
+                    log[k] = float(t[k]) if k != "variation_id" else int(t[k])
+                wandb.log(log)
+
+            to_log = dict()
+            flags = dict()
+            for t in task_success_flags:
+                for k in t.keys():
+                    if flags.get(k, None) is None:
+                        flags[k] = [t[k]]
+                    else:
+                        flags[k].append(t[k])
+            for k in flags.keys():
+                avg_flags = np.mean(flags[k])
+                to_log[f'avg_{k}'] = avg_flags
+
+            json.dump({k: v for k, v in to_log.items()}, open(
+                results_dir+'/test_across_{}trajs.json'.format(args.N), 'w'))
+            wandb.log(to_log)
+
+        # all_avg_iou = np.mean([t['avg_iou'] for t in task_success_flags])
+        # all_avg_tp = np.mean([t['avg_tp'] for t in task_success_flags])
+        # all_avg_fp = np.mean([t['avg_fp'] for t in task_success_flags])
+        # all_avg_fn = np.mean([t['avg_fn'] for t in task_success_flags])
+        # print(f"TP {all_avg_tp} - FP {all_avg_fp} - FN {all_avg_fn}")
+        # final_results = dict()
+        # final_results['N'] = int(args.N)
+        # final_results['model_saved'] = model_saved_step
+        # final_results['avg_iou'] = all_avg_iou
+        # final_results['avg_tp'] = all_avg_tp
+        # final_results['avg_fp'] = all_avg_fp
+        # final_results['avg_fn'] = all_avg_fn
+
+        # json.dump({k: v for k, v in final_results.items()}, open(
+        #     results_dir+'/test_across_{}trajs.json'.format(args.N), 'w'))
+
+        # if args.wandb_log:
+        #     log = dict()
+        #     for i, k in enumerate(final_results):
+        #         log['episode'] = i
+        #         log[k] = float(final_results[k]) if k != "variation_id" else int(
+        #             final_results[k])
+        #     wandb.log(log)

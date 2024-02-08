@@ -16,8 +16,8 @@ SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
 DEVICE=0
-DEBUG=false
-WANDB_LOG=true
+DEBUG=true
+WANDB_LOG=false
 
 EXP_NAME=Real-Pick-Place-MOSAIC-CTOD-Only-Front #Real-1Task-Pick-Place-MOSAIC-Cond-Target-Obj-Detector-State
 PROJECT_NAME=${EXP_NAME}
@@ -25,7 +25,7 @@ TASK_str=pick_place #[pick_place,nut_assembly]
 
 RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-Pick-Place-MOSAIC-CTOD-Only-Front-Batch32/
 RESUME_STEP=69660
-RESUME=true
+RESUME=false
 
 LOAD_TARGET_OBJ_DETECTOR=true
 TARGET_OBJ_DETECTOR_STEP=23490
@@ -44,7 +44,7 @@ BALANCING_POLICY=0
 SET_SAME_N=32
 CONFIG_PATH=../experiments
 CONFIG_NAME=config_real.yaml
-LOADER_WORKERS=16
+LOADER_WORKERS=1
 NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=false

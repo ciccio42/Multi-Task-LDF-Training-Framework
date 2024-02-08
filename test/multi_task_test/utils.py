@@ -24,6 +24,7 @@ from torchvision.transforms.functional import resized_crop
 from torchvision.transforms import ToTensor
 from robosuite import load_controller_config
 from multi_task_test import ENV_OBJECTS, TASK_MAP
+from collections import OrderedDict
 
 DEBUG = False
 set_start_method('forkserver', force=True)
@@ -386,7 +387,7 @@ def adjust_bb(bb, crop_params=[20, 25, 80, 75]):
     return [x1, y1, x2, y2]
 
 
-def get_action(model, target_obj_dec, bb, predict_gt_bb, gt_classes, states, images, context, gpu_id, n_steps, max_T=80, baseline=None, action_ranges=[], target_obj_embedding=None, t=-1):
+def get_action(model, target_obj_dec, bb, predict_gt_bb, gt_classes, states, images, context, gpu_id, n_steps, max_T=80, baseline=None, action_ranges=[], target_obj_embedding=None, t=-1, real=False):
     s_t = torch.from_numpy(np.concatenate(states, 0).astype(np.float32))[None]
     if isinstance(images[-1], np.ndarray):
         i_t = torch.from_numpy(np.concatenate(
@@ -413,6 +414,10 @@ def get_action(model, target_obj_dec, bb, predict_gt_bb, gt_classes, states, ima
         action = out['action_dist'].sample()[-1].cpu().detach().numpy()
     else:
         with torch.no_grad():
+            torch.save(
+                i_t, f'/user/frosa/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes/image_obs_quadro.pt')
+            torch.save(
+                context, f'/user/frosa/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes/context_quadro.pt')
             out = model(states=s_t,
                         images=i_t,
                         context=context,
@@ -435,7 +440,9 @@ def get_action(model, target_obj_dec, bb, predict_gt_bb, gt_classes, states, ima
                 predicted_prob = None
     # action[3:7] = [1.0, 1.0, 0.0, 0.0]
     action = denormalize_action(action, action_ranges)
-    action[-1] = 1 if action[-1] > 0 and n_steps < max_T - 1 else -1
+    if not real:
+        action[-1] = 1 if action[-1] > 0 and n_steps < max_T - 1 else -1
+
     return action, predicted_prob, target_obj_embedding, out.get('activation_map', None), out.get('target_obj_prediction', None), out.get('predicted_bb', None)
 
 
@@ -1182,11 +1189,21 @@ def build_tvf_formatter_obj_detector(config, env_name):
     note eval_fn always feeds in traj['obs']['images'], i.e. shape (h,w,3)
     """
 
-    def resize_crop(img, bb=None):
-        img_height, img_width = img.shape[:2]
+    def resize_crop(img, bb=None, agent=False):
         """applies to every timestep's RGB obs['camera_front_image']"""
         task_spec = config.tasks_cfgs.get(env_name, dict())
-        crop_params = task_spec.get('crop', [0, 0, 0, 0])
+        img_height, img_width = img.shape[:2]
+        """applies to every timestep's RGB obs['camera_front_image']"""
+        if len(getattr(task_spec, "demo_crop", OrderedDict())) != 0 and not agent:
+            crop_params = task_spec.get(
+                "demo_crop", [0, 0, 0, 0])
+        if len(getattr(task_spec, "agent_crop", OrderedDict())) != 0 and agent:
+            crop_params = task_spec.get(
+                "agent_crop", [0, 0, 0, 0])
+        if len(getattr(task_spec, "task_crops", OrderedDict())) != 0:
+            crop_params = task_spec.get(
+                "task_crops", [0, 0, 0, 0])
+
         top, left = crop_params[0], crop_params[2]
         img_height, img_width = img.shape[0], img.shape[1]
         box_h, box_w = img_height - top - \

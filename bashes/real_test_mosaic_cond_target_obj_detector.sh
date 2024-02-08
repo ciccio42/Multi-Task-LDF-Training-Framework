@@ -20,8 +20,8 @@ for MODEL in ${MODEL_PATH}; do
     for S in -1; do #81000 89100; do   
         for TASK in pick_place; do
             for COUNT in 1; do
-                SAVE_PATH=${MODEL}/results_${TASK}/run_${COUNT}
-                python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_real_world_dataset.py $MODEL --env $TASK --saved_step $S --eval_each_task 1 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --eval_subsets 1 --debug #--wandb_log #--save_path ${SAVE_PATH} --save_files #--debug #--wandb_log  
+                SAVE_PATH=${MODEL}/results_${TASK}/val/run_${COUNT}
+                python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_real_world_dataset.py $MODEL --env $TASK --saved_step $S --eval_each_task 1 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --eval_subsets 1 --debug #--wandb_log #--save_path ${SAVE_PATH} --debug #--save_files --debug #  
             done
         done
     done

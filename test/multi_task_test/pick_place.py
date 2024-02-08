@@ -11,6 +11,7 @@ from multi_task_test.primitive import *
 from multi_task_test.utils import *
 from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
 from sklearn.metrics import mean_squared_error
+from robosuite.utils.transform_utils import quat2axisangle
 
 
 def pick_place_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None, img_formatter=None, max_T=85, baseline=False, action_ranges=[]):
@@ -224,182 +225,199 @@ def pick_place_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None, 
     return traj, tasks
 
 
-def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False, sub_action=False, gt_action=4, real=True):
+def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, gt_traj=None, perform_augs=True, predict_gt_bb=False, sub_action=False, gt_action=4, real=True):
 
-    start_up_env_return = \
-        startup_env(model=model,
-                    env=env,
-                    gt_env=gt_env,
+    if gt_traj is None:
+        start_up_env_return = \
+            startup_env(model=model,
+                        env=env,
+                        gt_env=gt_env,
+                        context=context,
+                        gpu_id=gpu_id,
+                        variation_id=variation_id,
+                        baseline=baseline,
+                        bb_flag=concat_bb
+                        )
+        if concat_bb:
+            done, states, images, context, obs, traj, tasks, bb, gt_classes, gt_obs, current_gripper_pose = start_up_env_return
+        else:
+            done, states, images, context, obs, traj, tasks, gt_obs, current_gripper_pose = start_up_env_return
+            bb = None
+
+        n_steps = 0
+
+        object_name_target = env.objects[env.object_id].name
+        obj_delta_key = object_name_target + '_to_robot0_eef_pos'
+        obj_key = object_name_target + '_pos'
+
+        start_z = obs[obj_key][2]
+
+        # compute the average prediction over the whole trajectory
+        avg_prediction = 0
+        target_obj_emb = None
+        consecutive_gt_action_cnt = 0
+
+        print(f"Max-t {max_T}")
+        tasks["reached_wrong"] = 0.0
+        tasks["picked_wrong"] = 0.0
+        tasks["place_wrong"] = 0.0
+        tasks["place_wrong_correct_obj"] = 0.0
+        tasks["place_wrong_wrong_obj"] = 0.0
+        tasks["place_correct_bin_wrong_obj"] = 0.0
+
+        while not done:
+
+            tasks['reached'] = check_reach(threshold=0.03,
+                                           obj_distance=obs[obj_delta_key][:2],
+                                           current_reach=tasks['reached']
+                                           )
+
+            tasks['picked'] = check_pick(threshold=0.05,
+                                         obj_z=obs[obj_key][2],
+                                         start_z=start_z,
+                                         reached=tasks['reached'],
+                                         picked=tasks['picked'])
+
+            for obj_id, obj_name, in enumerate(env.env.obj_names):
+                if obj_id != traj.get(0)['obs']['target-object'] and obj_name != "bin":
+                    if check_reach(threshold=0.03,
+                                   obj_distance=obs[obj_name +
+                                                    '_to_robot0_eef_pos'],
+                                   current_reach=tasks.get(
+                                       "reached_wrong", 0.0)
+                                   ):
+                        tasks['reached_wrong'] = 1.0
+                    if check_pick(threshold=0.05,
+                                  obj_z=obs[obj_name + "_pos"][2],
+                                  start_z=start_z,
+                                  reached=tasks['reached_wrong'],
+                                  picked=tasks.get(
+                                      "picked_wrong", 0.0)):
+                        tasks['picked_wrong'] = 1.0
+
+            if baseline and len(states) >= 5:
+                states, images, bb = [], [], []
+
+            states.append(np.concatenate(
+                (obs['ee_aa'], obs['gripper_qpos'])).astype(np.float32)[None])
+
+            # Get GT BB
+            # if concat_bb:
+            bb_t, gt_t = get_gt_bb(
+                env=env,
+                traj=traj,
+                obs=obs,
+                task_name=task_name,
+                real=real
+            )
+            previous_predicted_bb = []
+            previous_predicted_bb.append(torch.tensor(
+                [.0, .0, .0, .0]).to(
+                device=gpu_id).float())
+
+            # convert observation from BGR to RGB
+            if config.augs.get("old_aug", True):
+                images.append(img_formatter(
+                    obs['camera_front_image'][:, :, ::-1])[None])
+            else:
+                img_aug, bb_t_aug = img_formatter(
+                    obs['camera_front_image'][:, :, ::-1], bb_t)
+                images.append(img_aug[None])
+                if model._object_detector is not None or predict_gt_bb:
+                    bb.append(bb_t_aug[None][None])
+                    gt_classes.append(torch.from_numpy(
+                        gt_t[None][None][None]).to(device=gpu_id))
+
+            if concat_bb:
+                action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
+                    model=model,
+                    target_obj_dec=None,
+                    states=states,
+                    bb=bb,
+                    predict_gt_bb=predict_gt_bb,
+                    gt_classes=gt_classes[0],
+                    images=images,
                     context=context,
                     gpu_id=gpu_id,
-                    variation_id=variation_id,
+                    n_steps=n_steps,
+                    max_T=max_T,
                     baseline=baseline,
-                    bb_flag=concat_bb
-                    )
-    if concat_bb:
-        done, states, images, context, obs, traj, tasks, bb, gt_classes, gt_obs, current_gripper_pose = start_up_env_return
-    else:
-        done, states, images, context, obs, traj, tasks, gt_obs, current_gripper_pose = start_up_env_return
-        bb = None
+                    action_ranges=action_ranges,
+                    target_obj_embedding=target_obj_emb
+                )
+            else:
+                action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
+                    model=model,
+                    target_obj_dec=None,
+                    states=states,
+                    bb=None,
+                    predict_gt_bb=False,
+                    gt_classes=None,
+                    images=images,
+                    context=context,
+                    gpu_id=gpu_id,
+                    n_steps=n_steps,
+                    max_T=max_T,
+                    baseline=baseline,
+                    action_ranges=action_ranges,
+                    target_obj_embedding=target_obj_emb
+                )
 
-    n_steps = 0
+            if concat_bb and model._object_detector is not None and not predict_gt_bb:
+                prediction = prediction_internal_obj
 
-    object_name_target = env.objects[env.object_id].name
-    obj_delta_key = object_name_target + '_to_robot0_eef_pos'
-    obj_key = object_name_target + '_pos'
+            try:
+                if sub_action:
+                    if n_steps < gt_action:
+                        action, _ = controller.act(obs)
 
-    start_z = obs[obj_key][2]
+                obs, reward, env_done, info = env.step(action)
+                if concat_bb and not predict_gt_bb:
+                    # get predicted bb from prediction
+                    # 1. Get the index with target class
+                    target_indx_flags = prediction['classes_final'][0] == 1
+                    if torch.sum((target_indx_flags == True).int()) != 0:
+                        # 2. Get the confidence scores for the target predictions and the the max
+                        target_max_score_indx = torch.argmax(
+                            prediction['conf_scores_final'][0][target_indx_flags])
+                        max_score_target = prediction['conf_scores_final'][0][target_indx_flags][target_max_score_indx]
+                        if max_score_target != -1:
+                            scale_factor = model._object_detector.get_scale_factors()
+                            predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
+                                                          width_scale_factor=scale_factor[0],
+                                                          height_scale_factor=scale_factor[1],
+                                                          mode='a2p')[0][target_indx_flags][target_max_score_indx]
+                            previous_predicted_bb[0] = torch.round(
+                                predicted_bb).int()
+                            # replace bb
+                            bb.append(torch.round(
+                                predicted_bb[None][None].to(device=gpu_id)).int())
+                        else:
+                            bb.append(torch.round(previous_predicted_bb[None][None].to(
+                                device=gpu_id)).int())
 
-    # compute the average prediction over the whole trajectory
-    avg_prediction = 0
-    target_obj_emb = None
-    consecutive_gt_action_cnt = 0
-
-    print(f"Max-t {max_T}")
-    tasks["reached_wrong"] = 0.0
-    tasks["picked_wrong"] = 0.0
-    tasks["place_wrong"] = 0.0
-    tasks["place_wrong_correct_obj"] = 0.0
-    tasks["place_wrong_wrong_obj"] = 0.0
-    tasks["place_correct_bin_wrong_obj"] = 0.0
-
-    while not done:
-
-        tasks['reached'] = check_reach(threshold=0.03,
-                                       obj_distance=obs[obj_delta_key][:2],
-                                       current_reach=tasks['reached']
-                                       )
-
-        tasks['picked'] = check_pick(threshold=0.05,
-                                     obj_z=obs[obj_key][2],
-                                     start_z=start_z,
-                                     reached=tasks['reached'],
-                                     picked=tasks['picked'])
-
-        for obj_id, obj_name, in enumerate(env.env.obj_names):
-            if obj_id != traj.get(0)['obs']['target-object'] and obj_name != "bin":
-                if check_reach(threshold=0.03,
-                               obj_distance=obs[obj_name +
-                                                '_to_robot0_eef_pos'],
-                               current_reach=tasks.get(
-                                   "reached_wrong", 0.0)
-                               ):
-                    tasks['reached_wrong'] = 1.0
-                if check_pick(threshold=0.05,
-                              obj_z=obs[obj_name + "_pos"][2],
-                              start_z=start_z,
-                              reached=tasks['reached_wrong'],
-                              picked=tasks.get(
-                                  "picked_wrong", 0.0)):
-                    tasks['picked_wrong'] = 1.0
-
-        if baseline and len(states) >= 5:
-            states, images, bb = [], [], []
-
-        states.append(np.concatenate(
-            (obs['ee_aa'], obs['gripper_qpos'])).astype(np.float32)[None])
-
-        # Get GT BB
-        # if concat_bb:
-        bb_t, gt_t = get_gt_bb(
-            env=env,
-            traj=traj,
-            obs=obs,
-            task_name=task_name,
-            real=real
-        )
-        previous_predicted_bb = []
-        previous_predicted_bb.append(torch.tensor(
-            [.0, .0, .0, .0]).to(
-            device=gpu_id).float())
-
-        # convert observation from BGR to RGB
-        if config.augs.get("old_aug", True):
-            images.append(img_formatter(
-                obs['camera_front_image'][:, :, ::-1])[None])
-        else:
-            img_aug, bb_t_aug = img_formatter(
-                obs['camera_front_image'][:, :, ::-1], bb_t)
-            images.append(img_aug[None])
-            if model._object_detector is not None or predict_gt_bb:
-                bb.append(bb_t_aug[None][None])
-                gt_classes.append(torch.from_numpy(
-                    gt_t[None][None][None]).to(device=gpu_id))
-
-        if concat_bb:
-            action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
-                model=model,
-                target_obj_dec=None,
-                states=states,
-                bb=bb,
-                predict_gt_bb=predict_gt_bb,
-                gt_classes=gt_classes[0],
-                images=images,
-                context=context,
-                gpu_id=gpu_id,
-                n_steps=n_steps,
-                max_T=max_T,
-                baseline=baseline,
-                action_ranges=action_ranges,
-                target_obj_embedding=target_obj_emb
-            )
-        else:
-            action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
-                model=model,
-                target_obj_dec=None,
-                states=states,
-                bb=None,
-                predict_gt_bb=False,
-                gt_classes=None,
-                images=images,
-                context=context,
-                gpu_id=gpu_id,
-                n_steps=n_steps,
-                max_T=max_T,
-                baseline=baseline,
-                action_ranges=action_ranges,
-                target_obj_embedding=target_obj_emb
-            )
-
-        if concat_bb and model._object_detector is not None and not predict_gt_bb:
-            prediction = prediction_internal_obj
-
-        try:
-            if sub_action:
-                if n_steps < gt_action:
-                    action, _ = controller.act(obs)
-
-            obs, reward, env_done, info = env.step(action)
-            if concat_bb and not predict_gt_bb:
-                # get predicted bb from prediction
-                # 1. Get the index with target class
-                target_indx_flags = prediction['classes_final'][0] == 1
-                if torch.sum((target_indx_flags == True).int()) != 0:
-                    # 2. Get the confidence scores for the target predictions and the the max
-                    target_max_score_indx = torch.argmax(
-                        prediction['conf_scores_final'][0][target_indx_flags])
-                    max_score_target = prediction['conf_scores_final'][0][target_indx_flags][target_max_score_indx]
-                    if max_score_target != -1:
-                        scale_factor = model._object_detector.get_scale_factors()
-                        predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
-                                                      width_scale_factor=scale_factor[0],
-                                                      height_scale_factor=scale_factor[1],
-                                                      mode='a2p')[0][target_indx_flags][target_max_score_indx]
-                        previous_predicted_bb[0] = torch.round(
-                            predicted_bb).int()
-                        # replace bb
-                        bb.append(torch.round(
-                            predicted_bb[None][None].to(device=gpu_id)).int())
+                        obs['predicted_bb'] = torch.round(
+                            predicted_bb).cpu().numpy()
+                        obs['predicted_score'] = max_score_target.cpu().numpy()
+                        obs['gt_bb'] = bb_t_aug
+                        # adjust bb
+                        adj_predicted_bb = adjust_bb(bb=predicted_bb,
+                                                     crop_params=config.get('tasks_cfgs').get(task_name).get('crop'))
+                        image = np.array(cv2.rectangle(
+                            np.array(obs['camera_front_image'][:, :, ::-1]),
+                            (int(adj_predicted_bb[0]),
+                             int(adj_predicted_bb[1])),
+                            (int(adj_predicted_bb[2]),
+                             int(adj_predicted_bb[3])),
+                            (255, 0, 0), 1))
                     else:
-                        bb.append(torch.round(previous_predicted_bb[None][None].to(
-                            device=gpu_id)).int())
-
-                    obs['predicted_bb'] = torch.round(
-                        predicted_bb).cpu().numpy()
-                    obs['predicted_score'] = max_score_target.cpu().numpy()
-                    obs['gt_bb'] = bb_t_aug
+                        obs['gt_bb'] = bb_t_aug
+                        image = np.array(obs['camera_front_image'][:, :, ::-1])
+                elif concat_bb and predict_gt_bb:
+                    obs['gt_bb'] = bb_t_aug[0]
+                    obs['predicted_bb'] = bb_t_aug[0]
                     # adjust bb
-                    adj_predicted_bb = adjust_bb(bb=predicted_bb,
+                    adj_predicted_bb = adjust_bb(bb=bb_t_aug[0],
                                                  crop_params=config.get('tasks_cfgs').get(task_name).get('crop'))
                     image = np.array(cv2.rectangle(
                         np.array(obs['camera_front_image'][:, :, ::-1]),
@@ -407,88 +425,263 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
                          int(adj_predicted_bb[1])),
                         (int(adj_predicted_bb[2]),
                          int(adj_predicted_bb[3])),
-                        (255, 0, 0), 1))
+                        (0, 255, 0), 1))
                 else:
-                    obs['gt_bb'] = bb_t_aug
                     image = np.array(obs['camera_front_image'][:, :, ::-1])
-            elif concat_bb and predict_gt_bb:
-                obs['gt_bb'] = bb_t_aug[0]
-                obs['predicted_bb'] = bb_t_aug[0]
-                # adjust bb
-                adj_predicted_bb = adjust_bb(bb=bb_t_aug[0],
-                                             crop_params=config.get('tasks_cfgs').get(task_name).get('crop'))
-                image = np.array(cv2.rectangle(
-                    np.array(obs['camera_front_image'][:, :, ::-1]),
-                    (int(adj_predicted_bb[0]),
-                     int(adj_predicted_bb[1])),
-                    (int(adj_predicted_bb[2]),
-                     int(adj_predicted_bb[3])),
-                    (0, 255, 0), 1))
-            else:
-                image = np.array(obs['camera_front_image'][:, :, ::-1])
 
-            cv2.imwrite(
-                f"step_test.png", image)
-            # if controller is not None and gt_env is not None:
-            #     gt_action, gt_status = controller.act(gt_obs)
-            #     gt_obs, gt_reward, gt_env_done, gt_info = gt_env.step(
-            #         gt_action)
-            #     cv2.imwrite(
-            #         f"gt_step_test.png", gt_obs['camera_front_image'][:, :, ::-1])
-        except Exception as e:
-            print(f"Exception during step {e}")
+                cv2.imwrite(
+                    f"step_test.png", image)
+                # if controller is not None and gt_env is not None:
+                #     gt_action, gt_status = controller.act(gt_obs)
+                #     gt_obs, gt_reward, gt_env_done, gt_info = gt_env.step(
+                #         gt_action)
+                #     cv2.imwrite(
+                #         f"gt_step_test.png", gt_obs['camera_front_image'][:, :, ::-1])
+            except Exception as e:
+                print(f"Exception during step {e}")
 
-        traj.append(obs, reward, done, info, action)
+            traj.append(obs, reward, done, info, action)
 
-        tasks['success'] = reward or tasks['success']
+            tasks['success'] = reward or tasks['success']
 
-        # check if the object has been placed in a different bin
-        if not tasks['success']:
-            for i, bin_name in enumerate(ENV_OBJECTS['pick_place']['bin_names']):
-                if i != obs['target-box-id']:
-                    bin_pos = obs[f"{bin_name}_pos"]
-                    if check_bin(threshold=0.03,
-                                 bin_pos=bin_pos,
-                                 obj_pos=obs[f"{object_name_target}_pos"],
-                                 current_bin=tasks.get(
-                                     "place_wrong_correct_obj", 0.0)
-                                 ):
-                        tasks["place_wrong_correct_obj"] = 1.0
+            # check if the object has been placed in a different bin
+            if not tasks['success']:
+                for i, bin_name in enumerate(ENV_OBJECTS['pick_place']['bin_names']):
+                    if i != obs['target-box-id']:
+                        bin_pos = obs[f"{bin_name}_pos"]
+                        if check_bin(threshold=0.03,
+                                     bin_pos=bin_pos,
+                                     obj_pos=obs[f"{object_name_target}_pos"],
+                                     current_bin=tasks.get(
+                                         "place_wrong_correct_obj", 0.0)
+                                     ):
+                            tasks["place_wrong_correct_obj"] = 1.0
 
-            for obj_id, obj_name, in enumerate(env.env.obj_names):
-                if obj_id != traj.get(0)['obs']['target-object'] and obj_name != "bin":
-                    for i, bin_name in enumerate(ENV_OBJECTS['pick_place']['bin_names']):
-                        if i != obs['target-box-id']:
-                            bin_pos = obs[f"{bin_name}_pos"]
-                            if check_bin(threshold=0.03,
-                                         bin_pos=bin_pos,
-                                         obj_pos=obs[f"{obj_name}_pos"],
-                                         current_bin=tasks.get(
-                                             "place_wrong_wrong_obj", 0.0)
-                                         ):
-                                tasks["place_wrong_wrong_obj"] = 1.0
+                for obj_id, obj_name, in enumerate(env.env.obj_names):
+                    if obj_id != traj.get(0)['obs']['target-object'] and obj_name != "bin":
+                        for i, bin_name in enumerate(ENV_OBJECTS['pick_place']['bin_names']):
+                            if i != obs['target-box-id']:
+                                bin_pos = obs[f"{bin_name}_pos"]
+                                if check_bin(threshold=0.03,
+                                             bin_pos=bin_pos,
+                                             obj_pos=obs[f"{obj_name}_pos"],
+                                             current_bin=tasks.get(
+                                                 "place_wrong_wrong_obj", 0.0)
+                                             ):
+                                    tasks["place_wrong_wrong_obj"] = 1.0
+                            else:
+                                bin_pos = obs[f"{bin_name}_pos"]
+                                if check_bin(threshold=0.03,
+                                             bin_pos=bin_pos,
+                                             obj_pos=obs[f"{obj_name}_pos"],
+                                             current_bin=tasks.get(
+                                                 "place_correct_bin_wrong_obj", 0.0)
+                                             ):
+                                    tasks["place_correct_bin_wrong_obj"] = 1.0
+
+            n_steps += 1
+            if env_done or reward or n_steps > max_T:
+                done = True
+        print(tasks)
+        env.close()
+        tasks['avg_pred'] = avg_prediction/len(traj)
+        del env
+        del states
+        del images
+        del model
+
+        return traj, tasks
+    else:
+        target_obj_emb = None
+        states = deque([], maxlen=1)
+        images = deque([], maxlen=1)
+        bb = deque([], maxlen=1)
+        gt_classes = deque([], maxlen=1)
+        fp = 0
+        tp = 0
+        fn = 0
+        iou = 0
+        info = {}
+        error = []
+        # take current observation
+        for t in range(len(gt_traj)):
+            if True:  # t == 1:
+                agent_obs = gt_traj[t]['obs']['camera_front_image']
+                bb_t, gt_t = get_gt_bb(traj=gt_traj,
+                                       obs=gt_traj[t]['obs'],
+                                       task_name=task_name,
+                                       t=t)
+                previous_predicted_bb = []
+                previous_predicted_bb.append(torch.tensor(
+                    [.0, .0, .0, .0]).to(
+                    device=gpu_id).float())
+
+                state_components = []
+                for k in config.dataset_cfg.state_spec:
+                    if isinstance(gt_traj[t]['obs'][k], int):
+                        state_component = np.array(
+                            [gt_traj[t]['obs'][k]], dtype=np.float32)
+                    else:
+                        state_component = np.array(
+                            gt_traj[t]['obs'][k], dtype=np.float32)
+                    state_components.extend(state_component)
+                states.append(state_components)
+
+                # convert observation from BGR to RGB
+                if perform_augs:
+                    formatted_img, bb_t = img_formatter(
+                        agent_obs[:, :, ::-1], bb_t)
+                else:
+                    cv2.imwrite("obs.png", agent_obs)
+                    formatted_img = ToTensor()(agent_obs.copy()).to(device=gpu_id)
+                    context = context.to(device=gpu_id)
+                    bb_t_aug = bb_t.copy()
+                    images.append(formatted_img[None])
+                    if model._object_detector is not None or predict_gt_bb:
+                        bb.append(bb_t_aug[None][None])
+                        gt_classes.append(torch.from_numpy(
+                            gt_t[None][None][None]).to(device=gpu_id))
+
+                if concat_bb:
+                    action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
+                        model=model,
+                        target_obj_dec=None,
+                        states=states,
+                        bb=bb,
+                        predict_gt_bb=predict_gt_bb,
+                        gt_classes=gt_classes[0],
+                        images=images,
+                        context=context,
+                        gpu_id=gpu_id,
+                        n_steps=t,
+                        max_T=max_T,
+                        baseline=baseline,
+                        action_ranges=action_ranges,
+                        target_obj_embedding=target_obj_emb,
+                        real=True
+                    )
+                else:
+                    action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
+                        model=model,
+                        target_obj_dec=None,
+                        states=states,
+                        bb=None,
+                        predict_gt_bb=False,
+                        gt_classes=None,
+                        images=images,
+                        context=context,
+                        gpu_id=gpu_id,
+                        n_steps=t,
+                        max_T=max_T,
+                        baseline=baseline,
+                        action_ranges=action_ranges,
+                        target_obj_embedding=target_obj_emb
+                    )
+
+                # Compute MSE between predicted action and GT
+                gt_action = np.zeros(7)
+                gt_action[:3] = gt_traj[t]['action'][:3]
+                gt_rot = gt_traj[t]['action'][3:7]
+                gt_action[3:6] = quat2axisangle(gt_rot)
+                gt_action[6] = gt_traj[t]['action'][7]
+
+                error_t = mean_squared_error(y_true=np.array([gt_action[:3]]),
+                                             y_pred=np.array([action[:3]]))
+                print(error_t)
+                error.append(error_t)
+
+                if concat_bb and model._object_detector is not None and not predict_gt_bb:
+                    prediction = prediction_internal_obj
+
+                # Project bb over image
+                # 1. Get the index with target class
+                target_indx_flags = prediction['classes_final'][0] == 1
+                # 2. Get the confidence scores for the target predictions and the the max
+                try:
+                    target_max_score_indx = torch.argmax(
+                        prediction['conf_scores_final'][0][target_indx_flags])  # prediction['conf_scores_final'][0][target_indx_flags]
+                    max_score_target = prediction['conf_scores_final'][0]
+                except:
+                    print("No target bb found")
+                    max_score_target = [-1]
+                if max_score_target[0] != -1:
+                    if perform_augs:
+                        scale_factor = model._object_detector.get_scale_factors()
+                        image = np.array(np.moveaxis(
+                            formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+                        predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
+                                                      width_scale_factor=scale_factor[0],
+                                                      height_scale_factor=scale_factor[1],
+                                                      mode='a2p')[0][:10]
+                    else:
+                        image = np.array(np.moveaxis(
+                            formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+                        scale_factor = model._object_detector.get_scale_factors()
+                        predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
+                                                      width_scale_factor=scale_factor[0],
+                                                      height_scale_factor=scale_factor[1],
+                                                      mode='a2p')[0][target_indx_flags][target_max_score_indx][None]
+
+                    if True:
+                        for indx, bbox in enumerate(predicted_bb):
+                            color = (255, 0, 0)
+                            image = cv2.rectangle(np.ascontiguousarray(image),
+                                                  (int(bbox[0]),
+                                                   int(bbox[1])),
+                                                  (int(bbox[2]),
+                                                   int(bbox[3])),
+                                                  color=color, thickness=1)
+                            image = cv2.putText(image, "Score {:.2f}".format(max_score_target[indx]),
+                                                (int(bbox[0]),
+                                                int(bbox[1])),
+                                                cv2.FONT_HERSHEY_SIMPLEX,
+                                                0.3,
+                                                (0, 0, 255),
+                                                1,
+                                                cv2.LINE_AA)
+                        image = cv2.rectangle(np.ascontiguousarray(image),
+                                              (int(bb_t[0][0]),
+                                               int(bb_t[0][1])),
+                                              (int(bb_t[0][2]),
+                                               int(bb_t[0][3])),
+                                              color=(0, 255, 0), thickness=1)
+
+                        gt_traj[t]['obs']['predicted_bb'] = predicted_bb
+                        gt_traj[t]['obs']['gt_bb'] = bb_t
+                        cv2.imwrite("predicted_bb.png", image)
+
+                        # compute IoU over time
+                        iou_t = box_iou(boxes1=torch.from_numpy(
+                            bb_t).to(device=gpu_id), boxes2=predicted_bb)
+                        gt_traj[t]['obs']['iou'] = iou_t[0][0].cpu().numpy()
+
+                        # check if there are TP
+                        if iou_t[0][0].cpu().numpy() < 0.5:
+                            fp += 1
+                            gt_traj[t]['obs']['fp'] = 1
+
                         else:
-                            bin_pos = obs[f"{bin_name}_pos"]
-                            if check_bin(threshold=0.03,
-                                         bin_pos=bin_pos,
-                                         obj_pos=obs[f"{obj_name}_pos"],
-                                         current_bin=tasks.get(
-                                             "place_correct_bin_wrong_obj", 0.0)
-                                         ):
-                                tasks["place_correct_bin_wrong_obj"] = 1.0
+                            tp += 1
+                            gt_traj[t]['obs']['tp'] = 1
 
-        n_steps += 1
-        if env_done or reward or n_steps > max_T:
-            done = True
-    print(tasks)
-    env.close()
-    tasks['avg_pred'] = avg_prediction/len(traj)
-    del env
-    del states
-    del images
-    del model
+                        iou += iou_t[0][0].cpu().numpy()
+                        gt_traj[t]['obs']['iou'] = iou_t[0][0].cpu().numpy()
+                        # traj.append(obs)
 
-    return traj, tasks
+                else:
+                    gt_traj[t]['obs']['predicted_bb'] = np.array([0, 0, 0, 0])[
+                        None]
+                    gt_traj[t]['obs']['gt_bb'] = bb_t
+                    gt_traj[t]['obs']['iou'] = 0.0
+                    gt_traj[t]['obs']['fn'] = 1
+                    fn += 1
+
+        info["avg_iou"] = iou/(len(gt_traj)-1)
+        info["avg_tp"] = tp/(len(gt_traj)-1)
+        info["avg_fp"] = fp/(len(gt_traj)-1)
+        info["avg_fn"] = fn/(len(gt_traj)-1)
+        info["error"] = np.mean(error)
+        return gt_traj, info
 
 
 def pick_place_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action=4, real=True):
@@ -557,12 +750,15 @@ def pick_place_eval(model, env, gt_env, context, gpu_id, variation_id, img_forma
     else:
         # Instantiate Controller
         if task_name == "pick_place":
-            from multi_task_robosuite_env.controllers.controllers.expert_pick_place import PickPlaceController
-            controller = PickPlaceController(
-                env=env.env,
-                tries=[],
-                ranges=[],
-                object_set=2)
+            if env != None:
+                from multi_task_robosuite_env.controllers.controllers.expert_pick_place import PickPlaceController
+                controller = PickPlaceController(
+                    env=env.env,
+                    tries=[],
+                    ranges=[],
+                    object_set=2)
+            else:
+                controller = None
 
         return pick_place_eval_demo_cond(model=model,
                                          env=env,
@@ -579,6 +775,9 @@ def pick_place_eval(model, env, gt_env, context, gpu_id, variation_id, img_forma
                                              "concat_bb", False),
                                          task_name=task_name,
                                          config=config,
+                                         gt_traj=gt_file,
+                                         perform_augs=config.dataset_cfg.get(
+                                             'perform_augs', True),
                                          predict_gt_bb=gt_bb,
                                          sub_action=sub_action,
                                          gt_action=gt_action,
