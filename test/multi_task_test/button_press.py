@@ -60,10 +60,10 @@ def press_button_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
             if obj_name != traj.get(0)['obs']['target-object']:
                 other_button_loc = np.array(env.sim.data.site_xpos[env.env.sim.model.site_name2id(
                     env.env.names[obj_id])])
-                if abs(obs['eef_pos'][0] - other_button_loc[0]) < 0.05 and abs(obs['eef_pos'][1] - other_button_loc[1]) < 0.05 and abs(obs['eef_pos'][2] - other_button_loc[2]) < 0.03 or tasks['reached']:
-                    tasks['reached'] = 1.0
-                    tasks['picked'] = tasks['picked'] or \
-                        (tasks['reached'])
+                if abs(obs['eef_pos'][0] - other_button_loc[0]) < 0.05 and abs(obs['eef_pos'][1] - other_button_loc[1]) < 0.05 and abs(obs['eef_pos'][2] - other_button_loc[2]) < 0.03 or tasks['reached_wrong']:
+                    tasks['reached_wrong'] = 1.0
+                    tasks['picked_wrong'] = tasks['picked_wrong'] or \
+                        (tasks['reached_wrong'])
 
                 qpos = env.sim.data.get_joint_qpos(
                     env.objects[obj_id//3].joints[obj_id % 3])

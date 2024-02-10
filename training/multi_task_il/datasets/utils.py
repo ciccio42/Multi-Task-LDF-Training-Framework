@@ -34,7 +34,7 @@ logging.basicConfig(
 # Create a logger object
 logger = logging.getLogger('Data-Loader')
 
-DEBUG = True
+DEBUG = False
 
 ENV_OBJECTS = {
     'pick_place': {
