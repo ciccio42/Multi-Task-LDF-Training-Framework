@@ -15,11 +15,11 @@ POLICY='${mosaic}'
 SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
-DEVICE=2
+DEVICE=1
 DEBUG=false
 WANDB_LOG=true
 
-EXP_NAME=1Task-Button-MOSAIC-GT-BB-ALL-OBJ-One-Variation-Left
+EXP_NAME=1Task-Button-MOSAIC-CTOD
 PROJECT_NAME=${EXP_NAME}
 TASK_str=button #[pick_place,nut_assembly,stack_block,button]
 
@@ -27,13 +27,13 @@ RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch2
 RESUME_STEP=4540
 RESUME=false
 
-LOAD_TARGET_OBJ_DETECTOR=false #true
-TARGET_OBJ_DETECTOR_STEP=-1 #68526 #129762 #198900 #65250
-TARGET_OBJ_DETECTOR_PATH=Null #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Button-Cond-Target-Obj-Detector-Batch12 #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-STACK-BLOCK-Cond-Target-Obj-Detector-Batch30/ #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-STACK-BLOCK-Cond-Target-Obj-Detector-Batch30/ #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Button-Cond-Target-Obj-Detector-Batch12 #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54/
+LOAD_TARGET_OBJ_DETECTOR=true #true
+TARGET_OBJ_DETECTOR_STEP=198900 #68526 #129762 #198900 #65250
+TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Button-Cond-Target-Obj-Detector-Batch12 #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-STACK-BLOCK-Cond-Target-Obj-Detector-Batch30/ #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-STACK-BLOCK-Cond-Target-Obj-Detector-Batch30/ #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Button-Cond-Target-Obj-Detector-Batch12 #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54/
 CONCAT_BB=true
 
 
-ROLLOUT=true
+ROLLOUT=false
 EPOCH=90
 BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false

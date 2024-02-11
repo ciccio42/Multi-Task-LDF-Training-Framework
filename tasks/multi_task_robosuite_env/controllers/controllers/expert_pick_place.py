@@ -409,7 +409,7 @@ if __name__ == '__main__':
     controller_config = load_controller_config(
         custom_fpath=controller_config_path)
 
-    for i in [12]:  # range(0, 16):
+    for i in range(0, 16):
         traj = get_expert_trajectory('UR5e_PickPlaceDistractor',
                                      controller_type=controller_config,
                                      renderer=False,

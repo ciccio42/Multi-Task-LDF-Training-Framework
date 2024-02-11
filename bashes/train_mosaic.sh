@@ -31,7 +31,7 @@ ROLLOUT=true
 
 RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-BUTTON-MOSAIC-ALL-OBJ-One-Variation-Left-Batch25/
 RESUME_STEP=6402
-RESUME=true
+RESUME=false
 
 EPOCH=90
 BSIZE=27 #32 #128 #64 #32
