@@ -62,7 +62,7 @@ stack_block:
   crop:              [20, 25, 80, 75]
   n_per_task:        5
   task_ids:          [0,1,2,3,4,5]
-  skip_ids:         [5]
+  skip_ids:         []
   loss_mul:          1
   task_per_batch:    6
   traj_per_subtask:  100

@@ -26,6 +26,7 @@ from torchvision.transforms import ToTensor
 from multi_task_test.utils import *
 from multi_task_test import *
 import re
+from colorama import Back
 
 
 def extract_last_number(path):
@@ -424,7 +425,8 @@ if __name__ == '__main__':
         model_saved_step = model_path.split("/")[-1].split("-")
         model_saved_step.remove("model_save")
         model_saved_step = model_saved_step[0][:-3]
-        print("loading model from saved training step %s" % model_saved_step)
+        print("loading model from saved training step %s" %
+              model_saved_step)
         results_dir = os.path.join(results_dir, 'step-'+model_saved_step)
         os.makedirs(results_dir, exist_ok=True)
         print("Made new path for results at: %s" % results_dir)

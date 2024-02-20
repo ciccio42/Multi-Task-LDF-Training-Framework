@@ -619,13 +619,19 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
         # forward & backward action pred
         actions = model_inputs['actions']
         if "CondPolicy" not in config.policy._target_:
-            # mu_bc.shape: B, 7, 8, 4]) but actions.shape: B, 6, 8
-            mu_bc, scale_bc, logit_bc = out['bc_distrib']
-            action_distribution = DiscreteMixLogistic(
-                mu_bc[:, :-1], scale_bc[:, :-1], logit_bc[:, :-1])
-            act_prob = rearrange(- action_distribution.log_prob(actions),
-                                 'B n_mix act_dim -> B (n_mix act_dim)')
-
+            if "real" not in config.dataset_cfg.agent_name:
+                # mu_bc.shape: B, 7, 8, 4]) but actions.shape: B, 6, 7
+                mu_bc, scale_bc, logit_bc = out['bc_distrib']
+                action_distribution = DiscreteMixLogistic(
+                    mu_bc[:, :-1], scale_bc[:, :-1], logit_bc[:, :-1])
+                act_prob = rearrange(- action_distribution.log_prob(actions),
+                                     'B n_mix act_dim -> B (n_mix act_dim)')
+            else:
+                mu_bc, scale_bc, logit_bc = out['bc_distrib']
+                action_distribution = DiscreteMixLogistic(
+                    mu_bc, scale_bc, logit_bc)
+                act_prob = rearrange(- action_distribution.log_prob(actions),
+                                     'B n_mix act_dim -> B (n_mix act_dim)')
         else:
             actions = rearrange(actions, 'B T act_dim -> (B T) act_dim')
             act_prob = - out['bc_distrib'].log_prob(actions)
@@ -645,12 +651,20 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
             torch.mean(act_prob, dim=-1)
 
         if 'inverse_distrib' in out.keys():
-            # compute inverse model density
-            inv_distribution = DiscreteMixLogistic(*out['inverse_distrib'])
-            inv_prob = rearrange(- inv_distribution.log_prob(actions),
-                                 'B n_mix act_dim -> B (n_mix act_dim)')
-            all_losses["l_inv"] = train_cfg.inv_loss_mult * \
-                torch.mean(inv_prob, dim=-1)
+            if "real" not in config.dataset_cfg.agent_name:
+                # compute inverse model density
+                inv_distribution = DiscreteMixLogistic(*out['inverse_distrib'])
+                inv_prob = rearrange(- inv_distribution.log_prob(actions),
+                                     'B n_mix act_dim -> B (n_mix act_dim)')
+                all_losses["l_inv"] = train_cfg.inv_loss_mult * \
+                    torch.mean(inv_prob, dim=-1)
+            else:
+                # compute inverse model density
+                inv_distribution = DiscreteMixLogistic(*out['inverse_distrib'])
+                inv_prob = rearrange(- inv_distribution.log_prob(actions[:, :-1, :]),
+                                     'B n_mix act_dim -> B (n_mix act_dim)')
+                all_losses["l_inv"] = train_cfg.inv_loss_mult * \
+                    torch.mean(inv_prob, dim=-1)
 
         if 'point_ll' in out:
             pnts = model_inputs['points']
@@ -698,11 +712,17 @@ class Trainer:
         self.config = hydra_cfg
         self.train_cfg = hydra_cfg.train_cfg
         # initialize device
+
         def_device = hydra_cfg.device if hydra_cfg.device != -1 else 0
-        self._device = torch.device("cuda:{}".format(def_device))
         self._device_id = def_device
         self._device_list = None
-        self._allow_val_grad = allow_val_grad
+        self._device = None
+        try:
+            self._device = torch.device("cuda:{}".format(def_device))
+            self._allow_val_grad = allow_val_grad
+        except:
+            self._device = torch.device("cuda:{}".format(def_device[0]))
+            self._device_list = self.device_list()
         # set of file saving
 
         if not os.path.exists(self.config.save_path):
@@ -765,10 +785,12 @@ class Trainer:
             self.config, self.train_cfg.dataset)
         # wrap model in DataParallel if needed and transfer to correct device
         print('\n-------------------\nTraining stage\nFound {} GPU devices \n'.format(self.device_count))
-        model = model.to(self._device)
-        # if self.device_count > 1 and not isinstance(model, nn.DataParallel):
-        #     print("Training stage \n Device list: {}".format(self.device_list))
-        #     model = nn.DataParallel(model, device_ids=self.device_list)
+
+        if self.device_count > 1 and not isinstance(model, nn.DataParallel):
+            print("Training stage \n Device list: {}".format(self._device_list))
+            model = nn.DataParallel(model, device_ids=self._device_list).cuda()
+        else:
+            model = model.to(self._device)
 
         # save model
         # save the model's state dictionary to a file
@@ -840,7 +862,8 @@ class Trainer:
                 f"Training for {epochs} epochs train dataloader has length {len(self._train_loader)}")
 
         model = model.train()
-        model = model.to(self._device)
+        if not isinstance(model, nn.DataParallel):
+            model = model.to(self._device)
         # summary(model)
 
         step = 0
@@ -868,7 +891,7 @@ class Trainer:
                                        self._save_fname + '-{}.pt'.format(self._step))
                         if self.config.get('save_optim', False):
                             torch.save(optimizer.state_dict(
-                            ), self._save_fname + '-optim-{}.pt'.format(self._step))
+                            ), self._save_fname + '-optim.pt')
 
                     stats_save_name = join(
                         self.save_dir, 'stats', '{}.json'.format('train_val_stats'))
@@ -1110,7 +1133,7 @@ class Trainer:
                        self._save_fname + '-{}.pt'.format(self._step))
         if self.config.get('save_optim', False):
             torch.save(optimizer.state_dict(), self._save_fname +
-                       '-optim-{}.pt'.format(self._step))
+                       '-optim.pt')
         print(f'Model checkpoint saved at step {self._step}')
         return
 
@@ -1120,10 +1143,12 @@ class Trainer:
             return torch.cuda.device_count()
         return len(self._device_list)
 
-    @property
     def device_list(self):
         if self._device_list is None:
-            return [i for i in range(torch.cuda.device_count())]
+            dev_list = []
+            for i in range(torch.cuda.device_count()):
+                dev_list.append(i)
+            return dev_list
         return copy.deepcopy(self._device_list)
 
     @property
@@ -1195,6 +1220,7 @@ class Workspace(object):
             start += task['n_tasks']
 
         resume = config.get('resume', False)
+        finetune = config.get('finetune', False)
 
         # config.policy.n_tasks = n_tasks
         # config.dataset_cfg.tasks = tasks
@@ -1213,7 +1239,7 @@ class Workspace(object):
             print("use_daml not in configuration file")
 
         print("Model initialized to: {}".format(config.policy._target_))
-        if resume:
+        if resume or finetune:
             self._rpath = join(cfg.save_path, cfg.resume_path,
                                f"model_save-{cfg.resume_step}.pt")
             assert os.path.exists(self._rpath), "Can't seem to find {} anywhere".format(
@@ -1222,11 +1248,12 @@ class Workspace(object):
             self.action_model.load_state_dict(torch.load(
                 self._rpath, map_location=torch.device('cpu')))
             self.optimizer_state_dict = None
-            # create path for loading state dict
-            optimizer_state_dict = join(
-                cfg.save_path, cfg.resume_path, f"model_save-optim-{cfg.resume_step}.pt")
-            self.optimizer_state_dict = torch.load(
-                optimizer_state_dict, map_location=torch.device('cpu'))
+            if resume:
+                # create path for loading state dict
+                optimizer_state_dict = join(
+                    cfg.save_path, cfg.resume_path, f"model_save-optim-{cfg.resume_step}.pt")
+                self.optimizer_state_dict = torch.load(
+                    optimizer_state_dict, map_location=torch.device('cpu'))
         else:
             self.optimizer_state_dict = None
 

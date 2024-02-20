@@ -1,14 +1,14 @@
 #!/bin/sh
-export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
-# export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
+# export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
+export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/mnt/sdc1/frosa/opt_dataset
+EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 POLICY='${mosaic}'
 
@@ -16,10 +16,10 @@ SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
 DEVICE=0
-DEBUG=true
-WANDB_LOG=false
+DEBUG=false
+WANDB_LOG=true
 
-EXP_NAME=Real-Pick-Place-MOSAIC-CTOD-Only-Front #Real-1Task-Pick-Place-MOSAIC-Cond-Target-Obj-Detector-State
+EXP_NAME=Real-Pick-Place-MOSAIC-CTOD-Only-Front-Fine-Tuned #Real-1Task-Pick-Place-MOSAIC-Cond-Target-Obj-Detector-State
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place #[pick_place,nut_assembly]
 
@@ -28,8 +28,8 @@ RESUME_STEP=69660
 RESUME=false
 
 LOAD_TARGET_OBJ_DETECTOR=true
-TARGET_OBJ_DETECTOR_STEP=23490
-TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-Pick-Place-CTOD-Only-Front-Batch32
+TARGET_OBJ_DETECTOR_STEP=12150
+TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-Pick-Place-CTOD-Only-Front-Fine-Tuned-Batch32/
 CONCAT_BB=true
 
 AGENT_NAME=real_ur5e
@@ -44,10 +44,10 @@ BALANCING_POLICY=0
 SET_SAME_N=32
 CONFIG_PATH=../experiments
 CONFIG_NAME=config_real.yaml
-LOADER_WORKERS=1
+LOADER_WORKERS=8
 NORMALIZE_ACTION=true
 
-LOAD_CONTRASTIVE=false
+LOAD_CONTRASTIVE=true
 CONTRASTIVE_PRE=1.0
 CONTRASTIVE_POS=1.0
 MUL_INTM=0
@@ -72,7 +72,7 @@ NULL_BB=false
 
 EARLY_STOPPING_PATIECE=-1
 OPTIMIZER='AdamW'
-LR=0.0005
+LR=0.005
 WEIGHT_DECAY=0.0
 SCHEDULER=None
 

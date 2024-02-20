@@ -585,10 +585,10 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
                 gt_action[3:6] = quat2axisangle(gt_rot)
                 gt_action[6] = gt_traj[t]['action'][7]
 
-                error_t = mean_squared_error(y_true=np.array([gt_action[:3]]),
-                                             y_pred=np.array([action[:3]]))
-                print(error_t)
-                error.append(error_t)
+                pos_error_t = np.linalg.norm(
+                    [gt_action[:3]] - np.array([action[:3]]), axis=1)
+                print(pos_error_t)
+                error.append(pos_error_t)
 
                 if concat_bb and model._object_detector is not None and not predict_gt_bb:
                     prediction = prediction_internal_obj

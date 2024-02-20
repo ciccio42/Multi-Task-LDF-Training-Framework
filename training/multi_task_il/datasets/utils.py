@@ -751,6 +751,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
         step_t = traj.get(t)
 
         if not getattr(dataset_loader, "real", False):
+            cv2.imwrite("prova.png", step_t['obs']['camera_front_image'])
             image = copy.copy(
                 step_t['obs']['camera_front_image'][:, :, ::-1])
         else:
@@ -831,7 +832,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                 cv2.imwrite("adjusted_point.png", cv2.UMat(image))
             logger.debug(f"EEF point: {time.time()-eef_point_time}")
 
-        if load_action and j >= 1:
+        if load_action and (j >= 1 or "real" in dataset_loader.agent_name):
             action_time = time.time()
             # Load action
             if "real" in dataset_loader.agent_name:

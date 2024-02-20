@@ -9,7 +9,7 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 export HYDRA_FULL_ERROR=1
 
 BASE_PATH=/raid/home/frosa_Loc/Multi-Task-LFD-Framework
-PROJECT_NAME=Real-Pick-Place-MOSAIC-CTOD-Only-Front
+PROJECT_NAME=Real-Pick-Place-MOSAIC-CTOD-Only-Front-Fine-Tuned
 #1Task-Pick-Place-Cond-Target-Obj-Detector-separate-demo-agent #
 NUM_WORKERS=1
 GPU_ID=3
@@ -17,7 +17,7 @@ MODEL_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${PROJECT_NAME}-Bat
 CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
 
 for MODEL in ${MODEL_PATH}; do
-    for S in -1; do #81000 89100; do   
+    for S in 8901 18963; do #81000 89100; do   
         for TASK in pick_place; do
             for COUNT in 1; do
                 SAVE_PATH=${MODEL}/results_${TASK}/val/run_${COUNT}

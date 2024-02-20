@@ -132,7 +132,7 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
         print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             ctr, variation_id, info['reached'], info['picked'], info['success']))
         (f"Avg prediction {info['avg_pred']}")
-    return traj, info, expert_traj, context
+    return traj, context, info
 
 
 def rollout_imitation(model, config, ctr,
@@ -371,11 +371,11 @@ if __name__ == '__main__':
 
     random.seed(42)
     np.random.seed(42)
-    torch.manual_seed(42)
-    os.environ["PYTHONHASHSEED"] = "42"
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    torch.set_num_threads(1)
+    # torch.manual_seed(42)
+    # os.environ["PYTHONHASHSEED"] = "42"
+    # torch.backends.cudnn.deterministic = True
+    # torch.backends.cudnn.benchmark = False
+    # torch.set_num_threads(1)
 
     try_path = args.model
     # if 'log' not in args.model and 'mosaic' not in args.model:
@@ -547,7 +547,7 @@ if __name__ == '__main__':
             # for pkl_file in file_pairs.values():
             #     pkl_file_list.append((pkl_file[3], pkl_file[2]))
             for pkl_file in file_pairs.values():
-                if 'traj079.pkl' in pkl_file[3]:
+                if 'traj000.pkl' in pkl_file[3]:
                     pkl_file_list.append((pkl_file[3], '/raid/home/frosa_Loc/opt_dataset/pick_place/panda_pick_place/task_00/traj000.pkl'
                                           ))
             args.N = len(pkl_file_list)

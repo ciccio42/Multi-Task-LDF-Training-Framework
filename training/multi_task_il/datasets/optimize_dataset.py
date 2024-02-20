@@ -2,23 +2,21 @@
 This file loads the trajectories in pkl format from the specified folder and add the bounding-box related to the objects in the scene
 The bounding box is defined as follow: (center_x, center_y, width, height)
 """
-
+import yaml
+from torchvision.transforms.functional import resized_crop
+from torchvision.transforms import ToTensor
+import glob
+from multiprocessing import Pool, cpu_count
+import functools
+import robosuite.utils.transform_utils as T
+import copy
+import logging
+import numpy as np
+import cv2
+import pickle
+import sys
 from multi_task_il.datasets.savers import _compress_obs
 import os
-import sys
-import pickle
-import cv2
-import numpy as np
-import logging
-import copy
-import robosuite.utils.transform_utils as T
-import functools
-from multiprocessing import Pool, cpu_count
-import glob
-from torchvision.transforms import ToTensor
-from torchvision.transforms.functional import resized_crop
-import yaml
-import numpy as np
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 logger = logging.getLogger("BB-Creator")
@@ -224,9 +222,9 @@ if __name__ == '__main__':
         debugpy.wait_for_client()
 
     # 1. Load the dataset
-    # folder_path = os.path.join(
-    #     args.dataset_path, args.task_name, f"{args.robot_name}_{args.task_name}")
-    folder_path = "/user/frosa/multi_task_lfd/ur_multitask_dataset/pick_place/real_ur5e_pick_place/only_frontal/"
+    folder_path = os.path.join(
+        args.dataset_path, args.task_name, f"{args.robot_name}_{args.task_name}")
+    # folder_path = "/user/frosa/multi_task_lfd/ur_multitask_dataset/pick_place/real_ur5e_pick_place/only_frontal/"
     if args.out_path is None:
         out_path = os.path.join(args.dataset_path,
                                 f"{args.task_name}_opt",

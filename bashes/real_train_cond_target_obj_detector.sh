@@ -8,7 +8,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/mnt/sdc1/frosa/opt_dataset
+EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/
 POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
@@ -21,15 +21,15 @@ LOG_FREQ=100
 VAL_FREQ=-1
 PRINT_FREQ=100
 
-EXP_NAME=Real-Pick-Place-CTOD-Only-Front
+EXP_NAME=Real-Pick-Place-MOSAIC-CTOD-Only-Front-2
 PROJECT_NAME=${EXP_NAME}
-TASK_str="pick_place"
-EPOCH=180 
+TASK_str=pick_place
+EPOCH=90 
 BSIZE=80 #16 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector_real.yaml
-LOADER_WORKERS=1
+LOADER_WORKERS=8
 BALANCING_POLICY=0
 SET_SAME_N=32
 OBS_T=7
@@ -46,11 +46,12 @@ ONLY_FIRST_FRAMES=false
 ROLLOUT=false
 PERFORM_AUGS=true
 PERFORM_SCALE_RESIZE=false
-NON_SEQUENTIAL=true
+NON_SEQUENTIAL=true 
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-1Task-Pick-Place-Cond-Target-Obj-Detector-2-Batch16/
-RESUME_STEP=36000
-RESUME=false
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-Pick-Place-CTOD-Only-Front-Fine-Tuned-Batch32
+RESUME_STEP=9720
+RESUME=true
+FINETUNE=false
 
 DROP_DIM=4      # 2    # 3
 OUT_FEATURE=128 # 512 # 256
@@ -106,4 +107,5 @@ python ../training/train_scripts/train_any.py \
     debug=${DEBUG} \
     wandb_log=${WANDB_LOG} \
     resume=${RESUME} \
+    finetune=${FINETUNE} \
     loader_workers=${LOADER_WORKERS}

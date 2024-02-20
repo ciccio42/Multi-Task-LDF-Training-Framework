@@ -10,6 +10,7 @@ save_freq: 1
 cosine_annealing: False
 save_optim:     True
 resume:         False
+finetune:       False
 resume_path:    null
 resume_step:    -1
 device:         0
@@ -159,7 +160,7 @@ cond_target_obj_detector_cfg:
   agent_backbone_name: resnet18
   cond_video: True
   pretrained: False
-  anc_scales: [0.5, 1.0, 1.5, 2.0, 3.0, 4.0] 
+  anc_scales: [1.0, 1.5, 2.0, 3.0, 4.0]
   anc_ratios: [0.2, 0.5, 0.8, 1, 1.2, 1.5, 2.0]
   dim_H: 14
   dim_W: 14

@@ -10,6 +10,7 @@ save_freq: 1
 cosine_annealing: False
 save_optim:     True
 resume:         False
+finetune:       False
 resume_path:    null
 resume_step:    -1
 device:         0
@@ -97,9 +98,9 @@ dataset_cfg:
   normalize_action: True
   load_bb: True
   # x, y, z, e_x, e_y, e_z
-  normalization_ranges: [[-0.35,  0.35],
-                        [0.20,  0.90],
-                        [ -0.11,  0.20],
+  normalization_ranges: [[-0.40,  0.40],
+                        [0.10,  0.90],
+                        [ -0.20,  0.20],
                         [-3.14911766,  3.14911766],
                         [-3.14911766, 3.14911766],
                         [-3.14911766,  3.14911766]]
