@@ -414,10 +414,6 @@ def get_action(model, target_obj_dec, bb, predict_gt_bb, gt_classes, states, ima
         action = out['action_dist'].sample()[-1].cpu().detach().numpy()
     else:
         with torch.no_grad():
-            torch.save(
-                i_t, f'/user/frosa/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes/image_obs_quadro.pt')
-            torch.save(
-                context, f'/user/frosa/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes/context_quadro.pt')
             out = model(states=s_t,
                         images=i_t,
                         context=context,
@@ -1203,6 +1199,9 @@ def build_tvf_formatter_obj_detector(config, env_name):
         if len(getattr(task_spec, "task_crops", OrderedDict())) != 0:
             crop_params = task_spec.get(
                 "task_crops", [0, 0, 0, 0])
+        if len(getattr(task_spec, "crop", OrderedDict())) != 0:
+            crop_params = task_spec.get(
+                "crop", [0, 0, 0, 0])
 
         top, left = crop_params[0], crop_params[2]
         img_height, img_width = img.shape[0], img.shape[1]

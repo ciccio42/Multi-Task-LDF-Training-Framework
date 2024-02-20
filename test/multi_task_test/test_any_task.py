@@ -394,6 +394,9 @@ if __name__ == '__main__':
             epoch_numbers = len(try_paths)
             try_path_list = try_paths[-10:]
 
+    if "GT-BB" in try_path:
+        args.gt_bb = True
+
     for try_path in try_path_list:
 
         model_path = os.path.expanduser(try_path)

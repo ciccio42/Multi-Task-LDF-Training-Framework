@@ -372,6 +372,10 @@ if __name__ == '__main__':
     random.seed(42)
     np.random.seed(42)
     torch.manual_seed(42)
+    os.environ["PYTHONHASHSEED"] = "42"
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.set_num_threads(1)
 
     try_path = args.model
     # if 'log' not in args.model and 'mosaic' not in args.model:
@@ -525,7 +529,7 @@ if __name__ == '__main__':
         config.dataset_cfg.mode = "train"
         config.dataset_cfg.agent_name = "real_ur5e"
         config.dataset_cfg.change_command_epoch = False
-        # config.dataset_cfg.root_dir = "/raid/home/frosa_Loc/opt_dataset"
+        config.dataset_cfg.root_dir = "/raid/home/frosa_Loc/opt_dataset"
         dataset = instantiate(config.get('dataset_cfg', None))
         dataset._mix_demo_agent = False
         # get list of pkl files
@@ -544,7 +548,7 @@ if __name__ == '__main__':
             #     pkl_file_list.append((pkl_file[3], pkl_file[2]))
             for pkl_file in file_pairs.values():
                 if 'traj079.pkl' in pkl_file[3]:
-                    pkl_file_list.append((pkl_file[3], '/mnt/sdc1/frosa/opt_dataset/pick_place/panda_pick_place/task_00/traj000.pkl'
+                    pkl_file_list.append((pkl_file[3], '/raid/home/frosa_Loc/opt_dataset/pick_place/panda_pick_place/task_00/traj000.pkl'
                                           ))
             args.N = len(pkl_file_list)
 

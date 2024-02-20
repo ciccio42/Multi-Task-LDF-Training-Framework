@@ -1,21 +1,21 @@
 #!/bin/sh
-export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
-# export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
+# export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
+export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/mnt/sdc1/frosa/opt_dataset
+EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 POLICY='${mosaic}'
 
 SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
-DEVICE=2
+DEVICE=0
 DEBUG=false
 WAND_LOG=true
 
@@ -29,8 +29,8 @@ TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task
 
 ROLLOUT=true
 
-RESUME_PATH=4Task-MOSAIC-Batch74
-RESUME_STEP=96915
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-BUTTON-MOSAIC-ALL-OBJ-One-Variation-Left-Batch25/
+RESUME_STEP=6402
 RESUME=false
 
 EPOCH=90

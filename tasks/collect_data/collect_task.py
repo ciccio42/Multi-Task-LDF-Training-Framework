@@ -27,22 +27,6 @@ TASK_ENV_MAP = {
         'ur5e':     'UR5e_PickPlaceDistractor',
         'object_set': 2,
     },
-    'old_pick_place': {
-        'n_task':   16,
-        'env_fn':   place_expert,
-        'panda':    'Panda_OldPickPlaceDistractor',
-        'sawyer':   'Sawyer_OldPickPlaceDistractor',
-        'ur5e':     'UR5e_OldPickPlaceDistractor',
-        'object_set': 1,
-    },
-    'old_object_pick_place': {
-        'n_task':   16,
-        'env_fn':   place_expert,
-        'panda':    'Panda_PickPlaceDistractor',
-        'sawyer':   'Sawyer_PickPlaceDistractor',
-        'ur5e':     'UR5e_PickPlaceDistractor',
-        'object_set': 1,
-    },
     'nut_assembly':  {
         'n_task':   9,
         'env_fn':   nut_expert,
@@ -120,11 +104,17 @@ def save_rollout(N, task_name, env_type, env_func, save_dir, n_tasks, env_seed=F
         save_path = os.path.join(save_dir, 'task_{:02d}'.format(task))
         os.makedirs(save_path, exist_ok=1)
         file_name = os.path.join(save_path, 'traj{:03d}.pkl'.format(traj_idx))
+
+        if task_name == "pick_place":
+            command_key = f"{task_name}_set_{TASK_ENV_MAP['pick_place']['object_set']}"
+        else:
+            command_key = task_name
+
         pkl.dump({
             'traj': traj,
             'len': len(traj),
             'env_type': env_type,
-            'command': TASK_COMMAND[task_name][str(task)],
+            'command': TASK_COMMAND[command_key][str(task)],
             'task_id': task}, open(file_name, 'wb'))
         del traj
 
@@ -149,6 +139,7 @@ if __name__ == '__main__':
                         type=str, help="Robot name")
     parser.add_argument('--overwrite', action='store_true',
                         help="Carefully overwrite stuff only when specified")
+    parser.add_argument('--object_set', default=1, type=int)
 
     parser.add_argument('--collect_cam', action='store_true',
                         help="If flag then will collect camera observation")
@@ -164,6 +155,7 @@ if __name__ == '__main__':
                         type=int, help="GPU to use for rendering")
     parser.add_argument('--give_env_seed', action='store_true',
                         help="Maintain seperate consistent environment sampling seed (for multi obj envs)")
+
     # for blockstacking only:
     parser.add_argument('--color', action='store_true')
     parser.add_argument('--shape', action='store_true')
@@ -194,6 +186,9 @@ if __name__ == '__main__':
     # select proper names and functions
     assert (
         args.task_name in args.save_dir and args.robot in args.save_dir), args.save_dir
+
+    if args.task_name == "pick_place":
+        TASK_ENV_MAP['pick_place']['object_set'] = args.object_set
 
     assert args.task_name in TASK_ENV_MAP.keys(
     ), 'Got unsupported task. name {}'.format(args.task_name)
