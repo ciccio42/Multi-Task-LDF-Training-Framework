@@ -31,7 +31,7 @@ KEY_INTEREST = ["joint_pos", "joint_vel", "eef_pos",
 
 def crop_resize_img(task_cfg, task_name, obs, bb):
     """applies to every timestep's RGB obs['camera_front_image']"""
-    crop_params = task_cfg[task_name].get('crop', [0, 0, 0, 0])
+    crop_params = task_cfg[task_name].get('agent_crop', [0, 0, 0, 0])
     top, left = crop_params[0], crop_params[2]
     img_height, img_width = obs.shape[0], obs.shape[1]
     box_h, box_w = img_height - top - \
@@ -162,7 +162,7 @@ def opt_traj(task_name, task_spec, out_path, pkl_file_path):
             except:
                 pass
 
-    if "real" in pkl_file_path:
+    if "real" in pkl_file_path or args.real:
         # perform reshape a priori
         for t in range(len(sample['traj'])):
             for camera_name in ["camera_front", "camera_lateral_left", "camera_lateral_right", "eye_in_hand"]:
@@ -193,7 +193,7 @@ def opt_traj(task_name, task_spec, out_path, pkl_file_path):
                                             (0, 255, 0),
                                             1)
                     cv2.imwrite("prova.png", img)
-                    print("prova image")
+                    # print("prova image")
 
     trj_name = pkl_file_path.split('/')[-1]
     out_pkl_file_path = os.path.join(out_path, trj_name)
@@ -226,7 +226,7 @@ if __name__ == '__main__':
     # 1. Load the dataset
     # folder_path = os.path.join(
     #     args.dataset_path, args.task_name, f"{args.robot_name}_{args.task_name}")
-    folder_path = "/user/frosa/multi_task_lfd/ur_multitask_dataset/pick_place/real_ur5e_pick_place/only_frontal/"
+    folder_path = "/user/frosa/multi_task_lfd/ur_multitask_dataset/pick_place/only_front/reduced_space"
     if args.out_path is None:
         out_path = os.path.join(args.dataset_path,
                                 f"{args.task_name}_opt",
@@ -240,9 +240,9 @@ if __name__ == '__main__':
 
     # load task configuration file
     if args.real:
-        conf_file_path = "/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/experiments/tasks_cfgs/7_tasks_real.yaml"
+        conf_file_path = "../../experiments/tasks_cfgs/7_tasks_real.yaml"
     else:
-        conf_file_path = "/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/experiments/tasks_cfgs/7_tasks.yaml"
+        conf_file_path = "../../experiments/tasks_cfgs/7_tasks.yaml"
     with open(conf_file_path, 'r') as file:
         task_conf = yaml.safe_load(file)
 
