@@ -8,12 +8,12 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
+EXPERT_DATA=/mnt/sdc1/frosa/opt_dataset/
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/
 POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
 TASKS_CONFIG=7_tasks_real
-DEBUG=true
+DEBUG=false
 WANDB_LOG=false
 
 SAVE_FREQ=-1
@@ -21,25 +21,25 @@ LOG_FREQ=100
 VAL_FREQ=-1
 PRINT_FREQ=100
 
-EXP_NAME=Real-Pick-Place-MOSAIC-CTOD-Only-Front-2
+EXP_NAME=Real-Pick-Place-CTOD-Only-Front-Reduced-Space
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place
-EPOCH=90 
+EPOCH=280 
 BSIZE=80 #16 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector_real.yaml
-LOADER_WORKERS=8
+LOADER_WORKERS=32
 BALANCING_POLICY=0
-SET_SAME_N=32
+SET_SAME_N=5
 OBS_T=7
 
 AGENT_NAME=real_ur5e
 
 EARLY_STOPPING_PATIECE=-1
 OPTIMIZER='AdamW'
-LR=0.00001
-WEIGHT_DECAY=5
+LR=0.0005
+WEIGHT_DECAY=0
 SCHEDULER=None
 FIRST_FRAMES=false
 ONLY_FIRST_FRAMES=false
@@ -48,8 +48,8 @@ PERFORM_AUGS=true
 PERFORM_SCALE_RESIZE=false
 NON_SEQUENTIAL=true 
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-Pick-Place-CTOD-Only-Front-Fine-Tuned-Batch32
-RESUME_STEP=9720
+RESUME_PATH=Real-Pick-Place-MOSAIC-CTOD-Only-Front-Reduced-Space-Batch5/
+RESUME_STEP=70650
 RESUME=true
 FINETUNE=false
 

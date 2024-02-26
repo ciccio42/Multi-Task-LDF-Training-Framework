@@ -1,342 +1,0 @@
-/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/site-packages/hydra/_internal/defaults_list.py:251: UserWarning: In 'config.yaml': Defaults list is missing `_self_`. See https://hydra.cc/docs/1.2/upgrades/1.0_to_1.1/default_composition_order for more information
-  warnings.warn(msg, UserWarning)
-wandb: Currently logged in as: francescorosa97. Use `wandb login --relogin` to force relogin
-wandb: wandb version 0.16.3 is available!  To upgrade, please run:
-wandb:  $ pip install wandb --upgrade
-wandb: Tracking run with wandb version 0.15.3
-wandb: Run data is saved locally in /user/frosa/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes/wandb/run-20240220_085215-32pw8crj
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run 4Task-MOSAIC-CTOD-Batch74-Batch74
-wandb: ⭐️ View project at https://wandb.ai/francescorosa97/4Task-MOSAIC-CTOD-Batch74
-wandb: 🚀 View run at https://wandb.ai/francescorosa97/4Task-MOSAIC-CTOD-Batch74/runs/32pw8crj
-To construct a training batch, set n_per_task of all tasks to 2, new train/val batch sizes: 74/74
-Saving dir /user/frosa/multi_task_lfd/checkpoint_save_folder/4Task-MOSAIC-CTOD-Batch74-Batch74
-Finished initializing trainer
-pretrain False
----- Backbone summary of resnet ----
-A total of 2 layers, cross demo-obs attention starts at layer idx 0
-Position embedding shape: torch.Size([1, 128, 5000]) 
-
-Linear embedder has input dim: 128x13x23=38272 
-Loading video backbone r2plus1d_18.....
-Loading  backbone resnet18.....
-pretrain False
----- Backbone summary of resnet ----
----- Summary backbone with FiLM layer ----
-Gen anc centers 0.00020241737365722656
-Gen_anc_base 0.564213752746582
-Total params in Detection module: 34080398
-Image feature dimensions: torch.Size([1, 11, 128, 13, 23])
-Contrastive MLP using hidden dim:  256
-Concat-ing embedded demo to action head? True, to distribution head? False
-Total params in Imitation module: 85044636
-
----- Complete model ----
-
-Model initialized to: multi_task_il.models.mt_rep.VideoImitation
-load model from .../user/frosa/multi_task_lfd/checkpoint_save_folder/4Task-MOSAIC-CTOD-Batch74/model_save-52611.pt
-
-----Done initializing Workspace, saving config.yaml to directory: /user/frosa/multi_task_lfd/checkpoint_save_folder/4Task-MOSAIC-CTOD-Batch74-Batch74----
-
-Initializing multi_task_il.datasets.multi_task_datasets.MultiTaskPairedDataset with hydra config. 
-
-Loading task [nut_assembly] saved on date None
-Loading task nut_assembly - sub-task 0
-  0%|          | 0/90 [00:00<?, ?it/s]  2%|▏         | 2/90 [00:00<00:08, 10.38it/s] 30%|███       | 27/90 [00:00<00:00, 74.45it/s] 62%|██████▏   | 56/90 [00:00<00:00, 99.48it/s] 92%|█████████▏| 83/90 [00:00<00:00, 108.89it/s]100%|██████████| 90/90 [00:00<00:00, 101.90it/s]
-Loading task nut_assembly - sub-task 1
-  0%|          | 0/90 [00:00<?, ?it/s] 27%|██▋       | 24/90 [00:00<00:00, 117.92it/s] 60%|██████    | 54/90 [00:00<00:00, 125.75it/s] 98%|█████████▊| 88/90 [00:00<00:00, 135.47it/s]100%|██████████| 90/90 [00:00<00:00, 133.71it/s]
-Loading task nut_assembly - sub-task 2
-  0%|          | 0/90 [00:00<?, ?it/s] 27%|██▋       | 24/90 [00:00<00:00, 108.40it/s] 59%|█████▉    | 53/90 [00:00<00:00, 120.88it/s] 91%|█████████ | 82/90 [00:00<00:00, 125.01it/s]100%|██████████| 90/90 [00:00<00:00, 129.59it/s]
-Loading task nut_assembly - sub-task 3
-  0%|          | 0/90 [00:00<?, ?it/s] 20%|██        | 18/90 [00:00<00:00, 93.97it/s] 47%|████▋     | 42/90 [00:00<00:00, 104.78it/s] 77%|███████▋  | 69/90 [00:00<00:00, 113.07it/s]100%|██████████| 90/90 [00:00<00:00, 128.65it/s]
-Loading task nut_assembly - sub-task 4
-  0%|          | 0/90 [00:00<?, ?it/s]  3%|▎         | 3/90 [00:00<00:04, 20.82it/s] 34%|███▍      | 31/90 [00:00<00:00, 93.26it/s] 67%|██████▋   | 60/90 [00:00<00:00, 112.18it/s]100%|██████████| 90/90 [00:00<00:00, 120.60it/s]100%|██████████| 90/90 [00:00<00:00, 110.60it/s]
-Loading task nut_assembly - sub-task 5
-  0%|          | 0/90 [00:00<?, ?it/s] 31%|███       | 28/90 [00:00<00:00, 124.31it/s] 57%|█████▋    | 51/90 [00:00<00:00, 114.74it/s] 88%|████████▊ | 79/90 [00:00<00:00, 115.74it/s]100%|██████████| 90/90 [00:00<00:00, 125.75it/s]
-Loading task nut_assembly - sub-task 6
-  0%|          | 0/90 [00:00<?, ?it/s] 13%|█▎        | 12/90 [00:00<00:01, 68.15it/s] 42%|████▏     | 38/90 [00:00<00:00, 99.66it/s] 71%|███████   | 64/90 [00:00<00:00, 108.14it/s] 97%|█████████▋| 87/90 [00:00<00:00, 108.73it/s]100%|██████████| 90/90 [00:00<00:00, 107.19it/s]
-Loading task nut_assembly - sub-task 7
-  0%|          | 0/90 [00:00<?, ?it/s] 29%|██▉       | 26/90 [00:00<00:00, 120.10it/s] 61%|██████    | 55/90 [00:00<00:00, 124.89it/s] 91%|█████████ | 82/90 [00:00<00:00, 124.11it/s]100%|██████████| 90/90 [00:00<00:00, 130.81it/s]
-Loading task nut_assembly - sub-task 8
-  0%|          | 0/90 [00:00<?, ?it/s] 20%|██        | 18/90 [00:00<00:00, 93.29it/s] 47%|████▋     | 42/90 [00:00<00:00, 104.22it/s] 74%|███████▍  | 67/90 [00:00<00:00, 108.45it/s]100%|██████████| 90/90 [00:00<00:00, 127.13it/s]
-Done loading Task nut_assembly, agent/demo trajctores pairs reach a count of: 50316
-Loading task [button   ] saved on date None
-Loading task button - sub-task 0
-  0%|          | 0/90 [00:00<?, ?it/s]  8%|▊         | 7/90 [00:00<00:01, 48.52it/s] 72%|███████▏  | 65/90 [00:00<00:00, 311.58it/s]100%|██████████| 90/90 [00:00<00:00, 312.70it/s]
-Loading task button - sub-task 1
-  0%|          | 0/90 [00:00<?, ?it/s] 24%|██▍       | 22/90 [00:00<00:00, 124.56it/s] 79%|███████▉  | 71/90 [00:00<00:00, 286.09it/s]100%|██████████| 90/90 [00:00<00:00, 199.66it/s]
-Loading task button - sub-task 2
-  0%|          | 0/90 [00:00<?, ?it/s] 76%|███████▌  | 68/90 [00:00<00:00, 675.87it/s]100%|██████████| 90/90 [00:00<00:00, 337.81it/s]
-Loading task button - sub-task 3
-  0%|          | 0/90 [00:00<?, ?it/s] 72%|███████▏  | 65/90 [00:00<00:00, 645.26it/s]100%|██████████| 90/90 [00:00<00:00, 331.03it/s]
-Loading task button - sub-task 4
-  0%|          | 0/90 [00:00<?, ?it/s] 86%|████████▌ | 77/90 [00:00<00:00, 764.37it/s]100%|██████████| 90/90 [00:00<00:00, 762.30it/s]
-Loading task button - sub-task 5
-  0%|          | 0/90 [00:00<?, ?it/s] 33%|███▎      | 30/90 [00:00<00:00, 159.74it/s] 92%|█████████▏| 83/90 [00:00<00:00, 319.62it/s]100%|██████████| 90/90 [00:00<00:00, 298.51it/s]
-Done loading Task button, agent/demo trajctores pairs reach a count of: 68244
-Loading task [pick_place] saved on date None
-Loading task pick_place - sub-task 0
-  0%|          | 0/90 [00:00<?, ?it/s]  4%|▍         | 4/90 [00:00<00:03, 26.71it/s] 37%|███▋      | 33/90 [00:00<00:00, 154.54it/s] 57%|█████▋    | 51/90 [00:00<00:00, 118.14it/s] 72%|███████▏  | 65/90 [00:00<00:00, 99.53it/s] 100%|██████████| 90/90 [00:00<00:00, 125.16it/s]
-Loading task pick_place - sub-task 1
-  0%|          | 0/90 [00:00<?, ?it/s]  1%|          | 1/90 [00:00<00:12,  7.31it/s] 34%|███▍      | 31/90 [00:00<00:00, 93.90it/s] 70%|███████   | 63/90 [00:00<00:00, 161.48it/s] 91%|█████████ | 82/90 [00:00<00:00, 132.20it/s]100%|██████████| 90/90 [00:00<00:00, 130.34it/s]
-Loading task pick_place - sub-task 2
-  0%|          | 0/90 [00:00<?, ?it/s]  8%|▊         | 7/90 [00:00<00:01, 44.21it/s] 46%|████▌     | 41/90 [00:00<00:00, 182.42it/s] 70%|███████   | 63/90 [00:00<00:00, 139.43it/s] 89%|████████▉ | 80/90 [00:00<00:00, 116.69it/s]100%|██████████| 90/90 [00:00<00:00, 130.61it/s]
-Loading task pick_place - sub-task 3
-  0%|          | 0/90 [00:00<?, ?it/s] 18%|█▊        | 16/90 [00:00<00:00, 84.29it/s] 51%|█████     | 46/90 [00:00<00:00, 176.22it/s] 74%|███████▍  | 67/90 [00:00<00:00, 133.94it/s] 92%|█████████▏| 83/90 [00:00<00:00, 113.00it/s]100%|██████████| 90/90 [00:00<00:00, 126.43it/s]
-Loading task pick_place - sub-task 4
-  0%|          | 0/90 [00:00<?, ?it/s] 14%|█▍        | 13/90 [00:00<00:01, 71.39it/s] 46%|████▌     | 41/90 [00:00<00:00, 162.22it/s] 68%|██████▊   | 61/90 [00:00<00:00, 124.28it/s] 84%|████████▍ | 76/90 [00:00<00:00, 105.87it/s]100%|██████████| 90/90 [00:00<00:00, 123.45it/s]
-Loading task pick_place - sub-task 5
-  0%|          | 0/90 [00:00<?, ?it/s]  4%|▍         | 4/90 [00:00<00:03, 27.09it/s] 39%|███▉      | 35/90 [00:00<00:00, 99.74it/s] 70%|███████   | 63/90 [00:00<00:00, 111.49it/s]100%|██████████| 90/90 [00:00<00:00, 128.11it/s]
-Loading task pick_place - sub-task 6
-  0%|          | 0/90 [00:00<?, ?it/s]  4%|▍         | 4/90 [00:00<00:03, 26.92it/s] 39%|███▉      | 35/90 [00:00<00:00, 98.30it/s] 73%|███████▎  | 66/90 [00:00<00:00, 159.62it/s] 94%|█████████▍| 85/90 [00:00<00:00, 130.55it/s]100%|██████████| 90/90 [00:00<00:00, 127.39it/s]
-Loading task pick_place - sub-task 7
-  0%|          | 0/90 [00:00<?, ?it/s]  6%|▌         | 5/90 [00:00<00:02, 32.48it/s] 34%|███▍      | 31/90 [00:00<00:00, 87.62it/s] 62%|██████▏   | 56/90 [00:00<00:00, 98.14it/s] 90%|█████████ | 81/90 [00:00<00:00, 103.55it/s]100%|██████████| 90/90 [00:00<00:00, 103.55it/s]
-Loading task pick_place - sub-task 8
-  0%|          | 0/90 [00:00<?, ?it/s] 18%|█▊        | 16/90 [00:00<00:00, 81.62it/s] 47%|████▋     | 42/90 [00:00<00:00, 102.44it/s] 77%|███████▋  | 69/90 [00:00<00:00, 108.70it/s]100%|██████████| 90/90 [00:00<00:00, 122.46it/s]
-Loading task pick_place - sub-task 9
-  0%|          | 0/90 [00:00<?, ?it/s]  2%|▏         | 2/90 [00:00<00:06, 14.16it/s] 37%|███▋      | 33/90 [00:00<00:00, 96.29it/s] 69%|██████▉   | 62/90 [00:00<00:00, 110.36it/s]100%|██████████| 90/90 [00:00<00:00, 127.29it/s]
-Loading task pick_place - sub-task 10
-  0%|          | 0/90 [00:00<?, ?it/s]  2%|▏         | 2/90 [00:00<00:06, 14.21it/s] 37%|███▋      | 33/90 [00:00<00:00, 161.58it/s] 58%|█████▊    | 52/90 [00:00<00:00, 123.60it/s] 76%|███████▌  | 68/90 [00:00<00:00, 106.72it/s]100%|██████████| 90/90 [00:00<00:00, 128.61it/s]
-Loading task pick_place - sub-task 11
-  0%|          | 0/90 [00:00<?, ?it/s]  7%|▋         | 6/90 [00:00<00:02, 38.36it/s] 40%|████      | 36/90 [00:00<00:00, 160.70it/s] 61%|██████    | 55/90 [00:00<00:00, 122.06it/s] 78%|███████▊  | 70/90 [00:00<00:00, 103.73it/s]100%|██████████| 90/90 [00:00<00:00, 124.59it/s]
-Loading task pick_place - sub-task 12
-  0%|          | 0/90 [00:00<?, ?it/s]  1%|          | 1/90 [00:00<00:12,  7.14it/s] 33%|███▎      | 30/90 [00:00<00:00, 89.57it/s] 61%|██████    | 55/90 [00:00<00:00, 99.64it/s] 89%|████████▉ | 80/90 [00:00<00:00, 104.18it/s]100%|██████████| 90/90 [00:00<00:00, 103.92it/s]
-Loading task pick_place - sub-task 13
-  0%|          | 0/90 [00:00<?, ?it/s] 18%|█▊        | 16/90 [00:00<00:00, 83.74it/s] 47%|████▋     | 42/90 [00:00<00:00, 100.17it/s] 78%|███████▊  | 70/90 [00:00<00:00, 110.36it/s]100%|██████████| 90/90 [00:00<00:00, 123.89it/s]
-Loading task pick_place - sub-task 14
-  0%|          | 0/90 [00:00<?, ?it/s] 13%|█▎        | 12/90 [00:00<00:01, 68.87it/s] 44%|████▍     | 40/90 [00:00<00:00, 103.22it/s] 78%|███████▊  | 70/90 [00:00<00:00, 158.55it/s] 99%|█████████▉| 89/90 [00:00<00:00, 127.04it/s]100%|██████████| 90/90 [00:00<00:00, 124.72it/s]
-Loading task pick_place - sub-task 15
-  0%|          | 0/90 [00:00<?, ?it/s] 13%|█▎        | 12/90 [00:00<00:01, 62.16it/s] 42%|████▏     | 38/90 [00:00<00:00, 93.87it/s] 72%|███████▏  | 65/90 [00:00<00:00, 104.47it/s]100%|██████████| 90/90 [00:00<00:00, 120.43it/s]
-Done loading Task pick_place, agent/demo trajctores pairs reach a count of: 170875
-Loading task [stack_block] saved on date None
-Loading task stack_block - sub-task 0
-  0%|          | 0/90 [00:00<?, ?it/s]  1%|          | 1/90 [00:00<00:12,  7.31it/s] 50%|█████     | 45/90 [00:00<00:00, 226.63it/s] 99%|█████████▉| 89/90 [00:00<00:00, 314.88it/s]100%|██████████| 90/90 [00:00<00:00, 262.97it/s]
-Loading task stack_block - sub-task 1
-  0%|          | 0/90 [00:00<?, ?it/s] 29%|██▉       | 26/90 [00:00<00:00, 132.79it/s] 77%|███████▋  | 69/90 [00:00<00:00, 256.48it/s]100%|██████████| 90/90 [00:00<00:00, 259.15it/s]
-Loading task stack_block - sub-task 2
-  0%|          | 0/90 [00:00<?, ?it/s] 22%|██▏       | 20/90 [00:00<00:00, 109.38it/s] 70%|███████   | 63/90 [00:00<00:00, 249.62it/s]100%|██████████| 90/90 [00:00<00:00, 259.87it/s]
-Loading task stack_block - sub-task 3
-  0%|          | 0/90 [00:00<?, ?it/s] 49%|████▉     | 44/90 [00:00<00:00, 433.90it/s] 98%|█████████▊| 88/90 [00:00<00:00, 241.95it/s]100%|██████████| 90/90 [00:00<00:00, 261.16it/s]
-Loading task stack_block - sub-task 4
-  0%|          | 0/90 [00:00<?, ?it/s] 43%|████▎     | 39/90 [00:00<00:00, 173.40it/s] 90%|█████████ | 81/90 [00:00<00:00, 269.00it/s]100%|██████████| 90/90 [00:00<00:00, 259.49it/s]
-Loading task stack_block - sub-task 5
-  0%|          | 0/90 [00:00<?, ?it/s] 49%|████▉     | 44/90 [00:00<00:00, 431.31it/s] 98%|█████████▊| 88/90 [00:00<00:00, 232.21it/s]100%|██████████| 90/90 [00:00<00:00, 251.56it/s]
-Done loading Task stack_block, agent/demo trajctores pairs reach a count of: 204943
-Data aug parameters: {'old_aug': False, 'brightness': [0.9, 1.1], 'contrast': [0.9, 1.1], 'saturation': [0.9, 1.1], 'hue': [0.0, 0.0], 'p': 0.1, 'horizontal_flip_p': 0.1, 'brightness_strong': [0.875, 1.125], 'contrast_strong': [0.5, 1.5], 'saturation_strong': [0.5, 1.5], 'hue_strong': [-0.05, 0.05], 'p_strong': 0.5, 'horizontal_flip_p_strong': 0.5, 'null_bb': False}
-Using strong augmentations? True
-Task nut_assembly loaded 9 subtasks, starting from task_00, should all have sizes 90
-Task button loaded 6 subtasks, starting from task_00, should all have sizes 90
-Task pick_place loaded 16 subtasks, starting from task_00, should all have sizes 90
-Task stack_block loaded 6 subtasks, starting from task_00, should all have sizes 90
-Task nut_assembly loaded 9 subtasks, starting from task_00, should all have sizes 90
-Task button loaded 6 subtasks, starting from task_00, should all have sizes 90
-Task pick_place loaded 16 subtasks, starting from task_00, should all have sizes 90
-Task stack_block loaded 6 subtasks, starting from task_00, should all have sizes 90
-Max length for sampler iterator: 2769
-Shuffling to break the task ordering in each batch?  True
-Loading task nut_assembly - sub-task 0
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 301.46it/s]
-Loading task nut_assembly - sub-task 1
-  0%|          | 0/10 [00:00<?, ?it/s] 90%|█████████ | 9/10 [00:00<00:00, 54.80it/s]100%|██████████| 10/10 [00:00<00:00, 59.43it/s]
-Loading task nut_assembly - sub-task 2
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 290.43it/s]
-Loading task nut_assembly - sub-task 3
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 315.60it/s]
-Loading task nut_assembly - sub-task 4
-  0%|          | 0/10 [00:00<?, ?it/s] 50%|█████     | 5/10 [00:00<00:00, 33.07it/s]100%|██████████| 10/10 [00:00<00:00, 60.12it/s]
-Loading task nut_assembly - sub-task 5
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 289.29it/s]
-Loading task nut_assembly - sub-task 6
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 297.78it/s]
-Loading task nut_assembly - sub-task 7
-  0%|          | 0/10 [00:00<?, ?it/s] 10%|█         | 1/10 [00:00<00:01,  7.17it/s]100%|██████████| 10/10 [00:00<00:00, 59.55it/s]
-Loading task nut_assembly - sub-task 8
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 287.65it/s]
-Done loading Task nut_assembly, agent/demo trajctores pairs reach a count of: 5664
-Loading task button - sub-task 0
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 569.40it/s]
-Loading task button - sub-task 1
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 64.39it/s]100%|██████████| 10/10 [00:00<00:00, 64.22it/s]
-Loading task button - sub-task 2
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 649.11it/s]
-Loading task button - sub-task 3
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 672.48it/s]
-Loading task button - sub-task 4
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 766.36it/s]
-Loading task button - sub-task 5
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 547.31it/s]
-Done loading Task button, agent/demo trajctores pairs reach a count of: 7640
-Loading task pick_place - sub-task 0
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 284.94it/s]
-Loading task pick_place - sub-task 1
-  0%|          | 0/10 [00:00<?, ?it/s] 80%|████████  | 8/10 [00:00<00:00, 49.79it/s]100%|██████████| 10/10 [00:00<00:00, 59.54it/s]
-Loading task pick_place - sub-task 2
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 322.33it/s]
-Loading task pick_place - sub-task 3
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 291.20it/s]
-Loading task pick_place - sub-task 4
-  0%|          | 0/10 [00:00<?, ?it/s] 80%|████████  | 8/10 [00:00<00:00, 49.52it/s]100%|██████████| 10/10 [00:00<00:00, 59.04it/s]
-Loading task pick_place - sub-task 5
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 311.00it/s]
-Loading task pick_place - sub-task 6
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 311.65it/s]
-Loading task pick_place - sub-task 7
-  0%|          | 0/10 [00:00<?, ?it/s] 70%|███████   | 7/10 [00:00<00:00, 43.80it/s]100%|██████████| 10/10 [00:00<00:00, 58.34it/s]
-Loading task pick_place - sub-task 8
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 267.98it/s]
-Loading task pick_place - sub-task 9
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 303.75it/s]
-Loading task pick_place - sub-task 10
-  0%|          | 0/10 [00:00<?, ?it/s] 40%|████      | 4/10 [00:00<00:00, 27.04it/s]100%|██████████| 10/10 [00:00<00:00, 59.19it/s]
-Loading task pick_place - sub-task 11
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 297.37it/s]
-Loading task pick_place - sub-task 12
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 261.99it/s]
-Loading task pick_place - sub-task 13
-  0%|          | 0/10 [00:00<?, ?it/s] 20%|██        | 2/10 [00:00<00:00, 13.96it/s]100%|██████████| 10/10 [00:00<00:00, 58.67it/s]
-Loading task pick_place - sub-task 14
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 315.68it/s]
-Loading task pick_place - sub-task 15
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 57.92it/s]100%|██████████| 10/10 [00:00<00:00, 57.78it/s]
-Done loading Task pick_place, agent/demo trajctores pairs reach a count of: 18952
-Loading task stack_block - sub-task 0
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 421.22it/s]
-Loading task stack_block - sub-task 1
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 405.88it/s]
-Loading task stack_block - sub-task 2
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 432.76it/s]
-Loading task stack_block - sub-task 3
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 419.43it/s]
-Loading task stack_block - sub-task 4
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 435.42it/s]
-Loading task stack_block - sub-task 5
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 418.77it/s]
-Done loading Task stack_block, agent/demo trajctores pairs reach a count of: 22729
-Using strong augmentations? True
-Task nut_assembly loaded 9 subtasks, starting from task_00, should all have sizes 10
-Task button loaded 6 subtasks, starting from task_00, should all have sizes 10
-Task pick_place loaded 16 subtasks, starting from task_00, should all have sizes 10
-Task stack_block loaded 6 subtasks, starting from task_00, should all have sizes 10
-Task nut_assembly loaded 9 subtasks, starting from task_00, should all have sizes 10
-Task button loaded 6 subtasks, starting from task_00, should all have sizes 10
-Task pick_place loaded 16 subtasks, starting from task_00, should all have sizes 10
-Task stack_block loaded 6 subtasks, starting from task_00, should all have sizes 10
-Max length for sampler iterator: 307
-Shuffling to break the task ordering in each batch?  True
-
--------------------
-Training stage
-Found 1 GPU devices 
-
-Creating AdamW (
-Parameter Group 0
-    amsgrad: False
-    betas: (0.9, 0.999)
-    capturable: False
-    eps: 1e-08
-    foreach: None
-    lr: 0.0005
-    maximize: False
-    weight_decay: 0.0
-), with lr 0.0005
-Lr-scheduler None
-Lr-schedule None
-Sampler max-len 2769
-
----- Remaining epochs 71 ----
-
-
-----Starting step 52611 ----
-
-Sampler max-len 2769
-Sampler max-len 2769
-Save frequency 2769
-Val frequency 2769
-
-----Loss multipliers: 
- BC: 1.0 inv: 1.0 Point: 0
-----
-{'simclr_pre': 1.0, 'simclr_post': 1.0}
- Weighting each task loss separately: {'nut_assembly': 0.25, 'button': 0.25, 'pick_place': 0.25, 'stack_block': 0.25}
-Reset agent_demo_pair
-Reset agent_demo_pair
-Sampler max-len 2769
-Sampler max-len 2769
-Sampler max-len 307
-Training for 71 epochs train dataloader has length 2769, \ which sums to 196599 total train steps, \ validation loader has length 307
-Sampler max-len 2769
-  0%|          | 0/2769 [00:00<?, ?it/s]ERROR: Unexpected bus error encountered in worker. This might be caused by insufficient shared memory (shm).
- ERROR: Unexpected bus error encountered in worker. This might be caused by insufficient shared memory (shm).
- ERROR: Unexpected bus error encountered in worker. This might be caused by insufficient shared memory (shm).
- ERROR: Unexpected bus error encountered in worker. This might be caused by insufficient shared memory (shm).
-   0%|          | 0/2769 [00:10<?, ?it/s]
-Reset agent_demo_pair
-Reset agent_demo_pair
-Error executing job with overrides: ['policy=${mosaic}', 'device=0', 'set_same_n=2', 'task_names=[pick_place,nut_assembly,stack_block,button]', 'exp_name=4Task-MOSAIC-CTOD-Batch74', 'save_freq=-1', 'log_freq=100', 'val_freq=-1', 'bsize=27', 'vsize=27', 'epochs=90', 'rollout=false', 'dataset_cfg.normalize_action=true', 'dataset_cfg.compute_obj_distribution=false', 'dataset_cfg.height=100', 'dataset_cfg.width=180', 'samplers.balancing_policy=0', 'mosaic.load_target_obj_detector=true', 'mosaic.target_obj_detector_step=91800', 'mosaic.target_obj_detector_path=/user/frosa/multi_task_lfd/checkpoint_save_folder/4Task-CTOD-Batch74/', 'mosaic.freeze_target_obj_detector=false', 'mosaic.remove_class_layers=false', 'mosaic.dim_H=13', 'mosaic.dim_W=23', 'mosaic.concat_bb=true', 'mosaic.load_contrastive=true', 'mosaic.concat_target_obj_embedding=false', 'augs.null_bb=false', 'attn.img_cfg.pretrained=false', 'actions.adim=7', 'actions.n_mixtures=14', 'actions.out_dim=64', 'attn.attn_ff=256', 'attn.img_cfg.drop_dim=4', 'attn.img_cfg.out_feature=128', 'simclr.compressor_dim=256', 'simclr.hidden_dim=256', 'mosaic.concat_state=false', 'mosaic.concat_demo_head=false', 'mosaic.concat_demo_act=true', 'early_stopping_cfg.patience=-1', 'project_name=4Task-MOSAIC-CTOD-Batch74', 'EXPERT_DATA=/mnt/sdc1/frosa/opt_dataset', 'save_path=/user/frosa/multi_task_lfd/checkpoint_save_folder', 'resume_path=/user/frosa/multi_task_lfd/checkpoint_save_folder/4Task-MOSAIC-CTOD-Batch74/', 'resume_step=52611', 'optimizer=AdamW', 'train_cfg.lr=0.0005', 'train_cfg.weight_decay=0.0', 'train_cfg.lr_schedule=None', 'simclr.mul_pre=1.0', 'simclr.mul_pos=1.0', 'simclr.mul_intm=0', 'bc_mul=1.0', 'inv_mul=1.0', 'cosine_annealing=false', 'debug=false', 'wandb_log=true', 'resume=true', 'loader_workers=8']
-Traceback (most recent call last):
-  File "/user/frosa/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes/../training/train_scripts/train_any.py", line 71, in <module>
-    main()
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/site-packages/hydra/main.py", line 94, in decorated_main
-    _run_hydra(
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
-    _run_app(
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/site-packages/hydra/_internal/utils.py", line 457, in _run_app
-    run_and_report(
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/site-packages/hydra/_internal/utils.py", line 223, in run_and_report
-    raise ex
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
-    return func()
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
-    lambda: hydra.run(
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/site-packages/hydra/_internal/hydra.py", line 132, in run
-    _ = ret.return_value
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/site-packages/hydra/core/utils.py", line 260, in return_value
-    raise self._return_value
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/site-packages/hydra/core/utils.py", line 186, in run_job
-    ret.return_value = task_function(task_cfg)
-  File "/user/frosa/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes/../training/train_scripts/train_any.py", line 67, in main
-    workspace.run()
-  File "/user/frosa/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/train_utils.py", line 1260, in run
-    self.trainer.train(model=self.action_model,
-  File "/user/frosa/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/train_utils.py", line 852, in train
-    for inputs in tqdm(self._train_loader):
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/site-packages/tqdm/std.py", line 1178, in __iter__
-    for obj in iterable:
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/site-packages/torch/utils/data/dataloader.py", line 628, in __next__
-    data = self._next_data()
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/site-packages/torch/utils/data/dataloader.py", line 1316, in _next_data
-    idx, data = self._get_data()
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/site-packages/torch/utils/data/dataloader.py", line 1272, in _get_data
-    success, data = self._try_get_data()
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/site-packages/torch/utils/data/dataloader.py", line 1120, in _try_get_data
-    data = self._data_queue.get(timeout=timeout)
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/queue.py", line 180, in get
-    self.not_empty.wait(remaining)
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/threading.py", line 316, in wait
-    gotit = waiter.acquire(True, timeout)
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/site-packages/torch/utils/data/_utils/signal_handling.py", line 66, in handler
-    _error_if_any_worker_fails()
-RuntimeError: DataLoader worker (pid 400282) is killed by signal: Bus error. It is possible that dataloader's workers are out of shared memory. Please try to raise your shared memory limit.
-Error in atexit._run_exitfuncs:
-Traceback (most recent call last):
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/site-packages/torch/utils/data/dataloader.py", line 1460, in _clean_up_worker
-    w.join(timeout=_utils.MP_STATUS_CHECK_INTERVAL)
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/multiprocessing/process.py", line 149, in join
-    res = self._popen.wait(timeout)
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/multiprocessing/popen_fork.py", line 40, in wait
-    if not wait([self.sentinel], timeout):
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/multiprocessing/connection.py", line 931, in wait
-    ready = selector.select(timeout)
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/selectors.py", line 416, in select
-    fd_event_list = self._selector.poll(timeout)
-  File "/user/frosa/miniconda3/envs/multi_task_lfd/lib/python3.9/site-packages/torch/utils/data/_utils/signal_handling.py", line 66, in handler
-    _error_if_any_worker_fails()
-RuntimeError: DataLoader worker (pid 400610) is killed by signal: Bus error. It is possible that dataloader's workers are out of shared memory. Please try to raise your shared memory limit.
-ERROR: Unexpected bus error encountered in worker. This might be caused by insufficient shared memory (shm).
- ERROR: Unexpected bus error encountered in worker. This might be caused by insufficient shared memory (shm).
- ERROR: Unexpected bus error encountered in worker. This might be caused by insufficient shared memory (shm).
- ERROR: Unexpected bus error encountered in worker. This might be caused by insufficient shared memory (shm).
- wandb: Waiting for W&B process to finish... (failed 1). Press Control-C to abort syncing.
-wandb: 🚀 View run 4Task-MOSAIC-CTOD-Batch74-Batch74 at: https://wandb.ai/francescorosa97/4Task-MOSAIC-CTOD-Batch74/runs/32pw8crj
-wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
-wandb: Find logs at: ./wandb/run-20240220_085215-32pw8crj/logs

@@ -33,12 +33,13 @@ from torchvision.ops import box_iou
 from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
 from torchmetrics.classification import Accuracy
 import gc
+from colorama import Fore, Back
 
 
 torch.autograd.set_detect_anomaly(True)
 # for visualization
-MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32).reshape((1, 3, 1, 1))
-STD = np.array([0.229, 0.224, 0.225], dtype=np.float32).reshape((1, 3, 1, 1))
+# MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32).reshape((1, 3, 1, 1))
+# STD = np.array([0.229, 0.224, 0.225], dtype=np.float32).reshape((1, 3, 1, 1))
 DEBUG = False
 
 
@@ -200,8 +201,8 @@ def generate_figure(images, context, fname='burner.png'):
         ncols*3.5, npairs*2*2.8), subplot_kw={'xticks': [], 'yticks': []})
     fig.subplots_adjust(left=0.03, right=0.97, hspace=0.3, wspace=0.05)
     for img_index in range(npairs):
-        show_img = images[img_index*skip].cpu().numpy() * STD + MEAN
-        show_con = context[img_index*skip].cpu().numpy() * STD + MEAN
+        show_img = images[img_index*skip].cpu().numpy()
+        show_con = context[img_index*skip].cpu().numpy()
         for count in range(ncols):
             axs[img_index*2, count].imshow(show_img[count].transpose(1, 2, 0))
             if count < T_con:
@@ -930,7 +931,7 @@ class Trainer:
                         print(train_print)
 
                 #### ---- Validation step ----####
-                if e != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
+                if self._step % val_freq == 0 and not self.config.get("use_daml", False):
                     print("Validation")
                     rollout = self.config.get("rollout", False)
                     model = model.eval()
@@ -1243,8 +1244,9 @@ class Workspace(object):
             self._rpath = join(cfg.save_path, cfg.resume_path,
                                f"model_save-{cfg.resume_step}.pt")
             assert os.path.exists(self._rpath), "Can't seem to find {} anywhere".format(
-                config.resume_path)
-            print('load model from ...%s' % self._rpath)
+                self._rpath)
+            print('Finetuning model: load model from ...%s' %
+                  self._rpath)
             self.action_model.load_state_dict(torch.load(
                 self._rpath, map_location=torch.device('cpu')))
             self.optimizer_state_dict = None

@@ -1,35 +1,36 @@
 #!/bin/sh
-# export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
-export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
+export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
+# export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
+EXPERT_DATA=/mnt/sdc1/frosa/opt_dataset/
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 POLICY='${mosaic}'
 
 SAVE_FREQ=-1
-LOG_FREQ=100
+LOG_FREQ=10
 VAL_FREQ=-1
 DEVICE=0
 DEBUG=false
 WANDB_LOG=true
 
-EXP_NAME=Real-Pick-Place-MOSAIC-CTOD-Only-Front-Fine-Tuned #Real-1Task-Pick-Place-MOSAIC-Cond-Target-Obj-Detector-State
+EXP_NAME=Real-Pick-Place-MOSAIC-CTOD-Only-Front-State-Info-Reduced-Space #Real-1Task-Pick-Place-MOSAIC-Cond-Target-Obj-Detector-State
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place #[pick_place,nut_assembly]
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-Pick-Place-MOSAIC-CTOD-Only-Front-Batch32/
-RESUME_STEP=69660
+RESUME_PATH=Real-Pick-Place-MOSAIC-CTOD-Only-Front-Reduced-Space-Batch5/
+RESUME_STEP=70650
 RESUME=false
+FINETUNE=false
 
 LOAD_TARGET_OBJ_DETECTOR=true
-TARGET_OBJ_DETECTOR_STEP=12150
-TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-Pick-Place-CTOD-Only-Front-Fine-Tuned-Batch32/
+TARGET_OBJ_DETECTOR_STEP=23490
+TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-Pick-Place-CTOD-Only-Front-Reduced-Space-Batch5/
 CONCAT_BB=true
 
 AGENT_NAME=real_ur5e
@@ -41,10 +42,10 @@ BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=32
+SET_SAME_N=5
 CONFIG_PATH=../experiments
 CONFIG_NAME=config_real.yaml
-LOADER_WORKERS=8
+LOADER_WORKERS=16
 NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=true
@@ -57,14 +58,14 @@ INV_MUL=1.0
 FREEZE_TARGET_OBJ_DETECTOR=false
 REMOVE_CLASS_LAYERS=false
 CONCAT_TARGET_OBJ_EMBEDDING=false
-CONCAT_STATE=false
+CONCAT_STATE=true
 
 ACTION_DIM=7
-N_MIXTURES=3 #7 MT #3 Pick-place
-OUT_DIM=128 #64 MT #128 Pick-place
-ATTN_FF=256 #128 MT #256 Pick-place
-COMPRESSOR_DIM=256 #128 MT #256 Pick-place
-HIDDEN_DIM=512 #128 MT #512 Pick-place
+N_MIXTURES=7 #7 MT #3 Pick-place
+OUT_DIM=64 #64 MT #128 Pick-place
+ATTN_FF=128 #128 MT #256 Pick-place
+COMPRESSOR_DIM=128 #128 MT #256 Pick-place
+HIDDEN_DIM=128 #128 MT #512 Pick-place
 CONCAT_DEMO_HEAD=false
 CONCAT_DEMO_ACT=true
 PRETRAINED=false
@@ -72,7 +73,7 @@ NULL_BB=false
 
 EARLY_STOPPING_PATIECE=-1
 OPTIMIZER='AdamW'
-LR=0.005
+LR=0.0005
 WEIGHT_DECAY=0.0
 SCHEDULER=None
 
@@ -148,4 +149,5 @@ python ../training/train_scripts/train_any.py \
     debug=${DEBUG} \
     wandb_log=${WANDB_LOG} \
     resume=${RESUME} \
+    finetune=${FINETUNE} \
     loader_workers=${LOADER_WORKERS}

@@ -26,6 +26,8 @@ from tqdm import tqdm
 from robosuite.utils.transform_utils import quat2axisangle
 import logging
 import time
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
 
 logging.basicConfig(
     level=logging.INFO,
@@ -480,8 +482,8 @@ def create_data_aug(dataset_loader=object):
                     "contrast", [0.5, 1.5])),
                 saturation=list(dataset_loader.data_augs.get(
                     "contrast", [0.5, 1.5])),
-                hue=list(dataset_loader.data_augs.get("hue", [-0.05, 0.05]))
-            ),
+                hue=list(dataset_loader.data_augs.get("hue", [-0.05, 0.05])),
+            )
         ])
         print("Using strong augmentations?", dataset_loader.use_strong_augs)
         dataset_loader.strong_augs = transforms.Compose([
@@ -495,6 +497,15 @@ def create_data_aug(dataset_loader=object):
                 hue=list(dataset_loader.data_augs.get(
                     "hue_strong", [-0.05, 0.05]))
             ),
+        ])
+
+        dataset_loader.affine_transform = A.Compose([
+            # A.Rotate(limit=(-angle, angle), p=1),
+            A.ShiftScaleRotate(shift_limit=0.1,
+                               rotate_limit=0,
+                               scale_limit=0,
+                               p=dataset_loader.data_augs.get(
+                                   "p", 9.0))
         ])
 
     def horizontal_flip(obs, bb=None, p=0.1):
@@ -563,11 +574,21 @@ def create_data_aug(dataset_loader=object):
                     # replace with new bb
                     bb[obj_indx] = np.array([[x1, y1, x2, y2]])
 
-        # ---- Horizontal Flip ----#
-        # if not dataset_loader.data_augs.get('old_aug', True):
-        #     obs, bb = horizontal_flip(obs=obs,
-        #                               bb=bb,
-        #                               p=dataset_loader.data_augs.get("p", 0.1))
+        # ---- Affine Transformation ----#
+        if dataset_loader.data_augs.get('affine', False) and agent:
+            obs_to_affine = np.array(np.moveaxis(
+                obs.numpy()*255, 0, -1), dtype=np.uint8)
+            norm_bb = A.augmentations.bbox_utils.normalize_bboxes(
+                bb, obs_to_affine.shape[0], obs_to_affine.shape[1])
+
+            transformed = dataset_loader.affine_transform(
+                image=obs_to_affine,
+                bboxes=norm_bb)
+            obs = dataset_loader.toTensor(transformed['image'])
+            bb = np.array(A.augmentations.bbox_utils.denormalize_bboxes(bboxes=transformed['bboxes'],
+                                                                        rows=obs_to_affine.shape[0],
+                                                                        cols=obs_to_affine.shape[1]
+                                                                        ))
 
         # ---- Augmentation ----#
         if dataset_loader.use_strong_augs and second:
@@ -581,8 +602,9 @@ def create_data_aug(dataset_loader=object):
             else:
                 augmented = obs
             if DEBUG:
-                cv2.imwrite("weak_augmented.png", np.moveaxis(
-                    augmented.numpy()*255, 0, -1))
+                if agent:
+                    cv2.imwrite("weak_augmented.png", np.moveaxis(
+                        augmented.numpy()*255, 0, -1))
         assert augmented.shape == obs.shape
 
         if bb is not None:

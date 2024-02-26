@@ -397,7 +397,7 @@ if __name__ == '__main__':
             print(f"Finding checkpoints in {try_path}")
             check_point_list = glob.glob(
                 os.path.join(try_path, "model_save-*.pt"))
-            exclude_pattern = r'model_save-optim-\d+\.pt'
+            exclude_pattern = r'model_save-optim.pt'
             check_point_list = [
                 path for path in check_point_list if not re.search(exclude_pattern, path)]
             check_point_list = sorted(
@@ -526,10 +526,10 @@ if __name__ == '__main__':
         #     "traj_per_subtask": 36,
         #     "demo_per_subtask": 100}
 
-        config.dataset_cfg.mode = "train"
+        config.dataset_cfg.mode = "val"
         config.dataset_cfg.agent_name = "real_ur5e"
         config.dataset_cfg.change_command_epoch = False
-        config.dataset_cfg.root_dir = "/raid/home/frosa_Loc/opt_dataset"
+        config.dataset_cfg.root_dir = "/mnt/sdc1/frosa/opt_dataset"
         dataset = instantiate(config.get('dataset_cfg', None))
         dataset._mix_demo_agent = False
         # get list of pkl files
@@ -544,12 +544,12 @@ if __name__ == '__main__':
         else:
             file_pairs = dataset.all_file_pairs
             pkl_file_list = []
-            # for pkl_file in file_pairs.values():
-            #     pkl_file_list.append((pkl_file[3], pkl_file[2]))
             for pkl_file in file_pairs.values():
-                if 'traj000.pkl' in pkl_file[3]:
-                    pkl_file_list.append((pkl_file[3], '/raid/home/frosa_Loc/opt_dataset/pick_place/panda_pick_place/task_00/traj000.pkl'
-                                          ))
+                pkl_file_list.append((pkl_file[3], pkl_file[2]))
+            # for pkl_file in file_pairs.values():
+            #     if 'traj000.pkl' in pkl_file[3]:
+            #         pkl_file_list.append((pkl_file[3], '/raid/home/frosa_Loc/opt_dataset/pick_place/panda_pick_place/task_00/traj000.pkl'
+            #                               ))
             args.N = len(pkl_file_list)
 
         print(f"---- Testing model {model_name} ----")

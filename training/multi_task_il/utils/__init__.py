@@ -12,12 +12,12 @@ from torchvision.transforms import ToTensor, Normalize
 from torchvision.transforms.functional import resized_crop
 from robosuite import load_controller_config
 
-NORMALIZATION_RANGES = np.array([[-0.35,  0.35],
-                                 [-0.35,  0.35],
-                                 [0.60,  1.20],
-                                 [-3.14,  3.14911766],
-                                 [-3.14911766, 3.14911766],
-                                 [-3.14911766,  3.14911766]])
+# NORMALIZATION_RANGES = np.array([[-0.35,  0.35],
+#                                  [-0.35,  0.35],
+#                                  [0.60,  1.20],
+#                                  [-3.14,  3.14911766],
+#                                  [-3.14911766, 3.14911766],
+#                                  [-3.14911766,  3.14911766]])
 
 
 def normalize_action(action, n_action_bin, action_ranges, continous=False):
@@ -236,33 +236,33 @@ def init_env(env, traj, task_name):
                 obj.joints[0], np.concatenate([obj_pos, obj_quat]))
 
 
-def get_action(model, states, images, context, gpu_id, n_steps, max_T=80, baseline=None):
-    s_t = torch.from_numpy(np.concatenate(states, 0).astype(np.float32))[None]
-    if isinstance(images[-1], np.ndarray):
-        i_t = torch.from_numpy(np.concatenate(
-            images, 0).astype(np.float32))[None]
-    else:
-        i_t = images[0][None]
-    s_t, i_t = s_t.cuda(gpu_id), i_t.cuda(gpu_id).float()
+# def get_action(model, states, images, context, gpu_id, n_steps, max_T=80, baseline=None):
+#     s_t = torch.from_numpy(np.concatenate(states, 0).astype(np.float32))[None]
+#     if isinstance(images[-1], np.ndarray):
+#         i_t = torch.from_numpy(np.concatenate(
+#             images, 0).astype(np.float32))[None]
+#     else:
+#         i_t = images[0][None]
+#     s_t, i_t = s_t.cuda(gpu_id), i_t.cuda(gpu_id).float()
 
-    if baseline == 'maml':
-        learner = model.clone()
-        learner.adapt(
-            learner(None, context[0], learned_loss=True)['learned_loss'], allow_nograd=True, allow_unused=True)
-        out = learner(states=s_t[0], images=i_t[0], ret_dist=True)
-        action = out['action_dist'].sample()[-1].cpu().detach().numpy()
+#     if baseline == 'maml':
+#         learner = model.clone()
+#         learner.adapt(
+#             learner(None, context[0], learned_loss=True)['learned_loss'], allow_nograd=True, allow_unused=True)
+#         out = learner(states=s_t[0], images=i_t[0], ret_dist=True)
+#         action = out['action_dist'].sample()[-1].cpu().detach().numpy()
 
-    else:
-        with torch.no_grad():
-            out = model(states=s_t, images=i_t, context=context,
-                        eval=True)  # to avoid computing ATC loss
-            action = out['bc_distrib'].sample()[0, -1].cpu().numpy()
-            action = denormalize_action(
-                norm_action=action, action_ranges=NORMALIZATION_RANGES)
-    # if TASK_NAME == 'nut_assembly':
-    #     action[3:7] = [1.0, 1.0, 0.0, 0.0]
-    action[-1] = 1 if action[-1] > 0 and n_steps < max_T - 1 else -1
-    return action
+#     else:
+#         with torch.no_grad():
+#             out = model(states=s_t, images=i_t, context=context,
+#                         eval=True)  # to avoid computing ATC loss
+#             action = out['bc_distrib'].sample()[0, -1].cpu().numpy()
+#             action = denormalize_action(
+#                 norm_action=action, action_ranges=NORMALIZATION_RANGES)
+#     # if TASK_NAME == 'nut_assembly':
+#     #     action[3:7] = [1.0, 1.0, 0.0, 0.0]
+#     action[-1] = 1 if action[-1] > 0 and n_steps < max_T - 1 else -1
+#     return action
 
 
 def load_model(model_path=None, step=0, conf_file=None):
@@ -276,90 +276,3 @@ def load_model(model_path=None, step=0, conf_file=None):
         return model
     else:
         raise ValueError("Model path cannot be None")
-
-
-def pick_place_eval(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=None, seed=None, agent_traj=None, model_act=False, show_img=False, experiment_number=1):
-
-    done, states, images, context, obs, traj, tasks = \
-        startup_env(model, env, context, gpu_id, variation_id,
-                    baseline=baseline, seed=seed)
-    n_steps = 0
-
-    if agent_traj is not None:
-        # change object position
-        print("Set object position based on training sample")
-        init_env(env=env, traj=agent_traj, task_name="pick_place")
-    else:
-        print("Set object position randomly")
-
-    object_name = env.objects[env.object_id].name
-    obj_delta_key = object_name + '_to_robot0_eef_pos'
-    obj_key = object_name + '_pos'
-
-    start_z = obs[obj_key][2]
-    t = 0
-    while not done:
-        tasks['reached'] = tasks['reached'] or np.linalg.norm(
-            obs[obj_delta_key][:2]) < 0.03
-        tasks['picked'] = tasks['picked'] or (
-            tasks['reached'] and obs[obj_key][2] - start_z > 0.05)
-        if baseline and len(states) >= 5:
-            states, images = [], []
-        states.append(np.concatenate(
-            (obs['ee_aa'], obs['gripper_qpos'])).astype(np.float32)[None])
-
-        if True:
-            # convert context from torch tensor to numpy
-            context_frames = torch_to_numpy(context)
-            number_of_context_frames = len(context_frames)
-            demo_height, demo_width, _ = context_frames[0].shape
-            # Determine the number of columns and rows to create the grid of frames
-            num_cols = 2  # Example value, adjust as needed
-            num_rows = (number_of_context_frames + num_cols - 1) // num_cols
-            # Create the grid of frames
-            frames = []
-            for i in range(num_rows):
-                row_frames = []
-                for j in range(num_cols):
-                    index = i * num_cols + j
-                    if index < number_of_context_frames:
-                        frame = context_frames[index]
-                        row_frames.append(frame)
-                row = cv2.hconcat(row_frames)
-                frames.append(row)
-            new_image = np.array(cv2.resize(cv2.vconcat(
-                frames), (demo_width, demo_height)), np.uint8)
-            output_frame = cv2.hconcat(
-                [new_image, obs['camera_front_image'][:, :, ::-1]])
-            # showing the image
-            cv2.imwrite(
-                f'/home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/multi_task_il/utils/test_img/frame_{t}.png', output_frame)
-            # waiting using waitKey method
-            # cv2.waitKey(1000)
-            # cv2.destroyAllWindows()
-
-        images.append(img_formatter(
-            obs['camera_front_image'][:, :, ::-1])[None])
-        if model_act:
-            action = get_action(model, states, images, context,
-                                gpu_id, n_steps, max_T, baseline)
-
-            if n_steps > 90:
-                print(action)
-        else:
-            action = agent_traj[t]['action']
-
-        obs, reward, env_done, info = env.step(action)
-        traj.append(obs, reward, done, info, action)
-
-        tasks['success'] = reward or tasks['success']
-        n_steps += 1
-        if env_done or reward or n_steps > max_T:
-            done = True
-    env.close()
-    del env
-    del states
-    del images
-    del model
-    torch.cuda.empty_cache()
-    return traj, tasks, context
