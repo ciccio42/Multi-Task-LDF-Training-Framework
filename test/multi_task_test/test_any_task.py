@@ -385,7 +385,7 @@ if __name__ == '__main__':
             print(f"Finding checkpoints in {try_path}")
             check_point_list = glob.glob(
                 os.path.join(try_path, "model_save-*.pt"))
-            exclude_pattern = r'model_save-optim-\d+\.pt'
+            exclude_pattern = r'model_save-optim.pt'
             check_point_list = [
                 path for path in check_point_list if not re.search(exclude_pattern, path)]
             check_point_list = sorted(

@@ -5,7 +5,7 @@
 export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0,1,2
+export CUDA_VISIBLE_DEVICES=0,1,3
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
@@ -15,7 +15,7 @@ POLICY='${mosaic}'
 SAVE_FREQ=-1
 LOG_FREQ=10
 VAL_FREQ=-1
-DEVICE=[0,1]
+DEVICE=[0,1,3]
 DEBUG=false
 WANDB_LOG=true
 
@@ -24,7 +24,7 @@ PROJECT_NAME=${EXP_NAME}
 TASK_str=[pick_place,nut_assembly,stack_block,button]
 
 RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
-RESUME_STEP=52611
+RESUME_STEP=107991
 RESUME=true 
 
 LOAD_TARGET_OBJ_DETECTOR=true
@@ -42,7 +42,7 @@ BALANCING_POLICY=0
 SET_SAME_N=2
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=16
+LOADER_WORKERS=32
 NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=true

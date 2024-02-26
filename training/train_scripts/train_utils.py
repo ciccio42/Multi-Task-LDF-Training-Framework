@@ -1251,7 +1251,7 @@ class Workspace(object):
             if resume:
                 # create path for loading state dict
                 optimizer_state_dict = join(
-                    cfg.save_path, cfg.resume_path, f"model_save-optim-{cfg.resume_step}.pt")
+                    cfg.save_path, cfg.resume_path, f"model_save-optim.pt")
                 self.optimizer_state_dict = torch.load(
                     optimizer_state_dict, map_location=torch.device('cpu'))
         else:

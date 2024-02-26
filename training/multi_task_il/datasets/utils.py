@@ -751,7 +751,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
         step_t = traj.get(t)
 
         if not getattr(dataset_loader, "real", False):
-            cv2.imwrite("prova.png", step_t['obs']['camera_front_image'])
+            # cv2.imwrite("prova.png", step_t['obs']['camera_front_image'])
             image = copy.copy(
                 step_t['obs']['camera_front_image'][:, :, ::-1])
         else:
