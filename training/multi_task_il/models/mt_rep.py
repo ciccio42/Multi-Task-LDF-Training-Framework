@@ -499,6 +499,7 @@ class VideoImitation(nn.Module):
 
         model_parameters = filter(lambda p: p.requires_grad, self.parameters())
         params = sum([np.prod(p.size()) for p in model_parameters])
+        print(self)
         print('Total params in Imitation module:', params)
         print("\n---- Complete model ----\n")
         # summary(self)

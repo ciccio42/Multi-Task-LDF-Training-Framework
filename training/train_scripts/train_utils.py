@@ -675,18 +675,33 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
             all_losses["point_loss"] = l_point
 
         # NOTE: the model should output calculated rep-learning loss
-        if hasattr(model, "_load_target_obj_detector") and hasattr(model, "_freeze_target_obj_detector"):
-            if not model._load_target_obj_detector or not model._freeze_target_obj_detector:
-                rep_loss = torch.zeros_like(all_losses["l_bc"])
-                for k, v in out.items():
-                    if k in train_cfg.rep_loss_muls.keys():
-                        v = torch.mean(v, dim=-1)  # just return size (B,) here
-                        v = v * train_cfg.rep_loss_muls.get(k, 0)
-                        all_losses[k] = v
-                        rep_loss = rep_loss + v
-                all_losses["rep_loss"] = rep_loss
-            else:
-                all_losses["rep_loss"] = 0
+        if (hasattr(model, "_load_target_obj_detector") and hasattr(model, "_freeze_target_obj_detector")) or (hasattr(model.module, "_load_target_obj_detector") and hasattr(model.module, "_freeze_target_obj_detector")):
+            try:
+                if not model._load_target_obj_detector or not model._freeze_target_obj_detector:
+                    rep_loss = torch.zeros_like(all_losses["l_bc"])
+                    for k, v in out.items():
+                        if k in train_cfg.rep_loss_muls.keys():
+                            # just return size (B,) here
+                            v = torch.mean(v, dim=-1)
+                            v = v * train_cfg.rep_loss_muls.get(k, 0)
+                            all_losses[k] = v
+                            rep_loss = rep_loss + v
+                    all_losses["rep_loss"] = rep_loss
+                else:
+                    all_losses["rep_loss"] = 0
+            except:
+                if not model.module._load_target_obj_detector or not model.module._freeze_target_obj_detector:
+                    rep_loss = torch.zeros_like(all_losses["l_bc"])
+                    for k, v in out.items():
+                        if k in train_cfg.rep_loss_muls.keys():
+                            # just return size (B,) here
+                            v = torch.mean(v, dim=-1)
+                            v = v * train_cfg.rep_loss_muls.get(k, 0)
+                            all_losses[k] = v
+                            rep_loss = rep_loss + v
+                    all_losses["rep_loss"] = rep_loss
+                else:
+                    all_losses["rep_loss"] = 0
         else:
             pass
 
@@ -830,17 +845,32 @@ def calculate_grad_norm_loss(config, train_cfg, device, model, task_inputs):
 
         # NOTE: the model should output calculated rep-learning loss
         if (hasattr(model, "_load_target_obj_detector") and hasattr(model, "_freeze_target_obj_detector")) or (hasattr(model.module, "_load_target_obj_detector") and hasattr(model.module, "_freeze_target_obj_detector")):
-            if not model._load_target_obj_detector or not model._freeze_target_obj_detector:
-                rep_loss = torch.zeros_like(all_losses["l_bc"])
-                for k, v in out.items():
-                    if k in train_cfg.rep_loss_muls.keys():
-                        v = torch.mean(v, dim=-1)  # just return size (B,) here
-                        v = v * train_cfg.rep_loss_muls.get(k, 0)
-                        all_losses[k] = v
-                        rep_loss = rep_loss + v
-                all_losses["rep_loss"] = rep_loss
-            else:
-                all_losses["rep_loss"] = 0
+            try:
+                if not model._load_target_obj_detector or not model._freeze_target_obj_detector:
+                    rep_loss = torch.zeros_like(all_losses["l_bc"])
+                    for k, v in out.items():
+                        if k in train_cfg.rep_loss_muls.keys():
+                            # just return size (B,) here
+                            v = torch.mean(v, dim=-1)
+                            v = v * train_cfg.rep_loss_muls.get(k, 0)
+                            all_losses[k] = v
+                            rep_loss = rep_loss + v
+                    all_losses["rep_loss"] = rep_loss
+                else:
+                    all_losses["rep_loss"] = 0
+            except:
+                if not model.module._load_target_obj_detector or not model.module._freeze_target_obj_detector:
+                    rep_loss = torch.zeros_like(all_losses["l_bc"])
+                    for k, v in out.items():
+                        if k in train_cfg.rep_loss_muls.keys():
+                            # just return size (B,) here
+                            v = torch.mean(v, dim=-1)
+                            v = v * train_cfg.rep_loss_muls.get(k, 0)
+                            all_losses[k] = v
+                            rep_loss = rep_loss + v
+                    all_losses["rep_loss"] = rep_loss
+                else:
+                    all_losses["rep_loss"] = 0
         else:
             pass
 
@@ -934,57 +964,58 @@ class Trainer:
                                              path=self.save_dir
                                              )
 
-    def compute_grad_norm(self, task_loss, grad_norm_weights, dict_task_name_weight_indx, model, optimizer, loss_func, epoch):
-        alph = 0.16
+    # def compute_grad_norm(self, task_loss, grad_norm_loss_weights, dict_task_name_weight_indx, model, optimizer, optimizer_model, loss_func, step):
+    #     alph = 0.16
 
-        # compute loss summ based on previous weights
-        loss = [l["loss_sum"] * grad_norm_weights[dict_task_name_weight_indx[name]
-                                                  ].to(l["loss_sum"].get_device()) for name, l in task_loss.items()]
-        weighted_task_loss = sum(loss)
+    #     # compute loss summ based on previous weights
+    #     loss = [l["loss_sum"] * grad_norm_loss_weights[dict_task_name_weight_indx[name]
+    #                                                    ].to(l["loss_sum"].get_device()) for name, l in task_loss.items()]
+    #     weighted_task_loss = sum(loss)
 
-        if epoch == 0:
-            self._l0 = loss
+    #     if step == 0:
+    #         self._l0 = loss
 
-        weighted_task_loss.backward(retain_graph=True)
+    #     weighted_task_loss.backward(retain_graph=True)
 
-        # Getting gradients of the first layers of each tower and calculate their l2-norm
-        model_param = list(
-            filter(lambda p: p.requires_grad, model.parameters()))
-        # compute gradients with respect to different loss then compute the l2-norm for each gradients
-        norm_of_relative_gradients = [torch.norm(torch.autograd.grad(
-            l["loss_sum"], model_param, retain_graph=True, create_graph=True, allow_unused=True)[0], 2) for name, l in task_loss.items()]
+    #     # Getting gradients of the first layers of each tower and calculate their l2-norm
+    #     model_param = list(
+    #         filter(lambda p: p.requires_grad, model.parameters()))
+    #     # compute gradients with respect to different loss then compute the l2-norm for each gradients
+    #     norm_of_relative_gradients = [torch.norm(torch.autograd.grad(
+    #         l["loss_sum"], model_param, retain_graph=True, create_graph=True, allow_unused=True)[0], 2) for name, l in task_loss.items()]
 
-        # compute average of norms
-        average_norm_relative_gradients = torch.div(
-            sum(norm_of_relative_gradients), len(norm_of_relative_gradients))
+    #     # compute average of norms
+    #     average_norm_relative_gradients = torch.div(
+    #         sum(norm_of_relative_gradients), len(norm_of_relative_gradients))
 
-        # Calculating relative losses
-        relative_loss = torch.div(torch.tensor(loss), torch.tensor(self._l0))
-        relative_loss_avg = torch.div(
-            torch.sum(relative_loss), relative_loss.shape[0])
+    #     # Calculating relative losses
+    #     relative_loss = torch.div(torch.tensor(loss), torch.tensor(self._l0))
+    #     relative_loss_avg = torch.div(
+    #         torch.sum(relative_loss), relative_loss.shape[0])
 
-        # Calculating relative inverse training rates for tasks
-        inv_rate_relative_loss = torch.div(relative_loss, relative_loss_avg)
+    #     # Calculating relative inverse training rates for tasks
+    #     inv_rate_relative_loss = torch.div(relative_loss, relative_loss_avg)
 
-        # Calculating the constant target for Eq. 2 in the GradNorm paper
-        constant_targets = average_norm_relative_gradients * \
-            (inv_rate_relative_loss.to(
-                average_norm_relative_gradients.get_device()))**alph
+    #     # Calculating the constant target for Eq. 2 in the GradNorm paper
+    #     constant_targets = average_norm_relative_gradients * \
+    #         (inv_rate_relative_loss.to(
+    #             average_norm_relative_gradients.get_device()))**alph
 
-        optimizer.zero_grad()
+    #     optimizer.zero_grad()
 
-        # Calculating the gradient loss according to Eq. 2 in the GradNorm paper
-        l_grad = sum([loss_func(norm_of_relative_gradients[i], constant_targets[i])
-                     for i in range(len(norm_of_relative_gradients))])
-        l_grad.backward()
+    #     # Calculating the gradient loss according to Eq. 2 in the GradNorm paper
+    #     l_grad = sum([loss_func(norm_of_relative_gradients[i], constant_targets[i])
+    #                  for i in range(len(norm_of_relative_gradients))])
+    #     l_grad.backward()
 
-        # Updating loss weights
-        optimizer.step()
+    #     # Updating loss weights
+    #     optimizer.step()
+    #     optimizer_model.step()
 
-        # Renormalizing the losses weights
-        coef = len(grad_norm_weights)/sum(grad_norm_weights)
-        grad_norm_weights = [
-            coef * grad_norm_weight for grad_norm_weight in grad_norm_weights]
+    #     # Renormalizing the losses weights
+    #     coef = len(grad_norm_loss_weights) / \
+    #         sum(grad_norm_loss_weights)
+    #     return [coef * grad_norm_weight for grad_norm_weight in grad_norm_loss_weights]
 
     def train(self, model, weights_fn=None, save_fn=None, optim_weights=None, optimizer_state_dict=None, loss_function=None):
 
@@ -1013,19 +1044,9 @@ class Trainer:
         self.tasks = self.config.tasks
         num_tasks = len(self.tasks)
         if "grad_norm" in self.config.get("loss", ""):
-            # create a vector of weights for each task
-            grad_norm_loss_weights = [torch.tensor(torch.FloatTensor(
-                [1]), requires_grad=True) for i in range(num_tasks)]
             dict_task_name_weight_indx = dict()
             for indx, task in enumerate(self.tasks):
                 dict_task_name_weight_indx[task['name']] = indx
-            print("Creating optimzer for grad-norm")
-            optimizer_grad_norm, scheduler_grad_norm = self._build_optimizer_and_scheduler(
-                optimizer=self.config.train_cfg.optimizer,
-                optim_weights=grad_norm_loss_weights,
-                optimizer_state_dict=None,
-                cfg=self.train_cfg)
-            grad_loss = nn.L1Loss()
         else:
             # grad_norm is not requested
             sum_mul = sum([task.get('loss_mul', 1) for task in self.tasks])
@@ -1094,13 +1115,13 @@ class Trainer:
         step = 0
         best_fp = np.inf
         best_avg_success = 0.0
+        model_parameters = list(filter(
+            lambda p: p.requires_grad, model.parameters()))
+        alpha = 0.16
         for e in range(epochs):
             frac = e / epochs
             # with tqdm(self._train_loader, unit="batch") as tepoch:
-            # for inputs in tqdm(self._train_loader):
-            print(grad_norm_loss_weights)
-            if True:
-                inputs = next(iter(self._train_loader))
+            for inputs in tqdm(self._train_loader):
                 tolog = {}
                 # Save stats
                 if save_freq != 0 and self._step % save_freq == 0 and e != 0:  # stats
@@ -1128,26 +1149,68 @@ class Trainer:
 
                 torch.cuda.empty_cache()
 
-                optimizer.zero_grad()
                 # calculate loss here:
                 task_losses = loss_function(
                     self.config, self.train_cfg, self._device, model, inputs)
                 task_names = sorted(task_losses.keys())
                 if "grad_norm" not in self.config.get("loss", ""):
+                    optimizer.zero_grad()
                     weighted_task_loss = sum(
                         [l["loss_sum"] * task_loss_muls.get(name) for name, l in task_losses.items()])
                     weighted_task_loss.backward()
                     optimizer.step()
                 else:
-                    self.compute_grad_norm(
-                        task_loss=task_losses,
-                        grad_norm_weights=grad_norm_loss_weights,
-                        dict_task_name_weight_indx=dict_task_name_weight_indx,
-                        model=model,
-                        optimizer=optimizer_grad_norm,
-                        loss_func=grad_loss,
-                        epoch=e)
+                    task_loss = torch.stack([l["loss_sum"]
+                                            for name, l in task_losses.items()])
+                    if self._step == 0:
+                        # init weights
+                        weights_loss = torch.ones_like(task_loss)
+                        weights_loss = torch.nn.Parameter(weights_loss)
+                        T = weights_loss.sum().detach()  # sum of weights
+                        # set optimizer for weights
+                        optimizer_grad_norm = torch.optim.Adam(
+                            [weights_loss], lr=0.0005)
+                        # set L(0)
+                        l0 = task_loss.detach()
+
+                    # compute the weighted loss
+                    weighted_loss = weights_loss @ task_loss
+                    # clear gradients of network
+                    optimizer.zero_grad()
+                    # backward pass for weigthted task loss
+                    weighted_loss.backward(retain_graph=True)
+
+                    # compute the L2 norm of the gradients for each task
+                    gw = []
+                    for i in range(task_loss.shape[0]):
+                        dl = torch.autograd.grad(
+                            weights_loss[i]*task_loss[i], model_parameters, retain_graph=True, create_graph=True)[0]
+                        gw.append(torch.norm(dl))
+                    gw = torch.stack(gw)
+                    # compute loss ratio per task
+                    loss_ratio = weighted_loss.detach() / l0
+                    # compute the relative inverse training rate per task
+                    rt = loss_ratio / loss_ratio.mean()
+                    # compute the average gradient norm
+                    gw_avg = gw.mean().detach()
+                    # compute the GradNorm loss
+                    constant = (gw_avg * rt ** alpha).detach()
+                    gradnorm_loss = torch.abs(gw - constant).sum()
+                    # clear gradients of weights
+                    optimizer_grad_norm.zero_grad()
+                    # backward pass for GradNorm
+                    gradnorm_loss.backward()
+
+                    # update model weights
                     optimizer.step()
+                    # update loss weights
+                    optimizer_grad_norm.step()
+                    # renormalize weights
+                    weights_loss = (
+                        weights_loss / weights_loss.sum() * T).detach()
+                    weights_loss = torch.nn.Parameter(weights_loss)
+                    optimizer_grad_norm = torch.optim.Adam(
+                        [weights_loss], lr=0.0005)
 
                 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
                 # calculate train iter stats
@@ -1157,10 +1220,13 @@ class Trainer:
                     if self.config.wandb_log:
                         tolog['Train Step'] = self._step
                         tolog['Epoch'] = e
+                        i = 0
                         for task_name, losses in task_losses.items():
+                            tolog[f'train/weight_loss_{task_name}'] = weights_loss[i]
                             for loss_name, loss_val in losses.items():
                                 tolog[f'train/{loss_name}/{task_name}'] = loss_val
                                 tolog[f'train/{task_name}/{loss_name}'] = loss_val
+                            i += 1
 
                     if self._step % print_freq == 0:
                         print(

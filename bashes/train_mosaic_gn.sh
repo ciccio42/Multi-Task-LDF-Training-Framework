@@ -13,11 +13,11 @@ SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 POLICY='${mosaic}'
 
 SAVE_FREQ=-1
-LOG_FREQ=100
+LOG_FREQ=50
 VAL_FREQ=-1
 DEVICE=0
-DEBUG=true
-WAND_LOG=false
+DEBUG=false
+WAND_LOG=true
 
 EXP_NAME=4Task-MOSAIC-Grad-Norm
 PROJECT_NAME=${EXP_NAME}
