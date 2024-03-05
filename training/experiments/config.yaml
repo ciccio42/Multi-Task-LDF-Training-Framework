@@ -18,6 +18,7 @@ epochs:         10
 bsize:          30
 vsize:          ${bsize} # optionally, set to a different batchsize for validation loader
 optimizer:      null #Adam # RMSProp
+loss: ""
 task_names: null
 rollout: False
 dataset_target: 'multi_task_il.datasets.multi_task_datasets.MultiTaskPairedDataset'

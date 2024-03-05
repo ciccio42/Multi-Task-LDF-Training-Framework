@@ -5,7 +5,7 @@
 export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
@@ -19,15 +19,15 @@ DEVICE=0
 DEBUG=false
 WAND_LOG=true
 
-EXP_NAME=1Task-BUTTON-MOSAIC-ALL-OBJ-One-Variation-Left
+EXP_NAME=1Task-Pick-Place-MOSAIC-DIFFERENT-OBJ
 PROJECT_NAME=${EXP_NAME}
-TASK_str=button #[pick_place,nut_assembly,button,stack_block] #[pick_place,nut_assembly,button,stack_block]
+TASK_str=pick_place_different_object #[pick_place,nut_assembly,button,stack_block] #[pick_place,nut_assembly,button,stack_block]
 
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=40455
 TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54
 
-ROLLOUT=true
+ROLLOUT=false
 
 RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-BUTTON-MOSAIC-ALL-OBJ-One-Variation-Left-Batch25/
 RESUME_STEP=6402
@@ -38,7 +38,7 @@ BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=5
+SET_SAME_N=2
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
 LOADER_WORKERS=8
@@ -57,11 +57,11 @@ CONCAT_TARGET_OBJ_EMBEDDING=false
 CONCAT_STATE=false
 
 ACTION_DIM=7
-N_MIXTURES=7 #14 #7 2Task, Nut, button, stack #3 Pick-place
-OUT_DIM=64 #64 #64 2Task, Nut, button, stack #128 Pick-place
-ATTN_FF=128 #256 #128 2Task, Nut, button, stack #256 Pick-place
-COMPRESSOR_DIM=128 #256 #128 2Task, Nut, button, stack #256 Pick-place
-HIDDEN_DIM=128 #256 #128 2Task, Nut, button, stack #512 Pick-place
+N_MIXTURES=3 #14 #7 2Task, Nut, button, stack #3 Pick-place
+OUT_DIM=128 #64 #64 2Task, Nut, button, stack #128 Pick-place
+ATTN_FF=256 #256 #128 2Task, Nut, button, stack #256 Pick-place
+COMPRESSOR_DIM=256 #256 #128 2Task, Nut, button, stack #256 Pick-place
+HIDDEN_DIM=512 #256 #128 2Task, Nut, button, stack #512 Pick-place
 CONCAT_DEMO_HEAD=false
 CONCAT_DEMO_ACT=true
 PRETRAINED=false

@@ -706,6 +706,160 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
     return task_losses
 
 
+def calculate_grad_norm_loss(config, train_cfg, device, model, task_inputs):
+    """Assumes inputs are collated by task names already, organize things properly before feeding into the model s.t.
+    for each batch input, the model does only one forward pass."""
+
+    model_inputs = defaultdict(list)
+    task_to_idx = dict()
+    task_losses = OrderedDict()
+    start = 0
+    for idx, (task_name, inputs) in enumerate(task_inputs.items()):
+        traj = inputs['traj']
+        input_keys = traj.keys()
+
+        if config.get('use_daml', False):
+            input_keys.append('aux_pose')
+        for key in input_keys:
+            model_inputs[key].append(traj[key].to(device))
+
+        # if 'points' in traj.keys():
+        #     model_inputs['points'].append(traj['points'].to(device).long())
+
+        for key in inputs['demo_data'].keys():
+            model_inputs[key].append(inputs['demo_data'][key].to(device))
+
+        task_bsize = traj['actions'].shape[0]
+        task_to_idx[task_name] = [start + i for i in range(task_bsize)]
+        task_losses[task_name] = OrderedDict()
+        start += task_bsize
+
+    for key in model_inputs.keys():
+        model_inputs[key] = torch.cat(model_inputs[key], dim=0)
+    all_losses = dict()
+
+    if config.get('use_daml', False):
+        bc_loss, aux_loss = calculate_maml_loss(
+            config=config,
+            device=device,
+            meta_model=model,
+            model_inputs=model_inputs)
+        all_losses["l_bc"] = bc_loss
+        all_losses["l_aux"] = aux_loss
+        all_losses["loss_sum"] = bc_loss + aux_loss
+    else:
+        if config.policy._target_ == 'multi_task_il.models.mt_rep.VideoImitation':
+            out = model(
+                images=model_inputs['images'],
+                images_cp=model_inputs['images_cp'],
+                context=model_inputs['demo'],
+                context_cp=model_inputs['demo_cp'],
+                states=model_inputs['states'],
+                bb=model_inputs['gt_bb'],
+                gt_classes=model_inputs['gt_classes'],
+                ret_dist=False,
+                actions=model_inputs['actions'])
+        elif "CondPolicy" in config.policy._target_:
+            out = model(
+                inputs=model_inputs,
+                inference=False,
+                oracle=False)
+        else:  # other baselines
+            out = model(
+                images=model_inputs['images'],
+                context=model_inputs['demo'],
+                states=model_inputs['states'],
+                ret_dist=False)
+
+        # forward & backward action pred
+        actions = model_inputs['actions']
+        if "CondPolicy" not in config.policy._target_:
+            if "real" not in config.dataset_cfg.agent_name:
+                # mu_bc.shape: B, 7, 8, 4]) but actions.shape: B, 6, 7
+                mu_bc, scale_bc, logit_bc = out['bc_distrib']
+                action_distribution = DiscreteMixLogistic(
+                    mu_bc[:, :-1], scale_bc[:, :-1], logit_bc[:, :-1])
+                act_prob = rearrange(- action_distribution.log_prob(actions),
+                                     'B n_mix act_dim -> B (n_mix act_dim)')
+            else:
+                mu_bc, scale_bc, logit_bc = out['bc_distrib']
+                action_distribution = DiscreteMixLogistic(
+                    mu_bc, scale_bc, logit_bc)
+                act_prob = rearrange(- action_distribution.log_prob(actions),
+                                     'B n_mix act_dim -> B (n_mix act_dim)')
+        else:
+            actions = rearrange(actions, 'B T act_dim -> (B T) act_dim')
+            act_prob = - out['bc_distrib'].log_prob(actions)
+            if len(act_prob.shape) == 1:
+                act_prob = rearrange(
+                    act_prob, '(B T) -> B T',
+                    B=model_inputs['actions'].shape[0],
+                    T=model_inputs['actions'].shape[1])
+            else:
+                act_prob = torch.sum(act_prob, dim=-1)
+                act_prob = rearrange(
+                    act_prob, '(B T) -> B T',
+                    B=model_inputs['actions'].shape[0],
+                    T=model_inputs['actions'].shape[1])
+
+        all_losses["l_bc"] = train_cfg.bc_loss_mult * \
+            torch.mean(act_prob, dim=-1)
+
+        if 'inverse_distrib' in out.keys():
+            if "real" not in config.dataset_cfg.agent_name:
+                # compute inverse model density
+                inv_distribution = DiscreteMixLogistic(*out['inverse_distrib'])
+                inv_prob = rearrange(- inv_distribution.log_prob(actions),
+                                     'B n_mix act_dim -> B (n_mix act_dim)')
+                all_losses["l_inv"] = train_cfg.inv_loss_mult * \
+                    torch.mean(inv_prob, dim=-1)
+            else:
+                # compute inverse model density
+                inv_distribution = DiscreteMixLogistic(*out['inverse_distrib'])
+                inv_prob = rearrange(- inv_distribution.log_prob(actions[:, :-1, :]),
+                                     'B n_mix act_dim -> B (n_mix act_dim)')
+                all_losses["l_inv"] = train_cfg.inv_loss_mult * \
+                    torch.mean(inv_prob, dim=-1)
+
+        if 'point_ll' in out:
+            pnts = model_inputs['points']
+            l_point = train_cfg.pnt_loss_mult * out['point_ll'][range(pnts.shape[0]),
+                                                                pnts[:, -1, 0].long(), pnts[:, -1, 1].long()]
+
+            all_losses["point_loss"] = l_point
+
+        # NOTE: the model should output calculated rep-learning loss
+        if hasattr(model, "_load_target_obj_detector") and hasattr(model, "_freeze_target_obj_detector"):
+            if not model._load_target_obj_detector or not model._freeze_target_obj_detector:
+                rep_loss = torch.zeros_like(all_losses["l_bc"])
+                for k, v in out.items():
+                    if k in train_cfg.rep_loss_muls.keys():
+                        v = torch.mean(v, dim=-1)  # just return size (B,) here
+                        v = v * train_cfg.rep_loss_muls.get(k, 0)
+                        all_losses[k] = v
+                        rep_loss = rep_loss + v
+                all_losses["rep_loss"] = rep_loss
+            else:
+                all_losses["rep_loss"] = 0
+        else:
+            pass
+
+        loss_sum = 0
+        for loss_key in ['l_bc', 'l_inv', 'rep_loss']:
+            loss_sum += all_losses[loss_key] if loss_key in all_losses.keys() else 0.0
+        all_losses["loss_sum"] = loss_sum
+
+        all_losses["loss_sum"] = all_losses["loss_sum"] + \
+            all_losses["point_loss"] if 'point_ll' in out else all_losses["loss_sum"]
+
+    # flatten here to avoid headache
+    for (task_name, idxs) in task_to_idx.items():
+        for (loss_name, loss_val) in all_losses.items():
+            if len(loss_val.shape) > 0:
+                task_losses[task_name][loss_name] = torch.mean(loss_val[idxs])
+    return task_losses
+
+
 class Trainer:
 
     def __init__(self, allow_val_grad=False, hydra_cfg=None):
@@ -780,6 +934,58 @@ class Trainer:
                                              path=self.save_dir
                                              )
 
+    def compute_grad_norm(self, task_loss, grad_norm_weights, dict_task_name_weight_indx, model, optimizer, loss_func, epoch):
+        alph = 0.16
+
+        # compute loss summ based on previous weights
+        loss = [l["loss_sum"] * grad_norm_weights[dict_task_name_weight_indx[name]
+                                                  ].to(l["loss_sum"].get_device()) for name, l in task_loss.items()]
+        weighted_task_loss = sum(loss)
+
+        if epoch == 0:
+            self._l0 = loss
+
+        weighted_task_loss.backward(retain_graph=True)
+
+        # Getting gradients of the first layers of each tower and calculate their l2-norm
+        model_param = list(
+            filter(lambda p: p.requires_grad, model.parameters()))
+        # compute gradients with respect to different loss then compute the l2-norm for each gradients
+        norm_of_relative_gradients = [torch.norm(torch.autograd.grad(
+            l["loss_sum"], model_param, retain_graph=True, create_graph=True, allow_unused=True)[0], 2) for name, l in task_loss.items()]
+
+        # compute average of norms
+        average_norm_relative_gradients = torch.div(
+            sum(norm_of_relative_gradients), len(norm_of_relative_gradients))
+
+        # Calculating relative losses
+        relative_loss = torch.div(torch.tensor(loss), torch.tensor(self._l0))
+        relative_loss_avg = torch.div(
+            torch.sum(relative_loss), relative_loss.shape[0])
+
+        # Calculating relative inverse training rates for tasks
+        inv_rate_relative_loss = torch.div(relative_loss, relative_loss_avg)
+
+        # Calculating the constant target for Eq. 2 in the GradNorm paper
+        constant_targets = average_norm_relative_gradients * \
+            (inv_rate_relative_loss.to(
+                average_norm_relative_gradients.get_device()))**alph
+
+        optimizer.zero_grad()
+
+        # Calculating the gradient loss according to Eq. 2 in the GradNorm paper
+        l_grad = sum([loss_func(norm_of_relative_gradients[i], constant_targets[i])
+                     for i in range(len(norm_of_relative_gradients))])
+        l_grad.backward()
+
+        # Updating loss weights
+        optimizer.step()
+
+        # Renormalizing the losses weights
+        coef = len(grad_norm_weights)/sum(grad_norm_weights)
+        grad_norm_weights = [
+            coef * grad_norm_weight for grad_norm_weight in grad_norm_weights]
+
     def train(self, model, weights_fn=None, save_fn=None, optim_weights=None, optimizer_state_dict=None, loss_function=None):
 
         self._train_loader, self._val_loader = make_data_loaders(
@@ -802,6 +1008,30 @@ class Trainer:
         optim_weights = optim_weights if optim_weights is not None else model.parameters()
         optimizer, scheduler = self._build_optimizer_and_scheduler(
             self.config.train_cfg.optimizer, optim_weights, optimizer_state_dict, self.train_cfg)
+
+        # GradNorm flag
+        self.tasks = self.config.tasks
+        num_tasks = len(self.tasks)
+        if "grad_norm" in self.config.get("loss", ""):
+            # create a vector of weights for each task
+            grad_norm_loss_weights = [torch.tensor(torch.FloatTensor(
+                [1]), requires_grad=True) for i in range(num_tasks)]
+            dict_task_name_weight_indx = dict()
+            for indx, task in enumerate(self.tasks):
+                dict_task_name_weight_indx[task['name']] = indx
+            print("Creating optimzer for grad-norm")
+            optimizer_grad_norm, scheduler_grad_norm = self._build_optimizer_and_scheduler(
+                optimizer=self.config.train_cfg.optimizer,
+                optim_weights=grad_norm_loss_weights,
+                optimizer_state_dict=None,
+                cfg=self.train_cfg)
+            grad_loss = nn.L1Loss()
+        else:
+            # grad_norm is not requested
+            sum_mul = sum([task.get('loss_mul', 1) for task in self.tasks])
+            task_loss_muls = {task.name:
+                              float("{:3f}".format(task.get('loss_mul', 1) / sum_mul)) for task in self.tasks}
+            print(" Weighting each task loss separately:", task_loss_muls)
 
         if self.config.cosine_annealing:
             scheduler = CosineAnnealingWarmupRestarts(optimizer,
@@ -847,12 +1077,6 @@ class Trainer:
         except:
             pass
 
-        self.tasks = self.config.tasks
-        num_tasks = len(self.tasks)
-        sum_mul = sum([task.get('loss_mul', 1) for task in self.tasks])
-        task_loss_muls = {task.name:
-                          float("{:3f}".format(task.get('loss_mul', 1) / sum_mul)) for task in self.tasks}
-        print(" Weighting each task loss separately:", task_loss_muls)
         self.generated_png = False
         raw_stats = dict()
         if self._val_loader != None:
@@ -873,7 +1097,10 @@ class Trainer:
         for e in range(epochs):
             frac = e / epochs
             # with tqdm(self._train_loader, unit="batch") as tepoch:
-            for inputs in tqdm(self._train_loader):
+            # for inputs in tqdm(self._train_loader):
+            print(grad_norm_loss_weights)
+            if True:
+                inputs = next(iter(self._train_loader))
                 tolog = {}
                 # Save stats
                 if save_freq != 0 and self._step % save_freq == 0 and e != 0:  # stats
@@ -902,15 +1129,25 @@ class Trainer:
                 torch.cuda.empty_cache()
 
                 optimizer.zero_grad()
-
                 # calculate loss here:
                 task_losses = loss_function(
                     self.config, self.train_cfg, self._device, model, inputs)
                 task_names = sorted(task_losses.keys())
-                weighted_task_loss = sum(
-                    [l["loss_sum"] * task_loss_muls.get(name) for name, l in task_losses.items()])
-                weighted_task_loss.backward()
-                optimizer.step()
+                if "grad_norm" not in self.config.get("loss", ""):
+                    weighted_task_loss = sum(
+                        [l["loss_sum"] * task_loss_muls.get(name) for name, l in task_losses.items()])
+                    weighted_task_loss.backward()
+                    optimizer.step()
+                else:
+                    self.compute_grad_norm(
+                        task_loss=task_losses,
+                        grad_norm_weights=grad_norm_loss_weights,
+                        dict_task_name_weight_indx=dict_task_name_weight_indx,
+                        model=model,
+                        optimizer=optimizer_grad_norm,
+                        loss_func=grad_loss,
+                        epoch=e)
+                    optimizer.step()
 
                 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
                 # calculate train iter stats
@@ -1280,7 +1517,11 @@ class Workspace(object):
     def run(self):
         loss_function = None
         if "VideoImitation" in self.config.policy._target_ or "InverseImitation" in self.config.policy._target_ or "DAMLNetwork" in self.config.policy._target_ or "CondPolicy" in self.config.policy._target_:
-            loss_function = calculate_task_loss
+            if "grad_norm" not in self.config.get("loss", ""):
+                loss_function = calculate_task_loss
+            else:
+                loss_function = calculate_grad_norm_loss
+
         elif "vima" in self.config.policy._target_:
             loss_function = loss_function_vima
         elif "cond_target_obj_detector" in self.config.policy._target_:

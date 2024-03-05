@@ -393,7 +393,7 @@ if __name__ == '__main__':
             # take the last check point
             try_paths = check_point_list
             epoch_numbers = len(try_paths)
-            try_path_list = try_paths[-10:]
+            try_path_list = try_paths[-5:]
 
     if "GT-BB" in try_path:
         args.gt_bb = True

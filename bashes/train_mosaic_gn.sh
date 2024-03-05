@@ -5,7 +5,7 @@
 export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0,1,3
+export CUDA_VISIBLE_DEVICES=1
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
@@ -13,27 +13,26 @@ SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 POLICY='${mosaic}'
 
 SAVE_FREQ=-1
-LOG_FREQ=10
+LOG_FREQ=100
 VAL_FREQ=-1
-DEVICE=[0,1,2]
-DEBUG=false
-WANDB_LOG=true
+DEVICE=0
+DEBUG=true
+WAND_LOG=false
 
-EXP_NAME=4Task-MOSAIC-CTOD
+EXP_NAME=4Task-MOSAIC-Grad-Norm
 PROJECT_NAME=${EXP_NAME}
-TASK_str=[pick_place,nut_assembly,stack_block,button]
+TASK_str=[pick_place,nut_assembly,button,stack_block]
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
-RESUME_STEP=238134
-RESUME=true 
-
-LOAD_TARGET_OBJ_DETECTOR=true
-TARGET_OBJ_DETECTOR_STEP=91800 #68526 #129762 #198900 #65250
-TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/4Task-CTOD-Batch74/ #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-STACK-BLOCK-Cond-Target-Obj-Detector-Batch30/ #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-STACK-BLOCK-Cond-Target-Obj-Detector-Batch30/ #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Button-Cond-Target-Obj-Detector-Batch12 #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54/
-CONCAT_BB=true
-
+LOAD_TARGET_OBJ_DETECTOR=false
+TARGET_OBJ_DETECTOR_STEP=40455
+TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54
 
 ROLLOUT=false
+
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-BUTTON-MOSAIC-ALL-OBJ-One-Variation-Left-Batch25/
+RESUME_STEP=6402
+RESUME=false
+
 EPOCH=90
 BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
@@ -42,7 +41,7 @@ BALANCING_POLICY=0
 SET_SAME_N=2
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=32
+LOADER_WORKERS=8
 NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=true
@@ -58,26 +57,28 @@ CONCAT_TARGET_OBJ_EMBEDDING=false
 CONCAT_STATE=false
 
 ACTION_DIM=7
-N_MIXTURES=14 #14 MT #7 2Task, Nut, button, stack #3 Pick-place
-OUT_DIM=64 #64 MT #64 2Task, Nut, button, stack #128 Pick-place
-ATTN_FF=256 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
-COMPRESSOR_DIM=256 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
-HIDDEN_DIM=256 #256 MT #128 2Task, Nut, button, stack #512 Pick-place
+N_MIXTURES=14 #7 2Task, Nut, button, stack #3 Pick-place
+OUT_DIM=64 #64 2Task, Nut, button, stack #128 Pick-place
+ATTN_FF=256 #128 2Task, Nut, button, stack #256 Pick-place
+COMPRESSOR_DIM=256 #128 2Task, Nut, button, stack #256 Pick-place
+HIDDEN_DIM=256 #128 2Task, Nut, button, stack #512 Pick-place
 CONCAT_DEMO_HEAD=false
 CONCAT_DEMO_ACT=true
 PRETRAINED=false
+CONCAT_BB=false
 NULL_BB=false
 
 EARLY_STOPPING_PATIECE=-1
 OPTIMIZER='AdamW'
+LOSS="grad_norm"
 LR=0.0005
 WEIGHT_DECAY=0.0
 SCHEDULER=None
 
-DROP_DIM=4      # 2    # 3
-OUT_FEATURE=128 # 512 # 256
-DIM_H=13 #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
-DIM_W=23 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
+DROP_DIM=3      # 2    # 3
+OUT_FEATURE=256 # 512 # 256
+DIM_H=7 #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
+DIM_W=12 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 HEIGHT=100
 WIDTH=180
 
@@ -133,6 +134,7 @@ python ../training/train_scripts/train_any.py \
     resume_path=${RESUME_PATH} \
     resume_step=${RESUME_STEP} \
     optimizer=${OPTIMIZER} \
+    loss=${LOSS} \
     train_cfg.lr=${LR} \
     train_cfg.weight_decay=${WEIGHT_DECAY} \
     train_cfg.lr_schedule=${SCHEDULER} \
@@ -143,6 +145,6 @@ python ../training/train_scripts/train_any.py \
     inv_mul=${INV_MUL} \
     cosine_annealing=${COSINE_ANNEALING} \
     debug=${DEBUG} \
-    wandb_log=${WANDB_LOG} \
+    wandb_log=${WAND_LOG} \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS}

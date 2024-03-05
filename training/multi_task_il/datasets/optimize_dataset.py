@@ -222,9 +222,9 @@ if __name__ == '__main__':
         debugpy.wait_for_client()
 
     # 1. Load the dataset
-    # folder_path = os.path.join(
-    #     args.dataset_path, args.task_name, f"{args.robot_name}_{args.task_name}")
-    folder_path = "/user/frosa/multi_task_lfd/ur_multitask_dataset/pick_place/only_front/reduced_space"
+    folder_path = os.path.join(
+        args.dataset_path, args.task_name, f"{args.robot_name}_{args.task_name}")
+    # folder_path = "/user/frosa/multi_task_lfd/ur_multitask_dataset/pick_place/only_front/reduced_space"
     if args.out_path is None:
         out_path = os.path.join(args.dataset_path,
                                 f"{args.task_name}_opt",
@@ -257,7 +257,7 @@ if __name__ == '__main__':
             i = 0
             trj_list = glob.glob(f"{task_path}/*.pkl")
 
-            with Pool(1) as p:
+            with Pool(20) as p:
                 f = functools.partial(opt_traj,
                                       args.task_name,
                                       task_conf,
