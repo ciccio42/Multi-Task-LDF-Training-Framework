@@ -829,7 +829,7 @@ def calculate_grad_norm_loss(config, train_cfg, device, model, task_inputs):
             all_losses["point_loss"] = l_point
 
         # NOTE: the model should output calculated rep-learning loss
-        if hasattr(model, "_load_target_obj_detector") and hasattr(model, "_freeze_target_obj_detector"):
+        if (hasattr(model, "_load_target_obj_detector") and hasattr(model, "_freeze_target_obj_detector")) or (hasattr(model.module, "_load_target_obj_detector") and hasattr(model.module, "_freeze_target_obj_detector")):
             if not model._load_target_obj_detector or not model._freeze_target_obj_detector:
                 rep_loss = torch.zeros_like(all_losses["l_bc"])
                 for k, v in out.items():
@@ -1168,7 +1168,7 @@ class Trainer:
                         print(train_print)
 
                 #### ---- Validation step ----####
-                if self._step % val_freq == 0 and not self.config.get("use_daml", False):
+                if e != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
                     print("Validation")
                     rollout = self.config.get("rollout", False)
                     model = model.eval()
