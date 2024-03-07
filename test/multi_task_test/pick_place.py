@@ -13,6 +13,8 @@ from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
 from sklearn.metrics import mean_squared_error
 from robosuite.utils.transform_utils import quat2axisangle
 
+OBJECT_SET = 1
+
 
 def pick_place_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None, img_formatter=None, max_T=85, baseline=False, action_ranges=[]):
     print(f"Max-t {max_T}")
@@ -246,7 +248,7 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
 
         n_steps = 0
 
-        object_name_target = env.objects[env.object_id].name
+        object_name_target = env.objects[env.object_id].name.lower()
         obj_delta_key = object_name_target + '_to_robot0_eef_pos'
         obj_key = object_name_target + '_pos'
 
@@ -281,14 +283,14 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
             for obj_id, obj_name, in enumerate(env.env.obj_names):
                 if obj_id != traj.get(0)['obs']['target-object'] and obj_name != "bin":
                     if check_reach(threshold=0.03,
-                                   obj_distance=obs[obj_name +
+                                   obj_distance=obs[obj_name.lower() +
                                                     '_to_robot0_eef_pos'],
                                    current_reach=tasks.get(
                                        "reached_wrong", 0.0)
                                    ):
                         tasks['reached_wrong'] = 1.0
                     if check_pick(threshold=0.05,
-                                  obj_z=obs[obj_name + "_pos"][2],
+                                  obj_z=obs[obj_name.lower() + "_pos"][2],
                                   start_z=start_z,
                                   reached=tasks['reached_wrong'],
                                   picked=tasks.get(
@@ -705,7 +707,7 @@ def pick_place_eval(model, env, gt_env, context, gpu_id, variation_id, img_forma
                     env=env.env,
                     tries=[],
                     ranges=[],
-                    object_set=2)
+                    object_set=OBJECT_SET)
                 policy = False
             else:
                 controller = None
@@ -728,7 +730,7 @@ def pick_place_eval(model, env, gt_env, context, gpu_id, variation_id, img_forma
                     env=env.env,
                     tries=[],
                     ranges=[],
-                    object_set=2)
+                    object_set=OBJECT_SET)
 
         return object_detection_inference(model=model,
                                           env=env,
@@ -756,7 +758,7 @@ def pick_place_eval(model, env, gt_env, context, gpu_id, variation_id, img_forma
                     env=env.env,
                     tries=[],
                     ranges=[],
-                    object_set=2)
+                    object_set=OBJECT_SET)
             else:
                 controller = None
 

@@ -1115,8 +1115,14 @@ class Trainer:
         step = 0
         best_fp = np.inf
         best_avg_success = 0.0
-        model_parameters = list(filter(
-            lambda p: p.requires_grad, model.parameters()))
+        # # take the parameters of action modules
+        # torch.stack((model._action_module.parameters(
+        # ), model._inv_model.parameters()model._action_dist.parameters())))
+        model_parameters = list()
+        model_parameters.extend(list(model._action_module.parameters()))
+        model_parameters.extend(list(model._inv_model.parameters()))
+        model_parameters.extend(list(model._action_dist.parameters()))
+
         alpha = 0.16
         for e in range(epochs):
             frac = e / epochs
@@ -1234,7 +1240,7 @@ class Trainer:
                         print(train_print)
 
                 #### ---- Validation step ----####
-                if e != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
+                if False and e != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
                     print("Validation")
                     rollout = self.config.get("rollout", False)
                     model = model.eval()

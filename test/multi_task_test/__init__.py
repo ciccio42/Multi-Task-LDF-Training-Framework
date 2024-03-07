@@ -58,7 +58,7 @@ TASK_MAP = {
         'env_fn':   place_expert,
         'agent-teacher': ('UR5e_PickPlaceDistractor', 'Panda_PickPlaceDistractor'),
         'render_hw': (200, 360),  # (150, 270)
-        'object_set': 2,
+        'object_set': 1,
     },
     'stack_block': {
         'num_variations':   6,

@@ -5,7 +5,7 @@
 export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=1,2
+export CUDA_VISIBLE_DEVICES=1
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
@@ -41,7 +41,7 @@ BALANCING_POLICY=0
 SET_SAME_N=2
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=8
+LOADER_WORKERS=16
 NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=true

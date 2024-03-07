@@ -156,7 +156,7 @@ class PickPlace(SingleArmEnv):
 
         if self.object_set == 1:
             self.object_to_id = {"milk": 0, "bread": 1, "cereal": 2, "can": 3}
-            self.obj_names = ["Milk", "Bread", "Cereal", "Can"]
+            self.obj_names = ["milk", "bread", "cereal", "can"]
             self._obj_dim = {'milk': [0.05, 0.12, 0.045],
                              'bread': [0.045, 0.055, 0.045],
                              'cereal': [0.062, 0.062, 0.074],
