@@ -1118,11 +1118,13 @@ class Trainer:
         # # take the parameters of action modules
         # torch.stack((model._action_module.parameters(
         # ), model._inv_model.parameters()model._action_dist.parameters())))
-        model_parameters = list()
-        model_parameters.extend(list(model._action_module.parameters()))
-        model_parameters.extend(list(model._inv_model.parameters()))
-        model_parameters.extend(list(model._action_dist.parameters()))
-
+        try:
+            model_parameters = list()
+            model_parameters.extend(list(model._action_module.parameters()))
+            model_parameters.extend(list(model._inv_model.parameters()))
+            model_parameters.extend(list(model._action_dist.parameters()))
+        except:
+            pass
         alpha = 0.16
         for e in range(epochs):
             frac = e / epochs
@@ -1228,7 +1230,9 @@ class Trainer:
                         tolog['Epoch'] = e
                         i = 0
                         for task_name, losses in task_losses.items():
-                            tolog[f'train/weight_loss_{task_name}'] = weights_loss[i]
+                            if "grad_norm" in self.config.get("loss", ""):
+                                tolog[f'train/weight_loss_{task_name}'] = weights_loss[i]
+
                             for loss_name, loss_val in losses.items():
                                 tolog[f'train/{loss_name}/{task_name}'] = loss_val
                                 tolog[f'train/{task_name}/{loss_name}'] = loss_val

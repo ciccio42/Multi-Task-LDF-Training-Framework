@@ -160,7 +160,7 @@ def opt_traj(task_name, task_spec, out_path, pkl_file_path):
             except:
                 pass
 
-    if "real" in pkl_file_path or args.real:
+    if False:  # "real" in pkl_file_path or args.real:
         # perform reshape a priori
         for t in range(len(sample['traj'])):
             for camera_name in ["camera_front", "camera_lateral_left", "camera_lateral_right", "eye_in_hand"]:
@@ -222,9 +222,9 @@ if __name__ == '__main__':
         debugpy.wait_for_client()
 
     # 1. Load the dataset
-    folder_path = os.path.join(
-        args.dataset_path, args.task_name, f"{args.robot_name}_{args.task_name}")
-    # folder_path = "/user/frosa/multi_task_lfd/ur_multitask_dataset/pick_place/only_front/reduced_space"
+    # folder_path = os.path.join(
+    #     args.dataset_path, args.task_name, f"{args.robot_name}_{args.task_name}")
+    folder_path = "/user/frosa/multi_task_lfd/ur_multitask_dataset/pick_place/real_ur5e_pick_place/reduced_space/"
     if args.out_path is None:
         out_path = os.path.join(args.dataset_path,
                                 f"{args.task_name}_opt",

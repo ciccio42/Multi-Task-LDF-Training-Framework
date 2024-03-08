@@ -9,12 +9,13 @@ import logging
 import glob
 import os
 import debugpy
+import numpy as np
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 logger = logging.getLogger("BB-Creator")
 
 
-PKL_FILE_PATH = "/media/ciccio/Sandisk/real-world-dataset/pick_place/task_00/traj000.pkl"
+TASK_NAME = "pick_place"
 NUM_OBJ = 4
 
 object_loc = []
@@ -106,7 +107,7 @@ if __name__ == '__main__':
         debugpy.wait_for_client()
 
     task_path = args.task_path
-    task_name = args.task_path.split('/')[-2]
+    task_name = TASK_NAME
     logger.info(f"Task name {task_name}")
 
     files_path = glob.glob(os.path.join(args.task_path, "*.pkl"))

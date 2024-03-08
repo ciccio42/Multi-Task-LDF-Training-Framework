@@ -1,37 +1,37 @@
 #!/bin/sh
-export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
-# export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
+# export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
+export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=2
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/mnt/sdc1/frosa/opt_dataset/
+EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/
 POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
 TASKS_CONFIG=7_tasks_real
-DEBUG=false
+DEBUG=true
 WANDB_LOG=false
 
 SAVE_FREQ=-1
-LOG_FREQ=100
+LOG_FREQ=20
 VAL_FREQ=-1
 PRINT_FREQ=100
 
-EXP_NAME=Real-Pick-Place-CTOD-Only-Front-Reduced-Space
+EXP_NAME=Real-Pick-Place-CTOD-Only-Front-Reduced-Space-Extended
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place
-EPOCH=280 
+EPOCH=90
 BSIZE=80 #16 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector_real.yaml
-LOADER_WORKERS=32
+LOADER_WORKERS=16
 BALANCING_POLICY=0
-SET_SAME_N=5
+SET_SAME_N=10
 OBS_T=7
 
 AGENT_NAME=real_ur5e
@@ -45,12 +45,12 @@ FIRST_FRAMES=false
 ONLY_FIRST_FRAMES=false
 ROLLOUT=false
 PERFORM_AUGS=true
-PERFORM_SCALE_RESIZE=false
+PERFORM_SCALE_RESIZE=true
 NON_SEQUENTIAL=true 
 
 RESUME_PATH=Real-Pick-Place-MOSAIC-CTOD-Only-Front-Reduced-Space-Batch5/
 RESUME_STEP=70650
-RESUME=true
+RESUME=false
 FINETUNE=false
 
 DROP_DIM=4      # 2    # 3

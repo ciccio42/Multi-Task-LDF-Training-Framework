@@ -634,7 +634,7 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         # 1. Get Target Object
         if task_name != "stack_block":
             if task_name != "button":
-                target_obj_id = step_t['obs']['target-object']
+                target_obj_id = 0  # step_t['obs']['target-object']
             else:
                 target_obj_id = ENV_OBJECTS['button']['obj_names_to_id'][step_t['obs']
                                                                          ['target-object']]
@@ -816,8 +816,8 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
         else:
             bb_aug = bb_frame
 
-        bb.append(torch.from_numpy(bb_aug))
-        obj_classes.append((torch.from_numpy(class_frame)))
+        bb.append(torch.from_numpy(bb_aug.astype(np.int32)))
+        obj_classes.append((torch.from_numpy(class_frame.astype(np.int32))))
 
         if dataset_loader.aug_twice:
             aug_twice_time = time.time()
@@ -902,10 +902,10 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
             image = np.array(np.moveaxis(
                 images[j].cpu().numpy()*255, 0, -1), dtype=np.uint8)
             image = cv2.rectangle(np.ascontiguousarray(image),
-                                  (int(bb_frame[0][0]),
-                                   int(bb_frame[0][1])),
-                                  (int(bb_frame[0][2]),
-                                   int(bb_frame[0][3])),
+                                  (int(bb_aug[0][0]),
+                                   int(bb_aug[0][1])),
+                                  (int(bb_aug[0][2]),
+                                   int(bb_aug[0][3])),
                                   color=(0, 0, 255),
                                   thickness=1)
             # print(f"Command {command}")

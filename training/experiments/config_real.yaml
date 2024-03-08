@@ -118,7 +118,7 @@ dataset_cfg:
   agent_name: 'ur5e'
   demo_name: 'panda'
   perform_augs: true
-  perform_scale_resize: false
+  perform_scale_resize: true
   change_command_epoch: True
   load_eef_point: False
 

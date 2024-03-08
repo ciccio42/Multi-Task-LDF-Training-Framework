@@ -108,7 +108,7 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
     build_task = TASK_MAP.get(env_name, None)
     assert build_task, 'Got unsupported task '+env_name
     eval_fn = get_eval_fn(env_name=env_name)
-    config.dataset_cfg['perform_augs'] = True if "real" not in config.dataset_cfg['agent_name'] else False
+    # config.dataset_cfg['perform_augs'] = True if "real" not in config.dataset_cfg['agent_name'] else False
     traj, info = eval_fn(model=model,
                          env=None,
                          gt_env=None,
@@ -529,7 +529,7 @@ if __name__ == '__main__':
         config.dataset_cfg.mode = "val"
         config.dataset_cfg.agent_name = "real_ur5e"
         config.dataset_cfg.change_command_epoch = False
-        config.dataset_cfg.root_dir = "/mnt/sdc1/frosa/opt_dataset"
+        config.dataset_cfg.root_dir = "/raid/home/frosa_Loc/opt_dataset"
         dataset = instantiate(config.get('dataset_cfg', None))
         dataset._mix_demo_agent = False
         # get list of pkl files

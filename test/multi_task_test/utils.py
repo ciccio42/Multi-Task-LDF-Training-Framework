@@ -533,7 +533,7 @@ def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None
 def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0, real=True):
     # Get GT Bounding Box
     if task_name != 'stack_block':
-        agent_target_obj_id = traj.get(t)['obs']['target-object']
+        agent_target_obj_id = 0  # traj.get(t)['obs']['target-object']
     else:
         agent_target_obj_id = "cubeA"
 
@@ -551,11 +551,11 @@ def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0, real=True):
         if id == agent_target_obj_id or obj_name == agent_target_obj_id:
             try:
                 if real:
-                    top_left_x = obs['obj_bb']["camera_front"][obj_name]['upper_left_corner'][0]
-                    top_left_y = obs['obj_bb']["camera_front"][obj_name]['upper_left_corner'][1]
+                    top_left_x = obs['obj_bb']["camera_front"][obj_name]['bottom_right_corner'][0]
+                    top_left_y = obs['obj_bb']["camera_front"][obj_name]['bottom_right_corner'][1]
 
-                    bottom_right_x = obs['obj_bb']["camera_front"][obj_name]['bottom_right_corner'][0]
-                    bottom_right_y = obs['obj_bb']["camera_front"][obj_name]['bottom_right_corner'][1]
+                    bottom_right_x = obs['obj_bb']["camera_front"][obj_name]['upper_left_corner'][0]
+                    bottom_right_y = obs['obj_bb']["camera_front"][obj_name]['upper_left_corner'][1]
                 else:
                     top_left_x = obs['obj_bb']["camera_front"][obj_name]['bottom_right_corner'][0]
                     top_left_y = obs['obj_bb']["camera_front"][obj_name]['bottom_right_corner'][1]
@@ -569,8 +569,8 @@ def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0, real=True):
                 bottom_right_x = obs['obj_bb'][obj_name]['bottom_right_corner'][0]
                 bottom_right_y = obs['obj_bb'][obj_name]['bottom_right_corner'][1]
             bb_t = np.array(
-                [[top_left_x, top_left_y, bottom_right_x, bottom_right_y]])
-            gt_t = np.array(1)
+                [[top_left_x, top_left_y, bottom_right_x, bottom_right_y]], dtype=np.int16)
+            gt_t = np.array(1, dtype=np.int16)
 
     return bb_t, gt_t
 
@@ -920,8 +920,12 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                                        t=t)
 
                 if perform_augs:
-                    formatted_img, bb_t = img_formatter(
-                        agent_obs[:, :, ::-1], bb_t)
+                    if not real:
+                        formatted_img, bb_t = img_formatter(
+                            agent_obs[:, :, ::-1], bb_t, agent=True)
+                    else:
+                        formatted_img, bb_t = img_formatter(
+                            agent_obs, bb_t, agent=True)
                 else:
                     cv2.imwrite("agent_obs.png", agent_obs)
                     formatted_img = ToTensor()(agent_obs.copy())
@@ -957,7 +961,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                         predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
                                                       width_scale_factor=scale_factor[0],
                                                       height_scale_factor=scale_factor[1],
-                                                      mode='a2p')[0][:10]
+                                                      mode='a2p')[0][target_indx_flags][target_max_score_indx][None]
                     else:
                         image = np.array(np.moveaxis(
                             formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
