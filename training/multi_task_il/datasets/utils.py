@@ -803,6 +803,24 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
     return np.array(bb), np.array(cl)
 
 
+def create_gt_bb_sequence(dataset_loader, traj, t, task_name, distractor, command, subtask_id, agent_task_id):
+    # Create a sequence of T bbs, starting from t and ending with T
+    bb_list = list()
+    cl_list = list()
+    for current_t in range(t, t+dataset_loader._bbs_T):
+        bb_t, cl_t = create_gt_bb(dataset_loader=dataset_loader,
+                                  traj=traj,
+                                  step_t=traj.get(current_t),
+                                  task_name=task_name,
+                                  distractor=distractor,
+                                  command=command,
+                                  subtask_id=subtask_id,
+                                  agent_task_id=agent_task_id)
+        bb_list.append(bb_t)
+        cl_list.append(cl_t)
+    return np.array(bb_t), np.array(cl_list)
+
+
 def adjust_points(points, frame_dims, crop_params, height, width):
 
     h = np.clip(points[0] - crop_params[0], 0,
@@ -816,7 +834,7 @@ def adjust_points(points, frame_dims, crop_params, height, width):
     return tuple([int(min(x, d - 1)) for x, d in zip([h, w], (height, width))])
 
 
-def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_action=False, load_state=False, load_eef_point=False, distractor=False, subtask_id=-1, agent_task_id=-1, take_place_loc=False):
+def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_action=False, load_state=False, load_eef_point=False, distractor=False, subtask_id=-1, agent_task_id=-1, bb_sequence=False, take_place_loc=False):
 
     images = []
     images_cp = []
@@ -845,16 +863,26 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
 
         # Create GT BB
         bb_time = time.time()
-        bb_frame, class_frame = create_gt_bb(dataset_loader=dataset_loader,
-                                             traj=traj,
-                                             step_t=step_t,
-                                             task_name=task_name,
-                                             distractor=distractor,
-                                             command=command,
-                                             subtask_id=subtask_id,
-                                             agent_task_id=agent_task_id,
-                                             take_place_loc=take_place_loc)
-        logger.debug(f"BB time {time.time()-bb_time}")
+        if dataset_loader._bbs_T == 1:
+            bb_frame, class_frame = create_gt_bb(dataset_loader=dataset_loader,
+                                                 traj=traj,
+                                                 step_t=step_t,
+                                                 task_name=task_name,
+                                                 distractor=distractor,
+                                                 command=command,
+                                                 subtask_id=subtask_id,
+                                                 agent_task_id=agent_task_id,
+                                                 take_place_loc=take_place_loc)
+            logger.debug(f"BB time {time.time()-bb_time}")
+        else:
+            bb_frame, class_frame = create_gt_bb_sequence(dataset_loader=dataset_loader,
+                                                          traj=traj,
+                                                          t=t,
+                                                          task_name=task_name,
+                                                          distractor=distractor,
+                                                          command=command,
+                                                          subtask_id=subtask_id,
+                                                          agent_task_id=agent_task_id)
         # print(f"BB time: {end_bb-start_bb}")
 
         if dataset_loader._perform_augs:

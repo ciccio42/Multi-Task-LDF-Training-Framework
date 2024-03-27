@@ -25,6 +25,7 @@ class MultiTaskPairedDataset(Dataset):
             split=[0.9, 0.1],
             demo_T=4,
             obs_T=7,
+            bbs_T=1,
             take_first_frame=False,
             aug_twice=True,
             width=180,
@@ -115,7 +116,7 @@ class MultiTaskPairedDataset(Dataset):
 
         self.task_count = len(tasks_spec)
 
-        self._demo_T, self._obs_T = demo_T, obs_T
+        self._demo_T, self._obs_T, self._bbs_T = demo_T, obs_T, bbs_T
         self.width, self.height = width, height
         self.aug_twice = aug_twice
         self.aux_pose = aux_pose

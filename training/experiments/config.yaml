@@ -19,6 +19,7 @@ bsize:          30
 vsize:          ${bsize} # optionally, set to a different batchsize for validation loader
 optimizer:      null #Adam # RMSProp
 loss: ""
+bb_sequence: 1
 task_names: null
 rollout: False
 dataset_target: 'multi_task_il.datasets.multi_task_datasets.MultiTaskPairedDataset'
@@ -95,6 +96,7 @@ dataset_cfg:
   split:            [0.90, 0.10]
   demo_T:           4
   obs_T:            7
+  bbs_T: ${bb_sequence}
   normalize_action: True
   load_bb: True
   # x, y, z, e_x, e_y, e_z
@@ -189,11 +191,13 @@ mosaic:
   freeze_target_obj_detector: False
   remove_class_layers: False
   load_contrastive: True
+  load_inv: True
   concat_target_obj_embedding: False
   latent_dim:         40
   sdim:               8
   concat_state:       True
   concat_bb:       True
+  bb_sequence:     ${bb_sequence}
   height:             ${train_cfg.dataset.height}
   width:              ${train_cfg.dataset.width} 
   demo_T:             ${train_cfg.dataset.demo_T}

@@ -306,26 +306,32 @@ class _TransformerFeatures(nn.Module):
 
 
 class _DiscreteLogHead(nn.Module):
-    def __init__(self, in_dim, out_dim, n_mixtures, const_var=True, sep_var=False):
+    def __init__(self, in_dim, out_dim, n_mixtures, const_var=True, sep_var=False, lstm=False):
         super().__init__()
         assert n_mixtures >= 1, "must predict at least one mixture!"
         self._n_mixtures = n_mixtures
         self._dist_size = torch.Size((out_dim, n_mixtures))
-        self._mu = nn.Linear(in_dim, out_dim * n_mixtures)
-        self._logit_prob = nn.Linear(
-            in_dim, out_dim * n_mixtures) if n_mixtures > 1 else None
-        if const_var:
-            ln_scale = torch.randn(
-                out_dim, dtype=torch.float32) / np.sqrt(out_dim)
-            self.register_parameter(
-                '_ln_scale', nn.Parameter(ln_scale, requires_grad=True))
-        if sep_var:
-            ln_scale = torch.randn((out_dim, n_mixtures),
-                                   dtype=torch.float32) / np.sqrt(out_dim)
-            self.register_parameter(
-                '_ln_scale', nn.Parameter(ln_scale, requires_grad=True))
-        if not (const_var or sep_var):
-            self._ln_scale = nn.Linear(in_dim, out_dim * n_mixtures)
+        self._lstm = lstm
+
+        if not lstm:
+            self._mu = nn.Linear(in_dim, out_dim * n_mixtures)
+            self._logit_prob = nn.Linear(
+                in_dim, out_dim * n_mixtures) if n_mixtures > 1 else None
+            if const_var:
+                ln_scale = torch.randn(
+                    out_dim, dtype=torch.float32) / np.sqrt(out_dim)
+                self.register_parameter(
+                    '_ln_scale', nn.Parameter(ln_scale, requires_grad=True))
+            if sep_var:
+                ln_scale = torch.randn((out_dim, n_mixtures),
+                                       dtype=torch.float32) / np.sqrt(out_dim)
+                self.register_parameter(
+                    '_ln_scale', nn.Parameter(ln_scale, requires_grad=True))
+            if not (const_var or sep_var):
+                self._ln_scale = nn.Linear(in_dim, out_dim * n_mixtures)
+        else:
+            # Implementing DiscreteLogHead as LSTM
+            pass
 
     def forward(self, x):  #  x has shape B T d
         mu = self._mu(x).reshape((x.shape[:-1] + self._dist_size))
@@ -359,8 +365,10 @@ class VideoImitation(nn.Module):
         freeze_target_obj_detector=False,
         remove_class_layers=True,
         load_contrastive=True,
+        load_inv=True,
         concat_target_obj_embedding=True,
         concat_bb=False,
+        bb_sequence=1,
         height=120,
         width=160,
         demo_T=4,
@@ -382,6 +390,7 @@ class VideoImitation(nn.Module):
         super().__init__()
         self._remove_class_layers = remove_class_layers
         self._concat_bb = concat_bb
+        self._bb_sequence = bb_sequence
         self._embed = _TransformerFeatures(
             latent_dim=latent_dim, demo_T=demo_T, dim_H=dim_H, dim_W=dim_W, concat_bb=concat_bb, **attn_cfg)
 
@@ -445,6 +454,7 @@ class VideoImitation(nn.Module):
         self._load_target_obj_detector = load_target_obj_detector
         self._freeze_target_obj_detector = freeze_target_obj_detector
         self._load_contrastive = load_contrastive
+        self._load_inv = load_inv
         self._demo_T = demo_T
         self._obs_T = obs_T
         self._concat_state = concat_state
@@ -465,24 +475,27 @@ class VideoImitation(nn.Module):
         #                     float(concat_demo_act) * latent_dim + float(concat_state) * sdim)
         # else:
         ac_in_dim = int(latent_dim + float(concat_demo_act)
-                        * latent_dim + float(concat_bb) * 4 + float(concat_state) * sdim)
+                        * latent_dim + float(concat_bb) * 4 * self._bb_sequence + float(concat_state) * sdim)
 
         inv_input_dim = int(2*ac_in_dim)
 
         if action_cfg.n_layers == 1:
             self._action_module = nn.Sequential(
                 nn.Linear(ac_in_dim, action_cfg.out_dim), nn.ReLU())
-            self._inv_model = nn.Sequential(
-                nn.Linear(inv_input_dim, action_cfg.out_dim), nn.ReLU())
+            if load_inv:
+                self._inv_model = nn.Sequential(
+                    nn.Linear(inv_input_dim, action_cfg.out_dim), nn.ReLU())
         elif action_cfg.n_layers == 2:
             self._action_module = nn.Sequential(
                 nn.Linear(ac_in_dim, action_cfg.hidden_dim), nn.ReLU(),
                 nn.Linear(action_cfg.hidden_dim, action_cfg.out_dim), nn.ReLU()
             )
-            self._inv_model = nn.Sequential(
-                nn.Linear(inv_input_dim, action_cfg.hidden_dim), nn.ReLU(),
-                nn.Linear(action_cfg.hidden_dim, action_cfg.out_dim), nn.ReLU()
-            )
+            if load_inv:
+                self._inv_model = nn.Sequential(
+                    nn.Linear(inv_input_dim, action_cfg.hidden_dim), nn.ReLU(),
+                    nn.Linear(action_cfg.hidden_dim,
+                              action_cfg.out_dim), nn.ReLU()
+                )
         else:
             raise NotImplementedError
 
@@ -606,7 +619,10 @@ class VideoImitation(nn.Module):
 
         if self.concat_demo_act:  # for action model
             if self._concat_bb:
-                bb = rearrange(bb, 'B T O D -> B T (O D)')
+                if self._bb_sequence == 1:
+                    bb = rearrange(bb, 'B T O D -> B T (O D)')
+                else:
+                    bb = rearrange(bb, 'B T S O D -> B T (S O D)')
                 ac_in = torch.cat((img_embed, demo_embed, bb), dim=2)
             else:
                 ac_in = torch.cat((img_embed, demo_embed), dim=2)
@@ -722,9 +738,14 @@ class VideoImitation(nn.Module):
                 predicted_bb = bb[target_index, :]
 
         elif self._concat_bb and predict_gt_bb:
-            # get the target object
-            B, T, O, D = bb.shape
-            predicted_bb = bb
+            if self._bb_sequence == 1:
+                # get the target object
+                B, T, O, D = bb.shape
+                predicted_bb = bb
+            else:
+                # get the target object
+                B, T, S, O, D = bb.shape
+                predicted_bb = bb
 
         if self._concat_bb:
             out = self.get_action(
