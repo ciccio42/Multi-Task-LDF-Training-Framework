@@ -38,6 +38,38 @@ logger = logging.getLogger('Data-Loader')
 
 DEBUG = False
 
+OBJECTS_POS_DIM = {
+    'pick_place': {
+        'obj_names': ['greenbox', 'yellowbox', 'bluebox', 'redbox', 'bin'],
+        'bin_position': [0.18, 0.00, 0.75],
+        'obj_dim': {'greenbox': [0.05, 0.055, 0.045],  # W, H, D
+                    'yellowbox': [0.05, 0.055, 0.045],
+                    'bluebox': [0.05, 0.055, 0.045],
+                    'redbox': [0.05, 0.055, 0.045],
+                    'bin': [0.6, 0.06, 0.15],
+                    'single_bin': [0.15, 0.06, 0.15]},
+        'camera_names': {'camera_front', 'camera_lateral_right', 'camera_lateral_left'},
+        'camera_pos':
+            {
+                'camera_front': [[0.45, -0.002826249197217832, 1.27]],
+                'camera_lateral_left': [[-0.32693157973832665, 0.4625646268626449, 1.3]],
+                'camera_lateral_right': [[-0.3582777207605626, -0.44377700364575223, 1.3]],
+        },
+        'camera_orientation':
+            {
+                'camera_front':  [0.6620018964346217, 0.26169506249574287, 0.25790267731943883, 0.6532651777140575],
+                'camera_lateral_left': [-0.3050297127346233,  -0.11930536839029657, 0.3326804927221449, 0.884334095907446],
+                'camera_lateral_right': [0.860369883903888, 0.3565444300005689, -0.1251454368177692, -0.3396500627826067],
+        },
+        'camera_fovy': 60,
+        'img_dim': [200, 360]},
+
+    'nut_assembly': {
+        'obj_names': ['nut0', 'nut1', 'nut2'],
+        'ranges': [[0.10, 0.31], [-0.10, 0.10], [-0.31, -0.10]]
+    }
+}
+
 ENV_OBJECTS = {
     'pick_place': {
         'obj_names': ['greenbox', 'yellowbox', 'bluebox', 'redbox'],
@@ -388,7 +420,12 @@ def make_demo(dataset, traj, task_name):
 
 def adjust_bb(dataset_loader, bb, obs, img_width=360, img_height=200, top=0, left=0, box_w=360, box_h=200):
     # For each bounding box
+    bb = np.array(bb)
+    if len(bb.shape) == 3:
+        bb = bb[:, 0, :]
     for obj_indx, obj_bb in enumerate(bb):
+        if len(obj_bb.shape) == 2:
+            obj_bb = obj_bb[0]
         # Convert normalized bounding box coordinates to actual coordinates
         x1_old, y1_old, x2_old, y2_old = obj_bb
         x1_old = int(x1_old)
@@ -626,7 +663,7 @@ def create_data_aug(dataset_loader=object):
     return frame_aug
 
 
-def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, command=None, subtask_id=-1, agent_task_id=-1):
+def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, command=None, subtask_id=-1, agent_task_id=-1, take_place_loc=False):
     bb = []
     cl = []
 
@@ -634,7 +671,7 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         # 1. Get Target Object
         if task_name != "stack_block":
             if task_name != "button":
-                target_obj_id = 0  # step_t['obs']['target-object']
+                target_obj_id = step_t['obs']['target-object']
             else:
                 target_obj_id = ENV_OBJECTS['button']['obj_names_to_id'][step_t['obs']
                                                                          ['target-object']]
@@ -644,6 +681,8 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         if task_name != "stack_block":
             target_obj_id = int(
                 subtask_id/NUM_VARIATION_PER_OBEJECT[task_name][0])
+            target_place_id = int(subtask_id %
+                                  NUM_VARIATION_PER_OBEJECT[task_name][0])
         else:
             demo_target = STACK_BLOCK_TASK_ID_SEQUENCE[subtask_id][0]
             agent_target = STACK_BLOCK_TASK_ID_SEQUENCE[agent_task_id].find(
@@ -661,10 +700,14 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
                                                                  ['obj_names'][target_obj_id]]
     if task_name != "stack_block":
         # select randomly another object
-
         no_target_obj_id = target_obj_id
         while no_target_obj_id == target_obj_id:
             no_target_obj_id = random.randint(
+                0, num_objects)
+        # select randomly another place
+        no_target_place_id = target_place_id
+        while no_target_place_id == target_place_id:
+            no_target_place_id = random.randint(
                 0, num_objects)
     else:
         obj_list = ["cubeA", "cubeB", "cubeC"]
@@ -673,11 +716,18 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
 
     try:
         dict_keys = list(step_t['obs']['obj_bb']['camera_front'].keys())
+
+        target_place_id = target_place_id + \
+            NUM_VARIATION_PER_OBEJECT[task_name][0] + \
+            1*(task_name == 'pick_place')
+        no_target_place_id = no_target_place_id + \
+            NUM_VARIATION_PER_OBEJECT[task_name][0] + \
+            1*(task_name == 'pick_place')
     except:
         dict_keys = list(step_t['obs']['obj_bb'].keys())
 
     if distractor:
-        end = 2
+        end = 2 * (2*take_place_loc)
     else:
         end = 1
 
@@ -685,8 +735,12 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         if task_name != "stack_block":
             if i == 0:
                 object_name = dict_keys[target_obj_id]
-            elif i != 0 and distractor:
+            elif i == 1 and distractor:
                 object_name = dict_keys[no_target_obj_id]
+            elif i == 2 and distractor:
+                object_name = dict_keys[target_place_id]
+            elif i == 3 and distractor:
+                object_name = dict_keys[no_target_place_id]
         else:
             if i == 0:
                 object_name = agent_target_name
@@ -713,7 +767,7 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
 
         # test GT
         if DEBUG:
-            if i == 0:
+            if i == 0 or i == 2:
                 color = (0, 255, 0)
                 image = np.array(
                     step_t['obs']['camera_front_image'][:, :, ::-1])
@@ -726,19 +780,25 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
                                    int(bottom_right_y)),
                                   color=color,
                                   thickness=1)
-            if i == 0:
-                if DEBUG:
-                    cv2.imwrite("GT_bb_prova.png", image)
+            if DEBUG:
+                cv2.imwrite("GT_bb_prova.png", image)
 
         bb.append([top_left_x, top_left_y,
                    bottom_right_x, bottom_right_y])
 
         # 1 Target
         # 0 No-target
+        # 2 Target-plase
+        # 3 No-Targe-place
+
         if i == 0:
             cl.append(1)
-        else:
+        elif i == 1:
             cl.append(0)
+        elif i == 2:
+            cl.append(2)
+        elif i == 3:
+            cl.append(3)
 
     return np.array(bb), np.array(cl)
 
@@ -756,7 +816,7 @@ def adjust_points(points, frame_dims, crop_params, height, width):
     return tuple([int(min(x, d - 1)) for x, d in zip([h, w], (height, width))])
 
 
-def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_action=False, load_state=False, load_eef_point=False, distractor=False, subtask_id=-1, agent_task_id=-1):
+def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_action=False, load_state=False, load_eef_point=False, distractor=False, subtask_id=-1, agent_task_id=-1, take_place_loc=False):
 
     images = []
     images_cp = []
@@ -792,7 +852,8 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                                              distractor=distractor,
                                              command=command,
                                              subtask_id=subtask_id,
-                                             agent_task_id=agent_task_id)
+                                             agent_task_id=agent_task_id,
+                                             take_place_loc=take_place_loc)
         logger.debug(f"BB time {time.time()-bb_time}")
         # print(f"BB time: {end_bb-start_bb}")
 
@@ -854,7 +915,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                 cv2.imwrite("adjusted_point.png", cv2.UMat(image))
             logger.debug(f"EEF point: {time.time()-eef_point_time}")
 
-        if load_action and (j >= 1 or "real" in dataset_loader.agent_name):
+        if load_action and (j >= 1 or ("real" in dataset_loader.agent_name and not dataset_loader.pick_next)):
             action_time = time.time()
             # Load action
             if "real" in dataset_loader.agent_name:

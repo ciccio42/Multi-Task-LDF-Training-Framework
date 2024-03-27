@@ -96,6 +96,7 @@ dataset_cfg:
   demo_T:           4
   obs_T:            7
   normalize_action: True
+  pick_next: True
   load_bb: True
   # x, y, z, e_x, e_y, e_z
   normalization_ranges: [[-0.40,  0.40],
@@ -109,7 +110,7 @@ dataset_cfg:
   data_augs:        ${augs}
   non_sequential:   False
   crop_twice:       True
-  state_spec:       ['joint_pos', 'joint_vel']
+  state_spec:       ['joint_pos']
   allow_val_skip:   ${val_skip}
   allow_train_skip: ${train_skip}
   use_strong_augs:  True 
@@ -192,7 +193,7 @@ mosaic:
   load_contrastive: True
   concat_target_obj_embedding: False
   latent_dim:         40
-  sdim:               12
+  sdim:               6
   concat_state:       True
   concat_bb:       True
   height:             ${train_cfg.dataset.height}

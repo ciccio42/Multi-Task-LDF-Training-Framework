@@ -206,7 +206,8 @@ def rollout_imitation(model, config, ctr,
     build_task = TASK_MAP.get(env_name, None)
     assert build_task, 'Got unsupported task '+env_name
     eval_fn = get_eval_fn(env_name=env_name)
-    config.dataset_cfg['perform_augs'] = True if "real" not in config.dataset_cfg['agent_name'] else False
+    # if "real" not in config.dataset_cfg['agent_name'] else False
+    config.dataset_cfg['perform_augs'] = True
     traj, info = eval_fn(model=model,
                          env=None,
                          gt_env=None,
@@ -306,8 +307,11 @@ def _proc(model, config, results_dir, heights, widths, size, shape, color, env_n
                     results_dir+'/context{}.pkl'.format(n), 'wb'))
                 res_dict = dict()
                 for k, v in task_success_flags.items():
-                    if v == True or v == False:
-                        res_dict[k] = int(v)
+                    if not isinstance(v, np.ndarray):
+                        if v == True or v == False:
+                            res_dict[k] = int(v)
+                        else:
+                            res_dict[k] = v
                     else:
                         res_dict[k] = v
                 json.dump(res_dict, open(
@@ -405,7 +409,7 @@ if __name__ == '__main__':
             # take the last check point
             try_paths = check_point_list
             epoch_numbers = len(try_paths)
-            try_path_list = try_paths[-10:]
+            try_path_list = try_paths[-1:]
 
     for try_path in try_path_list:
 
@@ -547,7 +551,7 @@ if __name__ == '__main__':
             for pkl_file in file_pairs.values():
                 pkl_file_list.append((pkl_file[3], pkl_file[2]))
             # for pkl_file in file_pairs.values():
-            #     if 'traj000.pkl' in pkl_file[3]:
+            #     if 'traj010.pkl' in pkl_file[3]:
             #         pkl_file_list.append((pkl_file[3], '/raid/home/frosa_Loc/opt_dataset/pick_place/panda_pick_place/task_00/traj000.pkl'
             #                               ))
             args.N = len(pkl_file_list)
@@ -594,7 +598,16 @@ if __name__ == '__main__':
                 log = dict()
                 log['episode'] = i
                 for k in t.keys():
-                    log[k] = float(t[k]) if k != "variation_id" else int(t[k])
+                    if "error" not in k:
+                        log[k] = float(
+                            t[k]) if k != "variation_id" else int(t[k])
+                    else:
+                        log[f"{k}_x"] = float(
+                            t[k][0]) if k != "variation_id" else int(t[k])
+                        log[f"{k}_y"] = float(
+                            t[k][1]) if k != "variation_id" else int(t[k])
+                        log[f"{k}_z"] = float(
+                            t[k][2]) if k != "variation_id" else int(t[k])
                 wandb.log(log)
 
             to_log = dict()

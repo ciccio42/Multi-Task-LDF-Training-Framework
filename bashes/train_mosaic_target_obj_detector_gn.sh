@@ -5,10 +5,10 @@
 export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=2
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
+EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 POLICY='${mosaic}'
 
@@ -17,24 +17,20 @@ LOG_FREQ=10
 VAL_FREQ=-1
 DEVICE=0
 DEBUG=false
-WANDB_LOG=true
+WANDB_LOG=false
 
-EXP_NAME=Real-Pick-Place-MOSAIC-CTOD-Only-Front-Pos-State-Info-Reduced-Space-Extended-Next-Action
-#Real-1Task-Pick-Place-MOSAIC-Cond-Target-Obj-Detector-State
+EXP_NAME=4Task-MOSAIC-Grad-Norm
 PROJECT_NAME=${EXP_NAME}
-TASK_str=pick_place #[pick_place,nut_assembly]
+TASK_str=[pick_place,nut_assembly,stack_block,button]
 
-RESUME_PATH=Real-Pick-Place-MOSAIC-CTOD-Only-Front-Pos-State-Info-Reduced-Space-Extended-Next-Action-Batch5/
-RESUME_STEP=20582
-RESUME=true
-FINETUNE=false
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
+RESUME_STEP=238134
+RESUME=false 
 
-LOAD_TARGET_OBJ_DETECTOR=true
-TARGET_OBJ_DETECTOR_STEP=32805
-TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-Pick-Place-CTOD-Only-Front-Reduced-Space-Extended-Batch10
+LOAD_TARGET_OBJ_DETECTOR=false
+TARGET_OBJ_DETECTOR_STEP=91800
+TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/4Task-CTOD-Batch74/
 CONCAT_BB=true
-
-AGENT_NAME=real_ur5e
 
 
 ROLLOUT=false
@@ -43,12 +39,11 @@ BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=5
+SET_SAME_N=2
 CONFIG_PATH=../experiments
-CONFIG_NAME=config_real.yaml
-LOADER_WORKERS=16
+CONFIG_NAME=config.yaml
+LOADER_WORKERS=32
 NORMALIZE_ACTION=true
-PICK_NEXT=true
 
 LOAD_CONTRASTIVE=true
 CONTRASTIVE_PRE=1.0
@@ -60,14 +55,14 @@ INV_MUL=1.0
 FREEZE_TARGET_OBJ_DETECTOR=false
 REMOVE_CLASS_LAYERS=false
 CONCAT_TARGET_OBJ_EMBEDDING=false
-CONCAT_STATE=true
+CONCAT_STATE=false
 
 ACTION_DIM=7
-N_MIXTURES=3 #7 MT #3 Pick-place
-OUT_DIM=128 #64 MT #128 Pick-place
-ATTN_FF=256 #128 MT #256 Pick-place
-COMPRESSOR_DIM=256 #128 MT #256 Pick-place
-HIDDEN_DIM=512 #128 MT #512 Pick-place
+N_MIXTURES=14 #14 MT #7 2Task, Nut, button, stack #3 Pick-place
+OUT_DIM=64 #64 MT #64 2Task, Nut, button, stack #128 Pick-place
+ATTN_FF=256 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
+COMPRESSOR_DIM=256 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
+HIDDEN_DIM=256 #256 MT #128 2Task, Nut, button, stack #512 Pick-place
 CONCAT_DEMO_HEAD=false
 CONCAT_DEMO_ACT=true
 PRETRAINED=false
@@ -75,6 +70,7 @@ NULL_BB=false
 
 EARLY_STOPPING_PATIECE=-1
 OPTIMIZER='AdamW'
+LOSS="grad_norm"
 LR=0.0005
 WEIGHT_DECAY=0.0
 SCHEDULER=None
@@ -102,10 +98,8 @@ python ../training/train_scripts/train_any.py \
     bsize=${BSIZE} \
     vsize=${BSIZE} \
     epochs=${EPOCH} \
-    dataset_cfg.agent_name=${AGENT_NAME} \
     rollout=${ROLLOUT} \
     dataset_cfg.normalize_action=${NORMALIZE_ACTION} \
-    dataset_cfg.pick_next=${PICK_NEXT} \
     dataset_cfg.compute_obj_distribution=${COMPUTE_OBJ_DISTRIBUTION} \
     dataset_cfg.height=${HEIGHT} \
     dataset_cfg.width=${WIDTH} \
@@ -140,6 +134,7 @@ python ../training/train_scripts/train_any.py \
     resume_path=${RESUME_PATH} \
     resume_step=${RESUME_STEP} \
     optimizer=${OPTIMIZER} \
+    loss=${LOSS} \
     train_cfg.lr=${LR} \
     train_cfg.weight_decay=${WEIGHT_DECAY} \
     train_cfg.lr_schedule=${SCHEDULER} \
@@ -152,5 +147,4 @@ python ../training/train_scripts/train_any.py \
     debug=${DEBUG} \
     wandb_log=${WANDB_LOG} \
     resume=${RESUME} \
-    finetune=${FINETUNE} \
     loader_workers=${LOADER_WORKERS}

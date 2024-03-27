@@ -243,7 +243,7 @@ def calculate_maml_loss(config, device, meta_model, model_inputs):
     return torch.cat(bc_loss, dim=0), torch.cat(aux_loss, dim=0)
 
 
-def loss_func_bb(config, train_cfg, device, model, inputs, w_conf=1, w_reg=5):
+def loss_func_bb(config, train_cfg, device, model, inputs, w_conf=1, w_reg=5, val=False):
 
     def compute_average_iou(gt_bb, pred_bb, batch_size):
         iou_t = box_iou(boxes1=torch.from_numpy(
@@ -275,7 +275,7 @@ def loss_func_bb(config, train_cfg, device, model, inputs, w_conf=1, w_reg=5):
         # GT-Target
         # 1 -> target
         # 0 -> no-target
-        cls_loss = F.cross_entropy(cls_scores, gt_cls)
+        cls_loss = F.cross_entropy(cls_scores, gt_cls.type(torch.int64))
         return cls_loss
 
     def compute_classification_accuracy(cls_scores, gt_cls):
@@ -325,32 +325,36 @@ def loss_func_bb(config, train_cfg, device, model, inputs, w_conf=1, w_reg=5):
     all_losses = dict()
 
     model = model.to(device)
-    predictions_dict = model(model_inputs, inference=False)
 
-    # compute detection loss
-    cls_loss = calc_cls_loss(predictions_dict['conf_scores_pos'],
-                             predictions_dict['conf_scores_neg'],
-                             traj['images'].shape[0]*traj['images'].shape[1])
-    bb_reg_loss = calc_bbox_reg_loss(predictions_dict['GT_offsets'],
-                                     predictions_dict['offsets_pos'],
-                                     traj['images'].shape[0]*traj['images'].shape[1])
+    predictions_dict = model(model_inputs, inference=val)
 
-    # compute classification loss
-    classification_loss = calc_classification_loss(predictions_dict['cls_scores'],
-                                                   predictions_dict['GT_class_pos']
-                                                   )
+    if not val:
+        # compute detection loss
+        cls_loss = calc_cls_loss(predictions_dict['conf_scores_pos'],
+                                 predictions_dict['conf_scores_neg'],
+                                 traj['images'].shape[0]*traj['images'].shape[1])
+        bb_reg_loss = calc_bbox_reg_loss(predictions_dict['GT_offsets'],
+                                         predictions_dict['offsets_pos'],
+                                         traj['images'].shape[0]*traj['images'].shape[1])
 
-    all_losses["cls_loss"] = cls_loss
-    all_losses["bb_reg_loss"] = bb_reg_loss
-    all_losses["classification_loss"] = classification_loss
-    all_losses["loss_sum"] = w_conf*cls_loss + \
-        w_reg*bb_reg_loss + classification_loss
+        # compute classification loss
+        classification_loss = calc_classification_loss(predictions_dict['cls_scores'],
+                                                       predictions_dict['GT_class_pos']
+                                                       )
 
-    # compute acccuracy
-    class_accuracy = compute_classification_accuracy(
-        cls_scores=predictions_dict['cls_scores'],
-        gt_cls=predictions_dict['GT_class_pos'])
-    all_losses["class_accuracy"] = class_accuracy
+        all_losses["cls_loss"] = cls_loss
+        all_losses["bb_reg_loss"] = bb_reg_loss
+        all_losses["classification_loss"] = classification_loss
+        all_losses["loss_sum"] = w_conf*cls_loss + \
+            w_reg*bb_reg_loss + classification_loss
+
+        # compute acccuracy
+        class_accuracy = compute_classification_accuracy(
+            cls_scores=predictions_dict['cls_scores'],
+            gt_cls=predictions_dict['GT_class_pos'])
+        all_losses["class_accuracy"] = class_accuracy
+    else:
+        pass
 
     # avg_iou = compute_average_iou(gt_bb=)
 
@@ -552,7 +556,7 @@ def loss_function_vima(config, train_cfg, device, model, task_inputs, mode='trai
     return task_losses
 
 
-def calculate_task_loss(config, train_cfg, device, model, task_inputs):
+def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False):
     """Assumes inputs are collated by task names already, organize things properly before feeding into the model s.t.
         for each batch input, the model does only one forward pass."""
 
@@ -620,7 +624,7 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
         # forward & backward action pred
         actions = model_inputs['actions']
         if "CondPolicy" not in config.policy._target_:
-            if "real" not in config.dataset_cfg.agent_name:
+            if "real" not in config.dataset_cfg.agent_name or ("real" in config.dataset_cfg.agent_name and config.dataset_cfg.get("pick_next", False)):
                 # mu_bc.shape: B, 7, 8, 4]) but actions.shape: B, 6, 7
                 mu_bc, scale_bc, logit_bc = out['bc_distrib']
                 action_distribution = DiscreteMixLogistic(
@@ -652,7 +656,7 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs):
             torch.mean(act_prob, dim=-1)
 
         if 'inverse_distrib' in out.keys():
-            if "real" not in config.dataset_cfg.agent_name:
+            if "real" not in config.dataset_cfg.agent_name or ("real" in config.dataset_cfg.agent_name and config.dataset_cfg.get("pick_next", False)):
                 # compute inverse model density
                 inv_distribution = DiscreteMixLogistic(*out['inverse_distrib'])
                 inv_prob = rearrange(- inv_distribution.log_prob(actions),
@@ -964,59 +968,6 @@ class Trainer:
                                              path=self.save_dir
                                              )
 
-    # def compute_grad_norm(self, task_loss, grad_norm_loss_weights, dict_task_name_weight_indx, model, optimizer, optimizer_model, loss_func, step):
-    #     alph = 0.16
-
-    #     # compute loss summ based on previous weights
-    #     loss = [l["loss_sum"] * grad_norm_loss_weights[dict_task_name_weight_indx[name]
-    #                                                    ].to(l["loss_sum"].get_device()) for name, l in task_loss.items()]
-    #     weighted_task_loss = sum(loss)
-
-    #     if step == 0:
-    #         self._l0 = loss
-
-    #     weighted_task_loss.backward(retain_graph=True)
-
-    #     # Getting gradients of the first layers of each tower and calculate their l2-norm
-    #     model_param = list(
-    #         filter(lambda p: p.requires_grad, model.parameters()))
-    #     # compute gradients with respect to different loss then compute the l2-norm for each gradients
-    #     norm_of_relative_gradients = [torch.norm(torch.autograd.grad(
-    #         l["loss_sum"], model_param, retain_graph=True, create_graph=True, allow_unused=True)[0], 2) for name, l in task_loss.items()]
-
-    #     # compute average of norms
-    #     average_norm_relative_gradients = torch.div(
-    #         sum(norm_of_relative_gradients), len(norm_of_relative_gradients))
-
-    #     # Calculating relative losses
-    #     relative_loss = torch.div(torch.tensor(loss), torch.tensor(self._l0))
-    #     relative_loss_avg = torch.div(
-    #         torch.sum(relative_loss), relative_loss.shape[0])
-
-    #     # Calculating relative inverse training rates for tasks
-    #     inv_rate_relative_loss = torch.div(relative_loss, relative_loss_avg)
-
-    #     # Calculating the constant target for Eq. 2 in the GradNorm paper
-    #     constant_targets = average_norm_relative_gradients * \
-    #         (inv_rate_relative_loss.to(
-    #             average_norm_relative_gradients.get_device()))**alph
-
-    #     optimizer.zero_grad()
-
-    #     # Calculating the gradient loss according to Eq. 2 in the GradNorm paper
-    #     l_grad = sum([loss_func(norm_of_relative_gradients[i], constant_targets[i])
-    #                  for i in range(len(norm_of_relative_gradients))])
-    #     l_grad.backward()
-
-    #     # Updating loss weights
-    #     optimizer.step()
-    #     optimizer_model.step()
-
-    #     # Renormalizing the losses weights
-    #     coef = len(grad_norm_loss_weights) / \
-    #         sum(grad_norm_loss_weights)
-    #     return [coef * grad_norm_weight for grad_norm_weight in grad_norm_loss_weights]
-
     def train(self, model, weights_fn=None, save_fn=None, optim_weights=None, optimizer_state_dict=None, loss_function=None):
 
         self._train_loader, self._val_loader = make_data_loaders(
@@ -1244,7 +1195,8 @@ class Trainer:
                         print(train_print)
 
                 #### ---- Validation step ----####
-                if False and e != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
+                # e != 0 and
+                if e != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
                     print("Validation")
                     rollout = self.config.get("rollout", False)
                     model = model.eval()
@@ -1262,7 +1214,12 @@ class Trainer:
                             else:
                                 with torch.no_grad():
                                     val_task_losses = loss_function(
-                                        self.config, self.train_cfg, self._device, model, val_inputs)
+                                        self.config,
+                                        self.train_cfg,
+                                        self._device,
+                                        model,
+                                        val_inputs,
+                                        val=False)
 
                             for task, losses in val_task_losses.items():
                                 for k, v in losses.items():
@@ -1564,11 +1521,12 @@ class Workspace(object):
                 self._rpath, map_location=torch.device('cpu')))
             self.optimizer_state_dict = None
             if resume:
+                pass
                 # create path for loading state dict
-                optimizer_state_dict = join(
-                    cfg.save_path, cfg.resume_path, f"model_save-optim.pt")
-                self.optimizer_state_dict = torch.load(
-                    optimizer_state_dict, map_location=torch.device('cpu'))
+                # optimizer_state_dict = join(
+                #     cfg.save_path, cfg.resume_path, f"model_save-optim.pt")
+                # self.optimizer_state_dict = torch.load(
+                #     optimizer_state_dict, map_location=torch.device('cpu'))
         else:
             self.optimizer_state_dict = None
 

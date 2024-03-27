@@ -705,7 +705,8 @@ class CondTargetObjectDetector(nn.Module):
                                           conv_drop_dim=cond_target_obj_detector_cfg.conv_drop_dim,
                                           task_embedding_dim=cond_target_obj_detector_cfg.task_embedding_dim,
                                           anc_ratios=cond_target_obj_detector_cfg.anc_ratios,
-                                          anc_scales=cond_target_obj_detector_cfg.anc_scales)
+                                          anc_scales=cond_target_obj_detector_cfg.anc_scales,
+                                          n_classes=cond_target_obj_detector_cfg.get('n_classes', 2))
 
         # summary(self)
         model_parameters = filter(lambda p: p.requires_grad, self.parameters())

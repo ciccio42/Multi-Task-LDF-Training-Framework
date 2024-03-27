@@ -158,7 +158,7 @@ cond_target_obj_detector_cfg:
   agent_backbone_name: resnet18
   cond_video: True
   pretrained: False
-  anc_scales: [1.0, 1.5, 2.0, 3.0, 4.0] 
+  anc_scales: [1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0] 
   anc_ratios: [0.2, 0.5, 0.8, 1, 1.2, 1.5, 2.0]
   dim_H: 14
   dim_W: 14
@@ -168,6 +168,7 @@ cond_target_obj_detector_cfg:
   demo_ff_dim: [128, 64, 32]
   demo_linear_dim: [256, 128] #[512, 256, 128]
   task_embedding_dim: 128
+  n_classes: 2
 
 actions:
   adim: 7

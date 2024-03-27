@@ -17,6 +17,7 @@ import pickle
 import sys
 from multi_task_il.datasets.savers import _compress_obs
 import os
+from multi_task_il.datasets.utils import OBJECTS_POS_DIM
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 logger = logging.getLogger("BB-Creator")
@@ -25,6 +26,8 @@ KEY_INTEREST = ["joint_pos", "joint_vel", "eef_pos",
                 "eef_quat", "gripper_qpos", "gripper_qvel", "camera_front_image",
                 "target-box-id", "target-object", "obj_bb",
                 "extent", "zfar", "znear", "eef_point", "ee_aa", "target-peg"]
+OFFSET = 0.0
+WORKERS = 50
 
 
 def crop_resize_img(task_cfg, task_name, obs, bb):
@@ -153,12 +156,220 @@ def opt_traj(task_name, task_spec, out_path, pkl_file_path):
             keys_to_remove.append(key)
 
     # remove data not of interest for training
+    start_pick_t = 0
+    # end_pick_t = 0
     for t in range(len(sample['traj'])):
         for key in keys_to_remove:
             try:
                 sample['traj']._data[t][0].pop(key)
             except:
                 pass
+        if t != 0:
+            if "pick_place" in task_name:
+                obj_name = "single_bin"
+                obj_bb = dict()
+                bin_pos = OBJECTS_POS_DIM[task_name]['bin_position']
+
+                # get bins positions
+                bins_pos = []
+                bins_pos.append([bin_pos[0],
+                                bin_pos[1]-0.15-0.15/2,
+                                bin_pos[2]])
+                bins_pos.append([bin_pos[0],
+                                bin_pos[1]-0.15/2,
+                                bin_pos[2]])
+                bins_pos.append([bin_pos[0],
+                                bin_pos[1]+0.15/2,
+                                bin_pos[2]])
+                bins_pos.append([bin_pos[0],
+                                bin_pos[1]+0.15+0.15/2,
+                                bin_pos[2]])
+                for camera_name in ["camera_front"]:
+                    for bin_indx, bin_pos in enumerate(bins_pos):
+                        sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_{bin_indx}"] = dict(
+                        )
+                        # 1. Compute rotation_camera_to_world
+                        camera_quat = OBJECTS_POS_DIM[args.task_name]['camera_orientation'][camera_name]
+                        r_camera_world = T.quat2mat(
+                            T.convert_quat(np.array(camera_quat), to='xyzw')).T
+                        p_camera_world = - \
+                            r_camera_world @ np.array(
+                                OBJECTS_POS_DIM[args.task_name]['camera_pos'][camera_name]).T
+
+                        logger.debug(f"\nObject: bin")
+                        # convert obj pos in camera coordinate
+                        obj_pos = bin_pos
+                        obj_pos = np.array([obj_pos])
+
+                        # 2. Create transformation matrix
+                        T_camera_world = np.concatenate(
+                            (r_camera_world, p_camera_world), axis=1)
+                        T_camera_world = np.concatenate(
+                            (T_camera_world, np.array([[0, 0, 0, 1]])), axis=0)
+                        # logger.debug(T_camera_world)
+                        p_world_object = np.expand_dims(
+                            np.insert(obj_pos, 3, 1), 0).T
+                        p_camera_object = T_camera_world @ p_world_object
+                        logger.debug(
+                            f"\nP_world_object:\n{p_world_object} - \nP_camera_object:\n {p_camera_object}")
+
+                        # 3. Cnversion into pixel coordinates of object center
+                        f = 0.5 * OBJECTS_POS_DIM[args.task_name]['img_dim'][0] / \
+                            np.tan(OBJECTS_POS_DIM[args.task_name]
+                                   ['camera_fovy'] * np.pi / 360)
+
+                        p_x_center = int(
+                            (p_camera_object[0][0] / - p_camera_object[2][0]) * f + OBJECTS_POS_DIM[args.task_name]['img_dim'][1] / 2)
+
+                        p_y_center = int(
+                            (- p_camera_object[1][0] / - p_camera_object[2][0]) * f + OBJECTS_POS_DIM[args.task_name]['img_dim'][0] / 2)
+                        logger.debug(
+                            f"\nImage coordinate: px {p_x_center}, py {p_y_center}")
+
+                        image = cv2.circle(sample['traj'].get(
+                            t)['obs'][f"{camera_name}_image"].copy(),
+                            (p_x_center, p_y_center),
+                            color=(255, 0, 0),
+                            thickness=2,
+                            radius=1)
+                        cv2.imwrite("prova_bin_points.jpg", image)
+                        p_x_corner_list = []
+                        p_y_corner_list = []
+                        # 3.1 create a box around the object
+                        for i in range(8):
+                            if i == 0:  # upper-left front corner
+                                p_world_object_corner = p_world_object + \
+                                    np.array(
+                                        [[OBJECTS_POS_DIM[args.task_name]
+                                            ['obj_dim'][obj_name][2]/2],
+                                            [-OBJECTS_POS_DIM[args.task_name]
+                                                ['obj_dim'][obj_name][0]/2-OFFSET],
+                                            [OBJECTS_POS_DIM[args.task_name]
+                                                ['obj_dim'][obj_name][1]/2+OFFSET],
+                                            [0]])
+                            elif i == 1:  # upper-right front corner
+                                p_world_object_corner = p_world_object + \
+                                    np.array(
+                                        [[OBJECTS_POS_DIM[args.task_name]
+                                            ['obj_dim'][obj_name][2]/2],
+                                            [OBJECTS_POS_DIM[args.task_name]
+                                                ['obj_dim'][obj_name][0]/2+OFFSET],
+                                            [OBJECTS_POS_DIM[args.task_name]
+                                                ['obj_dim'][obj_name][1]/2+OFFSET],
+                                            [0]])
+                            elif i == 2:  # bottom-left front corner
+                                p_world_object_corner = p_world_object + \
+                                    np.array(
+                                        [[OBJECTS_POS_DIM[args.task_name]
+                                            ['obj_dim'][obj_name][2]/2],
+                                            [-OBJECTS_POS_DIM[args.task_name]
+                                                ['obj_dim'][obj_name][0]/2-OFFSET],
+                                            [-OBJECTS_POS_DIM[args.task_name]
+                                                ['obj_dim'][obj_name][1]/2-OFFSET],
+                                            [0]])
+                            elif i == 3:  # bottom-right front corner
+                                p_world_object_corner = p_world_object + \
+                                    np.array(
+                                        [[OBJECTS_POS_DIM[args.task_name]
+                                            ['obj_dim'][obj_name][2]/2],
+                                            [OBJECTS_POS_DIM[args.task_name]
+                                                ['obj_dim'][obj_name][0]/2+OFFSET],
+                                            [-OBJECTS_POS_DIM[args.task_name]
+                                                ['obj_dim'][obj_name][1]/2-OFFSET],
+                                            [0]])
+                            elif i == 4:  # upper-left back corner
+                                p_world_object_corner = p_world_object + \
+                                    np.array(
+                                        [[-OBJECTS_POS_DIM[args.task_name]
+                                            ['obj_dim'][obj_name][2]/2],
+                                            [-OBJECTS_POS_DIM[args.task_name]
+                                                ['obj_dim'][obj_name][0]/2-OFFSET],
+                                            [OBJECTS_POS_DIM[args.task_name]
+                                                ['obj_dim'][obj_name][1]/2+OFFSET],
+                                            [0]])
+                            elif i == 5:  # upper-right back corner
+                                p_world_object_corner = p_world_object + \
+                                    np.array(
+                                        [[-OBJECTS_POS_DIM[args.task_name]
+                                            ['obj_dim'][obj_name][2]/2],
+                                            [OBJECTS_POS_DIM[args.task_name]
+                                                ['obj_dim'][obj_name][0]/2+OFFSET],
+                                            [OBJECTS_POS_DIM[args.task_name]
+                                                ['obj_dim'][obj_name][1]/2+OFFSET],
+                                            [0]])
+                            elif i == 6:  # bottom-left back corner
+                                p_world_object_corner = p_world_object + \
+                                    np.array(
+                                        [[-OBJECTS_POS_DIM[args.task_name]
+                                            ['obj_dim'][obj_name][2]/2],
+                                            [-OBJECTS_POS_DIM[args.task_name]
+                                                ['obj_dim'][obj_name][0]/2-OFFSET],
+                                            [-OBJECTS_POS_DIM[args.task_name]
+                                                ['obj_dim'][obj_name][1]/2-OFFSET],
+                                            [0]])
+                            elif i == 7:  # bottom-right back corner
+                                p_world_object_corner = p_world_object + \
+                                    np.array(
+                                        [[-OBJECTS_POS_DIM[args.task_name]
+                                            ['obj_dim'][obj_name][2]/2],
+                                            [OBJECTS_POS_DIM[args.task_name]
+                                                ['obj_dim'][obj_name][0]/2+OFFSET],
+                                            [-OBJECTS_POS_DIM[args.task_name]
+                                                ['obj_dim'][obj_name][1]/2-OFFSET],
+                                            [0]])
+
+                            p_camera_object_corner = T_camera_world @ p_world_object_corner
+                            logger.debug(
+                                f"\nP_world_object_upper_left:\n{p_world_object_corner} -   \nP_camera_object_upper_left:\n {p_camera_object_corner}")
+
+                            # 3.1 Upper-left corner and bottom right corner in pixel coordinate
+                            p_x_corner = int(
+                                (p_camera_object_corner[0][0] / - p_camera_object_corner[2][0]) * f + OBJECTS_POS_DIM[args.task_name]['img_dim'][1] / 2)
+
+                            p_y_corner = int(
+                                (- p_camera_object_corner[1][0] / - p_camera_object_corner[2][0]) * f + OBJECTS_POS_DIM[args.task_name]['img_dim'][0] / 2)
+                            logger.debug(
+                                f"\nImage coordinate upper_left corner: px {p_x_corner}, py {p_y_corner}")
+
+                            p_x_corner_list.append(p_x_corner)
+                            p_y_corner_list.append(p_y_corner)
+
+                        x_min = min(p_x_corner_list)
+                        y_min = min(p_y_corner_list)
+                        x_max = max(p_x_corner_list)
+                        y_max = max(p_y_corner_list)
+                        # save bb
+                        sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_{bin_indx}"]['center'] = [
+                            p_x_center, p_y_center]
+                        sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_{bin_indx}"]['upper_left_corner'] = [
+                            x_max, y_max]
+                        sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_{bin_indx}"]['bottom_right_corner'] = [
+                            x_min, y_min]
+                        if obj_name == 'bin':
+                            print(obj_bb)
+
+                        image = cv2.rectangle(sample['traj'].get(
+                            t)['obs'][f"{camera_name}_image"].copy(),
+                            (x_min, y_min),
+                            (x_max, y_max),
+                            color=(255, 0, 0),
+                            thickness=2)
+                        if t == len(sample['traj'])-1:
+                            cv2.imwrite("prova_bin_bb.jpg", image)
+
+        if "real" in pkl_file_path or args.real:
+            gripper = sample['traj'].get(t)['action'][-1]
+            if start_pick_t == 0 and gripper == 1.0:
+                start_pick_t = t
+
+    if "real" in pkl_file_path or args.real:
+        sampled_trj = list()
+        sampled_trj.extend(sample['traj']._data[:1])
+        sampled_trj.extend(sample['traj']._data[1:start_pick_t:5])
+        sampled_trj.extend(sample['traj']._data[start_pick_t:-1:5])
+        sampled_trj.extend(sample['traj']._data[-1:])
+        sample['traj']._data = sampled_trj
+        sample['len'] = len(sampled_trj)
 
     if False:  # "real" in pkl_file_path or args.real:
         # perform reshape a priori
@@ -222,9 +433,9 @@ if __name__ == '__main__':
         debugpy.wait_for_client()
 
     # 1. Load the dataset
-    # folder_path = os.path.join(
-    #     args.dataset_path, args.task_name, f"{args.robot_name}_{args.task_name}")
-    folder_path = "/user/frosa/multi_task_lfd/ur_multitask_dataset/pick_place/real_ur5e_pick_place/reduced_space/"
+    folder_path = os.path.join(
+        args.dataset_path, args.task_name, f"{args.robot_name}_{args.task_name}")
+    # folder_path = "/user/frosa/multi_task_lfd/ur_multitask_dataset/pick_place/real_ur5e_pick_place/reduced_space/"
     if args.out_path is None:
         out_path = os.path.join(args.dataset_path,
                                 f"{args.task_name}_opt",
@@ -257,7 +468,7 @@ if __name__ == '__main__':
             i = 0
             trj_list = glob.glob(f"{task_path}/*.pkl")
 
-            with Pool(20) as p:
+            with Pool(WORKERS) as p:
                 f = functools.partial(opt_traj,
                                       args.task_name,
                                       task_conf,

@@ -13,7 +13,7 @@ from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
 from sklearn.metrics import mean_squared_error
 from robosuite.utils.transform_utils import quat2axisangle
 
-OBJECT_SET = 1
+OBJECT_SET = 2
 
 
 def pick_place_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None, img_formatter=None, max_T=85, baseline=False, action_ranges=[]):
@@ -252,7 +252,7 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
         obj_delta_key = object_name_target + '_to_robot0_eef_pos'
         obj_key = object_name_target + '_pos'
 
-        start_z = obs[obj_key][2]
+        start_z = [obj_key][2]
 
         # compute the average prediction over the whole trajectory
         avg_prediction = 0
@@ -506,7 +506,7 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
         info = {}
         error = []
         # take current observation
-        for t in range(len(gt_traj)):
+        for t in range(len(gt_traj)-1):
             if True:  # t == 1:
                 agent_obs = gt_traj[t]['obs']['camera_front_image']
                 bb_t, gt_t = get_gt_bb(traj=gt_traj,
@@ -527,12 +527,20 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
                         state_component = np.array(
                             gt_traj[t]['obs'][k], dtype=np.float32)
                     state_components.extend(state_component)
-                states.append(state_components)
+                states.append([state_components])
 
                 # convert observation from BGR to RGB
                 if perform_augs:
                     formatted_img, bb_t = img_formatter(
-                        agent_obs[:, :, ::-1], bb_t)
+                        agent_obs, bb_t, agent=True)
+                    context = context.to(device=gpu_id)
+                    bb_t_aug = bb_t.copy()
+
+                    images.append(formatted_img[None])
+                    if model._object_detector is not None or predict_gt_bb:
+                        bb.append(bb_t_aug[None][None])
+                        gt_classes.append(torch.from_numpy(
+                            gt_t[None][None][None]).to(device=gpu_id))
                 else:
                     cv2.imwrite("obs.png", agent_obs)
                     formatted_img = ToTensor()(agent_obs.copy()).to(device=gpu_id)
@@ -582,14 +590,14 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
 
                 # Compute MSE between predicted action and GT
                 gt_action = np.zeros(7)
-                gt_action[:3] = gt_traj[t]['action'][:3]
-                gt_rot = gt_traj[t]['action'][3:7]
+                gt_action[:3] = gt_traj[t+1]['action'][:3]
+                gt_rot = gt_traj[t+1]['action'][3:7]
                 gt_action[3:6] = quat2axisangle(gt_rot)
-                gt_action[6] = gt_traj[t]['action'][7]
+                gt_action[6] = gt_traj[t+1]['action'][7]
 
-                pos_error_t = np.linalg.norm(
-                    [gt_action[:3]] - np.array([action[:3]]), axis=1)
-                print(pos_error_t)
+                pos_error_t = gt_action[:3] - action[:3]  # np.linalg.norm(
+                # [gt_action[:3]] - np.array([action[:3]]), axis=1)
+                # print(pos_error_t)
                 error.append(pos_error_t)
 
                 if concat_bb and model._object_detector is not None and not predict_gt_bb:
@@ -614,7 +622,7 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
                         predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
                                                       width_scale_factor=scale_factor[0],
                                                       height_scale_factor=scale_factor[1],
-                                                      mode='a2p')[0][:10]
+                                                      mode='a2p')[0][target_indx_flags][target_max_score_indx][None]
                     else:
                         image = np.array(np.moveaxis(
                             formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
@@ -682,7 +690,7 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
         info["avg_tp"] = tp/(len(gt_traj)-1)
         info["avg_fp"] = fp/(len(gt_traj)-1)
         info["avg_fn"] = fn/(len(gt_traj)-1)
-        info["error"] = np.mean(error)
+        info["error"] = np.mean(error, axis=0)
         return gt_traj, info
 
 

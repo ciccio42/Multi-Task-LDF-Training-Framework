@@ -43,6 +43,7 @@ class MultiTaskPairedDataset(Dataset):
             agent_name='ur5e',
             demo_name='panda',
             normalize_action=True,
+            pick_next=False,
             normalization_ranges=[],
             n_action_bin=256,
             perform_augs=True,
@@ -66,6 +67,7 @@ class MultiTaskPairedDataset(Dataset):
         self.demo_files = dict()
         self.agent_name = agent_name
         self.mode = mode
+        self.pick_next = pick_next
 
         self.select_random_frames = select_random_frames
         self.balance_target_obj_pos = balance_target_obj_pos
