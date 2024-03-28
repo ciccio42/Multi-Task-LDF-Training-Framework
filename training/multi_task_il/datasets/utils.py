@@ -704,11 +704,12 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         while no_target_obj_id == target_obj_id:
             no_target_obj_id = random.randint(
                 0, num_objects)
-        # select randomly another place
-        no_target_place_id = target_place_id
-        while no_target_place_id == target_place_id:
-            no_target_place_id = random.randint(
-                0, num_objects)
+        if take_place_loc:
+            # select randomly another place
+            no_target_place_id = target_place_id
+            while no_target_place_id == target_place_id:
+                no_target_place_id = random.randint(
+                    0, num_objects)
     else:
         obj_list = ["cubeA", "cubeB", "cubeC"]
         agent_target_name = obj_list.pop(agent_target)
@@ -716,13 +717,13 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
 
     try:
         dict_keys = list(step_t['obs']['obj_bb']['camera_front'].keys())
-
-        target_place_id = target_place_id + \
-            NUM_VARIATION_PER_OBEJECT[task_name][0] + \
-            1*(task_name == 'pick_place')
-        no_target_place_id = no_target_place_id + \
-            NUM_VARIATION_PER_OBEJECT[task_name][0] + \
-            1*(task_name == 'pick_place')
+        if take_place_loc:
+            target_place_id = target_place_id + \
+                NUM_VARIATION_PER_OBEJECT[task_name][0] + \
+                1*(task_name == 'pick_place')
+            no_target_place_id = no_target_place_id + \
+                NUM_VARIATION_PER_OBEJECT[task_name][0] + \
+                1*(task_name == 'pick_place')
     except:
         dict_keys = list(step_t['obs']['obj_bb'].keys())
 
