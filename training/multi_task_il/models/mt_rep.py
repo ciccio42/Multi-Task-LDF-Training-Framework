@@ -305,16 +305,66 @@ class _TransformerFeatures(nn.Module):
         return pe_features, no_pe_features
 
 
+class _LSTMOneMany(nn.Module):
+
+    def __init__(self, input_dim, hidden_dim, layer_dim, output_dim, forward_t):
+        super(_LSTMOneMany, self).__init__()
+
+        self.hidden_dim = hidden_dim
+
+        self.layer_dim = layer_dim
+
+        self.forward_t = forward_t
+        self.output_dim = output_dim
+
+        self.input_embedding = nn.Linear(in_features=input_dim,
+                                         out_features=hidden_dim)
+        # (batch_dim, seq_dim, feature_dim)
+        self.reccurent = nn.GRU(output_dim,
+                                hidden_dim,
+                                layer_dim,
+                                batch_first=True)
+        self.out_linear = nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, x, ht=None, ct=None):
+
+        # Initialize prediction tensor
+        predictions = torch.zeros(
+            x.size(0), self.forward_t, self.output_dim).to(x.device)
+
+        for t in range(self.forward_t):
+            if t == 0:
+                # Initialize hidden state with "encoder" output
+                # B x SEQ x HIDDEN_DIM
+                hidden_state = F.relu(self.input_embedding(x))
+                hidden_state = rearrange(hidden_state, 'B T H -> T B H')
+                input = torch.zeros(
+                    x.shape[0], x.shape[1], self.output_dim).to(x.get_device())
+            else:
+                hidden_state = hidden
+                input = output[:, None, :]
+
+            output, hidden = self.reccurent(input, hidden_state)
+
+            output = self.out_linear(output[:, -1, :])
+            predictions[:, t, :] = torch.clone(output)
+
+        return predictions
+
+
 class _DiscreteLogHead(nn.Module):
-    def __init__(self, in_dim, out_dim, n_mixtures, const_var=True, sep_var=False, lstm=False):
+    def __init__(self, in_dim, out_dim, n_mixtures, const_var=True, sep_var=False, lstm=False, lstm_config=None):
         super().__init__()
         assert n_mixtures >= 1, "must predict at least one mixture!"
         self._n_mixtures = n_mixtures
         self._dist_size = torch.Size((out_dim, n_mixtures))
         self._lstm = lstm
 
+        self._forward_t = lstm_config.get('forward_t', 1)
+
         if not lstm:
-            self._mu = nn.Linear(in_dim, out_dim * n_mixtures)
+            self._mu = nn.Linear(
+                in_dim, self._forward_t * out_dim * n_mixtures)
             self._logit_prob = nn.Linear(
                 in_dim, out_dim * n_mixtures) if n_mixtures > 1 else None
             if const_var:
@@ -331,25 +381,94 @@ class _DiscreteLogHead(nn.Module):
                 self._ln_scale = nn.Linear(in_dim, out_dim * n_mixtures)
         else:
             # Implementing DiscreteLogHead as LSTM
-            pass
+            self._mu = _LSTMOneMany(input_dim=in_dim,
+                                    output_dim=out_dim * n_mixtures,
+                                    hidden_dim=lstm_config.get(
+                                        'hidden_dim', 128),
+                                    layer_dim=lstm_config.get(
+                                        'layer_dim', 1),
+                                    forward_t=lstm_config.get(
+                                        'forward_t', 1))
+            self._logit_prob = _LSTMOneMany(input_dim=in_dim,
+                                            output_dim=out_dim * n_mixtures,
+                                            hidden_dim=lstm_config.get(
+                                                'hidden_dim', 128),
+                                            layer_dim=lstm_config.get(
+                                                'layer_dim', 1),
+                                            forward_t=lstm_config.get(
+                                                'forward_t', 1))
+            if const_var:
+                ln_scale = torch.randn(
+                    out_dim, dtype=torch.float32) / np.sqrt(out_dim)
+                self.register_parameter(
+                    '_ln_scale', nn.Parameter(ln_scale, requires_grad=True))
+            if sep_var:
+                ln_scale = torch.randn((out_dim, n_mixtures),
+                                       dtype=torch.float32) / np.sqrt(out_dim)
+                self.register_parameter(
+                    '_ln_scale', nn.Parameter(ln_scale, requires_grad=True))
+            if not (const_var or sep_var):
+                self._ln_scale = _LSTMOneMany(input_dim=in_dim,
+                                              output_dim=out_dim * n_mixtures,
+                                              hidden_dim=lstm_config.get(
+                                                  'hidden_dim', 128),
+                                              layer_dim=lstm_config.get(
+                                                  'layer_dim', 1),
+                                              forward_t=lstm_config.get(
+                                                  'forward_t', 1))
 
     def forward(self, x):  #  x has shape B T d
-        mu = self._mu(x).reshape((x.shape[:-1] + self._dist_size))
+        B, T, _ = x.shape
+
+        if isinstance(self._mu, _LSTMOneMany):
+            if len(x.shape) == 3:
+                x = rearrange(x, 'B T d -> (B T) d')
+                x = x[:, None, :]
+        if isinstance(self._mu, _LSTMOneMany):
+            mu = self._mu(x)
+            mu = rearrange(mu, '(B T) S (A N) -> (B T) S A N',
+                           B=B,
+                           T=T,
+                           A=self._dist_size[0],
+                           N=self._dist_size[1])
+            mu = rearrange(mu, '(B T) S A N -> B T S A N',
+                           B=B,
+                           T=T)
+        else:
+            mu = self._mu(x).reshape((x.shape[:-1] + self._dist_size))
 
         if isinstance(self._ln_scale, nn.Linear):
             ln_scale = self._ln_scale(x).reshape(
                 (x.shape[:-1] + self._dist_size))
         else:
             ln_scale = self._ln_scale if self.training else self._ln_scale.detach()
-            if len(ln_scale.shape) == 1:
-                ln_scale = ln_scale.reshape((1, 1, -1, 1)).expand_as(mu)
-                # (1, 1, 8, 1) -> (B T, dist_size[0], dist_size[1]) i.e. each mixture has the **same** constant variance
-            else:  # the sep_val case:
+            if not self._lstm:
+                if len(ln_scale.shape) == 1:
+                    ln_scale = ln_scale.reshape((1, 1, -1, 1)).expand_as(mu)
+                    # (1, 1, 8, 1) -> (B T, dist_size[0], dist_size[1]) i.e. each mixture has the **same** constant variance
+                else:  # the sep_val case:
+                    ln_scale = repeat(
+                        ln_scale, 'out_d n_mix -> B T out_d n_mix', B=x.shape[0], T=x.shape[1])
+            else:
                 ln_scale = repeat(
-                    ln_scale, 'out_d n_mix -> B T out_d n_mix', B=x.shape[0], T=x.shape[1])
+                    ln_scale, 'out_d n_mix -> B S out_d n_mix', B=x.shape[0], S=self._forward_t)
+                ln_scale = rearrange(ln_scale,
+                                     '(B T) S out_d n_mix -> B T S out_d n_mix',
+                                     B=B, T=T)
+        if isinstance(self._logit_prob(x), _LSTMOneMany):
+            logit_prob = self._logit_prob(x)
+            logit_prob = rearrange(logit_prob, '(B T) S (A N) -> (B T) S A N',
+                                   B=B,
+                                   T=T,
+                                   A=self._dist_size[0],
+                                   N=self._dist_size[1])
+            logit_prob = rearrange(logit_prob, '(B T) S A N -> B T S A N',
+                                   B=B,
+                                   T=T)
+        else:
+            logit_prob = self._logit_prob(x).reshape(
+                mu.shape) if self._n_mixtures > 1 else torch.ones_like(mu)
 
-        logit_prob = self._logit_prob(x).reshape(
-            mu.shape) if self._n_mixtures > 1 else torch.ones_like(mu)
         return (mu, ln_scale, logit_prob)
 
 
@@ -395,6 +514,7 @@ class VideoImitation(nn.Module):
             latent_dim=latent_dim, demo_T=demo_T, dim_H=dim_H, dim_W=dim_W, concat_bb=concat_bb, **attn_cfg)
 
         self._object_detector = None
+        self._target_obj_detector_path = target_obj_detector_path
         if load_target_obj_detector:
             self.load_target_obj_detector(target_obj_detector_path=target_obj_detector_path,
                                           target_obj_detector_step=target_obj_detector_step,
@@ -474,8 +594,12 @@ class VideoImitation(nn.Module):
         #     ac_in_dim = int(latent_dim + float(concat_target_obj_embedding) * target_obj_embedding_dim +
         #                     float(concat_demo_act) * latent_dim + float(concat_state) * sdim)
         # else:
-        ac_in_dim = int(latent_dim + float(concat_demo_act)
-                        * latent_dim + float(concat_bb) * 4 * self._bb_sequence + float(concat_state) * sdim)
+        if "KP" not in target_obj_detector_path:
+            ac_in_dim = int(latent_dim + float(concat_demo_act)
+                            * latent_dim + float(concat_bb) * 4 * self._bb_sequence + float(concat_state) * sdim)
+        else:
+            ac_in_dim = int(latent_dim + float(concat_demo_act)
+                            * latent_dim + float(concat_bb) * 4 * 2 + float(concat_state) * sdim)
 
         inv_input_dim = int(2*ac_in_dim)
 
@@ -506,7 +630,9 @@ class VideoImitation(nn.Module):
             out_dim=action_cfg.adim,
             n_mixtures=action_cfg.n_mixtures,
             const_var=action_cfg.const_var,
-            sep_var=action_cfg.sep_var
+            sep_var=action_cfg.sep_var,
+            lstm=action_cfg.get('is_recurrent', False),
+            lstm_config=action_cfg.get('lstm_config', None)
         )
         self.demo_mean = demo_mean
 
@@ -704,12 +830,17 @@ class VideoImitation(nn.Module):
             prediction = self._object_detector(model_input,
                                                inference=True)
             if len(prediction['classes_final']) == B*obs_T:
-                predicted_bb_list = []
+                predicted_bb_list = list()
                 # check if there is a valid bounding box
                 # Project bb over image
                 # 1. Get the index with target class
                 for indx in range(len(prediction['classes_final'])):
                     target_indx_flags = prediction['classes_final'][indx] == 1
+                    place_indx_flags = 0
+                    if "KP" in self._target_obj_detector_path:
+                        place_indx_flags = prediction['classes_final'][indx] == 2
+
+                    # get target object bb
                     if torch.sum((target_indx_flags == True).int()) != 0:
                         # 2. Get the confidence scores for the target predictions and the the max
                         target_max_score_indx = torch.argmax(
@@ -721,12 +852,34 @@ class VideoImitation(nn.Module):
                                                       width_scale_factor=scale_factor[0],
                                                       height_scale_factor=scale_factor[1],
                                                       mode='a2p')[0][target_indx_flags][target_max_score_indx]
-                        predicted_bb_list.append(predicted_bb)
                     else:
                         print("No bb target for some frames")
                         # Get index for target object
-                        predicted_bb_list.append(torch.zeros(
-                            4).to(device=images.get_device()))
+                        predicted_bb = torch.zeros(
+                            4).to(device=images.get_device())
+
+                    # get place bb
+                    if torch.sum((place_indx_flags == True).int()) != 0:
+                        # 2. Get the confidence scores for the target predictions and the the max
+                        place_max_score_indx = torch.argmax(
+                            prediction['conf_scores_final'][indx][place_indx_flags])
+                        max_score_place = prediction['conf_scores_final'][indx][place_indx_flags][place_max_score_indx]
+                        # project bounding box
+                        scale_factor = self._object_detector.get_scale_factors()
+                        predicted_bb_place = project_bboxes(bboxes=prediction['proposals'][indx][None][None],
+                                                            width_scale_factor=scale_factor[0],
+                                                            height_scale_factor=scale_factor[1],
+                                                            mode='a2p')[0][place_indx_flags][place_max_score_indx]
+                        predicted_bb = torch.concat(
+                            (predicted_bb, predicted_bb_place))
+                    else:
+                        print("No bb place for some frames")
+                        # Get index for target object
+                        predicted_bb = torch.concat((predicted_bb, torch.zeros(
+                            4).to(device=images.get_device())))
+
+                    predicted_bb_list.append(predicted_bb)
+
                 predicted_bb = torch.stack(
                     predicted_bb_list, dim=0)[:, None, :]
                 predicted_bb = rearrange(

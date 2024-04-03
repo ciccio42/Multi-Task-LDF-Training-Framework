@@ -624,19 +624,23 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
         # forward & backward action pred
         actions = model_inputs['actions']
         if "CondPolicy" not in config.policy._target_:
+            mu_bc, scale_bc, logit_bc = out['bc_distrib']
             if "real" not in config.dataset_cfg.agent_name or ("real" in config.dataset_cfg.agent_name and config.dataset_cfg.get("pick_next", False)):
                 # mu_bc.shape: B, 7, 8, 4]) but actions.shape: B, 6, 7
-                mu_bc, scale_bc, logit_bc = out['bc_distrib']
                 action_distribution = DiscreteMixLogistic(
                     mu_bc[:, :-1], scale_bc[:, :-1], logit_bc[:, :-1])
-                act_prob = rearrange(- action_distribution.log_prob(actions),
-                                     'B n_mix act_dim -> B (n_mix act_dim)')
             else:
-                mu_bc, scale_bc, logit_bc = out['bc_distrib']
                 action_distribution = DiscreteMixLogistic(
                     mu_bc, scale_bc, logit_bc)
-                act_prob = rearrange(- action_distribution.log_prob(actions),
-                                     'B n_mix act_dim -> B (n_mix act_dim)')
+
+            act_prob = - action_distribution.log_prob(actions)
+            if config.actions.get('is_recurrent', False):
+                act_prob = rearrange(act_prob,
+                                     'B T S A -> B (T S A)')
+            else:
+                act_prob = rearrange(act_prob,
+                                     'B T A -> B (T A)')
+
         else:
             actions = rearrange(actions, 'B T act_dim -> (B T) act_dim')
             act_prob = - out['bc_distrib'].log_prob(actions)
@@ -656,22 +660,23 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
             torch.mean(act_prob, dim=-1)
 
         if 'inverse_distrib' in out.keys():
+            inv_distribution = DiscreteMixLogistic(*out['inverse_distrib'])
             if "real" not in config.dataset_cfg.agent_name or ("real" in config.dataset_cfg.agent_name and config.dataset_cfg.get("pick_next", False)):
-                # compute inverse model density
-                inv_distribution = DiscreteMixLogistic(*out['inverse_distrib'])
-                inv_prob = rearrange(- inv_distribution.log_prob(actions),
-                                     'B n_mix act_dim -> B (n_mix act_dim)')
-                all_losses["l_inv"] = train_cfg.inv_loss_mult * \
-                    torch.mean(inv_prob, dim=-1)
+                inv_prob = - inv_distribution.log_prob(actions)
             else:
-                # compute inverse model density
-                inv_distribution = DiscreteMixLogistic(*out['inverse_distrib'])
-                inv_prob = rearrange(- inv_distribution.log_prob(actions[:, :-1, :]),
-                                     'B n_mix act_dim -> B (n_mix act_dim)')
-                all_losses["l_inv"] = train_cfg.inv_loss_mult * \
-                    torch.mean(inv_prob, dim=-1)
+                inv_prob = - inv_distribution.log_prob(actions[:, :-1, :])
 
-        if 'point_ll' in out:
+            if config.actions.get('is_recurrent', False):
+                inv_prob = rearrange(inv_prob,
+                                     'B T S A -> B (T S A)')
+            else:
+                inv_prob = rearrange(inv_prob,
+                                     'B T A -> B (T A)')
+
+            all_losses["l_inv"] = train_cfg.inv_loss_mult * \
+                torch.mean(inv_prob, dim=-1)
+
+        if 'point_ll' in out and train_cfg.pnt_loss_mult != 0.0:
             pnts = model_inputs['points']
             l_point = train_cfg.pnt_loss_mult * out['point_ll'][range(pnts.shape[0]),
                                                                 pnts[:, -1, 0].long(), pnts[:, -1, 1].long()]

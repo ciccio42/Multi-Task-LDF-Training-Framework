@@ -13,10 +13,10 @@ from multi_task_il.models import get_model
 from multi_task_il.models.basic_embedding import NonLocalLayer, TemporalPositionalEncoding, TempConvLayer
 from torchvision import models
 from multi_task_il.models.discrete_logistic import DiscreteMixLogistic
-from multi_task_il.models import return_activation_map
+# from multi_task_il.models import return_activation_map
 import numpy as np
 from torch.distributions import MultivariateNormal
-from torchcam.methods import SmoothGradCAMpp, LayerCAM
+# from torchcam.methods import SmoothGradCAMpp, LayerCAM
 import cv2
 from torch.nn import AvgPool2d
 

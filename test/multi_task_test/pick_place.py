@@ -252,7 +252,7 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
         obj_delta_key = object_name_target + '_to_robot0_eef_pos'
         obj_key = object_name_target + '_pos'
 
-        start_z = [obj_key][2]
+        start_z = obs[obj_key][2]
 
         # compute the average prediction over the whole trajectory
         avg_prediction = 0
@@ -328,7 +328,7 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
                 if model._object_detector is not None or predict_gt_bb:
                     bb.append(bb_t_aug[None][None])
                     gt_classes.append(torch.from_numpy(
-                        gt_t[None][None][None]).to(device=gpu_id))
+                        gt_t[None][None]).to(device=gpu_id))
 
             if concat_bb:
                 action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
@@ -375,46 +375,87 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
 
                 obs, reward, env_done, info = env.step(action)
                 if concat_bb and not predict_gt_bb:
+
                     # get predicted bb from prediction
                     # 1. Get the index with target class
                     target_indx_flags = prediction['classes_final'][0] == 1
-                    if torch.sum((target_indx_flags == True).int()) != 0:
-                        # 2. Get the confidence scores for the target predictions and the the max
-                        target_max_score_indx = torch.argmax(
-                            prediction['conf_scores_final'][0][target_indx_flags])
-                        max_score_target = prediction['conf_scores_final'][0][target_indx_flags][target_max_score_indx]
-                        if max_score_target != -1:
-                            scale_factor = model._object_detector.get_scale_factors()
-                            predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
-                                                          width_scale_factor=scale_factor[0],
-                                                          height_scale_factor=scale_factor[1],
-                                                          mode='a2p')[0][target_indx_flags][target_max_score_indx]
-                            previous_predicted_bb[0] = torch.round(
-                                predicted_bb).int()
-                            # replace bb
-                            bb.append(torch.round(
-                                predicted_bb[None][None].to(device=gpu_id)).int())
-                        else:
-                            bb.append(torch.round(previous_predicted_bb[None][None].to(
-                                device=gpu_id)).int())
+                    cnt_target = torch.sum((target_indx_flags == True).int())
 
-                        obs['predicted_bb'] = torch.round(
-                            predicted_bb).cpu().numpy()
-                        obs['predicted_score'] = max_score_target.cpu().numpy()
-                        obs['gt_bb'] = bb_t_aug
-                        # adjust bb
-                        adj_predicted_bb = adjust_bb(bb=predicted_bb,
-                                                     crop_params=config.get('tasks_cfgs').get(task_name).get('crop'))
-                        image = np.array(cv2.rectangle(
-                            np.array(obs['camera_front_image'][:, :, ::-1]),
-                            (int(adj_predicted_bb[0]),
-                             int(adj_predicted_bb[1])),
-                            (int(adj_predicted_bb[2]),
-                             int(adj_predicted_bb[3])),
-                            (255, 0, 0), 1))
+                    place_indx_flags = prediction['classes_final'][0] == 2
+                    cnt_place = torch.sum((place_indx_flags == True).int())
+
+                    obs['gt_bb'] = bb_t
+                    # target found and place found
+                    predicted_bb_list = list()
+                    max_score_list = list()
+                    iou_list = list()
+                    if cnt_target != 0 and cnt_place != 0:
+                        target_pred_bb, target_max_score, target_bb_iou = get_predicted_bb(
+                            prediction=prediction,
+                            pred_flags=target_indx_flags,
+                            perform_augs=True,
+                            model=model._object_detector,
+                            formatted_img=img_aug,
+                            gt_bb=bb_t_aug[0][None],
+                            gpu_id=gpu_id)
+                        predicted_bb_list.append(target_pred_bb)
+                        max_score_list.append(target_max_score)
+                        iou_list.append(target_bb_iou)
+
+                        place_pred_bb, place_max_score, place_bb_iou = get_predicted_bb(
+                            prediction=prediction,
+                            pred_flags=place_indx_flags,
+                            perform_augs=True,
+                            model=model._object_detector,
+                            formatted_img=img_aug,
+                            gt_bb=bb_t_aug[1][None],
+                            gpu_id=gpu_id)
+
+                        predicted_bb_list.append(place_pred_bb)
+                        max_score_list.append(place_max_score)
+                        iou_list.append(place_bb_iou)
+
+                        obs['predicted_bb'] = np.array(predicted_bb_list)
+                        obs['predicted_score'] = np.array(max_score_list)
+                        obs['iou'] = np.array(iou_list)
+                    elif cnt_target == 0 and cnt_place != 0:
+                        place_pred_bb, place_max_score, place_bb_iou = get_predicted_bb(
+                            prediction=prediction,
+                            pred_flags=place_indx_flags,
+                            perform_augs=True,
+                            model=model._object_detector,
+                            formatted_img=img_aug,
+                            gt_bb=bb_t_aug[1][None],
+                            gpu_id=gpu_id)
+                        predicted_bb_list.append(place_pred_bb)
+                        max_score_list.append(place_max_score)
+                        iou_list.append(place_bb_iou)
+
+                        obs['predicted_bb'] = np.array(predicted_bb_list)
+                        obs['predicted_score'] = np.array(max_score_list)
+                        obs['iou'] = np.array(iou_list)
+                    elif cnt_target != 0 and cnt_place == 0:
+                        target_pred_bb, target_max_score, target_bb_iou = get_predicted_bb(
+                            prediction=prediction,
+                            pred_flags=target_indx_flags,
+                            perform_augs=True,
+                            model=model._object_detector,
+                            formatted_img=img_aug,
+                            gt_bb=bb_t_aug[0][None],
+                            gpu_id=gpu_id)
+                        predicted_bb_list.append(target_pred_bb)
+                        max_score_list.append(target_max_score)
+                        iou_list.append(target_bb_iou)
+
+                        obs['predicted_bb'] = np.array(predicted_bb_list)
+                        obs['predicted_score'] = np.array(max_score_list)
+                        obs['iou'] = np.array(iou_list)
+                    elif cnt_target == 0 and cnt_place == 0:
+                        pass
                     else:
                         obs['gt_bb'] = bb_t_aug
                         image = np.array(obs['camera_front_image'][:, :, ::-1])
+
                 elif concat_bb and predict_gt_bb:
                     obs['gt_bb'] = bb_t_aug[0]
                     obs['predicted_bb'] = bb_t_aug[0]
@@ -432,7 +473,7 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
                     image = np.array(obs['camera_front_image'][:, :, ::-1])
 
                 cv2.imwrite(
-                    f"step_test.png", image)
+                    f"step_test.png",  np.array(obs['camera_front_image'][:, :, ::-1]))
                 # if controller is not None and gt_env is not None:
                 #     gt_action, gt_status = controller.act(gt_obs)
                 #     gt_obs, gt_reward, gt_env_done, gt_info = gt_env.step(

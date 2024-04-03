@@ -36,6 +36,8 @@ class DiscreteMixLogistic(torch.distributions.Distribution):
         self._arg_constraints = arg_constraints
 
     def log_prob(self, value):
+        if len(value.shape) == 4 and value.shape[2] == 1:
+            value = value[:, :, 0, :]
         # reshape value to match convention
         B, n_mix = value.shape[0], self._log_scale.shape[-1]
 

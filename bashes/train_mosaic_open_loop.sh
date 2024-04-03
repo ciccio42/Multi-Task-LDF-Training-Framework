@@ -13,13 +13,13 @@ SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 POLICY='${mosaic}'
 
 SAVE_FREQ=-1
-LOG_FREQ=100
+LOG_FREQ=10
 VAL_FREQ=-1
 DEVICE=0
-DEBUG=true
-WAND_LOG=false
+DEBUG=false
+WAND_LOG=true
 
-EXP_NAME=1Task-Pick-Place-MOSAIC-DIFFERENT-OBJ
+EXP_NAME=1Task-Pick-Place-ACT-RECURRENT-4
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place_different_object #[pick_place,nut_assembly,button,stack_block] #[pick_place,nut_assembly,button,stack_block]
 
@@ -39,9 +39,11 @@ COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
 SET_SAME_N=2
+IS_RECURRENT=true
+ACTION_SEQUENCE=4
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=1
+LOADER_WORKERS=8
 NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=true
@@ -83,6 +85,7 @@ WIDTH=180
 
 COSINE_ANNEALING=false
 
+
 python ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
@@ -98,6 +101,7 @@ python ../training/train_scripts/train_any.py \
     vsize=${BSIZE} \
     epochs=${EPOCH} \
     rollout=${ROLLOUT} \
+    action_sequence=${ACTION_SEQUENCE} \
     dataset_cfg.normalize_action=${NORMALIZE_ACTION} \
     dataset_cfg.compute_obj_distribution=${COMPUTE_OBJ_DISTRIBUTION} \
     dataset_cfg.height=${HEIGHT} \
@@ -116,6 +120,7 @@ python ../training/train_scripts/train_any.py \
     augs.null_bb=${NULL_BB} \
     attn.img_cfg.pretrained=${PRETRAINED} \
     actions.adim=${ACTION_DIM} \
+    actions.is_recurrent=${IS_RECURRENT} \
     actions.n_mixtures=${N_MIXTURES} \
     actions.out_dim=${OUT_DIM} \
     attn.attn_ff=${ATTN_FF} \

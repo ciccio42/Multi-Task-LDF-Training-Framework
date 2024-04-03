@@ -20,6 +20,7 @@ vsize:          ${bsize} # optionally, set to a different batchsize for validati
 optimizer:      null #Adam # RMSProp
 loss: ""
 bb_sequence: 1
+action_sequence: 1
 task_names: null
 rollout: False
 dataset_target: 'multi_task_il.datasets.multi_task_datasets.MultiTaskPairedDataset'
@@ -97,6 +98,7 @@ dataset_cfg:
   demo_T:           4
   obs_T:            7
   bbs_T: ${bb_sequence}
+  action_T: ${action_sequence}
   normalize_action: True
   load_bb: True
   # x, y, z, e_x, e_y, e_z
@@ -223,6 +225,8 @@ actions:
   concat_demo_head:   False
   concat_demo_act:    True
   demo_mean:        ${policy.demo_mean}
+  is_recurrent: True
+  lstm_config: ${lstm}
 
 attn:
   embed_hidden:     256
@@ -242,69 +246,8 @@ attn:
     drop_dim:       3
     pretrained:     False 
 
-tosil:
-  _target_:         multi_task_il.models.baselines.InverseImitation 
-  latent_dim:       40
-  lstm_config:
-    out_dim:        32
-    n_layers:       1
-    is_rnn:         False
-  vis:
-    conv_drop_dim:  2
-    st_goal_attn:   True
-    n_st_attn:      2
-    use_pe:         True
-    attn_heads:     4
-  const_var:        True
-  sdim: 9
-  adim: 8
-  n_mixtures:       2
-  concat_state:     False
-  pred_point:       True
-  concat_target_obj_embedding: False
-  load_target_obj_detector: False
-  freeze_target_obj_detector: False
-  target_obj_detector_step: 0
-  target_obj_detector_path: null
-  transformer_feat: True
-  
 lstm:
-  _target_:         multi_task_il.models.baselines.InverseImitation 
-  latent_dim:       40
-  lstm_config:
-    out_dim:        32
-    n_layers:       1
-    is_rnn:         False
-  vis:
-    temp_convs:     False
-    lstm:           True
-    out_feature:    256
-    context_T:      4
-  n_mixtures:       2
-  const_var:        True
-  concat_state:     False
-  pred_point:       True
-  transformer_feat: False
-
-use_daml: False
-daml:
-  _target_: multi_task_il.models.baselines.DAMLNetwork
-  n_final_convs: 'resnet'
-  T_context: 4
-  maml_lr: 0.1
-  first_order: False
-  adim: 8 
-  n_mix: 2
-  const_var: True
-  concat_target_obj_embedding: False
-
-vima:
-  _target_: multi_task_il.models.vima.policy.Policy
-  embed_dim: 640
-  xf_n_layers: 7
-  sattn_n_heads: 20
-  xattn_n_heads: 20
-  views: ['front']
-  return_dist: True
-  concat_state: True  
-  ckpt_path: /home/frosa_loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/multi_task_il/models/vima/ckpt/92M.ckpt
+  hidden_dim: 64
+  n_layers:       1
+  forward_t: ${action_sequence}
+  

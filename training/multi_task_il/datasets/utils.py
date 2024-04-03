@@ -947,20 +947,30 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
         if load_action and (j >= 1 or ("real" in dataset_loader.agent_name and not dataset_loader.pick_next)):
             action_time = time.time()
             # Load action
-            if "real" in dataset_loader.agent_name:
-                action = step_t['action']
-                rot_quat = action[3:7]
-                rot_axis_angle = quat2axisangle(rot_quat)
-                action = normalize_action(
-                    action=np.concatenate(
-                        (action[:3], rot_axis_angle, [action[7]])),
-                    n_action_bin=dataset_loader._n_action_bin,
-                    action_ranges=dataset_loader._normalization_ranges)
+            action_list = list()
+            for next_t in range(dataset_loader._action_T):
+                if t+next_t <= len(traj)-1:
+                    action = step_t['action'] if next_t == 0 else traj.get(
+                        t+next_t)['action']
+                else:
+                    action = step_t['action']
+                if "real" in dataset_loader.agent_name:
+                    rot_quat = action[3:7]
+                    rot_axis_angle = quat2axisangle(rot_quat)
+                    action = normalize_action(
+                        action=np.concatenate(
+                            (action[:3], rot_axis_angle, [action[7]])),
+                        n_action_bin=dataset_loader._n_action_bin,
+                        action_ranges=dataset_loader._normalization_ranges)
+                else:
+                    if dataset_loader._normalize_action:
+                        action = normalize_action(
+                            action=action,
+                            n_action_bin=dataset_loader._n_action_bin,
+                            action_ranges=dataset_loader._normalization_ranges)
+                action_list.append(action)
 
-            else:
-                action = step_t['action'] if not dataset_loader._normalize_action else normalize_action(
-                    action=step_t['action'], n_action_bin=dataset_loader._n_action_bin, action_ranges=dataset_loader._normalization_ranges)
-            actions.append(action)
+            actions.append(action_list)
             logger.debug(f"Action: {time.time()-action_time}")
 
         if load_state:

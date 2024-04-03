@@ -5,31 +5,31 @@
 export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0,1,3
+export CUDA_VISIBLE_DEVICES=1
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
-POLICY='${mosaic}'
+POLICY='${lstm}'
 
 SAVE_FREQ=-1
 LOG_FREQ=10
 VAL_FREQ=-1
-DEVICE=[0,1,2]
-DEBUG=false
-WANDB_LOG=true
+DEVICE=0
+DEBUG=true
+WANDB_LOG=false
 
-EXP_NAME=4Task-MOSAIC-CTOD
+EXP_NAME=1Task-Nut-Assembly-MOSAIC-CTOD-KP-Mix-3
 PROJECT_NAME=${EXP_NAME}
-TASK_str=[pick_place,nut_assembly,stack_block,button]
+TASK_str="nut_assembly" #[pick_place,nut_assembly,stack_block,button]
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
-RESUME_STEP=238134
-RESUME=true 
+RESUME_PATH=1Task-Pick-Place-MOSAIC-CTOD-KP-Batch32
+RESUME_STEP=147522
+RESUME=false 
 
 LOAD_TARGET_OBJ_DETECTOR=true
-TARGET_OBJ_DETECTOR_STEP=91800 #68526 #129762 #198900 #65250
-TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/4Task-CTOD-Batch74/ #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-STACK-BLOCK-Cond-Target-Obj-Detector-Batch30/ #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-STACK-BLOCK-Cond-Target-Obj-Detector-Batch30/ #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Button-Cond-Target-Obj-Detector-Batch12 #/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent-Batch54/
+TARGET_OBJ_DETECTOR_STEP=37476 #68526 #129762 #198900 #65250
+TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assemly-KP-Batch63
 CONCAT_BB=true
 
 
@@ -39,10 +39,10 @@ BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=2
+SET_SAME_N=3
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=32
+LOADER_WORKERS=8
 NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=true
@@ -58,11 +58,11 @@ CONCAT_TARGET_OBJ_EMBEDDING=false
 CONCAT_STATE=false
 
 ACTION_DIM=7
-N_MIXTURES=14 #14 MT #7 2Task, Nut, button, stack #3 Pick-place
-OUT_DIM=64 #64 MT #64 2Task, Nut, button, stack #128 Pick-place
+N_MIXTURES=3 #14 MT #7 2Task, Nut, button, stack #3 Pick-place
+OUT_DIM=128 #64 MT #64 2Task, Nut, button, stack #128 Pick-place
 ATTN_FF=256 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
 COMPRESSOR_DIM=256 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
-HIDDEN_DIM=256 #256 MT #128 2Task, Nut, button, stack #512 Pick-place
+HIDDEN_DIM=512 #256 MT #128 2Task, Nut, button, stack #512 Pick-place
 CONCAT_DEMO_HEAD=false
 CONCAT_DEMO_ACT=true
 PRETRAINED=false
