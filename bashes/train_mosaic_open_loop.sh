@@ -5,7 +5,7 @@
 export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=2
+export CUDA_VISIBLE_DEVICES=1
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
@@ -21,7 +21,7 @@ WAND_LOG=true
 
 EXP_NAME=1Task-Pick-Place-ACT-RECURRENT-4
 PROJECT_NAME=${EXP_NAME}
-TASK_str=pick_place_different_object #[pick_place,nut_assembly,button,stack_block] #[pick_place,nut_assembly,button,stack_block]
+TASK_str=pick_place #[pick_place,nut_assembly,button,stack_block] #[pick_place,nut_assembly,button,stack_block]
 
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=40455

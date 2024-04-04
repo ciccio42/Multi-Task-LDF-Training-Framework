@@ -225,7 +225,7 @@ actions:
   concat_demo_head:   False
   concat_demo_act:    True
   demo_mean:        ${policy.demo_mean}
-  is_recurrent: True
+  is_recurrent: False
   lstm_config: ${lstm}
 
 attn:

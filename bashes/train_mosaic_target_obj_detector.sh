@@ -10,22 +10,22 @@ export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
-POLICY='${lstm}'
+POLICY='${mosaic}'
 
 SAVE_FREQ=-1
 LOG_FREQ=10
 VAL_FREQ=-1
 DEVICE=0
-DEBUG=true
-WANDB_LOG=false
+DEBUG=false
+WANDB_LOG=true
 
-EXP_NAME=1Task-Nut-Assembly-MOSAIC-CTOD-KP-Mix-3
+EXP_NAME=1Task-Nut-Assemly-MOSAIC-CTOD-KP
 PROJECT_NAME=${EXP_NAME}
 TASK_str="nut_assembly" #[pick_place,nut_assembly,stack_block,button]
 
-RESUME_PATH=1Task-Pick-Place-MOSAIC-CTOD-KP-Batch32
-RESUME_STEP=147522
-RESUME=false 
+RESUME_PATH=1Task-Nut-Assemly-MOSAIC-CTOD-KP-Batch27
+RESUME_STEP=184437
+RESUME=true 
 
 LOAD_TARGET_OBJ_DETECTOR=true
 TARGET_OBJ_DETECTOR_STEP=37476 #68526 #129762 #198900 #65250
@@ -34,7 +34,7 @@ CONCAT_BB=true
 
 
 ROLLOUT=false
-EPOCH=90
+EPOCH=180
 BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
@@ -58,11 +58,11 @@ CONCAT_TARGET_OBJ_EMBEDDING=false
 CONCAT_STATE=false
 
 ACTION_DIM=7
-N_MIXTURES=3 #14 MT #7 2Task, Nut, button, stack #3 Pick-place
-OUT_DIM=128 #64 MT #64 2Task, Nut, button, stack #128 Pick-place
-ATTN_FF=256 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
-COMPRESSOR_DIM=256 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
-HIDDEN_DIM=512 #256 MT #128 2Task, Nut, button, stack #512 Pick-place
+N_MIXTURES=7 #14 MT #7 2Task, Nut, button, stack #3 Pick-place
+OUT_DIM=64 #64 MT #64 2Task, Nut, button, stack #128 Pick-place
+ATTN_FF=128 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
+COMPRESSOR_DIM=128 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
+HIDDEN_DIM=128 #256 MT #128 2Task, Nut, button, stack #512 Pick-place
 CONCAT_DEMO_HEAD=false
 CONCAT_DEMO_ACT=true
 PRETRAINED=false
