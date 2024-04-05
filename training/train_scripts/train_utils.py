@@ -1082,6 +1082,7 @@ class Trainer:
         except:
             pass
         alpha = 0.16
+
         for e in range(epochs):
             frac = e / epochs
             # with tqdm(self._train_loader, unit="batch") as tepoch:
@@ -1126,7 +1127,7 @@ class Trainer:
                 else:
                     task_loss = torch.stack([l["loss_sum"]
                                             for name, l in task_losses.items()])
-                    if self._step == 0:
+                    if self._step == 0 or self.config.get('resume', False):
                         # init weights
                         weights_loss = torch.ones_like(task_loss)
                         weights_loss = torch.nn.Parameter(weights_loss)
@@ -1201,7 +1202,7 @@ class Trainer:
 
                 #### ---- Validation step ----####
                 # e != 0 and
-                if e != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
+                if False and e != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
                     print("Validation")
                     rollout = self.config.get("rollout", False)
                     model = model.eval()

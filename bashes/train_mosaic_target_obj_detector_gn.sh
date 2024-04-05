@@ -16,18 +16,18 @@ SAVE_FREQ=-1
 LOG_FREQ=10
 VAL_FREQ=-1
 DEVICE=0
-DEBUG=false
-WANDB_LOG=true
+DEBUG=true
+WANDB_LOG=false
 
 EXP_NAME=4Task-MOSAIC-CTOD-Grad-Norm
 PROJECT_NAME=${EXP_NAME}
 TASK_str=[pick_place,nut_assembly,stack_block,button]
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
-RESUME_STEP=238134
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch37/
+RESUME_STEP=5539
 RESUME=false 
 
-LOAD_TARGET_OBJ_DETECTOR=false
+LOAD_TARGET_OBJ_DETECTOR=true
 TARGET_OBJ_DETECTOR_STEP=91800
 TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/4Task-CTOD-Batch74/
 CONCAT_BB=true

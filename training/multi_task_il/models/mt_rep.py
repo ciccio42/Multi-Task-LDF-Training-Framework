@@ -836,7 +836,7 @@ class VideoImitation(nn.Module):
                 # 1. Get the index with target class
                 for indx in range(len(prediction['classes_final'])):
                     target_indx_flags = prediction['classes_final'][indx] == 1
-                    place_indx_flags = 0
+                    place_indx_flags = torch.zeros((1, 1))
                     if "KP" in self._target_obj_detector_path:
                         place_indx_flags = prediction['classes_final'][indx] == 2
 
@@ -859,7 +859,7 @@ class VideoImitation(nn.Module):
                             4).to(device=images.get_device())
 
                     # get place bb
-                    if torch.sum((place_indx_flags == True).int()) != 0:
+                    if torch.sum((place_indx_flags == True).int()) != 0 and "KP" in self._target_obj_detector_path:
                         # 2. Get the confidence scores for the target predictions and the the max
                         place_max_score_indx = torch.argmax(
                             prediction['conf_scores_final'][indx][place_indx_flags])
@@ -872,7 +872,7 @@ class VideoImitation(nn.Module):
                                                             mode='a2p')[0][place_indx_flags][place_max_score_indx]
                         predicted_bb = torch.concat(
                             (predicted_bb, predicted_bb_place))
-                    else:
+                    elif "KP" in self._target_obj_detector_path:
                         print("No bb place for some frames")
                         # Get index for target object
                         predicted_bb = torch.concat((predicted_bb, torch.zeros(
