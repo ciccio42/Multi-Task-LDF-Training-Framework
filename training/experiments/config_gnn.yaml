@@ -1,0 +1,99 @@
+debug: True
+EXPERT_DATA:    null 
+DEMO_DATA: null
+save_path:      null
+wandb_log: True 
+project_name: null
+log_freq: 1
+val_freq: 1
+print_freq: 1
+save_freq: 1
+save_optim:     True
+resume:         False
+resume_path:    null
+resume_step:    -1
+device:         0
+exp_name:       -1
+epochs:         10
+bsize:          30
+vsize:          ${bsize} # optionally, set to a different batchsize for validation loader
+optimizer:      null #Adam # RMSProp
+loss: ""
+task_names: null
+rollout: False
+dataset_target: 'multi_task_il_gnn.datasets.multi_task_gnn_dataset.MultiTaskGNNDataset'
+
+policy: ???  # set to any set of configs via command line, e.g. policy='${tosil}'
+
+# Train config
+train_cfg:
+  batch_size:           ${bsize}
+  val_size:             ${vsize}
+  lr:                   1e-3 #5e-4
+  optimizer:            ${optimizer}
+  epochs:               ${epochs}
+  log_freq:             ${log_freq}
+  save_freq:            ${save_freq}
+  print_freq:           ${print_freq}
+  val_freq:             ${val_freq}
+  dataset:              ${dataset_cfg}
+  sampler:              ${samplers}
+  early_stopping: ${early_stopping_cfg}
+  weight_decay:  0.05
+  lr_schedule: 'ReduceLROnPlateau' # ExponentialDecay
+
+# tasks related
+tasks:       ???
+single_task: False 
+exclude_task: False 
+use_all_tasks: False 
+set_same_n:   -1 
+limit_num_traj: -1
+limit_num_demo: -1
+defaults:
+  - tasks_cfgs:  7_tasks
+
+# dataset/loader/samplers
+loader_workers:   20
+samplers:        
+  batch_size:         ${bsize}
+  drop_last:          False
+  shuffle:            True 
+  # Policy 1: At each slot is assigned a RandomSampler
+  balancing_policy: 0 # 0, 1, 2 
+val_skip:             True # whether to let the samplers skip some **sub**tasks
+train_skip:           True
+
+dataset_cfg:
+  _target_:         ${dataset_target}
+  agent_root_dir:         ${EXPERT_DATA}
+  demo_root_dir:         ${DEMO_DATA}
+  mode:             ???
+  tasks_spec:       ${tasks}
+  height:           224 # 224 # 200 # 100
+  width:            224 # 224 # 360 # 180
+  split:            [0.90, 0.10]
+  demo_T:           4
+  agent_name: 'ur5e'
+  demo_name: 'panda'
+  data_augs: ${augs}
+  non_sequential: false
+  select_random_frames: True
+
+# early stopping configurator
+early_stopping_cfg:
+  patience: 10
+  delta: 1e-3
+
+augs:
+  brightness: [0.9, 1.1]
+  contrast: [0.9, 1.1]
+  saturation: [0.9, 1.1]
+  hue: [0.0, 0.0]
+  p: 0.1 
+
+
+gnn_policy:
+  _target_: multi_task_il.models.gnn.gnn_policy.GNNPolicy 
+
+
