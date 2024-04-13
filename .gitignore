@@ -145,6 +145,8 @@ wandb/*
 *.ckpt
 datasets/*
 bashes/test/*
+bashes/gnn/outputs
+/training/multi_task_il_gnn/models/gnn/outputs
 bashes/*.txt
 bashes/*.png
 *.png
