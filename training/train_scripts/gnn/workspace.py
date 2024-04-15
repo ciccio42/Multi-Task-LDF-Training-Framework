@@ -8,9 +8,10 @@ import wandb
 from multi_task_il.utils.lr_scheduler import build_scheduler
 from multi_task_il.utils.early_stopping import EarlyStopping
 import torch.nn as nn
-from utils import make_data_loaders
+from utils import make_data_loaders, node_classification_loss, collect_stats
 import numpy as np
 from tqdm import tqdm
+from collections import defaultdict
 from colorama import init as colorama_init
 from colorama import Fore
 from colorama import Style
@@ -119,27 +120,127 @@ class Trainer:
 
         alpha = 0.16
 
-        # if self.device_count > 1 and not isinstance(model, nn.DataParallel):
-        #     print("Training stage \n Device list: {}".format(self._device_list))
-        #     model = nn.DataParallel(model, device_ids=self._device_list).cuda()
-        # else:
-        #     model = model.to(self._device)
+        if self.device_count > 1 and not isinstance(model, nn.DataParallel):
+            print("Training stage \n Device list: {}".format(self._device_list))
+            model = nn.DataParallel(model, device_ids=self._device_list).cuda()
+        else:
+            model = model.to(self._device)
 
         # initialize optimizer and lr scheduler
-        # optim_weights = optim_weights if optim_weights is not None else model.parameters()
-        # optimizer, scheduler = self._build_optimizer_and_scheduler(
-        #     self.config.train_cfg.optimizer, optim_weights, optimizer_state_dict, self.train_cfg)
+        optim_weights = optim_weights if optim_weights is not None else model.parameters()
+        optimizer, scheduler = self._build_optimizer_and_scheduler(
+            self.config.train_cfg.optimizer, optim_weights, optimizer_state_dict, self.train_cfg)
 
-        # model = model.train()
-        # if not isinstance(model, nn.DataParallel):
-        #     model = model.to(self._device)
+        model = model.train()
+        if not isinstance(model, nn.DataParallel):
+            model = model.to(self._device)
         # summary(model)
 
         for e in range(epochs):
             frac = e / epochs
             # with tqdm(self._train_loader, unit="batch") as tepoch:
+            self.save_checkpoint(
+                model, optimizer, weights_fn, save_fn)
             for inputs in tqdm(self._train_loader):
-                pass
+                tolog = {}
+                # calculate loss here:
+                task_losses, task_accuracy = loss_function(
+                    self.config, self.train_cfg, self._device, model, inputs)
+                task_names = sorted(task_losses.keys())
+                torch.cuda.empty_cache()
+                # sum losses over tasks
+                optimizer.zero_grad()
+                weighted_task_loss = sum(
+                    [l["loss_sum"] * 1.0 for name, l in task_losses.items()])
+                weighted_task_loss.backward()
+                optimizer.step()
+
+                if self._step % log_freq == 0:
+                    train_print = collect_stats(
+                        self._step, task_losses, task_accuracy, prefix='train')
+
+                    if self.config.wandb_log:
+                        tolog['Train Step'] = self._step
+                        tolog['Epoch'] = e
+                        for task_name, losses in task_losses.items():
+                            for loss_name, loss_val in losses.items():
+                                tolog[f'train/{loss_name}/{task_name}'] = loss_val.item()
+                                tolog[f'train/{task_name}/{loss_name}'] = loss_val.item()
+
+                        for task_name, accuracy in task_accuracy.items():
+                            if 'global' not in task_name:
+                                for accuracy_name, accuracy_val in accuracy.items():
+                                    tolog[f'train/{accuracy_name}/{task_name}'] = accuracy_val
+                                    tolog[f'train/{task_name}/{accuracy_name}'] = accuracy_val
+
+                    if self._step % print_freq == 0:
+                        print(
+                            'Training epoch {1}/{2}, step {0}: \t '.format(self._step, e, epochs))
+                        print(train_print)
+
+                if self.config.wandb_log:
+                    wandb.log(tolog)
+
+                if self._step % val_freq == 0:
+                    # exhaust all data in val loader and take avg loss
+                    all_val_losses = {task: defaultdict(
+                        list) for task in task_names}
+                    all_val_acc = {task: defaultdict(
+                        list) for task in task_names}
+                    model = model.eval()
+                    for val_inputs in tqdm(self._val_loader):
+                        with torch.no_grad():
+                            val_task_losses, val_task_accuracy = loss_function(
+                                self.config,
+                                self.train_cfg,
+                                self._device,
+                                model,
+                                val_inputs,
+                                val=True
+                            )
+
+                        for task, losses in val_task_losses.items():
+                            for k, v in losses.items():
+                                all_val_losses[task][k].append(v)
+
+                        for task, accuracy in val_task_accuracy.items():
+                            if 'global' not in task:
+                                for k, v in accuracy.items():
+                                    all_val_acc[task][k].append(v)
+
+                    avg_losses = dict()
+                    for task, losses in all_val_losses.items():
+                        avg_losses[task] = {
+                            k: torch.mean(torch.stack(v)) for k, v in losses.items()}
+
+                    avg_accuracy = dict()
+                    for task, accuracy in all_val_acc.items():
+                        avg_accuracy[task] = dict()
+                        if 'global' not in task:
+                            for k, v in accuracy.items():
+                                avg_accuracy[task][k] = np.mean(np.array(v))
+
+                    val_print = collect_stats(
+                        self._step, avg_losses, avg_accuracy, prefix='val')
+                    print(val_print)
+                    if self.config.wandb_log:
+                        tolog['Val Step'] = self._step
+                        tolog['Epoch'] = e
+                        for task_name, losses in avg_losses.items():
+                            for loss_name, loss_val in losses.items():
+                                tolog[f'val/{loss_name}/{task_name}'] = loss_val.item()
+                                tolog[f'val/{task_name}/{loss_name}'] = loss_val.item()
+
+                        for task_name, accuracy in avg_accuracy.items():
+                            if 'global' not in task_name:
+                                for accuracy_name, accuracy_val in accuracy.items():
+                                    tolog[f'val/{accuracy_name}/{task_name}'] = accuracy_val
+                                    tolog[f'val/{task_name}/{accuracy_name}'] = accuracy_val
+
+                        wandb.log(tolog)
+
+                    model = model.train()
+                self._step += 1
 
     def save_checkpoint(self, model, optimizer, weights_fn=None, save_fn=None):
         if save_fn is not None:
@@ -289,7 +390,7 @@ class Workspace(object):
             self.trainer.save_dir, 'config.yaml'))
 
     def run(self):
-        loss_function = None
+        loss_function = node_classification_loss
 
         self.trainer.train(model=self.action_model,
                            optimizer_state_dict=self.optimizer_state_dict,

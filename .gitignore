@@ -146,6 +146,8 @@ wandb/*
 datasets/*
 bashes/test/*
 bashes/gnn/outputs
+bashes/gnn/wandb
+bashes/gnn/*.txt
 /training/multi_task_il_gnn/models/gnn/outputs
 bashes/*.txt
 bashes/*.png

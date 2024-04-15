@@ -1,7 +1,6 @@
 import pickle as pkl
 import glob
 import os
-from utils import Graph, OBJECTS_POS_DIM, NUM_OBJ_NUM_TARGET_PER_OBJ, compute_object_features, plot_graph
 import numpy as np
 from robosuite.utils.transform_utils import quat2axisangle
 from torch_geometric.data import Data

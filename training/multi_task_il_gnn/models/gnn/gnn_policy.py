@@ -18,6 +18,8 @@ from torchvision.models.video import r2plus1d_18, R2Plus1D_18_Weights
 import cv2
 import matplotlib.pyplot as plt
 import time
+from multi_task_il_gnn.models.gnn.lcg import LCGNnet
+from multi_task_il_gnn.datasets.read_scene_graph import read_pkl
 
 from colorama import init as colorama_init
 from colorama import Fore
@@ -146,13 +148,25 @@ class GNNPolicy(nn.Module):
                                          demo_ff_dim=cfg.demo_ff_dim,
                                          demo_linear_dim=cfg.demo_linear_dim
                                          )
+        print(f"{Fore.YELLOW}Build conditioning backbone{Style.RESET_ALL}")
+
+        self._cgn = LCGNnet(cfg.lcgnet_conf)
+        print(f"{Fore.YELLOW}Build CGN Network{Style.RESET_ALL}")
 
     def forward(self, inputs: dict, inference: bool = False):
         cond_video = inputs['demo']
+        scene_graph = inputs['node_features']
         # geometric_graph = inputs['agent_graph']
         cond_emb = self._cond_backbone(cond_video)
-        print(
-            f"{Fore.YELLOW}Generated cond-embedding with shape {cond_emb.shape}{Style.RESET_ALL}")
+        # print(
+        #     f"{Fore.YELLOW}Generated cond-embedding with shape {cond_emb.shape}{Style.RESET_ALL}")
+
+        logits = self._cgn(input=scene_graph,
+                           c_vect=cond_emb,
+                           run_vqa=self._cgn.cfg.BUILD_VQA,
+                           run_ref=self._cgn.cfg.BUILD_REF,
+                           run_node_classifier=self._cgn.cfg.BUILD_NODE_CLASSIFIER)
+        return logits
 
 
 @hydra.main(
@@ -171,6 +185,11 @@ def main(cfg):
     demo_T = 4
     inputs['demo'] = torch.rand(
         (4, 3, height, width),  dtype=torch.float).to('cuda:0')[None]  # B, T, C, W, H
+
+    # read example graphs
+    pkl_file_path = "/user/frosa/multi_task_lfd/ur_multitask_dataset/geometric_graphs/pick_place/ur5e_pick_place/task_00/traj000.pkl"
+    scene_graphs = read_pkl(file_path=pkl_file_path)[0].to('cuda:0')
+    inputs['scene_graph'] = scene_graphs
 
     cfg.gnn_policy.gnn_policy_cfg.height = 100
     cfg.gnn_policy.gnn_policy_cfg.width = 180

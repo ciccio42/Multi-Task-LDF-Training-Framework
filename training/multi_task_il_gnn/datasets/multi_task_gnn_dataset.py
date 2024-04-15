@@ -1,7 +1,7 @@
 import torch
 from torch_geometric.data import Dataset, download_url
 from collections import OrderedDict, defaultdict
-from multi_task_il_gnn.datasets.utils import create_train_val_dict, create_data_aug, make_demo
+from multi_task_il_gnn.datasets.utils import create_train_val_dict, create_data_aug, make_demo, NUM_OBJ_NUM_TARGET_PER_OBJ
 import time
 from multi_task_il_gnn.datasets import load_traj, load_graph
 import logging
@@ -85,10 +85,24 @@ class MultiTaskGNNDataset(Dataset):
         end = time.time()
         logger.debug(f"Loading time {end-start}")
 
+        # take node features from graph
+        node_features = agent_graph.x
+        # take node class from graph
+        class_labels = agent_graph.y
+        if task_name == 'pick_place':
+            num_objs = NUM_OBJ_NUM_TARGET_PER_OBJ[task_name][0]
+            num_targets = NUM_OBJ_NUM_TARGET_PER_OBJ[task_name][1]
+
+            obj_class = torch.zeros(num_objs+num_targets)
+            target_class = torch.zeros(num_objs+num_targets)
+
+            obj_class[:num_objs] = class_labels[:num_objs]
+            target_class[num_objs:] = class_labels[num_objs:]
+
         # start = time.time()
         demo_data = make_demo(self, demo_traj[0], task_name)
 
-        return {'demo_data': demo_data, 'traj': agent_graph, 'task_name': task_name, 'task_id': sub_task_id}
+        return {'demo_data': demo_data, 'node_features': node_features, 'obj_class': obj_class, 'target_class': target_class, 'task_name': task_name, 'task_id': sub_task_id}
 
     def _make_traj(self, traj, command, task_name, sub_task_id):
         pass

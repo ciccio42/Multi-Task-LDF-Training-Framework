@@ -5,7 +5,7 @@
 export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=2
+export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/geometric_graphs
@@ -17,10 +17,10 @@ SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
 DEVICE=0
-DEBUG=true
-WAND_LOG=false
+DEBUG=false
+WAND_LOG=true
 
-EXP_NAME=Prova_Train_GNN
+EXP_NAME=Train_GNN_Pick_Place
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place 
 
@@ -38,12 +38,12 @@ BALANCING_POLICY=0
 SET_SAME_N=3
 CONFIG_PATH=../../experiments
 CONFIG_NAME=config_gnn.yaml
-LOADER_WORKERS=1
+LOADER_WORKERS=8
 
 
 EARLY_STOPPING_PATIECE=-1
 OPTIMIZER='AdamW'
-LR=0.0005
+LR=0.0001
 WEIGHT_DECAY=0.0
 SCHEDULER=None
 
@@ -78,6 +78,8 @@ python ../../training/train_scripts/gnn/train.py \
     train_cfg.lr=${LR} \
     train_cfg.weight_decay=${WEIGHT_DECAY} \
     train_cfg.lr_schedule=${SCHEDULER} \
+    gnn_policy_cfg.height=${HEIGHT} \
+    gnn_policy_cfg.width=${WIDTH} \
     debug=${DEBUG} \
     wandb_log=${WAND_LOG} \
     resume=${RESUME} \
