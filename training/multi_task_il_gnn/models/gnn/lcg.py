@@ -18,6 +18,7 @@ class LCGN(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.cfg = cfg
+        self.gpu_id = cfg.gpu_id
         self.build_loc_ctx_init()
         self.build_extract_textual_command()
         self.build_propagate_message()
@@ -69,12 +70,12 @@ class LCGN(nn.Module):
                 None]  # B, N_nodes, Features
             B, N, F = local_features.shape
             entity_num = torch.from_numpy(
-                np.array([N]).astype(np.int64)).cuda()
+                np.array([N]).astype(np.int64)).to(self.gpu_id)
         else:
             B, N, F = input.shape
             local_features = input.to(torch.float32)
             entity_num = torch.from_numpy(
-                np.array([N]).astype(np.int64)).cuda()
+                np.array([N]).astype(np.int64)).to(self.gpu_id)
         # initialize vector embeddings
         x_loc, x_ctx, x_ctx_var_drop = self.loc_ctx_init(local_features)
         for t in range(self.cfg.MSG_ITER_NUM):
@@ -148,6 +149,7 @@ class LCGN(nn.Module):
         x_ctx_var_drop = ops.generate_scaled_var_drop_mask(
             x_ctx.size(),
             keep_prob=(self.cfg.memoryDropout if self.training else 1.))
+        x_ctx_var_drop = x_ctx_var_drop.to(self.gpu_id)
         return x_loc, x_ctx, x_ctx_var_drop
 
 
@@ -157,6 +159,7 @@ class LCGNnet(nn.Module):
         super().__init__()
         self.cfg = cfg
         self.lcgn = LCGN(cfg=cfg)
+        self.gpu_id = cfg.gpu_id
         if cfg.BUILD_VQA:
             self.single_hop = SingleHop(cfg=cfg.single_hop_cfg)
             print(f"{Fore.YELLOW} Build SingleHop module{Style.RESET_ALL}")
@@ -183,7 +186,7 @@ class LCGNnet(nn.Module):
 
         B, N, F = local_features.shape
         entity_num = torch.from_numpy(
-            np.array([N]).astype(np.int64)).cuda()
+            np.array([N]).astype(np.int64)).to(self.gpu_id)
         # LCGN
         x_out = self.lcgn(
             input=local_features,

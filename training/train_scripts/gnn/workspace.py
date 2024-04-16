@@ -135,7 +135,10 @@ class Trainer:
         if not isinstance(model, nn.DataParallel):
             model = model.to(self._device)
         # summary(model)
-
+        obj_loss = nn.CrossEntropyLoss(reduction='none')
+        target_loss = nn.CrossEntropyLoss(reduction='none')
+        obj_loss_val = nn.CrossEntropyLoss(reduction='none')
+        target_loss_val = nn.CrossEntropyLoss(reduction='none')
         for e in range(epochs):
             frac = e / epochs
             # with tqdm(self._train_loader, unit="batch") as tepoch:
@@ -145,7 +148,7 @@ class Trainer:
                 tolog = {}
                 # calculate loss here:
                 task_losses, task_accuracy = loss_function(
-                    self.config, self.train_cfg, self._device, model, inputs)
+                    self.config, self.train_cfg, self._device, model, inputs, obj_loss, target_loss)
                 task_names = sorted(task_losses.keys())
                 torch.cuda.empty_cache()
                 # sum losses over tasks
@@ -196,6 +199,8 @@ class Trainer:
                                 self._device,
                                 model,
                                 val_inputs,
+                                obj_loss_val,
+                                target_loss_val,
                                 val=True
                             )
 
@@ -362,12 +367,11 @@ class Workspace(object):
                 self._rpath, map_location=torch.device('cpu')))
             self.optimizer_state_dict = None
             if resume:
-                pass
                 # create path for loading state dict
-                # optimizer_state_dict = join(
-                #     cfg.save_path, cfg.resume_path, f"model_save-optim.pt")
-                # self.optimizer_state_dict = torch.load(
-                #     optimizer_state_dict, map_location=torch.device('cpu'))
+                optimizer_state_dict = join(
+                    cfg.save_path, cfg.resume_path, f"model_save-optim.pt")
+                self.optimizer_state_dict = torch.load(
+                    optimizer_state_dict, map_location=torch.device('cpu'))
         else:
             self.optimizer_state_dict = None
 

@@ -435,9 +435,15 @@ def get_action(model, target_obj_dec, bb, predict_gt_bb, gt_classes, states, ima
             else:
                 predicted_prob = None
     # action[3:7] = [1.0, 1.0, 0.0, 0.0]
-    action = denormalize_action(action, action_ranges)
-    if not real:
-        action[-1] = 1 if action[-1] > 0 and n_steps < max_T - 1 else -1
+    if len(action.shape) != 1:
+        action_list = list()
+        for t in range(action.shape[0]):
+            action_list.append(denormalize_action(action[t], action_ranges))
+        action = action_list
+    else:
+        action = denormalize_action(action, action_ranges)
+        if not real:
+            action[-1] = 1 if action[-1] > 0 and n_steps < max_T - 1 else -1
 
     return action, predicted_prob, target_obj_embedding, out.get('activation_map', None), out.get('target_obj_prediction', None), out.get('predicted_bb', None)
 
@@ -1611,3 +1617,8 @@ def get_eval_fn(env_name):
         return block_stack_eval
     else:
         assert NotImplementedError
+
+
+def compute_error(action_t, gt_action):
+    error_pos = action_t[:3]-gt_action[:3]
+    print(f"Positional error {error_pos}")

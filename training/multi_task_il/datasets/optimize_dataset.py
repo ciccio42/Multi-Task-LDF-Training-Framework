@@ -356,6 +356,7 @@ def opt_traj(task_name, task_spec, out_path, pkl_file_path):
                             thickness=2)
                         if t == len(sample['traj'])-1:
                             cv2.imwrite("prova_bin_bb.jpg", image)
+            elif 'button' in task_name:
 
         if "real" in pkl_file_path or args.real:
             gripper = sample['traj'].get(t)['action'][-1]

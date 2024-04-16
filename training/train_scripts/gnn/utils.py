@@ -9,6 +9,7 @@ from hydra.utils import instantiate
 from torch.utils.data import DataLoader
 from torch.utils.data._utils.collate import default_collate
 import torch.nn.functional as F
+from torch.nn import CrossEntropyLoss
 from multi_task_il_gnn.datasets.batch_sampler import BatchSampler
 from colorama import init as colorama_init
 from colorama import Fore
@@ -155,7 +156,7 @@ def compute_accuracy(obj_logits, target_logits, obj_gt, target_gt):
     return obj_accuracy, target_accuracy
 
 
-def node_classification_loss(config, train_cfg, device, model, task_inputs, val=False):
+def node_classification_loss(config, train_cfg, device, model, task_inputs, obj_loss, target_loss, val=False):
     model_inputs = defaultdict()
     task_to_idx = dict()
     task_losses = OrderedDict()
@@ -188,14 +189,11 @@ def node_classification_loss(config, train_cfg, device, model, task_inputs, val=
         obj_logits = out[0].squeeze()
         target_logits = out[1].squeeze()
         # compute loss
-        loss_obj = F.binary_cross_entropy_with_logits(input=obj_logits,
-                                                      target=model_inputs['obj_class'],
-                                                      reduction='none')
-        loss_target = F.binary_cross_entropy_with_logits(
+        loss_obj = obj_loss(input=obj_logits,
+                            target=model_inputs['obj_class'])
+        loss_target = target_loss(
             input=target_logits,
-            target=model_inputs['target_class'],
-            reduction='none',
-        )
+            target=model_inputs['target_class'])
         complete_loss = loss_obj+loss_target
 
         # compute global accuracy

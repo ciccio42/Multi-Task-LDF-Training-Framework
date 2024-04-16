@@ -58,6 +58,7 @@ ENV_INFORMATION = {
     'img_dim': [200, 360]
 }
 
+NUM_FEATURES = 12
 
 def plot_graph(data, save_path=None):
     # Extracting node features and edge indices

@@ -80,8 +80,12 @@ class CustomOSCPoseWrapper(Wrapper):
                 new_width = int(obs[f"{camera_name}_image"].shape[1] * 1)
                 new_height = int(obs[f"{camera_name}_image"].shape[0] * 1)
                 new_dim = (new_width, new_height)
+                cv2.imwrite("pre_flip_debug_img.png",
+                            obs[f"{camera_name}_image"])
                 new_obs[f"{camera_name}_image"] = cv2.resize(
                     obs[f"{camera_name}_image"].copy()[::-1,], new_dim)
+                cv2.imwrite("post_flip_debug_img.png",
+                            new_obs[f"{camera_name}_image"])
                 if self.env.camera_depths:
                     new_obs[f"{camera_name}_depth_norm"] = np.array(
                         obs[f"{camera_name}_depth"].copy()[::-1]*255, dtype=np.uint8)

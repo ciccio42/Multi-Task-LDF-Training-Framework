@@ -11,7 +11,7 @@ export HYDRA_FULL_ERROR=1
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/
 POLICY='${cond_target_obj_detector}'
-DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
+DATASET_TARGET=multi_task_il.datasets.dataset_obj_detection.DatasetObjDetection
 
 SAVE_FREQ=-1
 LOG_FREQ=100
@@ -21,7 +21,7 @@ DEVICE=0
 DEBUG=true
 WANDB_LOG=false
 
-EXP_NAME=1Task-CTOD-All-Obj
+EXP_NAME=1Task-Obj-Detection
 PROJECT_NAME=${EXP_NAME}
 TASK_str="pick_place" #["pick_place","nut_assembly","stack_block","button"]
 
@@ -33,7 +33,7 @@ BSIZE=80 #16 #32
 
 COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
-CONFIG_NAME=config_cond_target_obj_detector.yaml
+CONFIG_NAME=config_obj_detector.yaml
 LOADER_WORKERS=8
 BALANCING_POLICY=0
 SET_SAME_N=2

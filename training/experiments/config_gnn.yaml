@@ -94,6 +94,66 @@ augs:
 
 
 gnn_policy:
-  _target_: multi_task_il.models.gnn.gnn_policy.GNNPolicy 
+  _target_: multi_task_il_gnn.models.gnn.gnn_policy.GNNPolicy 
+  cfg: ${gnn_policy_cfg}
 
 
+gnn_policy_cfg:
+  height: 224
+  width: 224
+  demo_T: ${dataset_cfg.demo_T}
+  cond_backbone_name: r2plus1d_18
+  cond_video: True
+  pretrained: False
+  dim_H: 14
+  dim_W: 14
+  n_channels: 256
+  conv_drop_dim: 3
+  gpu_id: 0
+  demo_ff_dim: [128, 64, 32]
+  demo_linear_dim: [512, 512] #[512, 256, 128]
+  task_embedding_dim: 128
+  lcgnet_conf: ${lcgnet_conf}
+
+lcgnet_conf:
+  BUILD_VQA: false
+  BUILD_REF: false
+  BUILD_NODE_CLASSIFIER: true
+  FEAT_TYPE: 'spatial'  # 'spatial' only, for now
+  MASK_PADUNK_IN_LOGITS: True
+  STEM_LINEAR: True
+  STEM_NORMALIZE: True
+  STEM_RENORMALIZE: False
+  memoryDropout: 0.85
+  STEM_CNN: False
+  D_FEAT: 11
+  CTX_DIM: 512 
+  stemDropout: 1.0
+  STEM_CNN_DIM: 512
+  CMD_DIM: 512
+  MSG_ITER_NUM: 4
+  readDropout: 0.85
+  gpu_id: -1
+
+
+  single_hop_cfg: ${single_hop_cfg}
+  classifier_cfg: ${classifier_cfg}
+  node_classifier_cfg:  ${node_classifier_cfg}
+
+single_hop_cfg:
+  ENC_DIM: 512
+  CTX_DIM: 512
+
+classifier_cfg:
+  CMD_DIM: 512
+  CTX_DIM: 512
+  OUT_QUESTION_MUL: True
+  outputDropout: 0.85
+  OUT_CLASSIFIER_DIM: 512
+  NUM_CLASSES: 8
+
+node_classifier_cfg:
+  INPUT_DIM: 512
+  CONCAT_C_VEC: true
+  INTERMEDIATE_LAYER_DIM: [256, 128, 64]
+  OUT_CLASSES: 1

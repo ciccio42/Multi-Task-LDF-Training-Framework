@@ -8,7 +8,12 @@ setup(
     package_data={"multi_task_il.datasets": ['*'],
                   "multi_task_il.utils": ['*'],
                   "multi_task_il.models": ['*'],
-                  "multi_task_il.train_scripts": ['*']}
+                  "multi_task_il_gnn.datasets": ['*'],
+                  "multi_task_il_gnn.utils": ['*'],
+                  "multi_task_il_gnn.models": ['*'],
+                  "train_scripts.gnn": ['*'],
+                  "train_scripts": ['*']
+                  }
 )
 
 if __name__ == "__main__":

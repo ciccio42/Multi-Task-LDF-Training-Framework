@@ -1,4 +1,4 @@
-debug: False
+debug: True
 EXPERT_DATA:    null 
 save_path:      null
 wandb_log: True 

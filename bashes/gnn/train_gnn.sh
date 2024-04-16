@@ -20,15 +20,10 @@ DEVICE=0
 DEBUG=false
 WAND_LOG=true
 
-EXP_NAME=Train_GNN_Pick_Place
-PROJECT_NAME=${EXP_NAME}
-TASK_str=pick_place 
-
-
 ROLLOUT=false
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-BUTTON-MOSAIC-ALL-OBJ-One-Variation-Left-Batch25/
-RESUME_STEP=6402
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Train_GNN_Pick_Place-lr-0.0005-Batch48
+RESUME_STEP=24300
 RESUME=false
 
 EPOCH=90
@@ -38,17 +33,21 @@ BALANCING_POLICY=0
 SET_SAME_N=3
 CONFIG_PATH=../../experiments
 CONFIG_NAME=config_gnn.yaml
-LOADER_WORKERS=8
+LOADER_WORKERS=16
 
 
 EARLY_STOPPING_PATIECE=-1
 OPTIMIZER='AdamW'
-LR=0.0001
+LR=0.0005
 WEIGHT_DECAY=0.0
 SCHEDULER=None
 
 HEIGHT=100
 WIDTH=180
+
+EXP_NAME=Train_GNN_Pick_Place-lr-${LR}
+PROJECT_NAME=${EXP_NAME}
+TASK_str=pick_place 
 
 python ../../training/train_scripts/gnn/train.py \
     --config-path ${CONFIG_PATH} \

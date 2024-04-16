@@ -790,7 +790,148 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         # 1 Target
         # 0 No-target
         # 2 Target-plase
-        # 3 No-Targe-place
+        # 3 No-Target-place
+
+        if i == 0:
+            cl.append(1)
+        elif i == 1:
+            cl.append(0)
+        elif i == 2:
+            cl.append(2)
+        elif i == 3:
+            cl.append(3)
+
+    return np.array(bb), np.array(cl)
+
+
+def create_gt_bb_all_obj(dataset_loader, traj, step_t, task_name, distractor=False, command=None, subtask_id=-1, agent_task_id=-1, take_place_loc=False):
+    bb = []
+    cl = []
+
+    if subtask_id == -1:
+        # 1. Get Target Object
+        if task_name != "stack_block":
+            if task_name != "button":
+                target_obj_id = step_t['obs']['target-object']
+            else:
+                target_obj_id = ENV_OBJECTS['button']['obj_names_to_id'][step_t['obs']
+                                                                         ['target-object']]
+        else:
+            agent_target = 0
+    else:
+        if task_name != "stack_block":
+            target_obj_id = int(
+                subtask_id/NUM_VARIATION_PER_OBEJECT[task_name][0])
+            target_place_id = int(subtask_id %
+                                  NUM_VARIATION_PER_OBEJECT[task_name][0])
+        else:
+            demo_target = STACK_BLOCK_TASK_ID_SEQUENCE[subtask_id][0]
+            agent_target = STACK_BLOCK_TASK_ID_SEQUENCE[agent_task_id].find(
+                demo_target)
+        # if target_obj_id != step_t['obs']['target-object']:
+        #     print("different-objects")
+
+    if task_name == 'pick_place':
+        num_objects = 3
+    elif task_name == 'nut_assembly':
+        num_objects = 2
+    elif task_name == 'button':
+        num_objects = 5
+        target_obj_id = ENV_OBJECTS['button']['obj_names_to_id'][ENV_OBJECTS['button']
+                                                                 ['obj_names'][target_obj_id]]
+    if task_name != "stack_block":
+        # select randomly another object
+        no_target_obj_id = target_obj_id
+        while no_target_obj_id == target_obj_id:
+            no_target_obj_id = random.randint(
+                0, num_objects)
+        if take_place_loc:
+            # select randomly another place
+            no_target_place_id = target_place_id
+            while no_target_place_id == target_place_id:
+                no_target_place_id = random.randint(
+                    0, num_objects)
+    else:
+        obj_list = ["cubeA", "cubeB", "cubeC"]
+        agent_target_name = obj_list.pop(agent_target)
+        no_target_obj_name = random.choice(obj_list)
+
+    try:
+        dict_keys = list(step_t['obs']['obj_bb']['camera_front'].keys())
+        if take_place_loc:
+            target_place_id = target_place_id + \
+                NUM_VARIATION_PER_OBEJECT[task_name][0] + \
+                1*(task_name == 'pick_place')
+            no_target_place_id = no_target_place_id + \
+                NUM_VARIATION_PER_OBEJECT[task_name][0] + \
+                1*(task_name == 'pick_place')
+    except:
+        dict_keys = list(step_t['obs']['obj_bb'].keys())
+
+    if distractor:
+        end = 2 * (2*take_place_loc)
+    else:
+        end = 1
+
+    for i in range(end):
+        if task_name != "stack_block":
+            if i == 0:
+                object_name = dict_keys[target_obj_id]
+            elif i == 1 and distractor:
+                object_name = dict_keys[no_target_obj_id]
+            elif i == 2 and distractor:
+                object_name = dict_keys[target_place_id]
+            elif i == 3 and distractor:
+                object_name = dict_keys[no_target_place_id]
+        else:
+            if i == 0:
+                object_name = agent_target_name
+            elif i != 0 and distractor:
+                object_name = no_target_obj_name
+
+        try:
+            if not getattr(dataset_loader, "real", False):
+                top_left = step_t['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner']
+                bottom_right = step_t['obs']['obj_bb']["camera_front"][object_name]['upper_left_corner']
+            else:
+                top_left = step_t['obs']['obj_bb']["camera_front"][object_name]['upper_left_corner']
+                bottom_right = step_t['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner']
+        except:
+            top_left = step_t['obs']['obj_bb'][object_name]['upper_left_corner']
+            bottom_right = step_t['obs']['obj_bb'][object_name]['bottom_right_corner']
+
+        # 2. Get stored BB
+        top_left_x = top_left[0]
+        top_left_y = top_left[1]
+        # print(f"Top-Left X {top_left_x} - Top-Left Y {top_left_y}")
+        bottom_right_x = bottom_right[0]
+        bottom_right_y = bottom_right[1]
+
+        # test GT
+        if DEBUG:
+            if i == 0 or i == 2:
+                color = (0, 255, 0)
+                image = np.array(
+                    step_t['obs']['camera_front_image'][:, :, ::-1])
+            else:
+                color = (255, 0, 0)
+            image = cv2.rectangle(image,
+                                  (int(top_left_x),
+                                   int(top_left_y)),
+                                  (int(bottom_right_x),
+                                   int(bottom_right_y)),
+                                  color=color,
+                                  thickness=1)
+            if DEBUG:
+                cv2.imwrite("GT_bb_prova.png", image)
+
+        bb.append([top_left_x, top_left_y,
+                   bottom_right_x, bottom_right_y])
+
+        # 1 Target
+        # 0 No-target
+        # 2 Target-plase
+        # 3 No-Target-place
 
         if i == 0:
             cl.append(1)
@@ -874,6 +1015,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                                                  subtask_id=subtask_id,
                                                  agent_task_id=agent_task_id,
                                                  take_place_loc=take_place_loc)
+
             logger.debug(f"BB time {time.time()-bb_time}")
         else:
             bb_frame, class_frame = create_gt_bb_sequence(dataset_loader=dataset_loader,
@@ -1347,6 +1489,211 @@ class TrajectoryBatchSampler(Sampler):
                 self.demo_task_iterators[task_name][sub_task] = iter(
                     RandomSampler(sub_idxs))
                 # print('subtask indexs:', sub_task, max(sub_idxs))
+
+        n_tasks = len(self.agent_task_samplers.keys())
+        n_total = sum([info['size'] for info in self.task_info.values()])
+
+        self.idx_map = OrderedDict()
+        idx = 0
+        for spec in tasks_spec:
+            name = spec.name
+            _ids = spec.get('task_ids', None)
+            _skip_ids = spec.get('skip_ids', [])
+            n = spec.get('n_per_task', None)
+            assert (
+                _ids and n), 'Must specify which subtask ids to use and how many is contained in each batch'
+            info = self.task_info[name]
+            subtask_names = info.get('sub_id_to_name')
+            for subtask in subtask_names.values():
+                for _ in range(n):
+                    # position idx of batch is a sample of task [name] subtask [subtask]
+                    self.idx_map[idx] = (name, subtask)
+                    idx += 1
+                sub_length = int(info['traj_per_subtask'] / n)
+                self.task_info[name]['sampler_len'] = max(
+                    sub_length, self.task_info[name]['sampler_len'])
+        # print("Index map:", self.idx_map)
+
+        self.max_len = epoch_steps
+        print('Max length for sampler iterator:', self.max_len)
+        self.n_tasks = n_tasks
+        self.epoch_steps = epoch_steps
+
+        assert idx == batch_size, "The constructed batch size {} doesn't match desired {}".format(
+            idx, batch_size)
+        self.batch_size = idx
+        self.drop_last = drop_last
+        print("Shuffling to break the task ordering in each batch? ", self.shuffle)
+
+    def __iter__(self):
+        """Given task families A,B,C, each has sub-tasks A00, A01,...
+        Fix a total self.batch_size, sample different numbers of datapoints from
+        each task"""
+        batch = []
+        print("Reset agent_demo_pair")
+        agent_demo_pair = dict()
+        for i in range(self.max_len):
+            batch = []
+            if i % self.epoch_steps == 0:
+                print("Reset agent_demo_pair")
+                agent_demo_pair = dict()
+
+            # for each sample in the batch
+            for idx in range(self.batch_size):
+                (name, sub_task) = self.idx_map[idx]
+
+                agent_sampler = self.agent_task_samplers[name][sub_task]
+                agent_iterator = self.agent_task_iterators[name][sub_task]
+
+                try:
+                    agent_indx = self.agent_subtask_to_idx[name][sub_task][next(
+                        agent_iterator)]
+                except StopIteration:  # print('early sstop:', i, name)
+                    # re-start the smaller-sized tasks
+                    agent_iterator = iter(agent_sampler)
+                    agent_indx = self.agent_subtask_to_idx[name][sub_task][next(
+                        agent_iterator)]
+                    self.agent_task_iterators[name][sub_task] = agent_iterator
+
+                # check if the agent_indx has already sampled
+                if agent_demo_pair.get(agent_indx, None) is None:
+                    demo_sampler = self.demo_task_samplers[name][sub_task]
+                    demo_iterator = self.demo_task_iterators[name][sub_task]
+                    # new agent_indx in epoch
+                    # sample demo for current
+                    try:
+                        demo_indx = self.demo_subtask_to_idx[name][sub_task][next(
+                            demo_iterator)]
+                    except StopIteration:  # print('early sstop:', i, name)
+                        # re-start the smaller-sized tasks
+                        demo_iterator = iter(demo_sampler)
+                        demo_indx = self.demo_subtask_to_idx[name][sub_task][next(
+                            demo_iterator)]
+                        self.demo_task_iterators[name][sub_task] = demo_iterator
+                    agent_demo_pair[agent_indx] = demo_indx
+
+                batch.append([agent_indx, agent_demo_pair[agent_indx]])
+
+            if len(batch) == self.batch_size:
+                if self.shuffle:
+                    random.shuffle(batch)
+                yield batch
+                batch = []
+            if len(batch) > 0 and not self.drop_last:
+                if self.shuffle:
+                    random.shuffle(batch)
+                yield batch
+
+    def __len__(self):
+        # Since different task may have different data sizes,
+        # define total length of sampler as number of iterations to
+        # exhaust the last task
+        print(f"Sampler max-len {self.max_len}")
+        return self.max_len
+
+
+class AgentBatchSampler(Sampler):
+
+    def __init__(
+        self,
+        agent_task_to_idx,
+        agent_subtask_to_idx,
+        sampler_spec=dict(),
+        tasks_spec=dict(),
+        n_step=0,
+        epoch_steps=0
+    ):
+
+        batch_size = sampler_spec.get('batch_size', 30)
+        drop_last = sampler_spec.get('drop_last', False)
+
+        if not isinstance(batch_size, int) or isinstance(batch_size, bool) or \
+                batch_size <= 0:
+            raise ValueError("batch_size should be a positive integer value, "
+                             "but got batch_size={}".format(batch_size))
+        if not isinstance(drop_last, bool):
+            raise ValueError("drop_last should be a boolean value, but got "
+                             "drop_last={}".format(drop_last))
+
+        self.shuffle = sampler_spec.get('shuffle', False)
+
+        if not isinstance(batch_size, int) or isinstance(batch_size, bool) or \
+                batch_size <= 0:
+            raise ValueError("batch_size should be a positive integer value, "
+                             "but got batch_size={}".format(batch_size))
+        if not isinstance(drop_last, bool):
+            raise ValueError("drop_last should be a boolean value, but got "
+                             "drop_last={}".format(drop_last))
+
+        self.task_info = OrderedDict()
+        self.balancing_policy = sampler_spec.get('balancing_policy', 0)
+        self.num_step = n_step
+
+        # Create sampler for agent trajectories
+        self.agent_task_samplers = OrderedDict()
+        self.agent_task_iterators = OrderedDict()
+        self.agent_task_to_idx = agent_task_to_idx
+        self.agent_subtask_to_idx = agent_subtask_to_idx
+        for spec in tasks_spec:
+            task_name = spec.name
+            idxs = agent_task_to_idx.get(task_name)
+            self.agent_task_samplers[task_name] = OrderedDict(
+                {'all_sub_tasks': RandomSampler(data_source=idxs,
+                                                replacement=True,
+                                                num_samples=1)})  # uniformly draw from union of all sub-tasks
+            self.agent_task_iterators[task_name] = OrderedDict(
+                {'all_sub_tasks': iter(RandomSampler(data_source=idxs,
+                                                     replacement=True,
+                                                     num_samples=1))})
+            assert task_name in agent_subtask_to_idx.keys(), \
+                'Mismatch between {} task idxs and subtasks!'.format(
+                    task_name)
+            num_loaded_sub_tasks = len(agent_subtask_to_idx[task_name].keys())
+            first_id = list(agent_subtask_to_idx[task_name].keys())[0]
+
+            sub_task_size = len(agent_subtask_to_idx[task_name].get(first_id))
+            print("Task {} loaded {} subtasks, starting from {}, should all have sizes {}".format(
+                task_name, num_loaded_sub_tasks, first_id, sub_task_size))
+
+            for sub_task, sub_idxs in agent_subtask_to_idx[task_name].items():
+
+                self.agent_task_samplers[task_name][sub_task] = RandomSampler(
+                    data_source=sub_idxs,
+                    replacement=True,
+                    num_samples=1)
+                assert len(sub_idxs) == sub_task_size, \
+                    'Got uneven data sizes for sub-{} under the task {}!'.format(
+                        sub_task, task_name)
+                self.agent_task_iterators[task_name][sub_task] = iter(
+                    RandomSampler(data_source=sub_idxs,
+                                  replacement=True,
+                                  num_samples=1))
+                # print('subtask indexs:', sub_task, max(sub_idxs))
+            curr_task_info = {
+                'size':         len(idxs),
+                'n_tasks':      len(agent_subtask_to_idx[task_name].keys()),
+                'sub_id_to_name': {i: name for i, name in enumerate(agent_subtask_to_idx[task_name].keys())},
+                'traj_per_subtask': sub_task_size,
+                'sampler_len': -1  # to be decided below
+            }
+            self.task_info[task_name] = curr_task_info
+
+        # Create sampler for demo trajectories
+        self.demo_task_samplers = OrderedDict()
+        self.demo_task_iterators = OrderedDict()
+        for spec in tasks_spec:
+            task_name = spec.name
+            self.demo_task_samplers[task_name] = OrderedDict(
+                {'all_sub_tasks': RandomSampler(data_source=idxs,
+                                                replacement=True,
+                                                num_samples=1)})  # uniformly draw from union of all sub-tasks
+            self.demo_task_iterators[task_name] = OrderedDict(
+                {'all_sub_tasks': iter(RandomSampler(data_source=idxs,
+                                                     replacement=True,
+                                                     num_samples=1))})
+
+            print("Task {} loaded {} subtasks, starting from {}, should all have sizes {}".format(
+                task_name, num_loaded_sub_tasks, first_id, sub_task_size))
 
         n_tasks = len(self.agent_task_samplers.keys())
         n_total = sum([info['size'] for info in self.task_info.values()])

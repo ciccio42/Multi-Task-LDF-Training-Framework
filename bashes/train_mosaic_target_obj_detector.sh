@@ -5,7 +5,7 @@
 export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=3
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
@@ -16,16 +16,16 @@ SAVE_FREQ=-1
 LOG_FREQ=10
 VAL_FREQ=-1
 DEVICE=0
-DEBUG=false
-WANDB_LOG=true
+DEBUG=true
+WANDB_LOG=false
 
-EXP_NAME=1Task-Nut-Assemly-MOSAIC-CTOD-KP
+EXP_NAME=1Task-Nut-Assemly-MOSAIC-CTOD-KP-No-Change
 PROJECT_NAME=${EXP_NAME}
 TASK_str="nut_assembly" #[pick_place,nut_assembly,stack_block,button]
 
 RESUME_PATH=1Task-Nut-Assemly-MOSAIC-CTOD-KP-Batch27
 RESUME_STEP=184437
-RESUME=true 
+RESUME=false 
 
 LOAD_TARGET_OBJ_DETECTOR=true
 TARGET_OBJ_DETECTOR_STEP=37476 #68526 #129762 #198900 #65250
@@ -42,8 +42,9 @@ BALANCING_POLICY=0
 SET_SAME_N=3
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=8
+LOADER_WORKERS=1
 NORMALIZE_ACTION=true
+CHANGE_COMMAND_EPOCH=true
 
 LOAD_CONTRASTIVE=true
 CONTRASTIVE_PRE=1.0
@@ -100,6 +101,7 @@ python ../training/train_scripts/train_any.py \
     rollout=${ROLLOUT} \
     dataset_cfg.normalize_action=${NORMALIZE_ACTION} \
     dataset_cfg.compute_obj_distribution=${COMPUTE_OBJ_DISTRIBUTION} \
+    dataset_cfg.change_command_epoch=${CHANGE_COMMAND_EPOCH} \
     dataset_cfg.height=${HEIGHT} \
     dataset_cfg.width=${WIDTH} \
     samplers.balancing_policy=${BALANCING_POLICY} \

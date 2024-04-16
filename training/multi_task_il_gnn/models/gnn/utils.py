@@ -71,7 +71,7 @@ class NodeClassifier(nn.Module):
 
         if self.cfg.CONCAT_C_VEC:
             input = torch.cat(
-                [x_nodes, c_vect[:, None, :].repeat(1, 8, 1)], dim=-1)
+                [x_nodes, c_vect[:, None, :].repeat(1, x_nodes.shape[1], 1)], dim=-1)
         else:
             input = x_nodes
 

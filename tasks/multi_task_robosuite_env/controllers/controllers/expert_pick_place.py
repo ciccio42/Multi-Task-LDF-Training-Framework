@@ -416,4 +416,4 @@ if __name__ == '__main__':
                                      camera_obs=True,
                                      task=i,
                                      render_camera='camera_front',
-                                     object_set=1)
+                                     object_set=2)

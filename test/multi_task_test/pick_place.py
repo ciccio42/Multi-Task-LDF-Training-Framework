@@ -373,7 +373,14 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
                     if n_steps < gt_action:
                         action, _ = controller.act(obs)
 
-                obs, reward, env_done, info = env.step(action)
+                if config.get('action_sequence', 1) != 1:
+                    for action_t in action:
+                        action_gt, _ = controller.act(obs)
+                        obs, reward, env_done, info = env.step(action_t)
+                        compute_error(action_t, action_gt)
+                else:
+                    obs, reward, env_done, info = env.step(action)
+
                 if concat_bb and not predict_gt_bb:
 
                     # get predicted bb from prediction
@@ -469,6 +476,8 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
                         (int(adj_predicted_bb[2]),
                          int(adj_predicted_bb[3])),
                         (0, 255, 0), 1))
+                    cv2.imwrite(
+                        f"pred_bb.png",  image)
                 else:
                     image = np.array(obs['camera_front_image'][:, :, ::-1])
 

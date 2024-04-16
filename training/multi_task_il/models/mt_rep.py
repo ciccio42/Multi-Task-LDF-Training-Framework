@@ -360,8 +360,10 @@ class _DiscreteLogHead(nn.Module):
         self._dist_size = torch.Size((out_dim, n_mixtures))
         self._lstm = lstm
 
-        self._forward_t = lstm_config.get('forward_t', 1)
-
+        if lstm_config is not None:
+            self._forward_t = lstm_config.get('forward_t', 1)
+        else:
+            self._forward_t = 1
         if not lstm:
             self._mu = nn.Linear(
                 in_dim, self._forward_t * out_dim * n_mixtures)
@@ -895,6 +897,9 @@ class VideoImitation(nn.Module):
                 # get the target object
                 B, T, O, D = bb.shape
                 predicted_bb = bb
+                if O == 2 and "KP" not in self._target_obj_detector_path:
+                    predicted_bb = bb[:, :, 0, :]
+                    predicted_bb = predicted_bb[:, :, None, :]
             else:
                 # get the target object
                 B, T, S, O, D = bb.shape

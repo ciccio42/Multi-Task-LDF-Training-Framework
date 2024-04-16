@@ -1,11 +1,11 @@
+import torch
+from torch_geometric.data import Data
+from robosuite.utils.transform_utils import quat2axisangle
+import numpy as np
 import pickle as pkl
 import glob
 import os
-from utils import Graph, OBJECTS_POS_DIM, NUM_OBJ_NUM_TARGET_PER_OBJ, compute_object_features, plot_graph
-import numpy as np
-from robosuite.utils.transform_utils import quat2axisangle
-from torch_geometric.data import Data
-import torch
+from multi_task_il_gnn.datasets.utils import OBJECTS_POS_DIM, NUM_OBJ_NUM_TARGET_PER_OBJ, NUM_FEATURES, compute_object_features, plot_graph
 
 """_summary_
 pick-place task mapping:
@@ -21,8 +21,6 @@ pick-place task mapping:
 # Target_task: Target 1, No-Target 0
 vector = [p_x,p_y, p_z, r_x, r_y, r_z, obj_class, type, target_task]
 """
-
-NUM_FEATURES = 12
 
 
 def read_pkl(file_path: str):
@@ -173,5 +171,5 @@ if __name__ == '__main__':
             os.makedirs(save_file_path, exist_ok=True)
             save_file_path = os.path.join(
                 save_file_path, f"{pkl_file_name}.pkl")
-            write_pkl(file_path=save_file_path,
-                      obj=scene_graph)
+            # write_pkl(file_path=save_file_path,
+            #           obj=scene_graph)
