@@ -124,6 +124,7 @@ dataset_cfg:
   perform_augs: True
   change_command_epoch: True
   load_eef_point: False
+  split_pick_place: False
 
 augs:
   # strong_jitter:     1  

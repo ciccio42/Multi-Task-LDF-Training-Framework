@@ -133,7 +133,7 @@ lcgnet_conf:
   CMD_DIM: 512
   MSG_ITER_NUM: 4
   readDropout: 0.85
-  gpu_id: -1
+  gpu_id: ${gnn_policy_cfg.gpu_id}
 
 
   single_hop_cfg: ${single_hop_cfg}
@@ -154,6 +154,6 @@ classifier_cfg:
 
 node_classifier_cfg:
   INPUT_DIM: 512
-  CONCAT_C_VEC: true
+  CONCAT_C_VEC: false
   INTERMEDIATE_LAYER_DIM: [256, 128, 64]
   OUT_CLASSES: 1
