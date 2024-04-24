@@ -66,13 +66,13 @@ def pick_place_eval_gnn(model, env, context, gpu_id, variation_id, img_formatter
         target_indx = obj_logits.argmax()
         placing_indx = target_logits.argmax()
         # take target and placing location position
-        target_pos = model_inputs['node_features'][target_indx][:6].cpu(
+        target_pos = model_inputs['node_features'][0][target_indx][:6].cpu(
         ).numpy()
-        placing_pos = model_inputs['node_features'][placing_indx][:6].cpu(
+        placing_pos = model_inputs['node_features'][0][placing_indx][:6].cpu(
         ).numpy()
 
         print(
-            f"{Fore.YELLOW}Running pick-place primitive{target_accuracy}{Style.RESET_ALL}")
+            f"{Fore.YELLOW}Running pick-place primitive{Style.RESET_ALL}")
         state, success = perform_pick_place_primitive(env=env,
                                                       picking_loc=target_pos,
                                                       placing_loc=placing_pos,

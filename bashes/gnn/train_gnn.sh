@@ -5,7 +5,7 @@
 export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/geometric_graphs
@@ -45,7 +45,7 @@ SCHEDULER=None
 HEIGHT=100
 WIDTH=180
 
-EXP_NAME=Train_GNN_Pick_Place-lr-${LR}
+EXP_NAME=Train_GNN_Pick_Place-No-task-embedding-lr-${LR}
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place 
 
@@ -79,6 +79,7 @@ python ../../training/train_scripts/gnn/train.py \
     train_cfg.lr_schedule=${SCHEDULER} \
     gnn_policy_cfg.height=${HEIGHT} \
     gnn_policy_cfg.width=${WIDTH} \
+    gnn_policy_cfg.gpu_id=${DEVICE} \
     debug=${DEBUG} \
     wandb_log=${WAND_LOG} \
     resume=${RESUME} \

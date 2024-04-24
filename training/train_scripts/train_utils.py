@@ -598,7 +598,7 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
         all_losses["l_aux"] = aux_loss
         all_losses["loss_sum"] = bc_loss + aux_loss
     else:
-        if config.policy._target_ == 'multi_task_il.models.mt_rep.VideoImitation':
+        if "VideoImitation" in config.policy._target_ :
             out = model(
                 images=model_inputs['images'],
                 images_cp=model_inputs['images_cp'],
@@ -608,7 +608,8 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
                 bb=model_inputs['gt_bb'],
                 gt_classes=model_inputs['gt_classes'],
                 ret_dist=False,
-                actions=model_inputs['actions'])
+                actions=model_inputs['actions'],
+                first_phase = model_inputs.get('first_phase', None))
         elif "CondPolicy" in config.policy._target_:
             out = model(
                 inputs=model_inputs,
@@ -1202,7 +1203,7 @@ class Trainer:
 
                 #### ---- Validation step ----####
                 # e != 0 and
-                if False and e != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
+                if e != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
                     print("Validation")
                     rollout = self.config.get("rollout", False)
                     model = model.eval()

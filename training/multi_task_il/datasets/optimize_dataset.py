@@ -158,6 +158,10 @@ def opt_traj(task_name, task_spec, out_path, pkl_file_path):
     # remove data not of interest for training
     start_pick_t = 0
     # end_pick_t = 0
+    if task_name == 'button':
+        # I have to get the last frame to identify the final placing position
+        pass
+        
     for t in range(len(sample['traj'])):
         for key in keys_to_remove:
             try:
@@ -357,7 +361,7 @@ def opt_traj(task_name, task_spec, out_path, pkl_file_path):
                         if t == len(sample['traj'])-1:
                             cv2.imwrite("prova_bin_bb.jpg", image)
             elif 'button' in task_name:
-
+                pass
         if "real" in pkl_file_path or args.real:
             gripper = sample['traj'].get(t)['action'][-1]
             if start_pick_t == 0 and gripper == 1.0:

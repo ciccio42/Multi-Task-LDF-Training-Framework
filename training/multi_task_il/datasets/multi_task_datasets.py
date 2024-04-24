@@ -52,6 +52,7 @@ class MultiTaskPairedDataset(Dataset):
             perform_scale_resize=True,
             change_command_epoch=True,
             load_eef_point=False,
+            split_pick_place=False,
             ** params):
 
         self.task_crops = OrderedDict()
@@ -70,6 +71,7 @@ class MultiTaskPairedDataset(Dataset):
         self.agent_name = agent_name
         self.mode = mode
         self.pick_next = pick_next
+        self.split_pick_place = split_pick_place
 
         self.select_random_frames = select_random_frames
         self.balance_target_obj_pos = balance_target_obj_pos
@@ -189,6 +191,25 @@ class MultiTaskPairedDataset(Dataset):
         if self.non_sequential:
             chosen_t = torch.randperm(end)
             chosen_t = chosen_t[chosen_t != 0][:self._obs_T]
+            
+        first_phase = None
+        if self.split_pick_place:
+            first_t = chosen_t[0].item()
+            last_t = chosen_t[-1].item()
+            if task_name == 'nut_assembly':
+                first_step_gripper_state = traj.get(first_t)['action'][-1]
+                first_phase = True if first_step_gripper_state == -1.0 else False
+                last_step_gripper_state = traj.get(last_t)['action'][-1]
+            
+                if first_step_gripper_state != last_step_gripper_state:
+                    # change in task phase
+                    for indx, step in enumerate(range(first_t, last_t+1)):
+                        action_t = traj.get(step)['action'][-1]
+                        if first_step_gripper_state != action_t:
+                            step_change = step
+                            break
+                    for indx, step in enumerate(range(step_change+1-self._obs_T, step_change+1)):
+                        chosen_t[indx] = torch.tensor(step)            
 
         images, images_cp, bb, obj_classes, action, states, points = create_sample(
             dataset_loader=self,
@@ -217,6 +238,8 @@ class MultiTaskPairedDataset(Dataset):
         ret_dict['points'] = []
         ret_dict['points'] = np.array(points)
 
+        ret_dict['first_phase'] = torch.tensor(first_phase)
+        
         if self.aux_pose:
             grip_close = np.array(
                 [traj.get(i, False)['action'][-1] > 0 for i in range(1, len(traj))])
