@@ -1,14 +1,14 @@
 #!/bin/sh
-# export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
-export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=2
+export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
+# export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
+export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
+EXPERT_DATA=/mnt/sdc1/frosa/opt_dataset/
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 POLICY='${mosaic}'
 
@@ -16,12 +16,10 @@ SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
 DEVICE=0
-DEBUG=true
-WAND_LOG=false
+DEBUG=false
+WAND_LOG=true
 
-EXP_NAME=1Task-Pick-Place-MOSAIC-DIFFERENT-OBJ
-PROJECT_NAME=${EXP_NAME}
-TASK_str=pick_place_different_object #[pick_place,nut_assembly,button,stack_block] #[pick_place,nut_assembly,button,stack_block]
+TASK_str=nut_assembly #[pick_place,nut_assembly,button,stack_block] #[pick_place,nut_assembly,button,stack_block]
 
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=40455
@@ -38,10 +36,10 @@ BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=2
+SET_SAME_N=3
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
-LOADER_WORKERS=1
+LOADER_WORKERS=16
 NORMALIZE_ACTION=true
 
 LOAD_CONTRASTIVE=true
@@ -54,14 +52,14 @@ INV_MUL=1.0
 FREEZE_TARGET_OBJ_DETECTOR=false
 REMOVE_CLASS_LAYERS=false
 CONCAT_TARGET_OBJ_EMBEDDING=false
-CONCAT_STATE=false
+CONCAT_STATE=true
 
 ACTION_DIM=7
-N_MIXTURES=3 #14 #7 2Task, Nut, button, stack #3 Pick-place
-OUT_DIM=128 #64 #64 2Task, Nut, button, stack #128 Pick-place
-ATTN_FF=256 #256 #128 2Task, Nut, button, stack #256 Pick-place
-COMPRESSOR_DIM=256 #256 #128 2Task, Nut, button, stack #256 Pick-place
-HIDDEN_DIM=512 #256 #128 2Task, Nut, button, stack #512 Pick-place
+N_MIXTURES=7       #14 #7 2Task, Nut, button, stack #3 Pick-place
+OUT_DIM=64         #64 #64 2Task, Nut, button, stack #128 Pick-place
+ATTN_FF=128        #256 #128 2Task, Nut, button, stack #256 Pick-place
+COMPRESSOR_DIM=128 #256 #128 2Task, Nut, button, stack #256 Pick-place
+HIDDEN_DIM=128     #256 #128 2Task, Nut, button, stack #512 Pick-place
 CONCAT_DEMO_HEAD=false
 CONCAT_DEMO_ACT=true
 PRETRAINED=false
@@ -76,12 +74,15 @@ SCHEDULER=None
 
 DROP_DIM=3      # 2    # 3
 OUT_FEATURE=256 # 512 # 256
-DIM_H=7 #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
-DIM_W=12 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
+DIM_H=7         #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
+DIM_W=12        #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 HEIGHT=100
 WIDTH=180
 
 COSINE_ANNEALING=false
+
+EXP_NAME=Task-${TASK_str}-${CONCAT_STATE}
+PROJECT_NAME=${EXP_NAME}
 
 python ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
