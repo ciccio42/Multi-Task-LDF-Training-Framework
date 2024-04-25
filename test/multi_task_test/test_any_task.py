@@ -115,7 +115,8 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
                          config=config,
                          gt_file=traj_data_trj,
                          gt_bb=gt_bb,
-                         real=real)
+                         real=real,
+                         expert_traj=expert_traj)
 
     if "cond_target_obj_detector" in model_name:
         print("Evaluated traj #{}, task #{}, TP {}, FP {}, FN {}".format(
@@ -184,7 +185,8 @@ def rollout_imitation(model, config, ctr,
                              sub_action=sub_action,
                              gt_action=gt_action,
                              task_name=env_name,
-                             real=real)
+                             real=real,
+                             expert_traj=expert_traj)
         print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             ctr, variation_id, info['reached'], info['picked'], info['success']))
         # print(f"Avg prediction {info['avg_pred']}")

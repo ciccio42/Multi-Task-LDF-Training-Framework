@@ -21,8 +21,8 @@ DEBUG=false
 WANDB_LOG=true
 
 
-RESUME_PATH=1Task-Nut-Assemly-MOSAIC-CTOD-KP-Batch27
-RESUME_STEP=184437
+RESUME_PATH=1Task-Nut-Assembly-Double-Policy-Contrastive-false-Inverse-false-Batch27
+RESUME_STEP=20504
 RESUME=false 
 
 LOAD_TARGET_OBJ_DETECTOR=true
@@ -32,7 +32,7 @@ CONCAT_BB=true
 
 
 ROLLOUT=false
-EPOCH=180
+EPOCH=90
 BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
@@ -59,7 +59,7 @@ CONCAT_TARGET_OBJ_EMBEDDING=false
 CONCAT_STATE=false
 
 ACTION_DIM=7
-N_MIXTURES=3 #14 MT #7 2Task, Nut, button, stack #3 Pick-place
+N_MIXTURES=2 #14 MT #7 2Task, Nut, button, stack #3 Pick-place #2 Nut-Assembly
 OUT_DIM=64 #64 MT #64 2Task, Nut, button, stack #128 Pick-place
 ATTN_FF=128 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
 COMPRESSOR_DIM=128 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
@@ -71,7 +71,7 @@ NULL_BB=false
 
 EARLY_STOPPING_PATIECE=-1
 OPTIMIZER='AdamW'
-LR=0.0005
+LR=0.0003
 WEIGHT_DECAY=0.0
 SCHEDULER=None
 

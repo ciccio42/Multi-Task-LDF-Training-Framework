@@ -776,7 +776,7 @@ class VideoImitation(nn.Module):
             # maybe better to normalize here
             ac_pred = F.normalize(ac_pred, dim=2)
 
-        mu_bc, scale_bc, logit_bc = self._action_dist_inv(
+        mu_bc, scale_bc, logit_bc = self._action_dist(
             ac_pred)
         out['bc_distrib'] = DiscreteMixLogistic(mu_bc, scale_bc, logit_bc) \
             if ret_dist else (mu_bc.type(torch.float32), scale_bc.type(torch.float32), logit_bc.type(torch.float32))

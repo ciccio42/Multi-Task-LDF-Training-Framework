@@ -5,7 +5,7 @@ export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=3
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
@@ -21,9 +21,10 @@ DEVICE=0
 DEBUG=false
 WANDB_LOG=true
 
-EXP_NAME=1Task-Nut-Assemly-KP
+TASK_str="button" #["pick_place","nut_assembly","stack_block","button"]
+EXP_NAME=Task-${TASK_str}-KP
 PROJECT_NAME=${EXP_NAME}
-TASK_str="nut_assembly" #["pick_place","nut_assembly","stack_block","button"]
+
 
 RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
 RESUME_STEP=76500
@@ -34,10 +35,10 @@ BSIZE=80 #16 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector.yaml
-LOADER_WORKERS=16
+LOADER_WORKERS=8
 BALANCING_POLICY=0
-SET_SAME_N=7
-OBS_T=2
+SET_SAME_N=6
+OBS_T=7
 
 EARLY_STOPPING_PATIECE=10
 OPTIMIZER='AdamW'

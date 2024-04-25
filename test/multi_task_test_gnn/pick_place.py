@@ -7,6 +7,7 @@ from multi_task_il_gnn.datasets.utils import NUM_OBJ_NUM_TARGET_PER_OBJ
 from colorama import Style
 from colorama import Fore
 from colorama import init as colorama_init
+import time
 colorama_init()
 OBJECT_SET = 2
 
@@ -43,11 +44,12 @@ def pick_place_eval_gnn(model, env, context, gpu_id, variation_id, img_formatter
     obj_class[:num_objs] = class_labels[:num_objs]
     target_class[num_objs:] = class_labels[num_objs:]
     # run inference
+    start = time.time()
     out = model(
         inputs=model_inputs,
         inference=True
     )
-
+    print(f"Inference time for GNN: {time.time()-start}")
     # get predicted logits
     if config.lcgnet_conf.BUILD_NODE_CLASSIFIER:
         obj_logits = out[0].squeeze()

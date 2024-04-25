@@ -18,7 +18,7 @@ def _clip_delta(delta, max_step=0.015):
     return delta / norm_delta * max_step
 
 
-def nut_assembly_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="nut_assembly", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action=4, real=True):
+def nut_assembly_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="nut_assembly", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action=4, real=True, **kwargs):
 
     if "vima" in model_name:
         return nut_assembly_eval_vima(model=model,
@@ -394,7 +394,7 @@ def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
             states, images, bb = [], [], []
 
         states.append(np.concatenate(
-            (obs['ee_aa'], obs['gripper_qpos'])).astype(np.float32)[None])
+            (obs['joint_pos'], obs['joint_vel'], obs['gripper_qpos'], obs['gripper_qvel'])).astype(np.float32)[None])
 
         # Get GT BB
         # if concat_bb:

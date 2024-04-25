@@ -535,8 +535,21 @@ def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None
     else:
         return done, states, images, context, obs, traj, tasks, gt_obs, current_gripper_pose
 
+def scale_bb(center, upper_left, bottom_right, reduction=0.5):
+    width = bottom_right[0] - upper_left[0]
+    height = bottom_right[1] - upper_left[1]
+    
+    new_width = int(width * reduction)
+    new_height = int(height * reduction)
+    
+    new_upper_left = (center[0] - new_width // 2, center[1] - new_height // 2)
+    new_bottom_right = (center[0] + new_width // 2, center[1] + new_height // 2)
+    
+    return new_upper_left, new_bottom_right
 
-def retrieve_bb(obs, obj_name, camera_name='camera_front', real=True,):
+def retrieve_bb(obs, obj_name, camera_name='camera_front', real=True, scale=False):
+
+    
     try:
         if real:
             top_left_x = obs['obj_bb'][camera_name][obj_name]['bottom_right_corner'][0]
@@ -557,11 +570,17 @@ def retrieve_bb(obs, obj_name, camera_name='camera_front', real=True,):
         bottom_right_x = obs['obj_bb'][obj_name]['bottom_right_corner'][0]
         bottom_right_y = obs['obj_bb'][obj_name]['bottom_right_corner'][1]
 
+    if scale:
+        (top_left_x, top_left_y), (bottom_right_x, bottom_right_y) = scale_bb(
+            center=obs['obj_bb'][camera_name][obj_name]['center'],
+            upper_left=[top_left_x, top_left_y],
+            bottom_right=[bottom_right_x, bottom_right_y])
+
     return np.array(
         [top_left_x, top_left_y, bottom_right_x, bottom_right_y], dtype=np.int16),
 
 
-def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0, real=True, place=True):
+def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0, real=True, place=True, expert_traj=None, scale=False):
     # Get GT Bounding Box
     if task_name != 'stack_block':
         try:
@@ -572,6 +591,13 @@ def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0, real=True, pla
             if 'pick_place' == task_name:
                 agent_target_place_id = traj.get(t)['obs']['target-box-id']
                 place_name = ENV_OBJECTS[task_name]["bin_names"]
+            if 'button' == task_name:
+                agent_target_place_id = f"{traj.get(t)['obs']['target-object']}_final"
+                place_name = ENV_OBJECTS[task_name]["place_names"]
+                if expert_traj is not None:
+                    # get last frame bb
+                    final_bb = expert_traj.get(len(expert_traj)-1)['obs']['obj_bb']['camera_front'][agent_target_obj_id]
+                    
         except:
             agent_target_obj_id = 0
     else:
@@ -595,20 +621,27 @@ def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0, real=True, pla
             bb = retrieve_bb(obs=obs,
                              obj_name=obj_name,
                              camera_name='camera_front',
-                             real=real)
+                             real=real,
+                             scale=scale)
             bb_t.append(bb)
             gt_t.extend([1])
 
     if place:
         for id, obj_name in enumerate(place_name):
-            if id == agent_target_place_id:
-                bb = retrieve_bb(obs=obs,
-                                 obj_name=obj_name,
-                                 camera_name='camera_front',
-                                 real=real)
-                bb_t.append(bb)
-                gt_t.extend([2])
-
+            if id == agent_target_place_id or obj_name == agent_target_place_id:
+                if task_name != 'button':
+                    bb = retrieve_bb(obs=obs,
+                                    obj_name=obj_name,
+                                    camera_name='camera_front',
+                                    real=real)         
+                else:
+                    if scale: 
+                        bb = scale_bb(center=final_bb['center'],
+                                    upper_left=final_bb['bottom_right_corner'],
+                                    bottom_right=final_bb['upper_left_corner'])
+                    bb = np.array([bb[0][0],bb[0][1], bb[1][0], bb[1][1]], dtype=np.int16),
+                    bb_t.append(bb)
+                    gt_t.extend([2])
     return bb_t, np.array(gt_t, dtype=np.int16)
 
 
@@ -731,7 +764,7 @@ def plot_activation_map(activation_map, agent_obs, save_path="activation_map.png
     plt.show()
 
 
-def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None, action_ranges=[], policy=True, perform_augs=False, config=None, gt_traj=None, activation_map=True, real=True, place_bb_flag=True):
+def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None, action_ranges=[], policy=True, perform_augs=False, config=None, gt_traj=None, activation_map=True, real=True, place_bb_flag=True, expert_traj=None):
 
     if gt_traj is None:
         done, states, images, context, obs, traj, tasks, bb, gt_classes, _, prev_action = \
@@ -825,7 +858,9 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                                    obs=obs,
                                    task_name=task_name,
                                    real=real,
-                                   place=place_bb_flag
+                                   place=place_bb_flag,
+                                   expert_traj=expert_traj,
+                                   scale= True if task_name =='button' else False
                                    )
 
             if baseline and len(states) >= 5:

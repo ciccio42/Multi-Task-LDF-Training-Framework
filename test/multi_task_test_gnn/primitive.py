@@ -212,7 +212,7 @@ def placing_primitive(env: object, desired_action: np.array, trajectory: object,
         return obs, reward, env_done, info, False
 
     # 5. Open the gripper
-    desired_action[3] = T.quat2axisangle(
+    desired_action[3:] = T.quat2axisangle(
         np.array([target_orientation_quat.x, target_orientation_quat.y, target_orientation_quat.z, target_orientation_quat.w]))
     desired_action = np.concatenate((desired_action, np.array([-1])), axis=-1)
     obs, reward, env_done, info = env.step(desired_action)

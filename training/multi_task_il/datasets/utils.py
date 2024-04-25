@@ -84,13 +84,21 @@ ENV_OBJECTS = {
     },
     'button': {
         'obj_names': ['machine1_goal1', 'machine1_goal2', 'machine1_goal3',
-                      'machine2_goal1', 'machine2_goal2', 'machine2_goal3'],
+                      'machine2_goal1', 'machine2_goal2', 'machine2_goal3',
+                      'machine1_goal1_final', 'machine1_goal2_final', 'machine1_goal3_final',
+                      'machine2_goal1_final', 'machine2_goal2_final', 'machine2_goal3_final',],
         'obj_names_to_id': {'machine1_goal1': 0,
                             'machine1_goal2': 1,
                             'machine1_goal3': 2,
                             'machine2_goal1': 3,
                             'machine2_goal2': 4,
-                            'machine2_goal3': 5}
+                            'machine2_goal3': 5,
+                            'machine1_goal1_final': 6,
+                            'machine1_goal2_final': 7,
+                            'machine1_goal3_final': 8,
+                            'machine2_goal1_final': 9,
+                            'machine2_goal2_final': 10,
+                            'machine2_goal3_final': 11}
     }
 }
 
@@ -679,10 +687,10 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
             agent_target = 0
     else:
         if task_name != "stack_block":
-            target_obj_id = int(
-                subtask_id/NUM_VARIATION_PER_OBEJECT[task_name][0])
-            target_place_id = int(subtask_id %
-                                  NUM_VARIATION_PER_OBEJECT[task_name][0])
+                target_obj_id = int(
+                    subtask_id/NUM_VARIATION_PER_OBEJECT[task_name][0])
+                target_place_id = int(subtask_id %
+                                    NUM_VARIATION_PER_OBEJECT[task_name][0]) if task_name != 'button' else target_obj_id+NUM_VARIATION_PER_OBEJECT[task_name][1]
         else:
             demo_target = STACK_BLOCK_TASK_ID_SEQUENCE[subtask_id][0]
             agent_target = STACK_BLOCK_TASK_ID_SEQUENCE[agent_task_id].find(
@@ -698,6 +706,8 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         num_objects = 5
         target_obj_id = ENV_OBJECTS['button']['obj_names_to_id'][ENV_OBJECTS['button']
                                                                  ['obj_names'][target_obj_id]]
+        target_place_id = ENV_OBJECTS['button']['obj_names_to_id'][ENV_OBJECTS['button']
+                                                                 ['obj_names'][target_place_id]]
     if task_name != "stack_block":
         # select randomly another object
         no_target_obj_id = target_obj_id
@@ -708,8 +718,12 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
             # select randomly another place
             no_target_place_id = target_place_id
             while no_target_place_id == target_place_id:
-                no_target_place_id = random.randint(
-                    0, num_objects)
+                if task_name != 'button':
+                    no_target_place_id = random.randint(
+                        0, num_objects)
+                else:
+                    no_target_place_id = random.randint(
+                        num_objects+1, (2*num_objects)+1)
     else:
         obj_list = ["cubeA", "cubeB", "cubeC"]
         agent_target_name = obj_list.pop(agent_target)
@@ -717,7 +731,7 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
 
     try:
         dict_keys = list(step_t['obs']['obj_bb']['camera_front'].keys())
-        if take_place_loc:
+        if take_place_loc and task_name != 'button':
             target_place_id = target_place_id + \
                 NUM_VARIATION_PER_OBEJECT[task_name][0] + \
                 1*(task_name == 'pick_place')
@@ -767,7 +781,7 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         bottom_right_y = bottom_right[1]
 
         # test GT
-        if DEBUG:
+        if True:
             if i == 0 or i == 2:
                 color = (0, 255, 0)
                 image = np.array(
@@ -781,7 +795,7 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
                                    int(bottom_right_y)),
                                   color=color,
                                   thickness=1)
-            if DEBUG:
+            if True:
                 cv2.imwrite("GT_bb_prova.png", image)
 
         bb.append([top_left_x, top_left_y,
@@ -1005,7 +1019,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
 
         # Create GT BB
         bb_time = time.time()
-        if dataset_loader._bbs_T == 1:
+        if getattr(dataset_loader, '_bbs_T', 1) == 1:
             bb_frame, class_frame = create_gt_bb(dataset_loader=dataset_loader,
                                                  traj=traj,
                                                  step_t=step_t,

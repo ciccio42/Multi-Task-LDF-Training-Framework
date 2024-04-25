@@ -1528,12 +1528,14 @@ class Workspace(object):
                 self._rpath, map_location=torch.device('cpu')))
             self.optimizer_state_dict = None
             if resume:
-                pass
                 # create path for loading state dict
-                # optimizer_state_dict = join(
-                #     cfg.save_path, cfg.resume_path, f"model_save-optim.pt")
-                # self.optimizer_state_dict = torch.load(
-                #     optimizer_state_dict, map_location=torch.device('cpu'))
+                try:
+                    optimizer_state_dict = join(
+                        cfg.save_path, cfg.resume_path, f"model_save-optim.pt")
+                    self.optimizer_state_dict = torch.load(
+                        optimizer_state_dict, map_location=torch.device('cpu'))
+                except:
+                    self.optimizer_state_dict = None
         else:
             self.optimizer_state_dict = None
 

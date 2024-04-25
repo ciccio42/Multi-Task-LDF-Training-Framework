@@ -249,7 +249,7 @@ def press_button_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
     return traj, tasks
 
 
-def press_button_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action=4, real=True):
+def press_button_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action=4, real=True, expert_traj=None):
 
     if "vima" in model_name:
         return press_button_eval_vima(model=model,
@@ -311,7 +311,8 @@ def press_button_eval(model, env, gt_env, context, gpu_id, variation_id, img_for
                                           task_name=task_name,
                                           config=config,
                                           gt_traj=gt_file,
-                                          real=real
+                                          real=real,
+                                          expert_traj=expert_traj
                                           )
     else:
         # Instantiate Controller
@@ -341,5 +342,6 @@ def press_button_eval(model, env, gt_env, context, gpu_id, variation_id, img_for
                                            predict_gt_bb=gt_bb,
                                            sub_action=sub_action,
                                            gt_action=gt_action,
-                                           real=real
+                                           real=real,
+                                           expert_traj=expert_traj
                                            )
