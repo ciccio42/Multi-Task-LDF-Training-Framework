@@ -598,7 +598,7 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
         all_losses["l_aux"] = aux_loss
         all_losses["loss_sum"] = bc_loss + aux_loss
     else:
-        if "VideoImitation" in config.policy._target_ :
+        if "VideoImitation" in config.policy._target_:
             out = model(
                 images=model_inputs['images'],
                 images_cp=model_inputs['images_cp'],
@@ -609,7 +609,7 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
                 gt_classes=model_inputs['gt_classes'],
                 ret_dist=False,
                 actions=model_inputs['actions'],
-                first_phase = model_inputs.get('first_phase', None))
+                first_phase=model_inputs.get('first_phase', None))
         elif "CondPolicy" in config.policy._target_:
             out = model(
                 inputs=model_inputs,
@@ -1528,13 +1528,14 @@ class Workspace(object):
                 self._rpath, map_location=torch.device('cpu')))
             self.optimizer_state_dict = None
             if resume:
-                # create path for loading state dict
                 try:
+                    # create path for loading state dict
                     optimizer_state_dict = join(
                         cfg.save_path, cfg.resume_path, f"model_save-optim.pt")
                     self.optimizer_state_dict = torch.load(
                         optimizer_state_dict, map_location=torch.device('cpu'))
                 except:
+                    print("Exception during loading optimizer state dict")
                     self.optimizer_state_dict = None
         else:
             self.optimizer_state_dict = None

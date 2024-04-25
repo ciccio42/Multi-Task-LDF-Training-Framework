@@ -1,14 +1,14 @@
 #!/bin/sh
-# export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
-export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=2
+export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
+# export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
+export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
+EXPERT_DATA=/mnt/sdc1/frosa/opt_dataset/
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 POLICY='${mosaic}'
 
@@ -55,7 +55,11 @@ CONCAT_TARGET_OBJ_EMBEDDING=false
 CONCAT_STATE=true
 
 ACTION_DIM=7
+<<<<<<< HEAD
 N_MIXTURES=2       #14 #7 2Task, Nut, button, stack #3 Pick-place #2 nut-assembly
+=======
+N_MIXTURES=7       #14 #7 2Task, Nut, button, stack #3 Pick-place
+>>>>>>> 3be9cc8363df0d9624d292fe826bb4d3bc910880
 OUT_DIM=64         #64 #64 2Task, Nut, button, stack #128 Pick-place
 ATTN_FF=128        #256 #128 2Task, Nut, button, stack #256 Pick-place
 COMPRESSOR_DIM=128 #256 #128 2Task, Nut, button, stack #256 Pick-place

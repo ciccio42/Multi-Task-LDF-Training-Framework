@@ -250,27 +250,6 @@ class _TransformerFeatures(nn.Module):
                 out_dict['attn_'+k+'_demo'], out_dict['attn_'+k +
                                                       '_img'] = normalized.split([demo_T, obs_T], dim=1)
 
-        # if True:
-        #     demo_fm, img_fm = features.split([demo_T, obs_T], dim=1)
-        #     import matplotlib.pyplot as plt
-        #     # Squeeze the tensor to remove the batch dimension (1)
-        #     img_fm = img_fm.squeeze()
-
-        #     # Combine channels into a single heatmap
-        #     heatmap = torch.sum(img_fm, dim=0)
-
-        #     # Normalize the heatmap values between 0 and 1
-        #     heatmap = (heatmap - heatmap.min()) / \
-        #         (heatmap.max() - heatmap.min())
-
-        #     # Convert the PyTorch tensor to a NumPy array for visualization
-        #     heatmap_np = heatmap.numpy()
-
-        #     # Plot the overlayed heatmap
-        #     plt.imshow(heatmap_np, cmap='viridis')
-        #     plt.colorbar()  # To add a colorbar for better understanding of the values
-        #     plt.imsave("activation_map.png")
-
         out_dict['linear_embed'] = self._linear_embed(
             rearrange(features, 'B T d H W -> B T (d H W)'))
         normalized = F.normalize(out_dict['linear_embed'], dim=2)
@@ -522,23 +501,6 @@ class VideoImitation(nn.Module):
                                           target_obj_detector_step=target_obj_detector_step,
                                           )
 
-        # else:
-        #     # load target object detector module
-        #     conf_file = OmegaConf.load(os.path.join(
-        #         target_obj_detector_path, "config.yaml"))
-        #     self._embed, self._obj_classifier, self._target_obj_embedding = self._load_model(
-        #         model_path=target_obj_detector_path,
-        #         step=target_obj_detector_step,
-        #         conf_file=conf_file,
-        #         freeze=freeze_target_obj_detector,
-        #         remove_class_layers=remove_class_layers)
-
-        # self._target_object_backbone = None
-        # if not freeze_target_obj_detector and load_target_obj_detector:
-        #     self._target_object_backbone = copy.deepcopy(self._embed)
-        #     for param in self._target_object_backbone.parameters():
-        #         param.requires_grad = False
-        # (not load_target_obj_detector or not freeze_target_obj_detector) and load_contrastive:
         if load_contrastive:
             self._target_embed = copy.deepcopy(self._embed)
             self._target_embed.load_state_dict(self._embed.state_dict())
@@ -590,12 +552,6 @@ class VideoImitation(nn.Module):
         print("Concat-ing embedded demo to action head? {}, to distribution head? {}".format(
             concat_demo_act, concat_demo_head))
 
-        # NOTE(Mandi): reduced input dimension size  from previous version! hence maybe try widen/add more action layers
-        # if load_target_obj_detector and concat_target_obj_embedding:
-        #     target_obj_embedding_dim = self._target_obj_embedding._modules['2'].out_features
-        #     ac_in_dim = int(latent_dim + float(concat_target_obj_embedding) * target_obj_embedding_dim +
-        #                     float(concat_demo_act) * latent_dim + float(concat_state) * sdim)
-        # else:
         if "KP" not in target_obj_detector_path:
             ac_in_dim = int(latent_dim + float(concat_demo_act)
                             * latent_dim + float(concat_bb) * 4 * self._bb_sequence + float(concat_state) * sdim)
@@ -820,7 +776,8 @@ class VideoImitation(nn.Module):
         actions=None,
         target_obj_embedding=None,
         compute_activation_map=False,
-        t=-1
+        t=-1,
+        **kwargs
     ):
         B, obs_T, _, height, width = images.shape
         demo_T = context.shape[1]
@@ -958,12 +915,6 @@ class VideoImitation(nn.Module):
                 assert 'simclr' in k
                 out[k] = v
 
-        # run inverse model
-        # if self._concat_target_obj_embedding:
-        #     # both are (B ob_T d)
-        #     demo_embed, img_embed = out['demo_embed'], embed_out['img_embed'][:, 1:, :]
-        #     states = states[:, 1:, :]
-        # else:
         demo_embed, img_embed = out['demo_embed'], embed_out['img_embed']
 
         # B, T_im-1, d * 2
@@ -979,17 +930,6 @@ class VideoImitation(nn.Module):
                             torch.cat((img_embed[:,  1:], demo_embed[:, :-1], predicted_bb[:, 1:]), dim=2), dim=2),
                     ),
                     dim=2)
-            # elif self._concat_target_obj_embedding:
-            #     target_obj_embedding_inv = target_obj_embedding.repeat(
-            #         1, inv_in.size(dim=1), 1)
-            #     inv_in = torch.cat(
-            #         (
-            #             F.normalize(torch.cat(
-            #                 (img_embed[:, :-1], demo_embed[:, :-1], target_obj_embedding_inv), dim=2), dim=2),
-            #             F.normalize(torch.cat(
-            #                 (img_embed[:,  1:], demo_embed[:, :-1], target_obj_embedding_inv), dim=2), dim=2),
-            #         ),
-            #         dim=2)
             else:
                 inv_in = torch.cat(
                     (
@@ -1011,7 +951,7 @@ class VideoImitation(nn.Module):
             # maybe better to normalize here
             inv_pred = F.normalize(inv_pred, dim=2)
 
-        mu_inv, scale_inv, logit_inv = self._action_dist(inv_pred)
+        mu_inv, scale_inv, logit_inv = self._action_dist_inv(inv_pred)
         out['inverse_distrib'] = DiscreteMixLogistic(mu_inv, scale_inv, logit_inv) \
             if ret_dist else (mu_inv, scale_inv, logit_inv)
 
