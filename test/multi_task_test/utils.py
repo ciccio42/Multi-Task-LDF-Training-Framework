@@ -442,9 +442,15 @@ def get_action(model, target_obj_dec, bb, predict_gt_bb, gt_classes, states, ima
         action = action_list
     else:
         action = denormalize_action(action, action_ranges)
-        if not real:
-            action[-1] = 1 if action[-1] > 0 and n_steps < max_T - 1 else -1
+        if action[-1] != -1.0 and action[-1] != 1.0:
+            print("Ciaone")
+        # if not real:
+        #     action[-1] = 1 if action[-1] > 0 and n_steps < max_T - 1 else -1
 
+        if getattr(model, 'first_phase', None) is not None:
+            model.first_phase = action[-1] != 1.
+            # if not model.first_phase:
+            #     print("changed phase") 
     return action, predicted_prob, target_obj_embedding, out.get('activation_map', None), out.get('target_obj_prediction', None), out.get('predicted_bb', None)
 
 
@@ -596,7 +602,7 @@ def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0, real=True, pla
                 place_name = ENV_OBJECTS[task_name]["place_names"]
                 if expert_traj is not None:
                     # get last frame bb
-                    final_bb = expert_traj.get(len(expert_traj)-1)['obs']['obj_bb']['camera_front'][agent_target_obj_id]
+                    final_bb = expert_traj.get(len(expert_traj)-1)['obs']['obj_bb']['camera_front'][f"{agent_target_obj_id}"]
                     
         except:
             agent_target_obj_id = 0
@@ -639,9 +645,12 @@ def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0, real=True, pla
                         bb = scale_bb(center=final_bb['center'],
                                     upper_left=final_bb['bottom_right_corner'],
                                     bottom_right=final_bb['upper_left_corner'])
-                    bb = np.array([bb[0][0],bb[0][1], bb[1][0], bb[1][1]], dtype=np.int16),
-                    bb_t.append(bb)
-                    gt_t.extend([2])
+                    else:
+                        bb = np.array([np.array(final_bb['bottom_right_corner']), 
+                                       np.array(final_bb['upper_left_corner'])])
+                        bb = np.array([bb[0][0],bb[0][1], bb[1][0], bb[1][1]], dtype=np.int16),
+                bb_t.append(bb)
+                gt_t.extend([2])
     return bb_t, np.array(gt_t, dtype=np.int16)
 
 
@@ -860,7 +869,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                                    real=real,
                                    place=place_bb_flag,
                                    expert_traj=expert_traj,
-                                   scale= True if task_name =='button' else False
+                                   scale=False #True if task_name =='button' else False
                                    )
 
             if baseline and len(states) >= 5:
@@ -1657,3 +1666,193 @@ def get_eval_fn(env_name):
 def compute_error(action_t, gt_action):
     error_pos = action_t[:3]-gt_action[:3]
     print(f"Positional error {error_pos}")
+    
+    
+    
+def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img_formatter,
+                    model, predict_gt_bb, bb, gt_classes, concat_bb, states, context, n_steps,
+                    max_T, baseline, action_ranges, sub_action, gt_action, controller,target_obj_emb):
+    # Get GT BB
+    # if concat_bb:
+    bb_t, gt_t = get_gt_bb(traj=traj,
+                            obs=obs,
+                            task_name=task_name,
+                            env=env,
+                            real=real)
+    previous_predicted_bb = []
+    previous_predicted_bb.append(torch.tensor(
+        [.0, .0, .0, .0]).to(
+        device=gpu_id).float())
+
+    # convert observation from BGR to RGB
+    if config.augs.get("old_aug", True):
+        images.append(img_formatter(
+            obs['camera_front_image'][:, :, ::-1])[None])
+    else:
+        img_aug, bb_t_aug = img_formatter(
+            obs['camera_front_image'][:, :, ::-1], bb_t)
+        images.append(img_aug[None])
+        # debug_img = np.array(np.moveaxis(
+        #     img_aug[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+        # cv2.imwrite("debug.png", debug_img)
+        if model._object_detector is not None or predict_gt_bb:
+            bb.append(bb_t_aug[None][None])
+            gt_classes.append(torch.from_numpy(
+                gt_t[None][None]).to(device=gpu_id))
+
+    if concat_bb:
+        action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
+            model=model,
+            target_obj_dec=None,
+            states=states,
+            bb=bb,
+            predict_gt_bb=predict_gt_bb,
+            gt_classes=gt_classes[0],
+            images=images,
+            context=context,
+            gpu_id=gpu_id,
+            n_steps=n_steps,
+            max_T=max_T,
+            baseline=baseline,
+            action_ranges=action_ranges,
+            target_obj_embedding=target_obj_emb,
+            t=n_steps
+        )
+    else:
+        action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
+            model=model,
+            target_obj_dec=None,
+            states=states,
+            bb=None,
+            predict_gt_bb=False,
+            gt_classes=None,
+            images=images,
+            context=context,
+            gpu_id=gpu_id,
+            n_steps=n_steps,
+            max_T=max_T,
+            baseline=baseline,
+            action_ranges=action_ranges,
+            target_obj_embedding=target_obj_emb
+        )
+
+    if concat_bb and model._object_detector is not None and not predict_gt_bb:
+        prediction = prediction_internal_obj
+
+    try:
+        if sub_action:
+            if n_steps < gt_action:
+                action, _ = controller.act(obs)
+        # action = clip_action(action, prev_action)
+        # prev_action = action
+        obs, reward, env_done, info = env.step(action)
+        if concat_bb and not predict_gt_bb:
+
+            # get predicted bb from prediction
+            # 1. Get the index with target class
+            target_indx_flags = prediction['classes_final'][0] == 1
+            cnt_target = torch.sum((target_indx_flags == True).int())
+
+            place_indx_flags = prediction['classes_final'][0] == 2
+            cnt_place = torch.sum((place_indx_flags == True).int())
+
+            obs['gt_bb'] = bb_t
+            # target found and place found
+            predicted_bb_list = list()
+            max_score_list = list()
+            iou_list = list()
+            if cnt_target != 0 and cnt_place != 0:
+                target_pred_bb, target_max_score, target_bb_iou = get_predicted_bb(
+                    prediction=prediction,
+                    pred_flags=target_indx_flags,
+                    perform_augs=True,
+                    model=model._object_detector,
+                    formatted_img=img_aug,
+                    gt_bb=bb_t_aug[0][None],
+                    gpu_id=gpu_id)
+                predicted_bb_list.append(target_pred_bb)
+                max_score_list.append(target_max_score)
+                iou_list.append(target_bb_iou)
+
+                place_pred_bb, place_max_score, place_bb_iou = get_predicted_bb(
+                    prediction=prediction,
+                    pred_flags=place_indx_flags,
+                    perform_augs=True,
+                    model=model._object_detector,
+                    formatted_img=img_aug,
+                    gt_bb=bb_t_aug[1][None],
+                    gpu_id=gpu_id)
+
+                predicted_bb_list.append(place_pred_bb)
+                max_score_list.append(place_max_score)
+                iou_list.append(place_bb_iou)
+
+                obs['predicted_bb'] = np.array(predicted_bb_list)
+                obs['predicted_score'] = np.array(max_score_list)
+                obs['iou'] = np.array(iou_list)
+            elif cnt_target == 0 and cnt_place != 0:
+                place_pred_bb, place_max_score, place_bb_iou = get_predicted_bb(
+                    prediction=prediction,
+                    pred_flags=place_indx_flags,
+                    perform_augs=True,
+                    model=model._object_detector,
+                    formatted_img=img_aug,
+                    gt_bb=bb_t_aug[1][None],
+                    gpu_id=gpu_id)
+                predicted_bb_list.append(place_pred_bb)
+                max_score_list.append(place_max_score)
+                iou_list.append(place_bb_iou)
+
+                obs['predicted_bb'] = np.array(predicted_bb_list)
+                obs['predicted_score'] = np.array(max_score_list)
+                obs['iou'] = np.array(iou_list)
+            elif cnt_target != 0 and cnt_place == 0:
+                target_pred_bb, target_max_score, target_bb_iou = get_predicted_bb(
+                    prediction=prediction,
+                    pred_flags=target_indx_flags,
+                    perform_augs=True,
+                    model=model._object_detector,
+                    formatted_img=img_aug,
+                    gt_bb=bb_t_aug[0][None],
+                    gpu_id=gpu_id)
+                predicted_bb_list.append(target_pred_bb)
+                max_score_list.append(target_max_score)
+                iou_list.append(target_bb_iou)
+
+                obs['predicted_bb'] = np.array(predicted_bb_list)
+                obs['predicted_score'] = np.array(max_score_list)
+                obs['iou'] = np.array(iou_list)
+            elif cnt_target == 0 and cnt_place == 0:
+                pass
+            else:
+                obs['gt_bb'] = bb_t_aug
+                image = np.array(obs['camera_front_image'][:, :, ::-1])
+        elif concat_bb and predict_gt_bb:
+            obs['gt_bb'] = bb_t_aug[0]
+            obs['predicted_bb'] = bb_t_aug[0]
+            # adjust bb
+            adj_predicted_bb = adjust_bb(bb=bb_t_aug[0],
+                                            crop_params=config.get('tasks_cfgs').get(task_name).get('crop'))
+            image = np.array(cv2.rectangle(
+                np.array(obs['camera_front_image'][:, :, ::-1]),
+                (int(adj_predicted_bb[0]),
+                    int(adj_predicted_bb[1])),
+                (int(adj_predicted_bb[2]),
+                    int(adj_predicted_bb[3])),
+                (0, 255, 0), 1))
+        else:
+            image = np.array(obs['camera_front_image'][:, :, ::-1])
+
+        cv2.imwrite(
+            f"step_test.png",  np.array(obs['camera_front_image'][:, :, ::-1]))
+        # if controller is not None and gt_env is not None:
+        #     gt_action, gt_status = controller.act(gt_obs)
+        #     gt_obs, gt_reward, gt_env_done, gt_info = gt_env.step(
+        #         gt_action)
+        #     cv2.imwrite(
+        #         f"gt_step_test.png", gt_obs['camera_front_image'][:, :, ::-1])
+    except Exception as e:
+        print(f"Exception during step {e}")
+        return obs, 0, None, action, False
+
+    return obs, reward, info, action, env_done

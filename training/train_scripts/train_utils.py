@@ -1202,8 +1202,8 @@ class Trainer:
                         print(train_print)
 
                 #### ---- Validation step ----####
-                # e != 0 and
-                if e != 0 and self._step % val_freq == 0 and not self.config.get("use_daml", False):
+                # e != 0 and self._step % val_freq == 0
+                if e != 0 and  ((e%10) == 0 )and not self.config.get("use_daml", False):
                     print("Validation")
                     rollout = self.config.get("rollout", False)
                     model = model.eval()
@@ -1270,6 +1270,7 @@ class Trainer:
                         from multi_task_test.test_any_task import _proc
                         import functools
                         from torch.multiprocessing import Pool
+                        from train_any import seed_everything
 
                         del inputs
                         gc.collect()
@@ -1285,8 +1286,7 @@ class Trainer:
                             results_dir = os.path.join(
                                 self.save_dir, 'results_{}_{}/'.format(task_name, e))
                             os.makedirs(results_dir, exist_ok=True)
-                            random.seed(42)
-                            np.random.seed(42)
+                            seed_everything(seed=42)
                             n_run_per_task = 5
                             N_step = 90
                             # model, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, gt_bb, seed, n, gt_file

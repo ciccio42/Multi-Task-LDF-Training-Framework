@@ -5,7 +5,14 @@ import hydra
 torch.autograd.set_detect_anomaly(True)
 # from torch.utils.tensorboard import SummaryWriter
 # writer = SummaryWriter()
-
+def seed_everything(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 @hydra.main(
     version_base=None,
@@ -19,8 +26,7 @@ def main(cfg):
         print("Waiting for debugger attach")
         debugpy.wait_for_client()
 
-    random.seed(42)
-    np.random.seed(42)
+    seed_everything(seed=42)
 
     from train_any import Workspace as W
     all_tasks_cfgs = [cfg.tasks_cfgs.nut_assembly, cfg.tasks_cfgs.door, cfg.tasks_cfgs.drawer,

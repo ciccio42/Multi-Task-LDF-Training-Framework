@@ -29,6 +29,15 @@ import re
 from colorama import Back
 
 
+def seed_everything(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 def extract_last_number(path):
     # Use regular expression to find the last number in the path
     check_point_number = path.split(
@@ -366,6 +375,8 @@ if __name__ == '__main__':
         print("Waiting for debugger attach")
         debugpy.wait_for_client()
 
+    seed_everything(seed=42)
+    
     try_path = args.model
     real = True if "Real" in try_path else False
     # if 'log' not in args.model and 'mosaic' not in args.model:
@@ -395,7 +406,11 @@ if __name__ == '__main__':
             # take the last check point
             try_paths = check_point_list
             epoch_numbers = len(try_paths)
-            try_path_list = try_paths[-5:]
+            
+            # len_try_paths = len(try_paths)
+            # step = round(len_try_paths/10)
+            # try_path_list = try_paths[0:-1:step]
+            try_path_list = try_paths[-10:]
 
     if "GT-BB" in try_path:
         args.gt_bb = True

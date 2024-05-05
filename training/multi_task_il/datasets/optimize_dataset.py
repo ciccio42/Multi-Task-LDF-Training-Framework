@@ -27,7 +27,7 @@ KEY_INTEREST = ["joint_pos", "joint_vel", "eef_pos",
                 "target-box-id", "target-object", "obj_bb",
                 "extent", "zfar", "znear", "eef_point", "ee_aa", "target-peg"]
 OFFSET = 0.0
-WORKERS = 1
+WORKERS =  50
 
 
 def crop_resize_img(task_cfg, task_name, obs, bb):
@@ -124,6 +124,32 @@ def scale_bb(center, upper_left, bottom_right, reduction=0.5):
     
     return new_upper_left, new_bottom_right
 
+def compute_displacemet(first_bb, last_bb):
+    displacement_center = abs(np.array(first_bb['center']) - np.array(last_bb['center']))
+    width = abs(first_bb['upper_left_corner'][0] - first_bb['bottom_right_corner'][0])
+    height = abs(first_bb['upper_left_corner'][0] - first_bb['bottom_right_corner'][0])
+    return displacement_center, width, height    
+    
+
+def compute_new_bb(displacement, width, height, bb, obj_name):
+    old_center = bb['center']
+    old_upper_left = bb['upper_left_corner']
+    old_bottom_right = bb['bottom_right_corner']
+
+    if "machine1" in obj_name:
+        new_center = [old_center[0] + displacement[0], old_center[1] + displacement[1]]
+        new_upper_left = [old_upper_left[0] + displacement[0], old_upper_left[1] + displacement[1]]
+        new_bottom_right = [old_bottom_right[0] + displacement[0], old_bottom_right[1] + displacement[1]]
+    elif "machine2" in obj_name:
+        new_center = [old_center[0] - displacement[0], old_center[1] - displacement[1]]
+        new_upper_left = [old_upper_left[0] - displacement[0], old_upper_left[1] - displacement[1]]
+        new_bottom_right = [old_bottom_right[0] - displacement[0], old_bottom_right[1] - displacement[1]]
+
+    return {
+        'center': new_center,
+        'upper_left_corner': new_upper_left,
+        'bottom_right_corner': new_bottom_right
+    }
 
 def overwrite_pkl_file(pkl_file_path, sample, traj_obj_bb):
     # get trajectory from sample
@@ -375,8 +401,25 @@ def opt_traj(task_name, task_spec, out_path, rescale_bb, pkl_file_path):
                             cv2.imwrite("prova_bin_bb.jpg", image)
             elif 'press_button' in task_name:
                 for camera_name in ["camera_front"]:
-                    last_bb = last_bb_for_all_cameras[camera_name]
-                    obj_names = last_bb.keys()
+                    last_bb_all_obj = last_bb_for_all_cameras[camera_name]
+                    obj_names = last_bb_all_obj.keys()
+                    
+                    if t==1:
+                        # compute displacement between first and last frame for target object
+                        displacement, width, height = compute_displacemet(
+                            first_bb = sample['traj']._data[t][0]['obj_bb'][camera_name][sample['traj']._data[t][0]['target-object']],
+                            last_bb=last_bb_all_obj[sample['traj']._data[t][0]['target-object']])
+                        
+                        for obj_name in obj_names:
+                            if obj_name != sample['traj']._data[t][0]['target-object']:
+                                last_bb_all_obj[obj_name] = compute_new_bb(
+                                    displacement, 
+                                    width, 
+                                    height,
+                                    sample['traj']._data[t][0]['obj_bb'][camera_name][obj_name],
+                                    obj_name)
+                    
+                    
                     for obj_name in obj_names:
                         
                         if rescale_bb: 
@@ -387,16 +430,17 @@ def opt_traj(task_name, task_spec, out_path, rescale_bb, pkl_file_path):
                             sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}"]['upper_left_corner'] = copy.deepcopy(new_upper_left)
                             sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}"]['bottom_right_corner'] = copy.deepcopy(new_bottom_right)
                         
+                        # create last bb frame
                         sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_final"] = dict()
-                        sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_final"]['center'] = last_bb[obj_name]['center']
+                        sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_final"]['center'] = last_bb_all_obj[obj_name]['center']
                         
                         if rescale_bb:
                             new_upper_left, new_bottom_right = scale_bb(
-                                center=last_bb[obj_name]['center'] ,
-                                upper_left=last_bb[obj_name]['upper_left_corner'] ,
-                                bottom_right=last_bb[obj_name]['bottom_right_corner'])
+                                center=last_bb_all_obj[obj_name]['center'] ,
+                                upper_left=last_bb_all_obj[obj_name]['upper_left_corner'] ,
+                                bottom_right=last_bb_all_obj[obj_name]['bottom_right_corner'])
                         else:
-                            new_upper_left, new_bottom_right = last_bb[obj_name]['upper_left_corner'], last_bb[obj_name]['bottom_right_corner']
+                            new_upper_left, new_bottom_right = last_bb_all_obj[obj_name]['upper_left_corner'], last_bb_all_obj[obj_name]['bottom_right_corner']
                         
                         sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_final"]['upper_left_corner'] = copy.deepcopy(new_upper_left)
                         sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_final"]['bottom_right_corner'] = copy.deepcopy(new_bottom_right)
@@ -423,7 +467,7 @@ def opt_traj(task_name, task_spec, out_path, rescale_bb, pkl_file_path):
                             radius=1,
                             color=(255, 0, 0),
                             thickness=1)
-                        cv2.imwrite("prova_bin_points.jpg", image)
+                        cv2.imwrite(f"prova_bin_points_{obj_name}.jpg", image)
                         
         if "real" in pkl_file_path or args.real:
             gripper = sample['traj'].get(t)['action'][-1]

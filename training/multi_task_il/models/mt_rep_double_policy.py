@@ -667,7 +667,8 @@ class VideoImitation(nn.Module):
             )
             
         self.demo_mean = demo_mean
-
+        self.first_phase = True
+        
         model_parameters = filter(lambda p: p.requires_grad, self.parameters())
         params = sum([np.prod(p.size()) for p in model_parameters])
         print(self)
@@ -839,39 +840,67 @@ class VideoImitation(nn.Module):
             img_embed = img_embed
             img_embed = torch.cat((img_embed, target_obj_embedding), dim=2)
 
-        first_phase_indx = first_phase == True
-        second_phase_indx = first_phase == False
-        
         B, T, _, _ = bb.shape
         mu_bc = torch.zeros((B, T, self.adim, self.n_mixtures)).to(bb.get_device())  
         scale_bc = torch.zeros((B, T, self.adim, self.n_mixtures)).to(bb.get_device())  
         logit_bc = torch.zeros((B, T, self.adim, self.n_mixtures)).to(bb.get_device())    
-        if  torch.sum(first_phase_indx.int()) != 0:
-            mu_picking, scale_picking, logit_picking = self._get_action_distribution(action_module=self._picking_module, 
-                                                                      action_dist=self._action_dist_picking,
-                                                                      bb=bb[first_phase_indx, :, 0, :][:,:,None,:],
-                                                                      img_embed=ac_in[first_phase_indx], 
-                                                                      states=states[first_phase_indx], 
-                                                                      demo_embed=demo_embed[first_phase_indx], 
-                                                                      first_phase=True
-                                                                      )
-            mu_bc[first_phase_indx] = mu_picking
-            scale_bc[first_phase_indx] = scale_picking
-            logit_bc[first_phase_indx] = logit_picking
-        if torch.sum(second_phase_indx.int()) != 0:
-            mu_place, scale_place, logit_place = self._get_action_distribution(action_module=self._placing_module, 
-                                                                      action_dist=self._action_dist_placing,
-                                                                      
-                                                                      bb=bb[second_phase_indx, :, 1, :][:,:,None,:],
-                                                                      img_embed=ac_in[second_phase_indx], 
-                                                                      states=states[second_phase_indx], 
-                                                                      demo_embed=demo_embed[second_phase_indx],
-                                                                      first_phase=False
-                                                                      )
-            mu_bc[second_phase_indx] = mu_place
-            scale_bc[second_phase_indx] = scale_place
-            logit_bc[second_phase_indx] = logit_place
+        if not eval:
+            first_phase_indx = first_phase == True
+            second_phase_indx = first_phase == False
+           
+            if  torch.sum(first_phase_indx.int()) != 0:
+                mu_picking, scale_picking, logit_picking = self._get_action_distribution(action_module=self._picking_module, 
+                                                                        action_dist=self._action_dist_picking,
+                                                                        bb=bb[first_phase_indx, :, 0, :][:,:,None,:],
+                                                                        img_embed=ac_in[first_phase_indx], 
+                                                                        states=states[first_phase_indx], 
+                                                                        demo_embed=demo_embed[first_phase_indx], 
+                                                                        first_phase=True
+                                                                        )
+                mu_bc[first_phase_indx] = mu_picking
+                scale_bc[first_phase_indx] = scale_picking
+                logit_bc[first_phase_indx] = logit_picking
+            if torch.sum(second_phase_indx.int()) != 0:
+                mu_place, scale_place, logit_place = self._get_action_distribution(action_module=self._placing_module, 
+                                                                        action_dist=self._action_dist_placing,
+                                                                        
+                                                                        bb=bb[second_phase_indx, :, 1, :][:,:,None,:],
+                                                                        img_embed=ac_in[second_phase_indx], 
+                                                                        states=states[second_phase_indx], 
+                                                                        demo_embed=demo_embed[second_phase_indx],
+                                                                        first_phase=False
+                                                                        )
+                mu_bc[second_phase_indx] = mu_place
+                scale_bc[second_phase_indx] = scale_place
+                logit_bc[second_phase_indx] = logit_place
 
+        else:
+            if first_phase:
+                mu_picking, scale_picking, logit_picking = self._get_action_distribution(
+                    action_module=self._picking_module, 
+                    action_dist=self._action_dist_picking,
+                    bb=bb[:, :, 0, :][:,:,None,:],
+                    img_embed=ac_in, 
+                    states=states, 
+                    demo_embed=demo_embed, 
+                    first_phase=True)
+                mu_bc = mu_picking
+                scale_bc = scale_picking
+                logit_bc = logit_picking
+            else:
+                mu_place, scale_place, logit_place = self._get_action_distribution(
+                    action_module=self._placing_module, 
+                    action_dist=self._action_dist_placing,
+                    bb=bb[:, :, 1, :][:,:,None,:],
+                    img_embed=ac_in, 
+                    states=states, 
+                    demo_embed=demo_embed,
+                    first_phase=False
+                    )
+                mu_bc = mu_place
+                scale_bc = scale_place
+                logit_bc = logit_place
+            
         out['bc_distrib'] = DiscreteMixLogistic(mu_bc, scale_bc, logit_bc) \
             if ret_dist else (mu_bc.type(torch.float32), scale_bc.type(torch.float32), logit_bc.type(torch.float32))
         out['demo_embed'] = demo_embed
@@ -1018,7 +1047,7 @@ class VideoImitation(nn.Module):
                 ret_dist=ret_dist,
                 states=states,
                 eval=eval,
-                first_phase=first_phase)
+                first_phase=self.first_phase if eval else first_phase)
         else:
             out = self.get_action(
                 embed_out=embed_out,

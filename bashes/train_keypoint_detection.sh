@@ -5,10 +5,10 @@ export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
+EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/no_scaled
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/
 POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_keypoint_dataset.MultiTaskPairedKeypointDetectionDataset
@@ -22,12 +22,12 @@ DEBUG=false
 WANDB_LOG=true
 
 TASK_str="button" #["pick_place","nut_assembly","stack_block","button"]
-EXP_NAME=Task-${TASK_str}-KP
+EXP_NAME=Task-${TASK_str}-KP-no-scaled
 PROJECT_NAME=${EXP_NAME}
 
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
-RESUME_STEP=76500
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch36/
+RESUME_STEP=11475
 RESUME=false
 EPOCH=90 # start from 16
 BSIZE=80 #16 #32

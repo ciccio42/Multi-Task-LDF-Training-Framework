@@ -592,16 +592,16 @@ class VideoImitation(nn.Module):
             lstm=action_cfg.get('is_recurrent', False),
             lstm_config=action_cfg.get('lstm_config', None)
         )
-        if load_inv:
-            self._action_dist_inv = _DiscreteLogHead(
-                in_dim=head_in_dim,
-                out_dim=action_cfg.adim,
-                n_mixtures=action_cfg.n_mixtures,
-                const_var=action_cfg.const_var,
-                sep_var=action_cfg.sep_var,
-                lstm=action_cfg.get('is_recurrent', False),
-                lstm_config=action_cfg.get('lstm_config', None)
-            )
+        # if load_inv:
+        #     self._action_dist_inv = _DiscreteLogHead(
+        #         in_dim=head_in_dim,
+        #         out_dim=action_cfg.adim,
+        #         n_mixtures=action_cfg.n_mixtures,
+        #         const_var=action_cfg.const_var,
+        #         sep_var=action_cfg.sep_var,
+        #         lstm=action_cfg.get('is_recurrent', False),
+        #         lstm_config=action_cfg.get('lstm_config', None)
+        #     )
         self.demo_mean = demo_mean
 
         model_parameters = filter(lambda p: p.requires_grad, self.parameters())
@@ -951,7 +951,7 @@ class VideoImitation(nn.Module):
             # maybe better to normalize here
             inv_pred = F.normalize(inv_pred, dim=2)
 
-        mu_inv, scale_inv, logit_inv = self._action_dist_inv(inv_pred)
+        mu_inv, scale_inv, logit_inv = self._action_dist(inv_pred)
         out['inverse_distrib'] = DiscreteMixLogistic(mu_inv, scale_inv, logit_inv) \
             if ret_dist else (mu_inv, scale_inv, logit_inv)
 

@@ -196,7 +196,7 @@ class MultiTaskPairedDataset(Dataset):
         if self.split_pick_place:
             first_t = chosen_t[0].item()
             last_t = chosen_t[-1].item()
-            if task_name == 'nut_assembly':
+            if task_name == 'nut_assembly' or task_name == 'pick_place':
                 first_step_gripper_state = traj.get(first_t)['action'][-1]
                 first_phase = True if first_step_gripper_state == -1.0 else False
                 last_step_gripper_state = traj.get(last_t)['action'][-1]
@@ -210,6 +210,8 @@ class MultiTaskPairedDataset(Dataset):
                             break
                     for indx, step in enumerate(range(step_change+1-self._obs_T, step_change+1)):
                         chosen_t[indx] = torch.tensor(step)
+            elif task_name == 'button':
+                pass
 
         images, images_cp, bb, obj_classes, action, states, points = create_sample(
             dataset_loader=self,

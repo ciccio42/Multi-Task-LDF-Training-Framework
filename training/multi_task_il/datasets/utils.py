@@ -706,7 +706,8 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         num_objects = 5
         target_obj_id = ENV_OBJECTS['button']['obj_names_to_id'][ENV_OBJECTS['button']
                                                                  ['obj_names'][target_obj_id]]
-        target_place_id = ENV_OBJECTS['button']['obj_names_to_id'][ENV_OBJECTS['button']
+        if take_place_loc:
+            target_place_id = ENV_OBJECTS['button']['obj_names_to_id'][ENV_OBJECTS['button']
                                                                  ['obj_names'][target_place_id]]
     if task_name != "stack_block":
         # select randomly another object
@@ -781,7 +782,7 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         bottom_right_y = bottom_right[1]
 
         # test GT
-        if True:
+        if DEBUG:
             if i == 0 or i == 2:
                 color = (0, 255, 0)
                 image = np.array(
@@ -795,7 +796,7 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
                                    int(bottom_right_y)),
                                   color=color,
                                   thickness=1)
-            if True:
+            if DEBUG:
                 cv2.imwrite("GT_bb_prova.png", image)
 
         bb.append([top_left_x, top_left_y,
@@ -814,6 +815,23 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
             cl.append(2)
         elif i == 3:
             cl.append(3)
+
+    if DEBUG:
+        image = np.array(
+                    step_t['obs']['camera_front_image'][:, :, ::-1])
+        for single_bb in bb:
+            if i == 0 or i == 2:
+                color = (0, 255, 0) 
+            else:
+                color = (255, 0, 0)
+            image = cv2.rectangle(image,
+                                  (int(single_bb[0]),
+                                   int(single_bb[1])),
+                                  (int(single_bb[2]),
+                                   int(single_bb[3])),
+                                  color=color,
+                                  thickness=1)
+        cv2.imwrite("GT_bb_prova_full_bb.png", image)
 
     return np.array(bb), np.array(cl)
 
@@ -1345,6 +1363,7 @@ class DIYBatchSampler(Sampler):
                         batch.append(next(iterator))
                     except StopIteration:  # print('early sstop:', i, name)
                         # re-start the smaller-sized tasks
+                        print("Stop iteration")
                         iterator = iter(sampler)
                         batch.append(next(iterator))
                         self.task_iterators[name][sub_task][slot_indx] = iterator
@@ -1356,6 +1375,7 @@ class DIYBatchSampler(Sampler):
                         batch.append(next(iterator))
                     except StopIteration:  # print('early sstop:', i, name)
                         # re-start the smaller-sized tasks
+                        print("Stop Iteration")
                         iterator = iter(sampler)
                         batch.append(next(iterator))
                         self.task_iterators[name][sub_task] = iterator
@@ -1425,13 +1445,11 @@ class TrajectoryBatchSampler(Sampler):
             task_name = spec.name
             idxs = agent_task_to_idx.get(task_name)
             self.agent_task_samplers[task_name] = OrderedDict(
-                {'all_sub_tasks': RandomSampler(data_source=idxs,
-                                                replacement=True,
-                                                num_samples=1)})  # uniformly draw from union of all sub-tasks
+                {'all_sub_tasks': RandomSampler(data_source=idxs
+                                                )})  # uniformly draw from union of all sub-tasks
             self.agent_task_iterators[task_name] = OrderedDict(
-                {'all_sub_tasks': iter(RandomSampler(data_source=idxs,
-                                                     replacement=True,
-                                                     num_samples=1))})
+                {'all_sub_tasks': iter(RandomSampler(data_source=idxs
+                                                     ))})
             assert task_name in agent_subtask_to_idx.keys(), \
                 'Mismatch between {} task idxs and subtasks!'.format(
                     task_name)
@@ -1443,18 +1461,19 @@ class TrajectoryBatchSampler(Sampler):
                 task_name, num_loaded_sub_tasks, first_id, sub_task_size))
 
             for sub_task, sub_idxs in agent_subtask_to_idx[task_name].items():
-
+                
+                if len(sub_idxs) == 10:
+                    self.train = False
+                else:
+                    self.train = True
+                    
                 self.agent_task_samplers[task_name][sub_task] = RandomSampler(
-                    data_source=sub_idxs,
-                    replacement=True,
-                    num_samples=1)
+                    data_source=sub_idxs)
                 assert len(sub_idxs) == sub_task_size, \
                     'Got uneven data sizes for sub-{} under the task {}!'.format(
                         sub_task, task_name)
                 self.agent_task_iterators[task_name][sub_task] = iter(
-                    RandomSampler(data_source=sub_idxs,
-                                  replacement=True,
-                                  num_samples=1))
+                    RandomSampler(data_source=sub_idxs))
                 # print('subtask indexs:', sub_task, max(sub_idxs))
             curr_task_info = {
                 'size':         len(idxs),
@@ -1474,13 +1493,9 @@ class TrajectoryBatchSampler(Sampler):
             task_name = spec.name
             idxs = demo_task_to_idx.get(task_name)
             self.demo_task_samplers[task_name] = OrderedDict(
-                {'all_sub_tasks': RandomSampler(data_source=idxs,
-                                                replacement=True,
-                                                num_samples=1)})  # uniformly draw from union of all sub-tasks
+                {'all_sub_tasks': RandomSampler(data_source=idxs)})  # uniformly draw from union of all sub-tasks
             self.demo_task_iterators[task_name] = OrderedDict(
-                {'all_sub_tasks': iter(RandomSampler(data_source=idxs,
-                                                     replacement=True,
-                                                     num_samples=1))})
+                {'all_sub_tasks': iter(RandomSampler(data_source=idxs))})
             assert task_name in demo_subtask_to_idx.keys(), \
                 'Mismatch between {} task idxs and subtasks!'.format(
                     task_name)
@@ -1494,9 +1509,7 @@ class TrajectoryBatchSampler(Sampler):
             for sub_task, sub_idxs in demo_subtask_to_idx[task_name].items():
 
                 self.demo_task_samplers[task_name][sub_task] = RandomSampler(
-                    data_source=sub_idxs,
-                    replacement=True,
-                    num_samples=1)
+                    data_source=sub_idxs)
                 assert len(sub_idxs) == sub_task_size, \
                     'Got uneven data sizes for sub-{} under the task {}!'.format(
                         sub_task, task_name)
@@ -1564,27 +1577,35 @@ class TrajectoryBatchSampler(Sampler):
                         agent_iterator)]
                 except StopIteration:  # print('early sstop:', i, name)
                     # re-start the smaller-sized tasks
+                    # if self.train:
+                    #     print("Stop iteration for Agent Train")
+                    # else:
+                    #     print("Stop iteration for Agent Val")
                     agent_iterator = iter(agent_sampler)
                     agent_indx = self.agent_subtask_to_idx[name][sub_task][next(
                         agent_iterator)]
                     self.agent_task_iterators[name][sub_task] = agent_iterator
 
                 # check if the agent_indx has already sampled
-                if agent_demo_pair.get(agent_indx, None) is None:
-                    demo_sampler = self.demo_task_samplers[name][sub_task]
-                    demo_iterator = self.demo_task_iterators[name][sub_task]
-                    # new agent_indx in epoch
-                    # sample demo for current
-                    try:
-                        demo_indx = self.demo_subtask_to_idx[name][sub_task][next(
-                            demo_iterator)]
-                    except StopIteration:  # print('early sstop:', i, name)
-                        # re-start the smaller-sized tasks
-                        demo_iterator = iter(demo_sampler)
-                        demo_indx = self.demo_subtask_to_idx[name][sub_task][next(
-                            demo_iterator)]
-                        self.demo_task_iterators[name][sub_task] = demo_iterator
-                    agent_demo_pair[agent_indx] = demo_indx
+                #if agent_demo_pair.get(agent_indx, None) is None:
+                demo_sampler = self.demo_task_samplers[name][sub_task]
+                demo_iterator = self.demo_task_iterators[name][sub_task]
+                # new agent_indx in epoch
+                # sample demo for current
+                try:
+                    demo_indx = self.demo_subtask_to_idx[name][sub_task][next(
+                        demo_iterator)]
+                except StopIteration:  # print('early sstop:', i, name)
+                    # re-start the smaller-sized tasks
+                    # if self.train:
+                    #     print("Stop iteration for Demo Train")
+                    # else:
+                    #     print("Stop iteration for Demo Val")
+                    demo_iterator = iter(demo_sampler)
+                    demo_indx = self.demo_subtask_to_idx[name][sub_task][next(
+                        demo_iterator)]
+                    self.demo_task_iterators[name][sub_task] = demo_iterator
+                agent_demo_pair[agent_indx] = demo_indx
 
                 batch.append([agent_indx, agent_demo_pair[agent_indx]])
 
@@ -1775,7 +1796,7 @@ class AgentBatchSampler(Sampler):
                     self.agent_task_iterators[name][sub_task] = agent_iterator
 
                 # check if the agent_indx has already sampled
-                if agent_demo_pair.get(agent_indx, None) is None:
+                # if agent_demo_pair.get(agent_indx, None) is None:
                     demo_sampler = self.demo_task_samplers[name][sub_task]
                     demo_iterator = self.demo_task_iterators[name][sub_task]
                     # new agent_indx in epoch
