@@ -27,9 +27,9 @@ TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task
 
 ROLLOUT=false
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Task-nut_assembly-true-Batch27
-RESUME_STEP=29824
-RESUME=false
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Task-nut_assembly-State-true-Batch27
+RESUME_STEP=42872
+RESUME=true
 
 EPOCH=90
 BSIZE=27 #32 #128 #64 #32
@@ -81,7 +81,7 @@ WIDTH=180
 
 COSINE_ANNEALING=false
 
-EXP_NAME=Provola
+EXP_NAME=Task-${TASK_str}-State-${CONCAT_STATE}
 PROJECT_NAME=${EXP_NAME}
 
 python ../training/train_scripts/train_any.py \
