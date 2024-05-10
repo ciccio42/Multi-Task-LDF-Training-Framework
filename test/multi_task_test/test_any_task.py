@@ -38,6 +38,7 @@ def seed_everything(seed=42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+
 def extract_last_number(path):
     # Use regular expression to find the last number in the path
     check_point_number = path.split(
@@ -138,7 +139,7 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
 
 
 def rollout_imitation(model, config, ctr,
-                      heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, gt_bb=False, sub_action=False, gt_action=4, real=True):
+                      heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, gt_bb=False, sub_action=False, gt_action=4, real=True, gt_file=None):
     if gpu_id == -1:
         gpu_id = int(ctr % torch.cuda.device_count())
     print(f"Model GPU id {gpu_id}")
@@ -195,7 +196,8 @@ def rollout_imitation(model, config, ctr,
                              gt_action=gt_action,
                              task_name=env_name,
                              real=real,
-                             expert_traj=expert_traj)
+                             expert_traj=expert_traj,
+                             gt_file=gt_file)
         print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             ctr, variation_id, info['reached'], info['picked'], info['success']))
         # print(f"Avg prediction {info['avg_pred']}")
@@ -250,6 +252,9 @@ def _proc(model, config, results_dir, heights, widths, size, shape, color, env_n
         else:
             variation_id = variation
         if ("cond_target_obj_detector" not in model_name) or ("CondPolicy" in model_name):
+            if gt_file is not None:
+                gt_file = pkl.load(open(gt_file, 'rb'))
+
             return_rollout = rollout_imitation(model,
                                                config,
                                                n,
@@ -271,7 +276,8 @@ def _proc(model, config, results_dir, heights, widths, size, shape, color, env_n
                                                gt_bb=gt_bb,
                                                sub_action=sub_action,
                                                gt_action=gt_action,
-                                               real=real)
+                                               real=real,
+                                               gt_file=gt_file)
         else:
             # Perform object detection inference
             return_rollout = object_detection_inference(model=model,
@@ -376,7 +382,7 @@ if __name__ == '__main__':
         debugpy.wait_for_client()
 
     seed_everything(seed=42)
-    
+
     try_path = args.model
     real = True if "Real" in try_path else False
     # if 'log' not in args.model and 'mosaic' not in args.model:
@@ -406,7 +412,7 @@ if __name__ == '__main__':
             # take the last check point
             try_paths = check_point_list
             epoch_numbers = len(try_paths)
-            
+
             # len_try_paths = len(try_paths)
             # step = round(len_try_paths/10)
             # try_path_list = try_paths[0:-1:step]
@@ -529,7 +535,6 @@ if __name__ == '__main__':
             except:
                 print("Exception not loading target obj detector")
         # model.set_conv_layer_reference(model)
-
         model = model.eval()  # .cuda()
         n_success = 0
         size = args.size
@@ -546,9 +551,15 @@ if __name__ == '__main__':
             from multiprocessing import cpu_count
             from multi_task_il.datasets.utils import DIYBatchSampler, collate_by_task
             config.dataset_cfg.mode = "train"
+            config.EXPERT_DATA = "/raid/home/frosa_Loc/no_opt_dataset"
             dataset = instantiate(config.get('dataset_cfg', None))
-            # get list of pkl files
-            pkl_file_dict = dataset.all_file_pairs
+            pkl_file_dict = dataset.agent_files
+            pkl_file_list = []
+            for task_name in pkl_file_dict.keys():
+                for task_id in pkl_file_dict[task_name].keys():
+                    for pkl_file in pkl_file_dict[task_name][task_id]:
+                        pkl_file_list.append(pkl_file)
+            args.N = len(pkl_file_list)
 
         parallel = args.num_workers > 1
 
@@ -579,9 +590,11 @@ if __name__ == '__main__':
 
         random.seed(42)
         np.random.seed(42)
+        seeds = []
         if args.test_gt:
-            seeds = [(-1, i, list)
-                     for i, list in enumerate(pkl_file_dict.values())]
+            for i in range(args.N):
+                seeds.append((random.getrandbits(32), i,
+                              pkl_file_list[i % len(pkl_file_list)], -1))
         else:
             seeds = [(random.getrandbits(32), i, None) for i in range(args.N)]
 
@@ -655,36 +668,6 @@ if __name__ == '__main__':
                     avg_flags = np.mean(flags[k])
                     to_log[f'avg_{k}'] = avg_flags
                 wandb.log(to_log)
-                # all_succ_flags = [t['success'] for t in task_success_flags]
-                # all_reached_flags = [t['reached'] for t in task_success_flags]
-                # all_picked_flags = [t['picked'] for t in task_success_flags]
-                # all_reached_wrong_flags = [t['reached_wrong']
-                #                            for t in task_success_flags]
-                # all_picked_wrong_flags = [t['picked_wrong']
-                #                           for t in task_success_flags]
-                # all_place_wrong_flags = [t['place_wrong']
-                #                          for t in task_success_flags]
-                # all_place_wrong_correct_obj_flags = [t['place_wrong_correct_obj']
-                #                                      for t in task_success_flags]
-                # all_place_correct_bin_wrong_obj_flags = [t['place_correct_bin_wrong_obj']
-                #                                          for t in task_success_flags]
-                # all_place_wrong_wrong_obj_flags = [t['place_wrong_wrong_obj']
-                #                                    for t in task_success_flags]
-                # all_avg_pred = [t['avg_pred'] for t in task_success_flags]
-
-                # wandb.log({
-                #     'avg_success': np.mean(all_succ_flags),
-                #     'avg_reached': np.mean(all_reached_flags),
-                #     'avg_picked': np.mean(all_picked_flags),
-                #     'avg_prediction': np.mean(all_avg_pred),
-                #     'avg_reached_wrong': np.mean(all_reached_wrong_flags),
-                #     'avg_picked_wrong': np.mean(all_picked_wrong_flags),
-                #     'avg_place_wrong': np.mean(all_place_wrong_flags),
-                #     'avg_place_wrong_correct_obj': np.mean(all_place_wrong_correct_obj_flags),
-                #     'avg_place_correct_bin_wrong_obj': np.mean(all_place_correct_bin_wrong_obj_flags),
-                #     'avg_place_wrong_wrong_obj': np.mean(all_place_wrong_wrong_obj_flags),
-                #     'success_err': np.mean(all_succ_flags) / np.sqrt(args.N),
-                # })
             else:
                 wandb.log({
                     'all_avg_iou': all_avg_iou})

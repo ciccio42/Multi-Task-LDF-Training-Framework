@@ -92,6 +92,9 @@ class DefaultNutAssembly(SingleArmEnv):
                          'peg1': [0.06, 0.06, 0.11],
                          'peg2': [0.06, 0.06, 0.11],
                          'peg3': [0.06, 0.06, 0.11]}
+        self.objects_to_id = {'round-nut': 0,
+                              'round-nut-2': 1,
+                              'round-nut-3': 2, }
 
         # settings for table top
         self.table_full_size = table_full_size

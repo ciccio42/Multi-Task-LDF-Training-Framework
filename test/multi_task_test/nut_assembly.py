@@ -80,35 +80,6 @@ def nut_assembly_eval(model, env, gt_env, context, gpu_id, variation_id, img_for
                                           task_name=task_name,
                                           real=real
                                           )
-    elif "Double-Policy" in model_name:
-        # Instantiate Controller
-        if task_name == "nut_assembly":
-            from multi_task_robosuite_env.controllers.controllers.expert_nut_assembly import NutAssemblyController
-            controller = NutAssemblyController(
-                env=env.env,
-                tries=0,
-                ranges=[])
-        return nut_assembly_eval_double_policy(model=model,
-                                           env=env,
-                                           gt_env=gt_env,
-                                           controller=controller,
-                                           context=context,
-                                           gpu_id=gpu_id,
-                                           variation_id=variation_id,
-                                           img_formatter=img_formatter,
-                                           max_T=max_T,
-                                           baseline=baseline,
-                                           action_ranges=action_ranges,
-                                           concat_bb=config.policy.get(
-                                               "concat_bb", False),
-                                           task_name=task_name,
-                                           config=config,
-                                           predict_gt_bb=gt_bb,
-                                           sub_action=sub_action,
-                                           gt_action=gt_action,
-                                           real=real
-                                           )
-
     else:
         # Instantiate Controller
         if task_name == "nut_assembly":
@@ -135,7 +106,8 @@ def nut_assembly_eval(model, env, gt_env, context, gpu_id, variation_id, img_for
                                            predict_gt_bb=gt_bb,
                                            sub_action=sub_action,
                                            gt_action=gt_action,
-                                           real=real
+                                           real=real,
+                                           gt_file=gt_file
                                            )
 
 
@@ -353,7 +325,7 @@ def nut_assembly_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None
     return traj, tasks
 
 
-def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False, sub_action=False, gt_action=4, real=True):
+def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False, sub_action=False, gt_action=4, real=True, gt_file=None):
 
     start_up_env_return = \
         startup_env(model=model,
@@ -363,7 +335,8 @@ def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
                     gpu_id=gpu_id,
                     variation_id=variation_id,
                     baseline=baseline,
-                    bb_flag=concat_bb
+                    bb_flag=concat_bb,
+                    gt_file=gt_file
                     )
 
     if concat_bb:
@@ -450,7 +423,7 @@ def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
             gt_action=gt_action,
             controller=controller,
             target_obj_emb=target_obj_emb)
-        
+
         traj.append(obs, reward, done, info, action)
 
         tasks['success'] = (reward or tasks['success']) and (
@@ -504,6 +477,3 @@ def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
     del model
 
     return traj, tasks
-
-
-

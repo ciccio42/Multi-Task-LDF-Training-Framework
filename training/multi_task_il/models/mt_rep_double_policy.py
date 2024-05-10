@@ -572,13 +572,12 @@ class VideoImitation(nn.Module):
         print("Concat-ing embedded demo to action head? {}, to distribution head? {}".format(
             concat_demo_act, concat_demo_head))
 
-
         if "KP" not in target_obj_detector_path:
             ac_in_dim = int(latent_dim + float(concat_demo_act)
                             * latent_dim + float(concat_bb) * 4 * self._bb_sequence + float(concat_state) * sdim)
         else:
             ac_in_dim = int(latent_dim + float(concat_demo_act)
-                            * latent_dim + float(concat_bb) * 4  + float(concat_state) * sdim)
+                            * latent_dim + float(concat_bb) * 4 + float(concat_state) * sdim)
 
         inv_input_dim = int(2*ac_in_dim)
 
@@ -586,7 +585,7 @@ class VideoImitation(nn.Module):
         self._placing_module = None
         self._picking_module_inv = None
         self._placing_module_inv = None
-                    
+
         if action_cfg.n_layers == 1:
             self._picking_module = nn.Sequential(
                 nn.Linear(ac_in_dim, action_cfg.out_dim), nn.ReLU())
@@ -623,10 +622,10 @@ class VideoImitation(nn.Module):
 
         head_in_dim = int(action_cfg.out_dim +
                           float(concat_demo_head) * latent_dim)
-        
+
         self.adim = action_cfg.adim
         self.n_mixtures = action_cfg.n_mixtures
-        
+
         self._action_dist_picking = _DiscreteLogHead(
             in_dim=head_in_dim,
             out_dim=action_cfg.adim,
@@ -645,16 +644,16 @@ class VideoImitation(nn.Module):
             lstm=action_cfg.get('is_recurrent', False),
             lstm_config=action_cfg.get('lstm_config', None)
         )
-        
+
         if load_inv:
             self._action_dist_picking_inv = _DiscreteLogHead(
-            in_dim=head_in_dim,
-            out_dim=action_cfg.adim,
-            n_mixtures=action_cfg.n_mixtures,
-            const_var=action_cfg.const_var,
-            sep_var=action_cfg.sep_var,
-            lstm=action_cfg.get('is_recurrent', False),
-            lstm_config=action_cfg.get('lstm_config', None)
+                in_dim=head_in_dim,
+                out_dim=action_cfg.adim,
+                n_mixtures=action_cfg.n_mixtures,
+                const_var=action_cfg.const_var,
+                sep_var=action_cfg.sep_var,
+                lstm=action_cfg.get('is_recurrent', False),
+                lstm_config=action_cfg.get('lstm_config', None)
             )
             self._action_dist_placing_inv = _DiscreteLogHead(
                 in_dim=head_in_dim,
@@ -665,10 +664,10 @@ class VideoImitation(nn.Module):
                 lstm=action_cfg.get('is_recurrent', False),
                 lstm_config=action_cfg.get('lstm_config', None)
             )
-            
+
         self.demo_mean = demo_mean
         self.first_phase = True
-        
+
         model_parameters = filter(lambda p: p.requires_grad, self.parameters())
         params = sum([np.prod(p.size()) for p in model_parameters])
         print(self)
@@ -767,19 +766,17 @@ class VideoImitation(nn.Module):
             inv_in = torch.cat(
                 (torch.cat((inv_in, states[:, :-1]), dim=2), states[:, 1:]), dim=2)
 
-        
         inv_pred = action_module(inv_in)
-        
+
         if self.concat_demo_head:
             inv_pred = torch.cat((inv_pred, demo_embed[:, :-1]), dim=2)
             # maybe better to normalize here
             inv_pred = F.normalize(inv_pred, dim=2)
 
-
         mu_inv, scale_inv, logit_inv = action_dist(inv_pred)
         return mu_inv, scale_inv, logit_inv
 
-    def _get_action_distribution(self,action_module, action_dist, bb, img_embed, states, demo_embed, first_phase):            
+    def _get_action_distribution(self, action_module, action_dist, bb, img_embed, states, demo_embed, first_phase):
         if self.concat_demo_act:  # for action model
             if self._concat_bb:
                 bb = rearrange(bb, 'B T O D -> B T (O D)')
@@ -789,7 +786,7 @@ class VideoImitation(nn.Module):
             ac_in = F.normalize(ac_in, dim=2)
 
         ac_in = torch.cat((ac_in, states), 2) if self._concat_state else ac_in
-        
+
         # predict behavior cloning distribution
         ac_pred = action_module(
             ac_in.type(torch.float32)).type(torch.float32)
@@ -800,9 +797,8 @@ class VideoImitation(nn.Module):
 
         mu_bc, scale_bc, logit_bc = action_dist(
             ac_pred)
-        return mu_bc, scale_bc, logit_bc 
+        return mu_bc, scale_bc, logit_bc
 
-    
     def get_action(self, embed_out, target_obj_embedding=None, bb=None, ret_dist=True, states=None, eval=False, first_phase=True):
         """directly modifies output dict to put action outputs inside"""
         out = dict()
@@ -841,35 +837,39 @@ class VideoImitation(nn.Module):
             img_embed = torch.cat((img_embed, target_obj_embedding), dim=2)
 
         B, T, _, _ = bb.shape
-        mu_bc = torch.zeros((B, T, self.adim, self.n_mixtures)).to(bb.get_device())  
-        scale_bc = torch.zeros((B, T, self.adim, self.n_mixtures)).to(bb.get_device())  
-        logit_bc = torch.zeros((B, T, self.adim, self.n_mixtures)).to(bb.get_device())    
+        mu_bc = torch.zeros(
+            (B, T, self.adim, self.n_mixtures)).to(bb.get_device())
+        scale_bc = torch.zeros(
+            (B, T, self.adim, self.n_mixtures)).to(bb.get_device())
+        logit_bc = torch.zeros(
+            (B, T, self.adim, self.n_mixtures)).to(bb.get_device())
         if not eval:
             first_phase_indx = first_phase == True
             second_phase_indx = first_phase == False
-           
-            if  torch.sum(first_phase_indx.int()) != 0:
-                mu_picking, scale_picking, logit_picking = self._get_action_distribution(action_module=self._picking_module, 
-                                                                        action_dist=self._action_dist_picking,
-                                                                        bb=bb[first_phase_indx, :, 0, :][:,:,None,:],
-                                                                        img_embed=ac_in[first_phase_indx], 
-                                                                        states=states[first_phase_indx], 
-                                                                        demo_embed=demo_embed[first_phase_indx], 
-                                                                        first_phase=True
-                                                                        )
+
+            if torch.sum(first_phase_indx.int()) != 0:
+                mu_picking, scale_picking, logit_picking = self._get_action_distribution(
+                    action_module=self._picking_module,
+                    action_dist=self._action_dist_picking,
+                    bb=bb[first_phase_indx, :, 0, :][:, :, None, :],
+                    img_embed=ac_in[first_phase_indx],
+                    states=states[first_phase_indx],
+                    demo_embed=demo_embed[first_phase_indx],
+                    first_phase=True
+                )
                 mu_bc[first_phase_indx] = mu_picking
                 scale_bc[first_phase_indx] = scale_picking
                 logit_bc[first_phase_indx] = logit_picking
             if torch.sum(second_phase_indx.int()) != 0:
-                mu_place, scale_place, logit_place = self._get_action_distribution(action_module=self._placing_module, 
-                                                                        action_dist=self._action_dist_placing,
-                                                                        
-                                                                        bb=bb[second_phase_indx, :, 1, :][:,:,None,:],
-                                                                        img_embed=ac_in[second_phase_indx], 
-                                                                        states=states[second_phase_indx], 
-                                                                        demo_embed=demo_embed[second_phase_indx],
-                                                                        first_phase=False
-                                                                        )
+                mu_place, scale_place, logit_place = self._get_action_distribution(
+                    action_module=self._placing_module,
+                    action_dist=self._action_dist_placing,
+                    bb=bb[second_phase_indx, :, 1, :][:, :, None, :],
+                    img_embed=ac_in[second_phase_indx],
+                    states=states[second_phase_indx],
+                    demo_embed=demo_embed[second_phase_indx],
+                    first_phase=False
+                )
                 mu_bc[second_phase_indx] = mu_place
                 scale_bc[second_phase_indx] = scale_place
                 logit_bc[second_phase_indx] = logit_place
@@ -877,30 +877,30 @@ class VideoImitation(nn.Module):
         else:
             if first_phase:
                 mu_picking, scale_picking, logit_picking = self._get_action_distribution(
-                    action_module=self._picking_module, 
+                    action_module=self._picking_module,
                     action_dist=self._action_dist_picking,
-                    bb=bb[:, :, 0, :][:,:,None,:],
-                    img_embed=ac_in, 
-                    states=states, 
-                    demo_embed=demo_embed, 
+                    bb=bb[:, :, 0, :][:, :, None, :],
+                    img_embed=ac_in,
+                    states=states,
+                    demo_embed=demo_embed,
                     first_phase=True)
                 mu_bc = mu_picking
                 scale_bc = scale_picking
                 logit_bc = logit_picking
             else:
                 mu_place, scale_place, logit_place = self._get_action_distribution(
-                    action_module=self._placing_module, 
+                    action_module=self._placing_module,
                     action_dist=self._action_dist_placing,
-                    bb=bb[:, :, 1, :][:,:,None,:],
-                    img_embed=ac_in, 
-                    states=states, 
+                    bb=bb[:, :, 1, :][:, :, None, :],
+                    img_embed=ac_in,
+                    states=states,
                     demo_embed=demo_embed,
                     first_phase=False
-                    )
+                )
                 mu_bc = mu_place
                 scale_bc = scale_place
                 logit_bc = logit_place
-            
+
         out['bc_distrib'] = DiscreteMixLogistic(mu_bc, scale_bc, logit_bc) \
             if ret_dist else (mu_bc.type(torch.float32), scale_bc.type(torch.float32), logit_bc.type(torch.float32))
         out['demo_embed'] = demo_embed
@@ -943,7 +943,7 @@ class VideoImitation(nn.Module):
         actions=None,
         target_obj_embedding=None,
         compute_activation_map=False,
-        first_phase = None,
+        first_phase=None,
         t=-1
     ):
         B, obs_T, _, height, width = images.shape
@@ -992,7 +992,7 @@ class VideoImitation(nn.Module):
                         print("No bb target for some frames")
                         # Get index for target object
                         predicted_bb = torch.zeros(
-                            (1,4)).to(device=images.get_device())
+                            (1, 4)).to(device=images.get_device())
 
                     # get place bb
                     if torch.sum((place_indx_flags == True).int()) != 0 and "KP" in self._target_obj_detector_path:
@@ -1012,7 +1012,7 @@ class VideoImitation(nn.Module):
                         print("No bb place for some frames")
                         # Get index for target object
                         predicted_bb = torch.concat((predicted_bb, torch.zeros(
-                            (1,4)).to(device=images.get_device())))
+                            (1, 4)).to(device=images.get_device())))
 
                     predicted_bb_list.append(predicted_bb)
 
@@ -1088,38 +1088,42 @@ class VideoImitation(nn.Module):
         if self._load_inv:
             first_phase_indx = first_phase == True
             second_phase_indx = first_phase == False
-            
+
             B, T, _, _ = bb.shape
-            mu_inv = torch.zeros((B, T, self.adim, self.n_mixtures)).to(bb.get_device())  
-            scale_inv = torch.zeros((B, T, self.adim, self.n_mixtures)).to(bb.get_device())  
-            logit_inv = torch.zeros((B, T, self.adim, self.n_mixtures)).to(bb.get_device())
-            
-            if  torch.sum(first_phase_indx.int()) != 0:
+            mu_inv = torch.zeros(
+                (B, T, self.adim, self.n_mixtures)).to(bb.get_device())
+            scale_inv = torch.zeros(
+                (B, T, self.adim, self.n_mixtures)).to(bb.get_device())
+            logit_inv = torch.zeros(
+                (B, T, self.adim, self.n_mixtures)).to(bb.get_device())
+
+            if torch.sum(first_phase_indx.int()) != 0:
                 mu_picking, scale_picking, logit_picking = self._get_inv_action_distribution(
                     action_module=self._picking_module_inv,
                     action_dist=self._action_dist_picking_inv,
-                    img_embed = img_embed[first_phase_indx],
+                    img_embed=img_embed[first_phase_indx],
                     demo_embed=demo_embed[first_phase_indx],
-                    predicted_bb=predicted_bb[first_phase_indx, :, 0, :][:,:,None,:],
+                    predicted_bb=predicted_bb[first_phase_indx,
+                                              :, 0, :][:, :, None, :],
                     states=states[first_phase_indx]
                 )
                 mu_inv[first_phase_indx] = mu_picking
                 scale_inv[first_phase_indx] = scale_picking
                 logit_inv[first_phase_indx] = logit_picking
-            
+
             if torch.sum(second_phase_indx.int()) != 0:
                 mu_place, scale_place, logit_place = self._get_inv_action_distribution(
                     action_module=self._placing_module_inv,
                     action_dist=self._action_dist_placing_inv,
-                    img_embed = img_embed[second_phase_indx],
+                    img_embed=img_embed[second_phase_indx],
                     demo_embed=demo_embed[second_phase_indx],
-                    predicted_bb=predicted_bb[second_phase_indx, :, 0, :][:,:,None,:],
+                    predicted_bb=predicted_bb[second_phase_indx,
+                                              :, 0, :][:, :, None, :],
                     states=states[second_phase_indx])
                 mu_inv[second_phase_indx] = mu_place
                 scale_inv[second_phase_indx] = scale_place
                 logit_inv[second_phase_indx] = logit_place
 
-                
             out['inverse_distrib'] = DiscreteMixLogistic(mu_inv, scale_inv, logit_inv) \
                 if ret_dist else (mu_inv, scale_inv, logit_inv)
 

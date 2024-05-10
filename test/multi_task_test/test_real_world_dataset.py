@@ -625,27 +625,3 @@ if __name__ == '__main__':
             json.dump({k: v for k, v in to_log.items()}, open(
                 results_dir+'/test_across_{}trajs.json'.format(args.N), 'w'))
             wandb.log(to_log)
-
-        # all_avg_iou = np.mean([t['avg_iou'] for t in task_success_flags])
-        # all_avg_tp = np.mean([t['avg_tp'] for t in task_success_flags])
-        # all_avg_fp = np.mean([t['avg_fp'] for t in task_success_flags])
-        # all_avg_fn = np.mean([t['avg_fn'] for t in task_success_flags])
-        # print(f"TP {all_avg_tp} - FP {all_avg_fp} - FN {all_avg_fn}")
-        # final_results = dict()
-        # final_results['N'] = int(args.N)
-        # final_results['model_saved'] = model_saved_step
-        # final_results['avg_iou'] = all_avg_iou
-        # final_results['avg_tp'] = all_avg_tp
-        # final_results['avg_fp'] = all_avg_fp
-        # final_results['avg_fn'] = all_avg_fn
-
-        # json.dump({k: v for k, v in final_results.items()}, open(
-        #     results_dir+'/test_across_{}trajs.json'.format(args.N), 'w'))
-
-        # if args.wandb_log:
-        #     log = dict()
-        #     for i, k in enumerate(final_results):
-        #         log['episode'] = i
-        #         log[k] = float(final_results[k]) if k != "variation_id" else int(
-        #             final_results[k])
-        #     wandb.log(log)

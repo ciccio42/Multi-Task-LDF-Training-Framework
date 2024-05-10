@@ -450,11 +450,50 @@ def get_action(model, target_obj_dec, bb, predict_gt_bb, gt_classes, states, ima
         if getattr(model, 'first_phase', None) is not None:
             model.first_phase = action[-1] != 1.
             # if not model.first_phase:
-            #     print("changed phase") 
+            #     print("changed phase")
     return action, predicted_prob, target_obj_embedding, out.get('activation_map', None), out.get('target_obj_prediction', None), out.get('predicted_bb', None)
 
 
-def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None, bb_flag=False):
+def set_obj_pos(env_name, dest_env, src_env, obs):
+
+    if env_name == 'nut_assembly':
+        gt_obs = dest_env.reset()
+        for obj_name in dest_env.env.objects_to_id.keys():
+            if 'peg' not in obj_name:
+                gt_obj = dest_env.env.nuts_pegs[dest_env.env.objects_to_id[obj_name]]
+                # set object position based on trajectory file
+                obj_pos = obs[f"{obj_name}_pos"]
+                obj_quat = obs[f"{obj_name}_quat"]
+                dest_env.env.sim.data.set_joint_qpos(
+                    gt_obj.joints[0], np.concatenate([obj_pos, obj_quat]))
+
+    elif env_name == 'press_button':
+        print(f"dest_env for {dest_env} not implemented")
+    elif env_name == "pick_place":
+        gt_obs = dest_env.reset()
+        for obj_name in dest_env.object_to_id.keys():
+            gt_obj = dest_env.objects[dest_env.object_to_id[obj_name]]
+            # set object position based on trajectory file
+            obj_pos = obs[f"{obj_name}_pos"]
+            obj_quat = obs[f"{obj_name}_quat"]
+            dest_env.env.sim.data.set_joint_qpos(
+                gt_obj.joints[0], np.concatenate([obj_pos, obj_quat]))
+
+    elif env_name == "block_stack":
+        gt_obs = dest_env.reset()
+        for i, gt_obj in enumerate(src_env.cubes):
+            obj_name = gt_obj.name
+            obj_pos = np.array(
+                src_env.sim.data.body_xpos[src_env.sim.model.body_name2id(gt_obj.root_body)])
+            obj_quat = T.convert_quat(
+                src_env.sim.data.body_xquat[src_env.sim.model.body_name2id(
+                    gt_obj.root_body)], to="xyzw"
+            )
+            dest_env.env.sim.data.set_joint_qpos(
+                gt_obj.joints[0], np.concatenate([obj_pos, obj_quat]))
+
+
+def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None, bb_flag=False, gt_file=None):
 
     done, states, images = False, [], []
     if baseline is None:
@@ -468,6 +507,16 @@ def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None
     while True:
         try:
             obs = env.reset()
+            cv2.imwrite("pre_set.jpg", obs['camera_front_image'])
+            if gt_file is not None:
+                # gt_file obs
+                set_obj_pos(env_name=env.env_name,
+                            dest_env=env,
+                            src_env=None,
+                            obs=gt_file['traj'].get(1)['obs'])
+                cv2.imwrite("post_set.jpg", obs['camera_front_image'])
+                cv2.imwrite("gt_traj.jpg", gt_file['traj'].get(1)[
+                            'obs']['camera_front_image'])
             # make a "null step" to stabilize all objects
             current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
             current_gripper_orientation = T.quat2axisangle(T.mat2quat(np.reshape(
@@ -475,6 +524,7 @@ def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None
             current_gripper_pose = np.concatenate(
                 (current_gripper_position, current_gripper_orientation, np.array([-1])), axis=-1)
             obs, reward, env_done, info = env.step(current_gripper_pose)
+
             break
         except:
             pass
@@ -482,50 +532,22 @@ def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None
     gt_obs = None
     if gt_env != None:
         while True:
+            # set the gt_env with the same value of the current env
             try:
-                if gt_env.env_name == 'nut_assembly':
-                    print(f"GT_ENV for {gt_env.env_name} not implemented")
-                elif gt_env.env_name == 'press_button':
-                    print(f"GT_ENV for {gt_env.env_name} not implemented")
-                elif gt_env.env_name == "pick_place":
-                    gt_obs = gt_env.reset()
-                    for obj_name in env.object_to_id.keys():
-                        gt_obj = gt_env.objects[env.object_to_id[obj_name]]
-                        # set object position based on trajectory file
-                        obj_pos = obs[f"{obj_name}_pos"]
-                        obj_quat = obs[f"{obj_name}_quat"]
-                        gt_env.env.sim.data.set_joint_qpos(
-                            gt_obj.joints[0], np.concatenate([obj_pos, obj_quat]))
 
-                    # make a "null step" to stabilize all objects
-                    current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
-                    current_gripper_orientation = T.quat2axisangle(T.mat2quat(np.reshape(
-                        env.sim.data.site_xmat[env.robots[0].eef_site_id], (3, 3))))
-                    current_gripper_pose = np.concatenate(
-                        (current_gripper_position, current_gripper_orientation, np.array([-1])), axis=-1)
-                    gt_obs, gt_reward, gt_env_done, gt_info = env.step(
-                        current_gripper_pose)
-                elif gt_env.env_name == "block_stack":
-                    gt_obs = gt_env.reset()
-                    for i, gt_obj in enumerate(env.cubes):
-                        obj_name = gt_obj.name
-                        obj_pos = np.array(
-                            env.sim.data.body_xpos[env.sim.model.body_name2id(gt_obj.root_body)])
-                        obj_quat = T.convert_quat(
-                            env.sim.data.body_xquat[env.sim.model.body_name2id(
-                                gt_obj.root_body)], to="xyzw"
-                        )
-                        gt_env.env.sim.data.set_joint_qpos(
-                            gt_obj.joints[0], np.concatenate([obj_pos, obj_quat]))
+                set_obj_pos(env_name=env.env_name,
+                            dest_env=gt_env,
+                            src_env=env,
+                            obs=obs)
 
-                    # make a "null step" to stabilize all objects
-                    current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
-                    current_gripper_orientation = T.quat2axisangle(T.mat2quat(np.reshape(
-                        env.sim.data.site_xmat[env.robots[0].eef_site_id], (3, 3))))
-                    current_gripper_pose = np.concatenate(
-                        (current_gripper_position, current_gripper_orientation, np.array([-1])), axis=-1)
-                    gt_obs, gt_reward, gt_env_done, gt_info = env.step(
-                        current_gripper_pose)
+                # make a "null step" to stabilize all objects
+                current_gripper_position = env.sim.data.site_xpos[env.robots[0].eef_site_id]
+                current_gripper_orientation = T.quat2axisangle(T.mat2quat(np.reshape(
+                    env.sim.data.site_xmat[env.robots[0].eef_site_id], (3, 3))))
+                current_gripper_pose = np.concatenate(
+                    (current_gripper_position, current_gripper_orientation, np.array([-1])), axis=-1)
+                gt_obs, gt_reward, gt_env_done, gt_info = gt_env.step(
+                    current_gripper_pose)
 
                 break
 
@@ -541,21 +563,23 @@ def startup_env(model, env, gt_env, context, gpu_id, variation_id, baseline=None
     else:
         return done, states, images, context, obs, traj, tasks, gt_obs, current_gripper_pose
 
+
 def scale_bb(center, upper_left, bottom_right, reduction=0.5):
     width = bottom_right[0] - upper_left[0]
     height = bottom_right[1] - upper_left[1]
-    
+
     new_width = int(width * reduction)
     new_height = int(height * reduction)
-    
+
     new_upper_left = (center[0] - new_width // 2, center[1] - new_height // 2)
-    new_bottom_right = (center[0] + new_width // 2, center[1] + new_height // 2)
-    
+    new_bottom_right = (center[0] + new_width // 2,
+                        center[1] + new_height // 2)
+
     return new_upper_left, new_bottom_right
+
 
 def retrieve_bb(obs, obj_name, camera_name='camera_front', real=True, scale=False):
 
-    
     try:
         if real:
             top_left_x = obs['obj_bb'][camera_name][obj_name]['bottom_right_corner'][0]
@@ -602,8 +626,9 @@ def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0, real=True, pla
                 place_name = ENV_OBJECTS[task_name]["place_names"]
                 if expert_traj is not None:
                     # get last frame bb
-                    final_bb = expert_traj.get(len(expert_traj)-1)['obs']['obj_bb']['camera_front'][f"{agent_target_obj_id}"]
-                    
+                    final_bb = expert_traj.get(
+                        len(expert_traj)-1)['obs']['obj_bb']['camera_front'][f"{agent_target_obj_id}"]
+
         except:
             agent_target_obj_id = 0
     else:
@@ -637,18 +662,19 @@ def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0, real=True, pla
             if id == agent_target_place_id or obj_name == agent_target_place_id:
                 if task_name != 'button':
                     bb = retrieve_bb(obs=obs,
-                                    obj_name=obj_name,
-                                    camera_name='camera_front',
-                                    real=real)         
+                                     obj_name=obj_name,
+                                     camera_name='camera_front',
+                                     real=real)
                 else:
-                    if scale: 
+                    if scale:
                         bb = scale_bb(center=final_bb['center'],
-                                    upper_left=final_bb['bottom_right_corner'],
-                                    bottom_right=final_bb['upper_left_corner'])
+                                      upper_left=final_bb['bottom_right_corner'],
+                                      bottom_right=final_bb['upper_left_corner'])
                     else:
-                        bb = np.array([np.array(final_bb['bottom_right_corner']), 
+                        bb = np.array([np.array(final_bb['bottom_right_corner']),
                                        np.array(final_bb['upper_left_corner'])])
-                        bb = np.array([bb[0][0],bb[0][1], bb[1][0], bb[1][1]], dtype=np.int16),
+                        bb = np.array([bb[0][0], bb[0][1], bb[1]
+                                      [0], bb[1][1]], dtype=np.int16),
                 bb_t.append(bb)
                 gt_t.extend([2])
     return bb_t, np.array(gt_t, dtype=np.int16)
@@ -869,7 +895,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                                    real=real,
                                    place=place_bb_flag,
                                    expert_traj=expert_traj,
-                                   scale=False #True if task_name =='button' else False
+                                   scale=False  # True if task_name =='button' else False
                                    )
 
             if baseline and len(states) >= 5:
@@ -1343,7 +1369,7 @@ def clip_action(action, prev_action):
 
 
 def build_tvf_formatter(config, env_name='stack'):
-    """Use this for torchvision.transforms in multi-task dataset, 
+    """Use this for torchvision.transforms in multi-task dataset,
     note eval_fn always feeds in traj['obs']['images'], i.e. shape (h,w,3)
     """
     dataset_cfg = config.train_cfg.dataset
@@ -1384,7 +1410,7 @@ def build_tvf_formatter(config, env_name='stack'):
 
 
 def build_tvf_formatter_obj_detector(config, env_name):
-    """Use this for torchvision.transforms in multi-task dataset, 
+    """Use this for torchvision.transforms in multi-task dataset,
     note eval_fn always feeds in traj['obs']['images'], i.e. shape (h,w,3)
     """
 
@@ -1527,27 +1553,6 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights
     else:
         variation = variation
 
-    # if 'Stack' in teacher_name:
-    #     teacher_expert_rollout = env_fn(teacher_name,
-    #                                     controller_type=controller,
-    #                                     task=variation,
-    #                                     size=size,
-    #                                     shape=shape,
-    #                                     color=color,
-    #                                     seed=seed,
-    #                                     gpu_id=gpu_id,
-    #                                     object_set=TASK_MAP[env_name]['object_set'])
-    #     agent_env = env_fn(agent_name,
-    #                        size=size,
-    #                        shape=shape,
-    #                        color=color,
-    #                        controller_type=controller,
-    #                        task=variation,
-    #                        ret_env=True,
-    #                        seed=seed,
-    #                        gpu_id=gpu_id,
-    #                        object_set=TASK_MAP[env_name]['object_set'])
-    # else:
     teacher_expert_rollout = env_fn(teacher_name,
                                     controller_type=controller,
                                     task=variation,
@@ -1666,19 +1671,18 @@ def get_eval_fn(env_name):
 def compute_error(action_t, gt_action):
     error_pos = action_t[:3]-gt_action[:3]
     print(f"Positional error {error_pos}")
-    
-    
-    
+
+
 def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img_formatter,
                     model, predict_gt_bb, bb, gt_classes, concat_bb, states, context, n_steps,
-                    max_T, baseline, action_ranges, sub_action, gt_action, controller,target_obj_emb):
+                    max_T, baseline, action_ranges, sub_action, gt_action, controller, target_obj_emb):
     # Get GT BB
     # if concat_bb:
     bb_t, gt_t = get_gt_bb(traj=traj,
-                            obs=obs,
-                            task_name=task_name,
-                            env=env,
-                            real=real)
+                           obs=obs,
+                           task_name=task_name,
+                           env=env,
+                           real=real)
     previous_predicted_bb = []
     previous_predicted_bb.append(torch.tensor(
         [.0, .0, .0, .0]).to(
@@ -1827,24 +1831,39 @@ def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img
             else:
                 obs['gt_bb'] = bb_t_aug
                 image = np.array(obs['camera_front_image'][:, :, ::-1])
+            image = np.array(obs['camera_front_image'][:, :, ::-1])
+            for bb in predicted_bb_list:
+                # adjust bb
+                adj_predicted_bb = adjust_bb(bb=bb,
+                                             crop_params=config.get('tasks_cfgs').get(task_name).get('crop'))
+                image = cv2.rectangle(
+                    image,
+                    (int(adj_predicted_bb[0]),
+                     int(adj_predicted_bb[1])),
+                    (int(adj_predicted_bb[2]),
+                     int(adj_predicted_bb[3])),
+                    (0, 255, 0), 1)
         elif concat_bb and predict_gt_bb:
-            obs['gt_bb'] = bb_t_aug[0]
-            obs['predicted_bb'] = bb_t_aug[0]
-            # adjust bb
-            adj_predicted_bb = adjust_bb(bb=bb_t_aug[0],
-                                            crop_params=config.get('tasks_cfgs').get(task_name).get('crop'))
-            image = np.array(cv2.rectangle(
-                np.array(obs['camera_front_image'][:, :, ::-1]),
-                (int(adj_predicted_bb[0]),
-                    int(adj_predicted_bb[1])),
-                (int(adj_predicted_bb[2]),
-                    int(adj_predicted_bb[3])),
-                (0, 255, 0), 1))
+            image = np.array(obs['camera_front_image'][:, :, ::-1])
+            for indx, bb in enumerate(bb_t_aug):
+                # adjust bb
+                adj_predicted_bb = adjust_bb(bb=bb,
+                                             crop_params=config.get('tasks_cfgs').get(task_name).get('crop'))
+                image = cv2.rectangle(
+                    image,
+                    (int(adj_predicted_bb[0]),
+                     int(adj_predicted_bb[1])),
+                    (int(adj_predicted_bb[2]),
+                     int(adj_predicted_bb[3])),
+                    (0, 255, 0), 1)
+
+            obs['gt_bb'] = bb_t_aug
+            obs['predicted_bb'] = bb_t_aug
         else:
             image = np.array(obs['camera_front_image'][:, :, ::-1])
 
         cv2.imwrite(
-            f"step_test.png",  np.array(obs['camera_front_image'][:, :, ::-1]))
+            f"step_test.png",  image)
         # if controller is not None and gt_env is not None:
         #     gt_action, gt_status = controller.act(gt_obs)
         #     gt_obs, gt_reward, gt_env_done, gt_info = gt_env.step(

@@ -22,19 +22,18 @@ VAL_FREQ=-1
 DEVICE=0
 DEBUG=false
 WANDB_LOG=true
-ROLLOUT=true
+ROLLOUT=false
 EPOCH=90
 LOADER_WORKERS=8
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
 
-if [ "$TASK_NAME" == 'nut_assembly' ];
-then    
+if [ "$TASK_NAME" == 'nut_assembly' ]; then
     echo "NUT-ASSEMBLY"
     ### Nut-Assembly ###
-    RESUME_PATH=1Task-Nut-Assembly-Double-Policy-Contrastive-false-Inverse-false-Batch27
-    RESUME_STEP=16776
-    RESUME=false 
+    RESUME_PATH=1Task-nut_assembly-Double-Policy-Contrastive-false-Inverse-false-trial-2-Batch27
+    RESUME_STEP=18640
+    RESUME=true
 
     LOAD_TARGET_OBJ_DETECTOR=true
     TARGET_OBJ_DETECTOR_STEP=53091 #68526 #129762 #198900 #65250
@@ -64,11 +63,11 @@ then
     CONCAT_STATE=false
 
     ACTION_DIM=7
-    N_MIXTURES=3 #14 MT #7 2Task, Nut, button, stack #3 Pick-place #2 Nut-Assembly
-    OUT_DIM=128 #64 MT #64 2Task, Nut, button, stack #128 Pick-place
-    ATTN_FF=256 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
+    N_MIXTURES=3       #14 MT #7 2Task, Nut, button, stack #3 Pick-place #2 Nut-Assembly
+    OUT_DIM=128        #64 MT #64 2Task, Nut, button, stack #128 Pick-place
+    ATTN_FF=256        #256 MT #128 2Task, Nut, button, stack #256 Pick-place
     COMPRESSOR_DIM=256 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
-    HIDDEN_DIM=512 #256 MT #128 2Task, Nut, button, stack #512 Pick-place
+    HIDDEN_DIM=512     #256 MT #128 2Task, Nut, button, stack #512 Pick-place
     CONCAT_DEMO_HEAD=false
     CONCAT_DEMO_ACT=true
     PRETRAINED=false
@@ -82,8 +81,8 @@ then
 
     DROP_DIM=4      # 2    # 3
     OUT_FEATURE=128 # 512 # 256
-    DIM_H=13 #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
-    DIM_W=23 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
+    DIM_H=13        #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
+    DIM_W=23        #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
     HEIGHT=100
     WIDTH=180
 
@@ -92,18 +91,16 @@ then
     TASK_str="nut_assembly" #[pick_place,nut_assembly,stack_block,button]
     EXP_NAME=1Task-${TASK_str}-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}-trial-2
     PROJECT_NAME=${EXP_NAME}
-elif [ "$TASK_NAME" == 'button' ];
-then 
+elif [ "$TASK_NAME" == 'button' ]; then
     echo "BUTTON"
     RESUME_PATH=1Task-Nut-Assembly-Double-Policy-Contrastive-false-Inverse-false-Batch27
     RESUME_STEP=16776
-    RESUME=false 
+    RESUME=false
 
     LOAD_TARGET_OBJ_DETECTOR=true
     TARGET_OBJ_DETECTOR_STEP=37476 #68526 #129762 #198900 #65250
     TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assemly-KP-Batch63
     CONCAT_BB=true
-
 
     BSIZE=27 #32 #128 #64 #32
     COMPUTE_OBJ_DISTRIBUTION=false
@@ -128,11 +125,11 @@ then
     CONCAT_STATE=false
 
     ACTION_DIM=7
-    N_MIXTURES=7 #14 MT #7 2Task, Nut, button, stack #3 Pick-place #2 Nut-Assembly
-    OUT_DIM=64 #64 MT #64 2Task, Nut, button, stack #128 Pick-place
-    ATTN_FF=128 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
+    N_MIXTURES=7       #14 MT #7 2Task, Nut, button, stack #3 Pick-place #2 Nut-Assembly
+    OUT_DIM=64         #64 MT #64 2Task, Nut, button, stack #128 Pick-place
+    ATTN_FF=128        #256 MT #128 2Task, Nut, button, stack #256 Pick-place
     COMPRESSOR_DIM=128 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
-    HIDDEN_DIM=128 #256 MT #128 2Task, Nut, button, stack #512 Pick-place
+    HIDDEN_DIM=128     #256 MT #128 2Task, Nut, button, stack #512 Pick-place
     CONCAT_DEMO_HEAD=false
     CONCAT_DEMO_ACT=true
     PRETRAINED=false
@@ -146,8 +143,8 @@ then
 
     DROP_DIM=4      # 2    # 3
     OUT_FEATURE=128 # 512 # 256
-    DIM_H=13 #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
-    DIM_W=23 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
+    DIM_H=13        #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
+    DIM_W=23        #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
     HEIGHT=100
     WIDTH=180
 
@@ -157,19 +154,17 @@ then
     TASK_str="button" #[pick_place,nut_assembly,stack_block,button]
     EXP_NAME=1Task-${TASK_str}-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}
 
-elif [ "$TASK_NAME" == 'pick_place' ];
-then
+elif [ "$TASK_NAME" == 'pick_place' ]; then
     echo "Pick-Place"
     ### Pick-Place ###
     RESUME_PATH=1Task-pick_place-Double-Policy-Contrastive-false-Inverse-false-Batch32/
-    RESUME_STEP=134694
-    RESUME=false 
+    RESUME_STEP=160350
+    RESUME=true
 
     LOAD_TARGET_OBJ_DETECTOR=true
     TARGET_OBJ_DETECTOR_STEP=37476 #68526 #129762 #198900 #65250
     TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-KP-Batch112
     CONCAT_BB=true
-
 
     BSIZE=32 #32 #128 #64 #32
     COMPUTE_OBJ_DISTRIBUTION=false
@@ -195,11 +190,11 @@ then
     CONCAT_STATE=false
 
     ACTION_DIM=7
-    N_MIXTURES=3 #14 MT #7 2Task, Nut, button, stack #3 Pick-place #2 Nut-Assembly
-    OUT_DIM=128 #64 MT #64 2Task, Nut, button, stack #128 Pick-place
-    ATTN_FF=256 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
+    N_MIXTURES=3       #14 MT #7 2Task, Nut, button, stack #3 Pick-place #2 Nut-Assembly
+    OUT_DIM=128        #64 MT #64 2Task, Nut, button, stack #128 Pick-place
+    ATTN_FF=256        #256 MT #128 2Task, Nut, button, stack #256 Pick-place
     COMPRESSOR_DIM=256 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
-    HIDDEN_DIM=512 #256 MT #128 2Task, Nut, button, stack #512 Pick-place
+    HIDDEN_DIM=512     #256 MT #128 2Task, Nut, button, stack #512 Pick-place
     CONCAT_DEMO_HEAD=false
     CONCAT_DEMO_ACT=true
     PRETRAINED=false
@@ -213,8 +208,8 @@ then
 
     DROP_DIM=4      # 2    # 3
     OUT_FEATURE=128 # 512 # 256
-    DIM_H=13 #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
-    DIM_W=23 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
+    DIM_H=13        #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
+    DIM_W=23        #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
     HEIGHT=100
     WIDTH=180
 

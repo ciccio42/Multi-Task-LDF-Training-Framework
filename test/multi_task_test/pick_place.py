@@ -245,6 +245,7 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
         else:
             done, states, images, context, obs, traj, tasks, gt_obs, current_gripper_pose = start_up_env_return
             bb = None
+            gt_classes = None
 
         n_steps = 0
 
@@ -301,7 +302,7 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
                 states, images, bb = [], [], []
 
             states.append(np.concatenate(
-                (obs['ee_aa'], obs['gripper_qpos'])).astype(np.float32)[None])
+                (obs['joint_pos'], obs['gripper_qpos'])).astype(np.float32)[None])
 
             obs, reward, info, action, env_done = task_run_action(
                 traj=traj,
@@ -327,7 +328,7 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
                 sub_action=sub_action,
                 gt_action=gt_action,
                 controller=controller,
-                target_obj_emb=target_obj_emb)            
+                target_obj_emb=target_obj_emb)
 
             traj.append(obs, reward, done, info, action)
 
