@@ -543,6 +543,7 @@ class VideoImitation(nn.Module):
         self._obs_T = obs_T
         self._concat_state = concat_state
         self._concat_target_obj_embedding = concat_target_obj_embedding
+        self._normalize = True
         # action processing
         assert action_cfg.n_mixtures >= 1, "must predict at least one mixture!"
         self.concat_demo_head = concat_demo_head
@@ -720,10 +721,12 @@ class VideoImitation(nn.Module):
                 ac_in = torch.cat((img_embed, demo_embed, bb), dim=2)
             else:
                 ac_in = torch.cat((img_embed, demo_embed), dim=2)
-            ac_in = F.normalize(ac_in, dim=2)
 
-        ac_in = torch.cat((ac_in, states), 2) if self._concat_state else ac_in
+            if self._concat_state:
+                ac_in = torch.cat((ac_in, states), 2)
 
+            if self._normalize:
+                ac_in = F.normalize(ac_in, dim=2)
         # predict behavior cloning distribution
         ac_pred = self._action_module(
             ac_in.type(torch.float32)).type(torch.float32)
