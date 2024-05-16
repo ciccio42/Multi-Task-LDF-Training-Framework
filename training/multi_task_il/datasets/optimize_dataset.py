@@ -27,7 +27,7 @@ KEY_INTEREST = ["joint_pos", "joint_vel", "eef_pos",
                 "target-box-id", "target-object", "obj_bb",
                 "extent", "zfar", "znear", "eef_point", "ee_aa", "target-peg"]
 OFFSET = 0.0
-WORKERS =  50
+WORKERS = 50
 
 
 def crop_resize_img(task_cfg, task_name, obs, bb):
@@ -112,24 +112,30 @@ def adjust_bb(bb, original, cropped_img, obs, img_width=360, img_height=200, top
         bb[obj_bb_name]['center'] = np.array([int((x2-x1)/2), int((y2-y1)/2)])
     return bb
 
+
 def scale_bb(center, upper_left, bottom_right, reduction=0.5):
     width = bottom_right[0] - upper_left[0]
     height = bottom_right[1] - upper_left[1]
-    
+
     new_width = int(width * reduction)
     new_height = int(height * reduction)
-    
+
     new_upper_left = (center[0] - new_width // 2, center[1] - new_height // 2)
-    new_bottom_right = (center[0] + new_width // 2, center[1] + new_height // 2)
-    
+    new_bottom_right = (center[0] + new_width // 2,
+                        center[1] + new_height // 2)
+
     return new_upper_left, new_bottom_right
 
+
 def compute_displacemet(first_bb, last_bb):
-    displacement_center = abs(np.array(first_bb['center']) - np.array(last_bb['center']))
-    width = abs(first_bb['upper_left_corner'][0] - first_bb['bottom_right_corner'][0])
-    height = abs(first_bb['upper_left_corner'][0] - first_bb['bottom_right_corner'][0])
-    return displacement_center, width, height    
-    
+    displacement_center = abs(
+        np.array(first_bb['center']) - np.array(last_bb['center']))
+    width = abs(first_bb['upper_left_corner'][0] -
+                first_bb['bottom_right_corner'][0])
+    height = abs(first_bb['upper_left_corner'][0] -
+                 first_bb['bottom_right_corner'][0])
+    return displacement_center, width, height
+
 
 def compute_new_bb(displacement, width, height, bb, obj_name):
     old_center = bb['center']
@@ -137,19 +143,26 @@ def compute_new_bb(displacement, width, height, bb, obj_name):
     old_bottom_right = bb['bottom_right_corner']
 
     if "machine1" in obj_name:
-        new_center = [old_center[0] + displacement[0], old_center[1] + displacement[1]]
-        new_upper_left = [old_upper_left[0] + displacement[0], old_upper_left[1] + displacement[1]]
-        new_bottom_right = [old_bottom_right[0] + displacement[0], old_bottom_right[1] + displacement[1]]
+        new_center = [old_center[0] + displacement[0],
+                      old_center[1] + displacement[1]]
+        new_upper_left = [old_upper_left[0] + displacement[0],
+                          old_upper_left[1] + displacement[1]]
+        new_bottom_right = [old_bottom_right[0] +
+                            displacement[0], old_bottom_right[1] + displacement[1]]
     elif "machine2" in obj_name:
-        new_center = [old_center[0] - displacement[0], old_center[1] - displacement[1]]
-        new_upper_left = [old_upper_left[0] - displacement[0], old_upper_left[1] - displacement[1]]
-        new_bottom_right = [old_bottom_right[0] - displacement[0], old_bottom_right[1] - displacement[1]]
+        new_center = [old_center[0] - displacement[0],
+                      old_center[1] - displacement[1]]
+        new_upper_left = [old_upper_left[0] - displacement[0],
+                          old_upper_left[1] - displacement[1]]
+        new_bottom_right = [old_bottom_right[0] -
+                            displacement[0], old_bottom_right[1] - displacement[1]]
 
     return {
         'center': new_center,
         'upper_left_corner': new_upper_left,
         'bottom_right_corner': new_bottom_right
     }
+
 
 def overwrite_pkl_file(pkl_file_path, sample, traj_obj_bb):
     # get trajectory from sample
@@ -196,11 +209,11 @@ def opt_traj(task_name, task_spec, out_path, rescale_bb, pkl_file_path):
     # remove data not of interest for training
     start_pick_t = 0
     # end_pick_t = 0
-    if task_name == 'press_button':
+    if 'press_button' in task_name:
         # I have to get the last frame to identify the final placing position
         last_step_obs = sample['traj'][len(sample['traj'])-1]['obs']
         last_bb_for_all_cameras = copy.deepcopy(last_step_obs['obj_bb'])
-    
+
     for t in range(len(sample['traj'])):
         for key in keys_to_remove:
             try:
@@ -403,72 +416,86 @@ def opt_traj(task_name, task_spec, out_path, rescale_bb, pkl_file_path):
                 for camera_name in ["camera_front"]:
                     last_bb_all_obj = last_bb_for_all_cameras[camera_name]
                     obj_names = last_bb_all_obj.keys()
-                    
-                    if t==1:
+
+                    if t == 1:
                         # compute displacement between first and last frame for target object
                         displacement, width, height = compute_displacemet(
-                            first_bb = sample['traj']._data[t][0]['obj_bb'][camera_name][sample['traj']._data[t][0]['target-object']],
+                            first_bb=sample['traj']._data[t][0]['obj_bb'][camera_name][sample['traj']._data[t]
+                                                                                       [0]['target-object']],
                             last_bb=last_bb_all_obj[sample['traj']._data[t][0]['target-object']])
-                        
+
                         for obj_name in obj_names:
                             if obj_name != sample['traj']._data[t][0]['target-object']:
                                 last_bb_all_obj[obj_name] = compute_new_bb(
-                                    displacement, 
-                                    width, 
+                                    displacement,
+                                    width,
                                     height,
                                     sample['traj']._data[t][0]['obj_bb'][camera_name][obj_name],
                                     obj_name)
-                    
-                    
+
                     for obj_name in obj_names:
-                        
-                        if rescale_bb: 
-                            new_upper_left, new_bottom_right = scale_bb(
-                                center=sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}"]['center'],
-                                upper_left=sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}"]['upper_left_corner'] ,
-                                bottom_right=sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}"]['bottom_right_corner'])
-                            sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}"]['upper_left_corner'] = copy.deepcopy(new_upper_left)
-                            sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}"]['bottom_right_corner'] = copy.deepcopy(new_bottom_right)
-                        
-                        # create last bb frame
-                        sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_final"] = dict()
-                        sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_final"]['center'] = last_bb_all_obj[obj_name]['center']
-                        
+
                         if rescale_bb:
                             new_upper_left, new_bottom_right = scale_bb(
-                                center=last_bb_all_obj[obj_name]['center'] ,
-                                upper_left=last_bb_all_obj[obj_name]['upper_left_corner'] ,
+                                center=sample['traj']._data[t][0]['obj_bb'][
+                                    camera_name][f"{obj_name}"]['center'],
+                                upper_left=sample['traj']._data[t][0]['obj_bb'][
+                                    camera_name][f"{obj_name}"]['upper_left_corner'],
+                                bottom_right=sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}"]['bottom_right_corner'])
+                            sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}"]['upper_left_corner'] = copy.deepcopy(
+                                new_upper_left)
+                            sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}"]['bottom_right_corner'] = copy.deepcopy(
+                                new_bottom_right)
+
+                        # create last bb frame
+                        sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_final"] = dict(
+                        )
+                        sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_final"][
+                            'center'] = last_bb_all_obj[obj_name]['center']
+
+                        if rescale_bb:
+                            new_upper_left, new_bottom_right = scale_bb(
+                                center=last_bb_all_obj[obj_name]['center'],
+                                upper_left=last_bb_all_obj[obj_name]['upper_left_corner'],
                                 bottom_right=last_bb_all_obj[obj_name]['bottom_right_corner'])
                         else:
-                            new_upper_left, new_bottom_right = last_bb_all_obj[obj_name]['upper_left_corner'], last_bb_all_obj[obj_name]['bottom_right_corner']
-                        
-                        sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_final"]['upper_left_corner'] = copy.deepcopy(new_upper_left)
-                        sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_final"]['bottom_right_corner'] = copy.deepcopy(new_bottom_right)
-                        
-                        
+                            new_upper_left, new_bottom_right = last_bb_all_obj[obj_name][
+                                'upper_left_corner'], last_bb_all_obj[obj_name]['bottom_right_corner']
+
+                        sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_final"]['upper_left_corner'] = copy.deepcopy(
+                            new_upper_left)
+                        sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_final"]['bottom_right_corner'] = copy.deepcopy(
+                            new_bottom_right)
+
                         image = cv2.rectangle(sample['traj'].get(
                             t)['obs'][f"{camera_name}_image"].copy(),
-                            sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}"]['upper_left_corner'],
-                            sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}"]['bottom_right_corner'],
+                            sample['traj']._data[t][0]['obj_bb'][camera_name][
+                                f"{obj_name}"]['upper_left_corner'],
+                            sample['traj']._data[t][0]['obj_bb'][camera_name][
+                                f"{obj_name}"]['bottom_right_corner'],
                             color=(0, 0, 255),
                             thickness=1)
                         image = cv2.rectangle(image,
-                            sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_final"]['upper_left_corner'],
-                            sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_final"]['bottom_right_corner'],
-                            color=(255, 0, 0),
-                            thickness=1)
+                                              sample['traj']._data[t][0]['obj_bb'][camera_name][
+                                                  f"{obj_name}_final"]['upper_left_corner'],
+                                              sample['traj']._data[t][0]['obj_bb'][camera_name][
+                                                  f"{obj_name}_final"]['bottom_right_corner'],
+                                              color=(255, 0, 0),
+                                              thickness=1)
                         image = cv2.circle(image,
-                            sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}"]['center'],
-                            radius=1,
-                            color=(0, 0, 255),
-                            thickness=1)
+                                           sample['traj']._data[t][0]['obj_bb'][
+                                               camera_name][f"{obj_name}"]['center'],
+                                           radius=1,
+                                           color=(0, 0, 255),
+                                           thickness=1)
                         image = cv2.circle(image,
-                            sample['traj']._data[t][0]['obj_bb'][camera_name][f"{obj_name}_final"]['center'],
-                            radius=1,
-                            color=(255, 0, 0),
-                            thickness=1)
+                                           sample['traj']._data[t][0]['obj_bb'][
+                                               camera_name][f"{obj_name}_final"]['center'],
+                                           radius=1,
+                                           color=(255, 0, 0),
+                                           thickness=1)
                         cv2.imwrite(f"prova_bin_points_{obj_name}.jpg", image)
-                        
+
         if "real" in pkl_file_path or args.real:
             gripper = sample['traj'].get(t)['action'][-1]
             if start_pick_t == 0 and gripper == 1.0:

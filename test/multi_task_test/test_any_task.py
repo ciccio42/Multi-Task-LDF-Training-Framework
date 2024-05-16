@@ -416,7 +416,7 @@ if __name__ == '__main__':
             # len_try_paths = len(try_paths)
             # step = round(len_try_paths/10)
             # try_path_list = try_paths[0:-1:step]
-            try_path_list = try_paths[-10:]
+            try_path_list = try_paths[-9:]
 
     if "GT-BB" in try_path:
         args.gt_bb = True

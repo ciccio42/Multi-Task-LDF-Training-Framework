@@ -17,7 +17,7 @@ def block_stack_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None,
     return NotImplementedError
 
 
-def block_stack_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False,  sub_action=False, gt_action=4, real=True):
+def block_stack_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False, sub_action=False, gt_action=4, real=True, gt_file=None):
 
     start_up_env_return = \
         startup_env(model=model,
@@ -34,6 +34,7 @@ def block_stack_eval_demo_cond(model, env, context, gpu_id, variation_id, img_fo
     else:
         done, states, images, context, obs, traj, tasks, gt_obs, current_gripper_pose = start_up_env_return
         bb = None
+        gt_classes = None
 
     n_steps = 0
     target_obj_loc = env.sim.data.body_xpos[env.cubeA_body_id]
@@ -73,147 +74,33 @@ def block_stack_eval_demo_cond(model, env, context, gpu_id, variation_id, img_fo
                 tasks['reached_wrong'] and (other_obj_loc[2] - start_z) > 0.05)
 
         states.append(np.concatenate(
-            (obs['ee_aa'], obs['gripper_qpos'])).astype(np.float32)[None])
+            (obs['joint_pos'], obs['gripper_qpos'])).astype(np.float32)[None])
 
-        # Get GT BB
-        # if concat_bb:
-        bb_t, gt_t = get_gt_bb(
-            env=env,
+        obs, reward, info, action, env_done = task_run_action(
             traj=traj,
             obs=obs,
             task_name=task_name,
-            real=real
-        )
-        previous_predicted_bb = []
-        previous_predicted_bb.append(torch.tensor(
-            [.0, .0, .0, .0]).to(
-            device=gpu_id).float())
-
-        # convert observation from BGR to RGB
-        if config.augs.get("old_aug", True):
-            images.append(img_formatter(
-                obs['camera_front_image'][:, :, ::-1])[None])
-        else:
-            img_aug, bb_t_aug = img_formatter(
-                obs['camera_front_image'][:, :, ::-1], bb_t)
-            images.append(img_aug[None])
-            if model._object_detector is not None or predict_gt_bb:
-                bb.append(bb_t_aug[None][None])
-                gt_classes.append(torch.from_numpy(
-                    gt_t[None][None][None]).to(device=gpu_id))
-
-        if concat_bb:
-            action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
-                model=model,
-                target_obj_dec=None,
-                states=states,
-                bb=bb,
-                predict_gt_bb=predict_gt_bb,
-                gt_classes=gt_classes[0],
-                images=images,
-                context=context,
-                gpu_id=gpu_id,
-                n_steps=n_steps,
-                max_T=max_T,
-                baseline=baseline,
-                action_ranges=action_ranges,
-                target_obj_embedding=target_obj_emb
-            )
-        else:
-            action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
-                model=model,
-                target_obj_dec=None,
-                states=states,
-                bb=None,
-                predict_gt_bb=False,
-                gt_classes=None,
-                images=images,
-                context=context,
-                gpu_id=gpu_id,
-                n_steps=n_steps,
-                max_T=max_T,
-                baseline=baseline,
-                action_ranges=action_ranges,
-                target_obj_embedding=target_obj_emb
-            )
-
-        if concat_bb and model._object_detector is not None and not predict_gt_bb:
-            prediction = prediction_internal_obj
-
-        try:
-            if sub_action:
-                if n_steps < gt_action:
-                    print("GT-action")
-                    action, _ = controller.act(obs)
-
-            obs, reward, env_done, info = env.step(action)
-            if concat_bb and not predict_gt_bb:
-                # get predicted bb from prediction
-                # 1. Get the index with target class
-                target_indx_flags = prediction['classes_final'][0] == 1
-                if torch.sum((target_indx_flags == True).int()) != 0:
-                    # 2. Get the confidence scores for the target predictions and the the max
-                    target_max_score_indx = torch.argmax(
-                        prediction['conf_scores_final'][0][target_indx_flags])
-                    max_score_target = prediction['conf_scores_final'][0][target_indx_flags][target_max_score_indx]
-                    if max_score_target != -1:
-                        scale_factor = model._object_detector.get_scale_factors()
-                        predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
-                                                      width_scale_factor=scale_factor[0],
-                                                      height_scale_factor=scale_factor[1],
-                                                      mode='a2p')[0][target_indx_flags][target_max_score_indx]
-                        previous_predicted_bb[0] = torch.round(
-                            predicted_bb).int()
-                        # replace bb
-                        bb.append(torch.round(
-                            predicted_bb[None][None].to(device=gpu_id)).int())
-                    else:
-                        bb.append(torch.round(previous_predicted_bb[None][None].to(
-                            device=gpu_id)).int())
-
-                    obs['predicted_bb'] = torch.round(
-                        predicted_bb).cpu().numpy()
-                    obs['predicted_score'] = max_score_target.cpu().numpy()
-                    obs['gt_bb'] = bb_t_aug
-                    # adjust bb
-                    adj_predicted_bb = adjust_bb(bb=predicted_bb,
-                                                 crop_params=config.get('tasks_cfgs').get(task_name).get('crop'))
-                    image = np.array(cv2.rectangle(
-                        np.array(obs['camera_front_image'][:, :, ::-1]),
-                        (int(adj_predicted_bb[0]),
-                         int(adj_predicted_bb[1])),
-                        (int(adj_predicted_bb[2]),
-                         int(adj_predicted_bb[3])),
-                        (255, 0, 0), 1))
-                else:
-                    obs['gt_bb'] = bb_t_aug
-                    image = np.array(obs['camera_front_image'][:, :, ::-1])
-            elif concat_bb and predict_gt_bb:
-                obs['gt_bb'] = bb_t_aug[0]
-                obs['predicted_bb'] = bb_t_aug[0]
-                # adjust bb
-                adj_predicted_bb = adjust_bb(bb=bb_t_aug[0],
-                                             crop_params=config.get('tasks_cfgs').get(task_name).get('crop'))
-                image = np.array(cv2.rectangle(
-                    np.array(obs['camera_front_image'][:, :, ::-1]),
-                    (int(adj_predicted_bb[0]),
-                     int(adj_predicted_bb[1])),
-                    (int(adj_predicted_bb[2]),
-                     int(adj_predicted_bb[3])),
-                    (0, 255, 0), 1))
-            else:
-                image = np.array(obs['camera_front_image'][:, :, ::-1])
-
-            cv2.imwrite(
-                f"step_test_block.png", image)
-            # if controller is not None and gt_env is not None:
-            #     gt_action, gt_status = controller.act(gt_obs)
-            #     gt_obs, gt_reward, gt_env_done, gt_info = gt_env.step(
-            #         gt_action)
-            #     cv2.imwrite(
-            #         f"gt_step_test.png", gt_obs['camera_front_image'][:, :, ::-1])
-        except Exception as e:
-            print(f"Exception during step {e}")
+            env=env,
+            real=real,
+            gpu_id=gpu_id,
+            config=config,
+            images=images,
+            img_formatter=img_formatter,
+            model=model,
+            predict_gt_bb=predict_gt_bb,
+            bb=bb,
+            gt_classes=gt_classes,
+            concat_bb=concat_bb,
+            states=states,
+            context=context,
+            n_steps=n_steps,
+            max_T=max_T,
+            baseline=baseline,
+            action_ranges=action_ranges,
+            sub_action=sub_action,
+            gt_action=gt_action,
+            controller=controller,
+            target_obj_emb=target_obj_emb)
 
         traj.append(obs, reward, done, info, action)
 
@@ -245,6 +132,8 @@ def block_stack_eval_demo_cond(model, env, context, gpu_id, variation_id, img_fo
         if env_done or tasks['success'] or n_steps > max_T:
             done = True
     env.close()
+    if getattr(model, 'first_phase', None) is not None:
+        model.first_phase = True
     tasks['avg_pred'] = avg_prediction/len(traj)
     del env
     del states
@@ -254,7 +143,7 @@ def block_stack_eval_demo_cond(model, env, context, gpu_id, variation_id, img_fo
     return traj, tasks
 
 
-def block_stack_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action=4, real=True):
+def block_stack_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action=4, real=True, expert_traj=None):
 
     if "vima" in model_name:
         return block_stack_eval_vima(model=model,

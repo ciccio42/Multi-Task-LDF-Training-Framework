@@ -344,6 +344,8 @@ def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
     else:
         done, states, images, context, obs, traj, tasks, gt_obs, current_gripper_pose = start_up_env_return
         bb = None
+        gt_classes = None
+
     prev_action = current_gripper_pose
     object_name = env.nuts[env.nut_id].name
     if env.nut_id == 0:
@@ -470,6 +472,8 @@ def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
         if env_done or reward or n_steps > max_T:
             done = True
     env.close()
+    if getattr(model, 'first_phase', None) is not None:
+        model.first_phase = True
     tasks['avg_pred'] = avg_prediction/len(traj)
     del env
     del states

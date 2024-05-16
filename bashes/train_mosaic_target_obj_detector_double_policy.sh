@@ -5,7 +5,7 @@
 export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=3
 export HYDRA_FULL_ERROR=1
 
 echo $1
@@ -33,7 +33,7 @@ if [ "$TASK_NAME" == 'nut_assembly' ]; then
     ### Nut-Assembly ###
     RESUME_PATH=1Task-nut_assembly-Double-Policy-Contrastive-false-Inverse-false-trial-2-Batch27
     RESUME_STEP=18640
-    RESUME=true
+    RESUME=false
 
     LOAD_TARGET_OBJ_DETECTOR=true
     TARGET_OBJ_DETECTOR_STEP=53091 #68526 #129762 #198900 #65250
@@ -89,17 +89,17 @@ if [ "$TASK_NAME" == 'nut_assembly' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="nut_assembly" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}-trial-2
+    EXP_NAME=1Task-${TASK_str}-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}-trial-3
     PROJECT_NAME=${EXP_NAME}
-elif [ "$TASK_NAME" == 'button' ]; then
+elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after_reaching' ]; then
     echo "BUTTON"
-    RESUME_PATH=1Task-Nut-Assembly-Double-Policy-Contrastive-false-Inverse-false-Batch27
-    RESUME_STEP=16776
-    RESUME=false
+    RESUME_PATH=1Task-press_button_close_after_reaching-Double-Policy-Contrastive-false-Inverse-false-Batch18
+    RESUME_STEP=3624
+    RESUME=true
 
     LOAD_TARGET_OBJ_DETECTOR=true
-    TARGET_OBJ_DETECTOR_STEP=37476 #68526 #129762 #198900 #65250
-    TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assemly-KP-Batch63
+    TARGET_OBJ_DETECTOR_STEP=44625 #68526 #129762 #198900 #65250
+    TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Task-button-KP-no-scaled-Batch36
     CONCAT_BB=true
 
     BSIZE=27 #32 #128 #64 #32
@@ -150,9 +150,9 @@ elif [ "$TASK_NAME" == 'button' ]; then
 
     COSINE_ANNEALING=false
 
-    PROJECT_NAME=${EXP_NAME}
-    TASK_str="button" #[pick_place,nut_assembly,stack_block,button]
+    TASK_str=${TASK_NAME} #[pick_place,nut_assembly,stack_block,button]
     EXP_NAME=1Task-${TASK_str}-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}
+    PROJECT_NAME=${EXP_NAME}
 
 elif [ "$TASK_NAME" == 'pick_place' ]; then
     echo "Pick-Place"

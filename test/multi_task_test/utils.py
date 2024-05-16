@@ -38,6 +38,8 @@ _kwargs = {
 PLACEHOLDER_TOKENS = [
     AddedToken("{pick_object}", **_kwargs),
 ]
+DELAY = 2
+t_delay = 0
 # PLACEHOLDERS = [token.content for token in PLACEHOLDER_TOKENS]
 # tokenizer = Tokenizer.from_pretrained("t5-base")
 # tokenizer.add_tokens(PLACEHOLDER_TOKENS)
@@ -442,12 +444,19 @@ def get_action(model, target_obj_dec, bb, predict_gt_bb, gt_classes, states, ima
         action = action_list
     else:
         action = denormalize_action(action, action_ranges)
-        if action[-1] != -1.0 and action[-1] != 1.0:
-            print("Ciaone")
-        # if not real:
-        #     action[-1] = 1 if action[-1] > 0 and n_steps < max_T - 1 else -1
+        # print(f"Model first_phase {model.first_phase}")
+        if not real:
+            action[-1] = 1 if action[-1] > 0 and n_steps < max_T - 1 else -1
 
         if getattr(model, 'first_phase', None) is not None:
+            # if model.first_phase and action[-1] == 1:
+            #     print("Delay picking")
+            #     global t_delay
+            #     if t_delay < DELAY:
+            #         action[-1] = -1
+            #         t_delay += 1
+            #     else:
+            #         t_delay = 0
             model.first_phase = action[-1] != 1.
             # if not model.first_phase:
             #     print("changed phase")
@@ -633,6 +642,8 @@ def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0, real=True, pla
             agent_target_obj_id = 0
     else:
         agent_target_obj_id = "cubeA"
+        agent_target_place_id = "cubeB"
+        place_name = ["cubeB"]
 
     if env is not None:
 
@@ -1675,14 +1686,15 @@ def compute_error(action_t, gt_action):
 
 def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img_formatter,
                     model, predict_gt_bb, bb, gt_classes, concat_bb, states, context, n_steps,
-                    max_T, baseline, action_ranges, sub_action, gt_action, controller, target_obj_emb):
+                    max_T, baseline, action_ranges, sub_action, gt_action, controller, target_obj_emb, expert_traj=None):
     # Get GT BB
     # if concat_bb:
     bb_t, gt_t = get_gt_bb(traj=traj,
                            obs=obs,
                            task_name=task_name,
                            env=env,
-                           real=real)
+                           real=real,
+                           expert_traj=expert_traj)
     previous_predicted_bb = []
     previous_predicted_bb.append(torch.tensor(
         [.0, .0, .0, .0]).to(
@@ -1863,7 +1875,7 @@ def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img
             image = np.array(obs['camera_front_image'][:, :, ::-1])
 
         cv2.imwrite(
-            f"step_test.png",  image)
+            f"step_test_prova.png",  image)
         # if controller is not None and gt_env is not None:
         #     gt_action, gt_status = controller.act(gt_obs)
         #     gt_obs, gt_reward, gt_env_done, gt_info = gt_env.step(

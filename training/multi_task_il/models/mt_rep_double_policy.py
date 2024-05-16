@@ -989,7 +989,7 @@ class VideoImitation(nn.Module):
                                                       height_scale_factor=scale_factor[1],
                                                       mode='a2p')[0][target_indx_flags][target_max_score_indx][None, :]
                     else:
-                        print("No bb target for some frames")
+                        # print("No bb target")
                         # Get index for target object
                         predicted_bb = torch.zeros(
                             (1, 4)).to(device=images.get_device())
@@ -1009,7 +1009,7 @@ class VideoImitation(nn.Module):
                         predicted_bb = torch.concat(
                             (predicted_bb, predicted_bb_place))
                     elif "KP" in self._target_obj_detector_path:
-                        print("No bb place for some frames")
+                        # print("No bb place")
                         # Get index for target object
                         predicted_bb = torch.concat((predicted_bb, torch.zeros(
                             (1, 4)).to(device=images.get_device())))

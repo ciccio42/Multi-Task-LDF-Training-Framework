@@ -21,9 +21,9 @@ DEVICE=0
 DEBUG=true
 WANDB_LOG=false
 
-EXP_NAME=1Task-CTOD-All-Obj
+TASK_str="stack_block" #["pick_place","nut_assembly","stack_block","button"]
+EXP_NAME=1Task-CTOD-KP-${TASK_str}
 PROJECT_NAME=${EXP_NAME}
-TASK_str="pick_place" #["pick_place","nut_assembly","stack_block","button"]
 
 RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
 RESUME_STEP=76500
@@ -52,8 +52,8 @@ NON_SEQUENTIAL=true
 
 DROP_DIM=4      # 2    # 3
 OUT_FEATURE=128 # 512 # 256
-DIM_H=13 #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
-DIM_W=23 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
+DIM_H=13        #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
+DIM_W=23        #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 HEIGHT=100
 WIDTH=180
 

@@ -33,7 +33,7 @@ drawer:
   demo_per_subtask:  100 
 
 button:
-  name:             'button'
+  name:             'press_button_close_after_reaching' #'press_button_close_after_reaching'
   n_tasks:          6
   crop:             [10, 10, 70, 70]     # 0420: [40,70,90,90] 0419: [30, 70, 85, 85], 0418: [10,40,45,45] 
   n_per_task:       5

@@ -8,7 +8,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/no_scaled
+EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/
 POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_keypoint_dataset.MultiTaskPairedKeypointDetectionDataset
@@ -21,10 +21,9 @@ DEVICE=0
 DEBUG=false
 WANDB_LOG=true
 
-TASK_str="button" #["pick_place","nut_assembly","stack_block","button"]
-EXP_NAME=Task-${TASK_str}-KP-no-scaled
+TASK_str="stack_block" #["pick_place","nut_assembly","stack_block","button"]
+EXP_NAME=Task-${TASK_str}
 PROJECT_NAME=${EXP_NAME}
-
 
 RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch36/
 RESUME_STEP=11475
@@ -53,8 +52,8 @@ NON_SEQUENTIAL=true
 
 DROP_DIM=4      # 2    # 3
 OUT_FEATURE=128 # 512 # 256
-DIM_H=13 #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
-DIM_W=23 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
+DIM_H=13        #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
+DIM_W=23        #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 HEIGHT=100
 WIDTH=180
 N_CLASSES=4

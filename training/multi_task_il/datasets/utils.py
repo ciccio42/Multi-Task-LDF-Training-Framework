@@ -110,6 +110,7 @@ JITTER_FACTORS = {'brightness': 0.4,
 NUM_VARIATION_PER_OBEJECT = {'pick_place': (4, 4),
                              'nut_assembly': (3, 3),
                              'button': (1, 6),
+                             'press_button_close_after_reaching': (1, 6),
                              'stack_block': (2, 6)}
 
 STACK_BLOCK_TASK_ID_SEQUENCE = {0: 'rgb',
@@ -678,7 +679,7 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
     if subtask_id == -1:
         # 1. Get Target Object
         if task_name != "stack_block":
-            if task_name != "button":
+            if "button" not in task_name:
                 target_obj_id = step_t['obs']['target-object']
             else:
                 target_obj_id = ENV_OBJECTS['button']['obj_names_to_id'][step_t['obs']
@@ -687,14 +688,17 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
             agent_target = 0
     else:
         if task_name != "stack_block":
-                target_obj_id = int(
-                    subtask_id/NUM_VARIATION_PER_OBEJECT[task_name][0])
-                target_place_id = int(subtask_id %
-                                    NUM_VARIATION_PER_OBEJECT[task_name][0]) if task_name != 'button' else target_obj_id+NUM_VARIATION_PER_OBEJECT[task_name][1]
+            target_obj_id = int(
+                subtask_id/NUM_VARIATION_PER_OBEJECT[task_name][0])
+            target_place_id = int(subtask_id %
+                                  NUM_VARIATION_PER_OBEJECT[task_name][0]) if task_name != 'button' else target_obj_id+NUM_VARIATION_PER_OBEJECT[task_name][1]
         else:
             demo_target = STACK_BLOCK_TASK_ID_SEQUENCE[subtask_id][0]
+            demo_place = STACK_BLOCK_TASK_ID_SEQUENCE[subtask_id][1]
             agent_target = STACK_BLOCK_TASK_ID_SEQUENCE[agent_task_id].find(
                 demo_target)
+            agent_place = STACK_BLOCK_TASK_ID_SEQUENCE[agent_task_id].find(
+                demo_place)
         # if target_obj_id != step_t['obs']['target-object']:
         #     print("different-objects")
 
@@ -702,13 +706,13 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         num_objects = 3
     elif task_name == 'nut_assembly':
         num_objects = 2
-    elif task_name == 'button':
+    elif 'button' in task_name:
         num_objects = 5
         target_obj_id = ENV_OBJECTS['button']['obj_names_to_id'][ENV_OBJECTS['button']
                                                                  ['obj_names'][target_obj_id]]
         if take_place_loc:
             target_place_id = ENV_OBJECTS['button']['obj_names_to_id'][ENV_OBJECTS['button']
-                                                                 ['obj_names'][target_place_id]]
+                                                                       ['obj_names'][target_place_id]]
     if task_name != "stack_block":
         # select randomly another object
         no_target_obj_id = target_obj_id
@@ -729,10 +733,13 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         obj_list = ["cubeA", "cubeB", "cubeC"]
         agent_target_name = obj_list.pop(agent_target)
         no_target_obj_name = random.choice(obj_list)
-
+        if take_place_loc:
+            obj_list = ["cubeA", "cubeB", "cubeC"]
+            agent_place_name = obj_list.pop(agent_place)
+            no_place_obj_name = random.choice(obj_list)
     try:
         dict_keys = list(step_t['obs']['obj_bb']['camera_front'].keys())
-        if take_place_loc and task_name != 'button':
+        if take_place_loc and task_name != 'button' and task_name != 'stack_block':
             target_place_id = target_place_id + \
                 NUM_VARIATION_PER_OBEJECT[task_name][0] + \
                 1*(task_name == 'pick_place')
@@ -760,9 +767,12 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         else:
             if i == 0:
                 object_name = agent_target_name
-            elif i != 0 and distractor:
+            elif i == 0 and distractor:
                 object_name = no_target_obj_name
-
+            elif i == 2 and distractor:
+                object_name = agent_place_name
+            elif i == 3 and distractor:
+                object_name = no_place_obj_name
         try:
             if not getattr(dataset_loader, "real", False):
                 top_left = step_t['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner']
@@ -818,10 +828,10 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
 
     if DEBUG:
         image = np.array(
-                    step_t['obs']['camera_front_image'][:, :, ::-1])
-        for single_bb in bb:
+            step_t['obs']['camera_front_image'][:, :, ::-1])
+        for i, single_bb in enumerate(bb):
             if i == 0 or i == 2:
-                color = (0, 255, 0) 
+                color = (0, 255, 0)
             else:
                 color = (255, 0, 0)
             image = cv2.rectangle(image,
@@ -1461,12 +1471,12 @@ class TrajectoryBatchSampler(Sampler):
                 task_name, num_loaded_sub_tasks, first_id, sub_task_size))
 
             for sub_task, sub_idxs in agent_subtask_to_idx[task_name].items():
-                
+
                 if len(sub_idxs) == 10:
                     self.train = False
                 else:
                     self.train = True
-                    
+
                 self.agent_task_samplers[task_name][sub_task] = RandomSampler(
                     data_source=sub_idxs)
                 assert len(sub_idxs) == sub_task_size, \
@@ -1587,7 +1597,7 @@ class TrajectoryBatchSampler(Sampler):
                     self.agent_task_iterators[name][sub_task] = agent_iterator
 
                 # check if the agent_indx has already sampled
-                #if agent_demo_pair.get(agent_indx, None) is None:
+                # if agent_demo_pair.get(agent_indx, None) is None:
                 demo_sampler = self.demo_task_samplers[name][sub_task]
                 demo_iterator = self.demo_task_iterators[name][sub_task]
                 # new agent_indx in epoch

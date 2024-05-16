@@ -5,7 +5,7 @@
 export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
@@ -25,13 +25,12 @@ TASK_str="nut_assembly" #[pick_place,nut_assembly,stack_block,button]
 
 RESUME_PATH=1Task-Nut-Assemly-MOSAIC-CTOD-KP-Batch27
 RESUME_STEP=184437
-RESUME=false 
+RESUME=false
 
 LOAD_TARGET_OBJ_DETECTOR=true
 TARGET_OBJ_DETECTOR_STEP=37476 #68526 #129762 #198900 #65250
 TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assemly-KP-Batch63
 CONCAT_BB=true
-
 
 ROLLOUT=false
 EPOCH=180
@@ -59,11 +58,11 @@ CONCAT_TARGET_OBJ_EMBEDDING=false
 CONCAT_STATE=false
 
 ACTION_DIM=7
-N_MIXTURES=7 #14 MT #7 2Task, Nut, button, stack #3 Pick-place
-OUT_DIM=64 #64 MT #64 2Task, Nut, button, stack #128 Pick-place
-ATTN_FF=128 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
+N_MIXTURES=7       #14 MT #7 2Task, Nut, button, stack #3 Pick-place
+OUT_DIM=64         #64 MT #64 2Task, Nut, button, stack #128 Pick-place
+ATTN_FF=128        #256 MT #128 2Task, Nut, button, stack #256 Pick-place
 COMPRESSOR_DIM=128 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
-HIDDEN_DIM=128 #256 MT #128 2Task, Nut, button, stack #512 Pick-place
+HIDDEN_DIM=128     #256 MT #128 2Task, Nut, button, stack #512 Pick-place
 CONCAT_DEMO_HEAD=false
 CONCAT_DEMO_ACT=true
 PRETRAINED=false
@@ -77,8 +76,8 @@ SCHEDULER=None
 
 DROP_DIM=4      # 2    # 3
 OUT_FEATURE=128 # 512 # 256
-DIM_H=13 #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
-DIM_W=23 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
+DIM_H=13        #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
+DIM_W=23        #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 HEIGHT=100
 WIDTH=180
 

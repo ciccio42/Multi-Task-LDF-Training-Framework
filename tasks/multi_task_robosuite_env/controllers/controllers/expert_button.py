@@ -113,10 +113,11 @@ class ButtonPressController:
         self._hover_delta = 0.15
 
     def _reached_button(self, obs):
+        # print(np.linalg.norm(self.get_button_loc() - obs[self._obs_name]))
         if "Sawyer" in self._env.robot_names:
             dist = 0.018
         else:
-            dist = 0.015
+            dist = 0.030
         if np.linalg.norm(self.get_button_loc() - obs[self._obs_name]) < dist:
             return True
         return False
@@ -156,18 +157,19 @@ class ButtonPressController:
                 self.get_button_loc() -
                 obs[self._obs_name] + [0, 0, self._hover_delta],
                 obs['eef_pos'], quat_t)
-            action = np.concatenate((eef_pose, [1]))
+            action = np.concatenate((eef_pose, [-1]))
             status = 'prepare_button'
 
         elif not self._reached_button(obs) and self._t < 35:
             eef_pose = self._get_target_pose(
                 self.get_button_loc() - obs[self._obs_name],
                 obs['eef_pos'], self._target_quat)
-            action = np.concatenate((eef_pose, [1]))
+            action = np.concatenate((eef_pose, [-1]))
             status = 'reaching_button'
         else:
             eef_pose = self._get_target_pose(
-                self.get_dir(), obs['eef_pos'], self._target_quat)
+                self.get_button_loc() - obs[self._obs_name],
+                obs['eef_pos'], self._target_quat)
             action = np.concatenate((eef_pose, [1]))
             status = 'press_button'
 
@@ -310,7 +312,7 @@ if __name__ == '__main__':
         current_dir, "../config/osc_pose.json")
     controller_config = load_controller_config(
         custom_fpath=controller_config_path)
-    for i in range(3, 6):
+    for i in range(1, 6):
         traj = get_expert_trajectory('UR5e_Button',
                                      controller_type=controller_config,
                                      renderer=False,

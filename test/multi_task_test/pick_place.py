@@ -374,6 +374,8 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
                 done = True
         print(tasks)
         env.close()
+        if getattr(model, 'first_phase', None) is not None:
+            model.first_phase = True
         tasks['avg_pred'] = avg_prediction/len(traj)
         del env
         del states
