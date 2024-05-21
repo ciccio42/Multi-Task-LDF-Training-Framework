@@ -691,7 +691,7 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
             target_obj_id = int(
                 subtask_id/NUM_VARIATION_PER_OBEJECT[task_name][0])
             target_place_id = int(subtask_id %
-                                  NUM_VARIATION_PER_OBEJECT[task_name][0]) if task_name != 'button' else target_obj_id+NUM_VARIATION_PER_OBEJECT[task_name][1]
+                                  NUM_VARIATION_PER_OBEJECT[task_name][0]) if 'button' not in task_name else target_obj_id+NUM_VARIATION_PER_OBEJECT[task_name][1]
         else:
             demo_target = STACK_BLOCK_TASK_ID_SEQUENCE[subtask_id][0]
             demo_place = STACK_BLOCK_TASK_ID_SEQUENCE[subtask_id][1]
@@ -723,7 +723,7 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
             # select randomly another place
             no_target_place_id = target_place_id
             while no_target_place_id == target_place_id:
-                if task_name != 'button':
+                if 'button' not in task_name:
                     no_target_place_id = random.randint(
                         0, num_objects)
                 else:
@@ -739,7 +739,7 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
             no_place_obj_name = random.choice(obj_list)
     try:
         dict_keys = list(step_t['obs']['obj_bb']['camera_front'].keys())
-        if take_place_loc and task_name != 'button' and task_name != 'stack_block':
+        if take_place_loc and 'button' not in task_name and task_name != 'stack_block':
             target_place_id = target_place_id + \
                 NUM_VARIATION_PER_OBEJECT[task_name][0] + \
                 1*(task_name == 'pick_place')

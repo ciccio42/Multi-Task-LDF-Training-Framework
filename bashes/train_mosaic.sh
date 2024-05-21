@@ -16,10 +16,10 @@ SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
 DEVICE=0
-DEBUG=true
-WAND_LOG=false
+DEBUG=false
+WAND_LOG=true
 
-TASK_str=pick_place #[pick_place,nut_assembly,button,stack_block] #[pick_place,nut_assembly,button,stack_block]
+TASK_str=stack_block #[pick_place,nut_assembly,button,stack_block] #[pick_place,nut_assembly,button,stack_block]
 
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=40455
@@ -36,7 +36,7 @@ BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=2
+SET_SAME_N=3
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
 LOADER_WORKERS=16
@@ -55,11 +55,11 @@ CONCAT_TARGET_OBJ_EMBEDDING=false
 CONCAT_STATE=true
 
 ACTION_DIM=7
-N_MIXTURES=3       #14 #7 2Task, Nut, button, stack #3 Pick-place #2 nut-assembly
-OUT_DIM=128        #64 #64 2Task, Nut, button, stack #128 Pick-place
-ATTN_FF=256        #256 #128 2Task, Nut, button, stack #256 Pick-place
-COMPRESSOR_DIM=256 #256 #128 2Task, Nut, button, stack #256 Pick-place
-HIDDEN_DIM=512     #256 #128 2Task, Nut, button, stack #512 Pick-place
+N_MIXTURES=7       #14 #7 2Task, Nut, button, stack #3 Pick-place #2 nut-assembly
+OUT_DIM=64         #64 #64 2Task, Nut, button, stack #128 Pick-place
+ATTN_FF=128        #256 #128 2Task, Nut, button, stack #256 Pick-place
+COMPRESSOR_DIM=128 #256 #128 2Task, Nut, button, stack #256 Pick-place
+HIDDEN_DIM=128     #256 #128 2Task, Nut, button, stack #512 Pick-place
 CONCAT_DEMO_HEAD=false
 CONCAT_DEMO_ACT=true
 PRETRAINED=false

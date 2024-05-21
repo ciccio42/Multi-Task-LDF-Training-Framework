@@ -1,14 +1,14 @@
 #!/bin/sh
-# export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
-export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
+export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
+# export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
+EXPERT_DATA=/mnt/sdc1/frosa/opt_dataset/
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/
 POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_keypoint_dataset.MultiTaskPairedKeypointDetectionDataset
@@ -21,12 +21,12 @@ DEVICE=0
 DEBUG=false
 WANDB_LOG=true
 
-TASK_str="stack_block" #["pick_place","nut_assembly","stack_block","button"]
-EXP_NAME=Task-${TASK_str}
+TASK_str=["pick_place","nut_assembly","stack_block","press_button_close_after_reaching"]
+EXP_NAME=4Task-CTOD-KP #1Task-${TASK_str}-CTOD-KP
 PROJECT_NAME=${EXP_NAME}
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch36/
-RESUME_STEP=11475
+RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
+RESUME_STEP=72675
 RESUME=false
 EPOCH=90 # start from 16
 BSIZE=80 #16 #32
@@ -34,9 +34,9 @@ BSIZE=80 #16 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector.yaml
-LOADER_WORKERS=8
+LOADER_WORKERS=16
 BALANCING_POLICY=0
-SET_SAME_N=6
+SET_SAME_N=2
 OBS_T=7
 
 EARLY_STOPPING_PATIECE=10
