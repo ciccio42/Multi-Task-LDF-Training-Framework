@@ -553,6 +553,7 @@ class PressButton(SingleArmEnv):
 
         qpos = self.sim.data.get_joint_qpos(
             self.objects[self.task_id // 3].joints[self.task_id % 3])
+        # print(qpos)
         if qpos >= 0.04:
             return True
         else:

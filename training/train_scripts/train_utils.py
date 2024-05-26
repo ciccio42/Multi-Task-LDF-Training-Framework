@@ -679,8 +679,11 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
 
         if 'point_ll' in out and train_cfg.pnt_loss_mult != 0.0:
             pnts = model_inputs['points']
+
             l_point = train_cfg.pnt_loss_mult * out['point_ll'][range(pnts.shape[0]),
-                                                                pnts[:, -1, 0].long(), pnts[:, -1, 1].long()]
+                                                                pnts[:, -1,
+                                                                     0].long(),
+                                                                pnts[:, -1, 1].long()]
 
             all_losses["point_loss"] = l_point
 
@@ -964,6 +967,7 @@ class Trainer:
             #     print(k, dict(self.config.get(k)))
             #     print('-'*20)
             wandb_config = {k: self.config.get(k) for k in config_keys}
+            wandb.login(key='1d9590e10967b8af6602ddae665dbcc77f88fbd5')
             run = wandb.init(project=self.config.project_name,
                              name=self.config.exp_name, config=wandb_config, sync_tensorboard=False)
 
@@ -1383,7 +1387,7 @@ class Trainer:
                 if self.config.wandb_log:
                     wandb.log(tolog)
                 self._step += 1
-                if getattr(model, '_load_contrastive', True) and not 'cond_target_obj_detector' in self.config.policy._target_:
+                if getattr(model, '_load_contrastive', False) and not 'cond_target_obj_detector' in self.config.policy._target_:
                     # update target params
                     mod = model.module if isinstance(
                         model, nn.DataParallel) else model

@@ -196,7 +196,7 @@ class MultiTaskPairedDataset(Dataset):
         if self.split_pick_place:
             first_t = chosen_t[0].item()
             last_t = chosen_t[-1].item()
-            if task_name == 'nut_assembly' or task_name == 'pick_place' or 'button' in task_name:
+            if task_name == 'nut_assembly' or task_name == 'pick_place' or 'button' in task_name or 'stack_block' in task_name:
                 first_step_gripper_state = traj.get(first_t)['action'][-1]
                 first_phase = True if first_step_gripper_state == -1.0 else False
                 last_step_gripper_state = traj.get(last_t)['action'][-1]

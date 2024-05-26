@@ -155,7 +155,8 @@ augs:
   horizontal_flip_p_strong: 0.5
 
   null_bb: True
-  
+# model related
+policy: ???  # set to any set of configs via command line, e.g. policy='${tosil}'
 
 simclr:
   demo_T:           ${train_cfg.dataset.demo_T}
@@ -168,6 +169,7 @@ simclr:
   temporal:         True
   hidden_dim:       512 #256
   fix_step:         -1 
+
 byol: 
   p:                2
   project_dim:      128
@@ -182,38 +184,6 @@ byol:
   mul_pos:          0
   mul_intm:         0 
   mul_demo:         0
-
-# model related
-policy: ???  # set to any set of configs via command line, e.g. policy='${tosil}'
-
-mosaic:
-  _target_:           multi_task_il.models.mt_rep.VideoImitation 
-  load_target_obj_detector: False
-  target_obj_detector_step: 0
-  target_obj_detector_path: null
-  freeze_target_obj_detector: False
-  remove_class_layers: False
-  load_contrastive: True
-  load_inv: True
-  concat_target_obj_embedding: False
-  latent_dim:         40
-  sdim:               12
-  concat_state:       True
-  concat_bb:       True
-  bb_sequence:     ${bb_sequence}
-  height:             ${train_cfg.dataset.height}
-  width:              ${train_cfg.dataset.width} 
-  demo_T:             ${train_cfg.dataset.demo_T}
-  obs_T:              ${train_cfg.dataset.obs_T}   
-  dim_H:              7
-  dim_W:              12  
-  demo_mean:          True 
-  action_cfg:         ${actions}
-  concat_demo_head:   False
-  concat_demo_act:    True 
-  attn_cfg:           ${attn}
-  byol_config:        ${byol}
-  simclr_config:      ${simclr}
 
 actions:
   n_layers:         2    
@@ -246,6 +216,56 @@ attn:
     out_feature:    256
     drop_dim:       3
     pretrained:     False 
+
+#--- Policy ---
+mosaic:
+  _target_:           multi_task_il.models.mt_rep.VideoImitation 
+  load_target_obj_detector: False
+  target_obj_detector_step: 0
+  target_obj_detector_path: null
+  freeze_target_obj_detector: False
+  remove_class_layers: False
+  load_contrastive: True
+  load_inv: True
+  concat_target_obj_embedding: False
+  latent_dim:         40
+  sdim:               12
+  concat_state:       True
+  concat_bb:       True
+  bb_sequence:     ${bb_sequence}
+  height:             ${train_cfg.dataset.height}
+  width:              ${train_cfg.dataset.width} 
+  demo_T:             ${train_cfg.dataset.demo_T}
+  obs_T:              ${train_cfg.dataset.obs_T}   
+  dim_H:              7
+  dim_W:              12  
+  demo_mean:          True 
+  action_cfg:         ${actions}
+  concat_demo_head:   False
+  concat_demo_act:    True 
+  attn_cfg:           ${attn}
+  byol_config:        ${byol}
+  simclr_config:      ${simclr}
+
+tosil:
+  _target_:         multi_task_il.models.baselines.InverseImitation 
+  concat_target_obj_embedding: False
+  latent_dim:       40
+  lstm_config:
+    out_dim:        32
+    n_layers:       1
+    is_rnn:         False
+  vis:
+    conv_drop_dim:  3 
+    st_goal_attn:   True
+    n_st_attn:      2
+    use_pe:         True
+    attn_heads:     4
+  adim: 7
+  n_mixtures:       2
+  const_var:        True
+  concat_state:     False
+  pred_point:       True
 
 lstm:
   hidden_dim: 64

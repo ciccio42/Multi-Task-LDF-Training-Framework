@@ -1118,7 +1118,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                               image.shape[:2],
                               crop_params=crop_params,
                               height=dataset_loader.height,
-                              width=dataset_loader.width))[None])
+                              width=dataset_loader.width)))
 
             if DEBUG:
                 image = np.array(np.moveaxis(

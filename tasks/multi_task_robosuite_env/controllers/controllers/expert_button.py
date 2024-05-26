@@ -168,8 +168,11 @@ class ButtonPressController:
             status = 'reaching_button'
         else:
             eef_pose = self._get_target_pose(
-                self.get_button_loc() - obs[self._obs_name],
-                obs['eef_pos'], self._target_quat)
+                self.get_dir(), obs['eef_pos'], self._target_quat)
+            action = np.concatenate((eef_pose, [1]))
+            # eef_pose = self._get_target_pose(
+            #     delta,
+            #     obs['eef_pos'], self._target_quat)
             action = np.concatenate((eef_pose, [1]))
             status = 'press_button'
 
@@ -312,7 +315,7 @@ if __name__ == '__main__':
         current_dir, "../config/osc_pose.json")
     controller_config = load_controller_config(
         custom_fpath=controller_config_path)
-    for i in range(1, 6):
+    for i in range(3, 4):
         traj = get_expert_trajectory('UR5e_Button',
                                      controller_type=controller_config,
                                      renderer=False,

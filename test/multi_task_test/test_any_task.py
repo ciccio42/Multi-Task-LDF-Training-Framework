@@ -416,7 +416,7 @@ if __name__ == '__main__':
             # len_try_paths = len(try_paths)
             # step = round(len_try_paths/10)
             # try_path_list = try_paths[0:-1:step]
-            try_path_list = try_paths[-9:]
+            try_path_list = try_paths[-8:]
 
     if "GT-BB" in try_path:
         args.gt_bb = True
@@ -463,6 +463,7 @@ if __name__ == '__main__':
 
         if args.wandb_log:
             model_name = model_path.split("/")[-2]
+            wandb.login(key='1d9590e10967b8af6602ddae665dbcc77f88fbd5')
             run = wandb.init(project=args.project_name,
                              job_type='test',
                              group=model_name.split("-1gpu")[0],

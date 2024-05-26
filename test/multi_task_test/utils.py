@@ -1119,7 +1119,8 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
             tasks['success'] = reward or tasks['success']
             if n_steps >= max_T or env_done or reward:
                 done = True
-
+                if not tasks['success']:
+                    print("stop")
         env.close()
 
         tp_array = np.sum(np.array(tp_array), axis=0)
