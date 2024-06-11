@@ -14,6 +14,7 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 from torchsummary import summary
 from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
+import time
 
 
 class _StackedAttnLayers(nn.Module):
@@ -782,6 +783,7 @@ class VideoImitation(nn.Module):
         t=-1,
         **kwargs
     ):
+        start_time = time.time()
         B, obs_T, _, height, width = images.shape
         demo_T = context.shape[1]
         if not eval:
@@ -901,6 +903,8 @@ class VideoImitation(nn.Module):
             out["target_obj_embedding"] = target_obj_embedding
 
         if eval:
+            end_time = time.time()
+            # print(f"Inference time {end_time-start_time}")
             return out  # NOTE: early return here to do less computation during test time
 
         # if (not self._load_target_obj_detector or not self._freeze_target_obj_detector) and self._load_contrastive:

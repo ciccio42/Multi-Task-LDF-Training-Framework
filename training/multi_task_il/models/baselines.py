@@ -231,7 +231,7 @@ class InverseImitation(nn.Module):
         self.conv_layer_ref = self.get_conv_layer_reference(model=model)
         print(self.conv_layer_ref)
 
-    def forward(self, states, images, context, ret_dist=True, target_obj_embedding=None, eval=False, compute_activation_map=False):
+    def forward(self, states, images, context, ret_dist=True, target_obj_embedding=None, eval=False, compute_activation_map=False, **kwargs):
 
         img_embed = self._embed(
             images, context, False, compute_activation_map=compute_activation_map)
