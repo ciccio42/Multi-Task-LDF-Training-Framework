@@ -464,10 +464,11 @@ if __name__ == '__main__':
         if args.wandb_log:
             model_name = model_path.split("/")[-2]
             wandb.login(key='1d9590e10967b8af6602ddae665dbcc77f88fbd5')
-            run = wandb.init(project=args.project_name,
-                             job_type='test',
-                             group=model_name.split("-1gpu")[0],
-                             reinit=True)
+            run = wandb.init(
+                entity="francescorosa97",
+                project=args.project_name,
+                job_type='test',
+                reinit=True)
             run.name = model_name + f'-Test_{args.env}-Step_{model_saved_step}'
             wandb.config.update(args)
 

@@ -5,7 +5,7 @@
 export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
 echo $1
@@ -29,7 +29,7 @@ CONFIG_NAME=config.yaml
 
 BC_MUL=1.0
 INV_MUL=1.0
-PNT_MUL=0.1
+PNT_MUL=1.0
 LOAD_EEF_POINTS=true
 
 EARLY_STOPPING_PATIECE=-1

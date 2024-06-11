@@ -42,6 +42,8 @@ class _StackedAttnLayers(nn.Module):
         causal=False,
         n_heads=4,
         demo_T=4,
+        compute_img_emb=True,
+        compute_demo_emb=True
     ):
         super().__init__()
         assert demo_ff_dim % n_heads == 0, "n_heads must evenly divide feedforward_dim"
@@ -50,6 +52,8 @@ class _StackedAttnLayers(nn.Module):
         self._obs_ff_dim = obs_ff_dim
         self._temperature = temperature if temperature is not None else np.sqrt(
             in_dim)
+        self.compute_img_emb = compute_img_emb
+        self.compute_demo_emb = compute_demo_emb
 
         self._obs_Qs, self._obs_Ks, self._obs_Vs = [
             nn.Sequential(*[nn.Conv3d(in_dim, obs_ff_dim, 1, bias=False)
@@ -92,69 +96,83 @@ class _StackedAttnLayers(nn.Module):
         for i in range(self._n_layers):
             demo_ly_in, obs_ly_in = inputs.split([self._demo_T, obs_T], dim=2)
             # -> (B, d, demo_T, H, W), (B, d, obs_T, H, W)
-            # process demo first
-            demo_q, demo_k, demo_v = [
-                rearrange(conv[i](
-                    demo_ly_in), 'B (head ch) T H W -> B head ch (T H W)', head=self._n_heads)
-                for conv in [self._demo_Qs, self._demo_Ks, self._demo_Vs]
-            ]
-            # if self.query_task:
-            #     demo_q = torch.cat((self.demo_q))
-            a1, drop1 = [mod[i] for mod in [self._demo_a1s, self._demo_drop1s]]
-            B, head, ch, THW = demo_q.shape
-            ff_dim = head * ch
-            # B, heads, T_demo*HW, T_demo*HW
-            demo_kq = torch.einsum(
-                'bnci,bncj->bnij', demo_k, demo_q) / self._temperature
-            if self._causal:
-                mask = torch.tril(torch.ones(
-                    (self._demo_T, self._demo_T))).to(demo_kq.device)
-                mask = mask.repeat_interleave(
-                    H*W, 0).repeat_interleave(H*W, 1)  # -> (T*H*W, T*H*W)
-                # -> (1, 1, T*H*W, T*H*W)
-                demo_kq = demo_kq + torch.log(mask).unsqueeze(0).unsqueeze(0)
-            demo_attn = F.softmax(demo_kq, 3)
-            demo_v = torch.einsum('bncj,bnij->bnci', demo_v, demo_attn)
-            demo_out = self._demo_Outs[i](
-                rearrange(demo_v, 'B head ch (T H W) -> B (head ch) T H W',
-                          T=self._demo_T, H=H, W=W)
-            )
-            demo_out = demo_out + \
-                drop1(a1(demo_out)) if self._skip else drop1(demo_out)
+            if self.compute_demo_emb:
+                # process demo first
+                demo_q, demo_k, demo_v = [
+                    rearrange(conv[i](
+                        demo_ly_in), 'B (head ch) T H W -> B head ch (T H W)', head=self._n_heads)
+                    for conv in [self._demo_Qs, self._demo_Ks, self._demo_Vs]
+                ]
+                # if self.query_task:
+                #     demo_q = torch.cat((self.demo_q))
+                a1, drop1 = [mod[i]
+                             for mod in [self._demo_a1s, self._demo_drop1s]]
+                B, head, ch, THW = demo_q.shape
+                ff_dim = head * ch
+                # B, heads, T_demo*HW, T_demo*HW
+                demo_kq = torch.einsum(
+                    'bnci,bncj->bnij', demo_k, demo_q) / self._temperature
+                if self._causal:
+                    mask = torch.tril(torch.ones(
+                        (self._demo_T, self._demo_T))).to(demo_kq.device)
+                    mask = mask.repeat_interleave(
+                        H*W, 0).repeat_interleave(H*W, 1)  # -> (T*H*W, T*H*W)
+                    # -> (1, 1, T*H*W, T*H*W)
+                    demo_kq = demo_kq + \
+                        torch.log(mask).unsqueeze(0).unsqueeze(0)
+                demo_attn = F.softmax(demo_kq, 3)
+                demo_v = torch.einsum('bncj,bnij->bnci', demo_v, demo_attn)
+                demo_out = self._demo_Outs[i](
+                    rearrange(demo_v, 'B head ch (T H W) -> B (head ch) T H W',
+                              T=self._demo_T, H=H, W=W)
+                )
+                demo_out = demo_out + \
+                    drop1(a1(demo_out)) if self._skip else drop1(demo_out)
 
-            # now, repeat demo's K and V for obs. NOTE: **brought the T dimension forward**
-            obs_q, obs_k, obs_v = [
-                rearrange(conv[i](obs_ly_in),
-                          'B (head ch) obs_T H W -> B obs_T head ch (H W)', head=self._n_heads)
-                for conv in [self._obs_Qs, self._obs_Ks, self._obs_Vs]
-            ]
-            a1, drop1 = [mod[i] for mod in [self._obs_a1s, self._obs_drop1s]]
-            if i >= self._fuse_starts:
-                rep_k, rep_v = [
-                    repeat(rep, 'B head ch THW -> B obs_T head ch THW', obs_T=obs_T) for rep in [demo_k, demo_v]]
-                # only start attending to demonstration a few layers later
-                # now cat_k is B, T, head, ch, (4+1)HW
-                cat_k = torch.cat([rep_k, obs_k], dim=4)
-                cat_v = torch.cat([rep_v, obs_v], dim=4)
-            else:
-                cat_k, cat_v = obs_k, obs_v  # only attend to observation selves
-            obs_kq = torch.einsum(
-                'btnci,btncj->btnij', cat_k, obs_q) / self._temperature  # B, obs_T, heads, (1+T_demo)*HW, 1*HW
-            assert obs_kq.shape[-2] == (1+self._demo_T) * H * W or \
-                obs_kq.shape[-2] == H*W
-            # no causal mask is needed
-            obs_attn = F.softmax(obs_kq, dim=4)
+            if self.compute_img_emb:
+                # now, repeat demo's K and V for obs. NOTE: **brought the T dimension forward**
+                obs_q, obs_k, obs_v = [
+                    rearrange(conv[i](obs_ly_in),
+                              'B (head ch) obs_T H W -> B obs_T head ch (H W)', head=self._n_heads)
+                    for conv in [self._obs_Qs, self._obs_Ks, self._obs_Vs]
+                ]
+                a1, drop1 = [mod[i]
+                             for mod in [self._obs_a1s, self._obs_drop1s]]
+                if i >= self._fuse_starts:
+                    rep_k, rep_v = [
+                        repeat(rep, 'B head ch THW -> B obs_T head ch THW', obs_T=obs_T) for rep in [demo_k, demo_v]]
+                    # only start attending to demonstration a few layers later
+                    # now cat_k is B, T, head, ch, (4+1)HW
+                    cat_k = torch.cat([rep_k, obs_k], dim=4)
+                    cat_v = torch.cat([rep_v, obs_v], dim=4)
+                else:
+                    cat_k, cat_v = obs_k, obs_v  # only attend to observation selves
+                obs_kq = torch.einsum(
+                    'btnci,btncj->btnij', cat_k, obs_q) / self._temperature  # B, obs_T, heads, (1+T_demo)*HW, 1*HW
+                assert obs_kq.shape[-2] == (1+self._demo_T) * H * W or \
+                    obs_kq.shape[-2] == H*W
+                # no causal mask is needed
+                obs_attn = F.softmax(obs_kq, dim=4)
 
-            obs_v = torch.einsum('btncj,btnji->btnci', cat_v, obs_attn)
+                obs_v = torch.einsum('btncj,btnji->btnci', cat_v, obs_attn)
 
-            obs_out = self._obs_Outs[i](
-                rearrange(
-                    obs_v, 'B T heads ch (H W) -> B (heads ch) T H W', H=H, W=W, T=obs_T)
-            )
-            obs_ly_in = obs_ly_in + \
-                drop1(a1(obs_out)) if self._skip else drop1(a1(obs_out))
+                obs_out = self._obs_Outs[i](
+                    rearrange(
+                        obs_v, 'B T heads ch (H W) -> B (heads ch) T H W', H=H, W=W, T=obs_T)
+                )
+                obs_ly_in = obs_ly_in + \
+                    drop1(a1(obs_out)) if self._skip else drop1(a1(obs_out))
 
-            inputs = self._norms[i](torch.cat([demo_ly_in, obs_ly_in], dim=2))
+            if self.compute_img_emb and self.compute_demo_emb:
+                inputs = self._norms[i](
+                    torch.cat([demo_ly_in, obs_ly_in], dim=2))
+            elif self.compute_img_emb and not self.compute_demo_emb:
+                inputs = self._norms[i](
+                    obs_ly_in)
+            elif not self.compute_img_emb and self.compute_demo_emb:
+                inputs = self._norms[i](
+                    demo_ly_in)
+
             out_dict['out_%s' % i] = inputs
 
         out_dict['last'] = inputs
@@ -183,11 +201,13 @@ class _TransformerFeatures(nn.Module):
     """
 
     def __init__(
-            self, latent_dim, demo_T=4, dim_H=7, dim_W=12, embed_hidden=256, dropout=0.2, n_attn_layers=2, pos_enc=True, attn_heads=4, attn_ff=128, just_conv=False, pretrained=True, img_cfg=None, drop_dim=2, causal=True, attend_demo=True, demo_out=True, fuse_starts=0, concat_bb=False, max_len=3000):
+            self, latent_dim, demo_T=4, dim_H=7, dim_W=12, embed_hidden=256, dropout=0.2, n_attn_layers=2, pos_enc=True, attn_heads=4, attn_ff=128, just_conv=False, pretrained=True, img_cfg=None, drop_dim=2, causal=True, attend_demo=True, demo_out=True, fuse_starts=0, concat_bb=False, compute_img_emb=True, compute_demo_emb=True, max_len=3000):
         super().__init__()
 
         flag, drop_dim = img_cfg.network_flag, img_cfg.drop_dim
         self.network_flag = flag
+        self.compute_img_emb = compute_img_emb
+        self.compute_demo_emb = compute_demo_emb
 
         assert flag == 0, "flag number %s not supported!" % flag
         self._img_encoder = get_model('resnet')(
@@ -203,7 +223,8 @@ class _TransformerFeatures(nn.Module):
         self._attn_layers = _StackedAttnLayers(
             in_dim=conv_feature_dim, out_dim=conv_feature_dim, n_layers=n_attn_layers,
             demo_ff_dim=attn_ff, obs_ff_dim=attn_ff, dropout=dropout,
-            causal=causal, n_heads=attn_heads, demo_T=demo_T, fuse_starts=fuse_starts,
+            causal=causal, n_heads=attn_heads, demo_T=demo_T, fuse_starts=fuse_starts, compute_img_emb=compute_img_emb,
+            compute_demo_emb=compute_demo_emb
         )
 
         self._pe = TemporalPositionalEncoding(
@@ -225,7 +246,13 @@ class _TransformerFeatures(nn.Module):
         out_dict = OrderedDict()
 
         network_fn = self._resnet_features if self.network_flag == 0 else self._impala_features
-        im_in = torch.cat((context, images), 1).float()
+        if self.compute_img_emb and self.compute_demo_emb:
+            im_in = torch.cat((context, images), 1).float()
+        elif self.compute_img_emb and not self.compute_demo_emb:
+            im_in = images.float()
+        elif not self.compute_img_emb and self.compute_demo_emb:
+            im_in = context.float()
+
         im_features, no_pe_img_features = network_fn(im_in)
         out_dict['img_features'] = no_pe_img_features  # B T d H W
         out_dict['img_features_pe'] = rearrange(
@@ -238,8 +265,17 @@ class _TransformerFeatures(nn.Module):
         sizes = parse_shape(attn_features, 'B _ T _ _')
         features = rearrange(attn_features, 'B d T H W -> B T d H W', **sizes)
         out_dict['attn_features'] = features
-        out_dict['demo_features'], out_dict['obs_features'] = \
-            features.split([demo_T, obs_T], dim=1)
+
+        if self.compute_img_emb and self.compute_demo_emb:
+            out_dict['demo_features'], out_dict['obs_features'] = \
+                features.split([demo_T, obs_T], dim=1)
+        elif self.compute_img_emb and not self.compute_demo_emb:
+            out_dict['demo_features'] = None
+            out_dict['obs_features'] = features
+        elif not self.compute_img_emb and self.compute_demo_emb:
+            out_dict['demo_features'] = features
+            out_dict['obs_features'] = None
+
         # could also try do repre. on all intermediate layers too
         for k, v in attn_out.items():
             if k != 'last' and v.shape == attn_features.shape:
@@ -247,39 +283,51 @@ class _TransformerFeatures(nn.Module):
                 out_dict['attn_'+k] = reshaped
                 normalized = F.normalize(
                     self._linear_embed(rearrange(reshaped, 'B T d H W -> B T (d H W)')), dim=2)
-                out_dict['attn_'+k+'_demo'], out_dict['attn_'+k +
-                                                      '_img'] = normalized.split([demo_T, obs_T], dim=1)
+                if self.compute_demo_emb and self.compute_img_emb:
+                    out_dict['attn_'+k+'_demo'], out_dict['attn_'+k +
+                                                          '_img'] = normalized.split([demo_T, obs_T], dim=1)
+                elif self.compute_demo_emb and not self.compute_img_emb:
+                    out_dict['attn_'+k+'_demo'] = normalized
+                elif not self.compute_demo_emb and self.compute_img_emb:
+                    out_dict['attn_'+k +
+                             '_img'] = normalized
+                # if True:
+                #     demo_fm, img_fm = features.split([demo_T, obs_T], dim=1)
+                #     import matplotlib.pyplot as plt
+                #     # Squeeze the tensor to remove the batch dimension (1)
+                #     img_fm = img_fm.squeeze()
 
-        # if True:
-        #     demo_fm, img_fm = features.split([demo_T, obs_T], dim=1)
-        #     import matplotlib.pyplot as plt
-        #     # Squeeze the tensor to remove the batch dimension (1)
-        #     img_fm = img_fm.squeeze()
+                #     # Combine channels into a single heatmap
+                #     heatmap = torch.sum(img_fm, dim=0)
 
-        #     # Combine channels into a single heatmap
-        #     heatmap = torch.sum(img_fm, dim=0)
+                #     # Normalize the heatmap values between 0 and 1
+                #     heatmap = (heatmap - heatmap.min()) / \
+                #         (heatmap.max() - heatmap.min())
 
-        #     # Normalize the heatmap values between 0 and 1
-        #     heatmap = (heatmap - heatmap.min()) / \
-        #         (heatmap.max() - heatmap.min())
+                #     # Convert the PyTorch tensor to a NumPy array for visualization
+                #     heatmap_np = heatmap.numpy()
 
-        #     # Convert the PyTorch tensor to a NumPy array for visualization
-        #     heatmap_np = heatmap.numpy()
-
-        #     # Plot the overlayed heatmap
-        #     plt.imshow(heatmap_np, cmap='viridis')
-        #     plt.colorbar()  # To add a colorbar for better understanding of the values
-        #     plt.imsave("activation_map.png")
+                #     # Plot the overlayed heatmap
+                #     plt.imshow(heatmap_np, cmap='viridis')
+                #     plt.colorbar()  # To add a colorbar for better understanding of the values
+                #     plt.imsave("activation_map.png")
 
         out_dict['linear_embed'] = self._linear_embed(
             rearrange(features, 'B T d H W -> B T (d H W)'))
         normalized = F.normalize(out_dict['linear_embed'], dim=2)
         out_dict['normed_linear_embed'] = normalized
 
-        demo_embed, img_embed = normalized.split([demo_T, obs_T], dim=1)
-        out_dict['demo_embed'] = demo_embed
-        out_dict['demo_mean'] = torch.mean(demo_embed, dim=1)
-        out_dict['img_embed'] = img_embed
+        if self.compute_img_emb and self.compute_demo_emb:
+            demo_embed, img_embed = normalized.split([demo_T, obs_T], dim=1)
+        elif self.compute_img_emb and not self.compute_demo_emb:
+            img_embed = normalized
+        elif not self.compute_img_emb and self.compute_demo_emb:
+            demo_embed = normalized
+
+        out_dict['demo_embed'] = demo_embed if self.compute_demo_emb else None
+        out_dict['demo_mean'] = torch.mean(
+            demo_embed, dim=1) if self.compute_demo_emb else None
+        out_dict['img_embed'] = img_embed if self.compute_img_emb else None
 
         # NOTE(0427) this should always have length demo_T + obs_T now
         return out_dict
@@ -512,8 +560,20 @@ class VideoImitation(nn.Module):
         self._remove_class_layers = remove_class_layers
         self._concat_bb = concat_bb
         self._bb_sequence = bb_sequence
-        self._embed = _TransformerFeatures(
-            latent_dim=latent_dim, demo_T=demo_T, dim_H=dim_H, dim_W=dim_W, concat_bb=concat_bb, **attn_cfg)
+        self._concat_img_emb = action_cfg.get("concat_img_emb", True)
+        self._concat_demo_emb = action_cfg.get("concat_demo_emb", True)
+        self._embed = None
+
+        if self._concat_demo_emb or self._concat_img_emb:
+            self._embed = _TransformerFeatures(
+                latent_dim=latent_dim,
+                demo_T=demo_T,
+                dim_H=dim_H,
+                dim_W=dim_W,
+                concat_bb=concat_bb,
+                compute_img_emb=action_cfg.get("concat_img_emb", True),
+                compute_demo_emb=action_cfg.get("concat_demo_emb", True),
+                **attn_cfg)
 
         self._object_detector = None
         self._target_obj_detector_path = target_obj_detector_path
@@ -576,7 +636,7 @@ class VideoImitation(nn.Module):
             ac_in_dim = int(latent_dim + float(concat_demo_act)
                             * latent_dim + float(concat_bb) * 4 * self._bb_sequence + float(concat_state) * sdim)
         else:
-            ac_in_dim = int(latent_dim + float(concat_demo_act)
+            ac_in_dim = int(latent_dim * float(self._concat_img_emb) + float(self._concat_demo_emb)
                             * latent_dim + float(concat_bb) * 4 + float(concat_state) * sdim)
 
         inv_input_dim = int(2*ac_in_dim)
@@ -778,11 +838,18 @@ class VideoImitation(nn.Module):
 
     def _get_action_distribution(self, action_module, action_dist, bb, img_embed, states, demo_embed, first_phase):
         if self.concat_demo_act:  # for action model
+            if self._concat_demo_emb:
+                if img_embed is not None:
+                    ac_in = torch.cat((img_embed, demo_embed), dim=2)
+                else:
+                    ac_in = demo_embed
             if self._concat_bb:
                 bb = rearrange(bb, 'B T O D -> B T (O D)')
-                ac_in = torch.cat((img_embed, demo_embed, bb), dim=2)
-            else:
-                ac_in = torch.cat((img_embed, demo_embed), dim=2)
+                if not self._concat_demo_emb and not self._concat_img_emb:
+                    ac_in = bb
+                else:
+                    ac_in = torch.cat((ac_in, bb), dim=2)
+
             ac_in = F.normalize(ac_in, dim=2)
 
         ac_in = torch.cat((ac_in, states), 2) if self._concat_state else ac_in
@@ -809,16 +876,19 @@ class VideoImitation(nn.Module):
         if not eval:
             obs_T = self._obs_T  # img_embed.shape[1]
         else:
-            obs_T = img_embed.shape[1]
+            if img_embed is not None:
+                obs_T = img_embed.shape[1]
+            elif bb is not None:
+                obs_T = bb.shape[1]
 
-        if self._concat_target_obj_embedding and not eval:
-            ac_in = img_embed[:, 1:, :]
-            states = states[:, 1:, :]
-        elif self._concat_target_obj_embedding and eval:
-            ac_in = img_embed
-            states = states
-        else:
-            ac_in = img_embed
+        ac_in = None
+        if self._concat_img_emb:
+            if self._concat_target_obj_embedding and not eval:
+                ac_in = img_embed[:, 1:, :]
+            elif self._concat_target_obj_embedding and eval:
+                ac_in = img_embed
+            else:
+                ac_in = img_embed
 
         if self.demo_mean:
             demo_embed = torch.mean(demo_embed, dim=1)
@@ -852,7 +922,7 @@ class VideoImitation(nn.Module):
                     action_module=self._picking_module,
                     action_dist=self._action_dist_picking,
                     bb=bb[first_phase_indx, :, 0, :][:, :, None, :],
-                    img_embed=ac_in[first_phase_indx],
+                    img_embed=ac_in[first_phase_indx] if ac_in is not None else ac_in,
                     states=states[first_phase_indx],
                     demo_embed=demo_embed[first_phase_indx],
                     first_phase=True
@@ -865,7 +935,7 @@ class VideoImitation(nn.Module):
                     action_module=self._placing_module,
                     action_dist=self._action_dist_placing,
                     bb=bb[second_phase_indx, :, 1, :][:, :, None, :],
-                    img_embed=ac_in[second_phase_indx],
+                    img_embed=ac_in[second_phase_indx] if ac_in is not None else ac_in,
                     states=states[second_phase_indx],
                     demo_embed=demo_embed[second_phase_indx],
                     first_phase=False

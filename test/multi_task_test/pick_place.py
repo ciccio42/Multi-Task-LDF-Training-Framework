@@ -12,6 +12,7 @@ from multi_task_test.utils import *
 from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
 from sklearn.metrics import mean_squared_error
 from robosuite.utils.transform_utils import quat2axisangle
+import time
 
 OBJECT_SET = 2
 
@@ -267,7 +268,7 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
         tasks["place_wrong_correct_obj"] = 0.0
         tasks["place_wrong_wrong_obj"] = 0.0
         tasks["place_correct_bin_wrong_obj"] = 0.0
-
+        elapsed_time = 0.0
         while not done:
 
             tasks['reached'] = check_reach(threshold=0.03,
@@ -304,7 +305,7 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
             states.append(np.concatenate(
                 (obs['joint_pos'], obs['gripper_qpos'])).astype(np.float32)[None])
 
-            obs, reward, info, action, env_done = task_run_action(
+            obs, reward, info, action, env_done, time_action = task_run_action(
                 traj=traj,
                 obs=obs,
                 task_name=task_name,
@@ -331,6 +332,7 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
                 target_obj_emb=target_obj_emb)
 
             traj.append(obs, reward, done, info, action)
+            elapsed_time += time_action
 
             tasks['success'] = reward or tasks['success']
 
@@ -374,6 +376,8 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
                 done = True
         print(tasks)
         env.close()
+        mean_elapsed_time = elapsed_time/n_steps
+        print(f"Mean elapsed time {mean_elapsed_time}")
         if getattr(model, 'first_phase', None) is not None:
             model.first_phase = True
         tasks['avg_pred'] = avg_prediction/len(traj)

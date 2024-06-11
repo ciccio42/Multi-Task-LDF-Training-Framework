@@ -195,6 +195,8 @@ actions:
   sep_var:          True 
   concat_demo_head:   False
   concat_demo_act:    True
+  concat_img_emb: True
+  concat_demo_emb: True
   demo_mean:        ${policy.demo_mean}
   is_recurrent: False
   lstm_config: ${lstm}

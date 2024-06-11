@@ -25,6 +25,7 @@ from torchvision.transforms import ToTensor
 from robosuite import load_controller_config
 from multi_task_test import ENV_OBJECTS, TASK_MAP
 from collections import OrderedDict
+import time
 
 DEBUG = False
 set_start_method('forkserver', force=True)
@@ -1712,11 +1713,13 @@ def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img
         # debug_img = np.array(np.moveaxis(
         #     img_aug[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
         # cv2.imwrite("debug.png", debug_img)
-        if model._object_detector is not None or predict_gt_bb:
+        if getattr(model, "_object_detector", None) is not None or predict_gt_bb:
             bb.append(bb_t_aug[None][None])
             gt_classes.append(torch.from_numpy(
                 gt_t[None][None]).to(device=gpu_id))
-
+    
+    elapsed_time = 0
+    start = time.time()
     if concat_bb:
         action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
             model=model,
@@ -1752,8 +1755,11 @@ def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img
             action_ranges=action_ranges,
             target_obj_embedding=target_obj_emb
         )
-
-    if concat_bb and model._object_detector is not None and not predict_gt_bb:
+    
+    end = time.time()
+    elapsed_time = end-start
+    
+    if concat_bb and getattr(model, '_object_detector', None) is not None and not predict_gt_bb:
         prediction = prediction_internal_obj
 
     try:
@@ -1783,7 +1789,7 @@ def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img
                     prediction=prediction,
                     pred_flags=target_indx_flags,
                     perform_augs=True,
-                    model=model._object_detector,
+                    model=getattr(model, '_object_detector', None),
                     formatted_img=img_aug,
                     gt_bb=bb_t_aug[0][None],
                     gpu_id=gpu_id)
@@ -1795,7 +1801,7 @@ def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img
                     prediction=prediction,
                     pred_flags=place_indx_flags,
                     perform_augs=True,
-                    model=model._object_detector,
+                    model=getattr(model, '_object_detector', None),
                     formatted_img=img_aug,
                     gt_bb=bb_t_aug[1][None],
                     gpu_id=gpu_id)
@@ -1812,7 +1818,7 @@ def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img
                     prediction=prediction,
                     pred_flags=place_indx_flags,
                     perform_augs=True,
-                    model=model._object_detector,
+                    model=getattr(model, '_object_detector', None),
                     formatted_img=img_aug,
                     gt_bb=bb_t_aug[1][None],
                     gpu_id=gpu_id)
@@ -1828,7 +1834,7 @@ def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img
                     prediction=prediction,
                     pred_flags=target_indx_flags,
                     perform_augs=True,
-                    model=model._object_detector,
+                    model=getattr(model, '_object_detector', None),
                     formatted_img=img_aug,
                     gt_bb=bb_t_aug[0][None],
                     gpu_id=gpu_id)
@@ -1887,4 +1893,4 @@ def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img
         print(f"Exception during step {e}")
         return obs, 0, None, action, False
 
-    return obs, reward, info, action, env_done
+    return obs, reward, info, action, env_done, elapsed_time

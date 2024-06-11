@@ -76,7 +76,7 @@ def block_stack_eval_demo_cond(model, env, context, gpu_id, variation_id, img_fo
         states.append(np.concatenate(
             (obs['joint_pos'], obs['gripper_qpos'])).astype(np.float32)[None])
 
-        obs, reward, info, action, env_done = task_run_action(
+        obs, reward, info, action, env_done, time_action = task_run_action(
             traj=traj,
             obs=obs,
             task_name=task_name,
