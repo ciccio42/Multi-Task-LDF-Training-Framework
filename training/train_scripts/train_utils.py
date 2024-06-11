@@ -680,10 +680,10 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
         if 'point_ll' in out and train_cfg.pnt_loss_mult != 0.0:
             pnts = model_inputs['points']
 
-            l_point = train_cfg.pnt_loss_mult * out['point_ll'][range(pnts.shape[0]),
-                                                                pnts[:, -1,
-                                                                     0].long(),
-                                                                pnts[:, -1, 1].long()]
+            l_point = -train_cfg.pnt_loss_mult * out['point_ll'][range(pnts.shape[0]),
+                                                                 pnts[:, -1,
+                                                                      0].long(),
+                                                                 pnts[:, -1, 1].long()]
 
             all_losses["point_loss"] = l_point
 

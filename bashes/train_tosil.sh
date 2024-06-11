@@ -1,17 +1,17 @@
 #!/bin/bash
-# export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
-export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=3
+export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
+# export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
+export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
 echo $1
 TASK_NAME="$1"
 
-EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
+EXPERT_DATA=/mnt/sdc1/frosa/opt_dataset/
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 POLICY='${tosil}'
 
@@ -29,7 +29,7 @@ CONFIG_NAME=config.yaml
 
 BC_MUL=1.0
 INV_MUL=1.0
-PNT_MUL=0.1
+PNT_MUL=1.0
 LOAD_EEF_POINTS=true
 
 EARLY_STOPPING_PATIECE=-1
@@ -163,6 +163,36 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
 
     TASK_str=pick_place #[pick_place,nut_assembly,stack_block,button]
     EXP_NAME=1Task-TOSIL-${TASK_str}
+    PROJECT_NAME=${EXP_NAME}
+elif [ "$TASK_NAME" == 'multi' ]; then
+    echo "Multi-Task"
+    BSIZE=27 #32 #128 #64 #32
+    COMPUTE_OBJ_DISTRIBUTION=false
+    # Policy 1: At each slot is assigned a RandomSampler
+    BALANCING_POLICY=0
+    SET_SAME_N=2
+    NORMALIZE_ACTION=true
+    CHANGE_COMMAND_EPOCH=true
+
+    ACTION_DIM=7
+    N_MIXTURES=7 #14 MT #7 2Task, Nut, button, stack #3 Pick-place #2 Nut-Assembly
+    OUT_DIM=64   #64 MT #64 2Task, Nut, button, stack #128 Pick-place
+    PRETRAINED=false
+    NULL_BB=false
+
+    EARLY_STOPPING_PATIECE=-1
+    OPTIMIZER='AdamW'
+    LR=0.0005
+    WEIGHT_DECAY=0.0
+    SCHEDULER=None
+
+    HEIGHT=100
+    WIDTH=180
+
+    COSINE_ANNEALING=false
+
+    TASK_str=[pick_place,nut_assembly,stack_block,press_button_close_after_reaching]
+    EXP_NAME=4Task-TOSIL-multi-task
     PROJECT_NAME=${EXP_NAME}
 fi
 
