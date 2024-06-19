@@ -219,8 +219,8 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
 elif [ "$TASK_NAME" == 'pick_place' ]; then
     echo "Pick-Place"
     ### Pick-Place ###
-    RESUME_PATH=1Task-pick_place-Double-Policy-Contrastive-false-Inverse-false-Batch32/
-    RESUME_STEP=160350
+    RESUME_PATH=1Task-pick_place-Double-Policy-Contrastive-false-Inverse-false-CONCAT_IMG_EMB-false-CONCAT_DEMO_EMB-true-Batch32
+    RESUME_STEP=54519
     RESUME=false
 
     LOAD_TARGET_OBJ_DETECTOR=true

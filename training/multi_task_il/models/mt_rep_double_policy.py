@@ -891,8 +891,6 @@ class VideoImitation(nn.Module):
             else:
                 ac_in = img_embed
 
-        demo_embed = None
-        img_embed = None
         if self._concat_demo_emb:
             if self.demo_mean:
                 demo_embed = torch.mean(demo_embed, dim=1)
@@ -901,6 +899,9 @@ class VideoImitation(nn.Module):
                 demo_embed = demo_embed[:, -1, :]
 
             demo_embed = repeat(demo_embed, 'B d -> B ob_T d', ob_T=obs_T)
+        else:
+            demo_embed = None
+            img_embed = None
 
         if self._concat_target_obj_embedding and not eval:
             target_obj_embedding = target_obj_embedding.repeat(1, obs_T, 1)
