@@ -19,7 +19,7 @@ VAL_FREQ=-1
 PRINT_FREQ=20
 DEVICE=0
 DEBUG=false
-WANDB_LOG=true
+WANDB_LOG=false
 
 TASK_str=["pick_place","nut_assembly","stack_block","press_button_close_after_reaching"]
 EXP_NAME=4Task-CTOD-KP #1Task-${TASK_str}-CTOD-KP
