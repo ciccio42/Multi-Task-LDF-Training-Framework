@@ -7,7 +7,7 @@ try:
     from tasks.robosuite_env import postprocess_model_xml
 except:
     # in case experiments don't require rendering ignore failure
-    pass
+    print("Exception raised during import")
 
 
 def _compress_obs(obs):

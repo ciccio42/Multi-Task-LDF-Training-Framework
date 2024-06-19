@@ -23,7 +23,6 @@ from multi_task_il.utils import normalize_action
 import time
 import math
 from tqdm import tqdm
-from robosuite.utils.transform_utils import quat2axisangle
 import logging
 import time
 import albumentations as A
@@ -1139,6 +1138,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                 else:
                     action = step_t['action']
                 if "real" in dataset_loader.agent_name:
+                    from robosuite.utils.transform_utils import quat2axisangle
                     rot_quat = action[3:7]
                     rot_axis_angle = quat2axisangle(rot_quat)
                     action = normalize_action(

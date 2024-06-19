@@ -2,10 +2,12 @@ import random
 from train_utils import *
 import torch
 import hydra
+
 torch.autograd.set_detect_anomaly(True)
 # from torch.utils.tensorboard import SummaryWriter
 # writer = SummaryWriter()
 def seed_everything(seed=42):
+    print(f"Cuda available {torch.cuda.is_available()}")
     random.seed(seed)
     np.random.seed(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)

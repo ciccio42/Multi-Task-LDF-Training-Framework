@@ -1,18 +1,16 @@
 #!/bin/bash
-# export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
-export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=3
-export HYDRA_FULL_ERROR=1
+
+#SBATCH --partition=gpuq
+#SBATCH --gres=gpu:1   # Request 1 GPU
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=16
 
 echo $1
 TASK_NAME="$1"
 
-EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
-SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
+EXPERT_DATA=/home/rsofnc000/dataset/opt_dataset
+SAVE_PATH=/home/rsofnc000/checkpoint_save_folder
 POLICY='${mosaic}'
 TARGET='multi_task_il.models.mt_rep_double_policy.VideoImitation'
 
@@ -21,17 +19,18 @@ LOG_FREQ=10
 VAL_FREQ=-1
 DEVICE=0
 DEBUG=false
-WANDB_LOG=true
+WANDB_LOG=false
 ROLLOUT=false
 EPOCH=90
 LOADER_WORKERS=8
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
 CONCAT_IMG_EMB=false
-CONCAT_DEMO_EMB=true
+CONCAT_DEMO_EMB=false
 
 if [ "$TASK_NAME" == 'nut_assembly' ]; then
     echo "NUT-ASSEMBLY"
+    #SBATCH --job-name=nut_assembly
     ### Nut-Assembly ###
     RESUME_PATH=1Task-nut_assembly-Double-Policy-Contrastive-false-Inverse-false-trial-2-Batch27
     RESUME_STEP=18640
@@ -39,7 +38,7 @@ if [ "$TASK_NAME" == 'nut_assembly' ]; then
 
     LOAD_TARGET_OBJ_DETECTOR=true
     TARGET_OBJ_DETECTOR_STEP=53091 #68526 #129762 #198900 #65250
-    TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Nut-Assemly-KP-Batch63
+    TARGET_OBJ_DETECTOR_PATH=/home/rsofnc000/checkpoint_save_folder/1Task-Nut-Assemly-KP-Batch63
     CONCAT_BB=true
 
     BSIZE=27 #32 #128 #64 #32
@@ -97,11 +96,11 @@ elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after
     echo "BUTTON"
     RESUME_PATH=1Task-press_button_close_after_reaching-Double-Policy-Contrastive-false-Inverse-false-Batch18
     RESUME_STEP=3624
-    RESUME=true
+    RESUME=false
 
     LOAD_TARGET_OBJ_DETECTOR=true
     TARGET_OBJ_DETECTOR_STEP=44625 #68526 #129762 #198900 #65250
-    TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Task-button-KP-no-scaled-Batch36
+    TARGET_OBJ_DETECTOR_PATH=/home/rsofnc000/checkpoint_save_folder/Task-button-KP-no-scaled-Batch36
     CONCAT_BB=true
 
     BSIZE=27 #32 #128 #64 #32
@@ -163,7 +162,7 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
 
     LOAD_TARGET_OBJ_DETECTOR=true
     TARGET_OBJ_DETECTOR_STEP=37665 #68526 #129762 #198900 #65250
-    TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-stack_block-CTOD-KP-Batch36
+    TARGET_OBJ_DETECTOR_PATH=/home/rsofnc000/checkpoint_save_folder/1Task-stack_block-CTOD-KP-Batch36
     CONCAT_BB=true
 
     BSIZE=27 #32 #128 #64 #32
@@ -283,7 +282,7 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     PROJECT_NAME=${EXP_NAME}
 fi
 
-python ../training/train_scripts/train_any.py \
+srun --output=training_${TASK_NAME}.txt --job-name=training_${TASK_NAME} python ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \

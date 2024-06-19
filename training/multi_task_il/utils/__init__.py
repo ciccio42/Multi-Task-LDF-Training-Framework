@@ -10,7 +10,6 @@ import random
 import os
 from torchvision.transforms import ToTensor, Normalize
 from torchvision.transforms.functional import resized_crop
-from robosuite import load_controller_config
 
 # NORMALIZATION_RANGES = np.array([[-0.35,  0.35],
 #                                  [-0.35,  0.35],
@@ -159,6 +158,8 @@ def build_tvf_formatter(config, env_name='stack'):
 
 
 def create_env(env_fn, agent_name, variation, ret_env, seed=None, heights=100, widths=180, gpu_id=0):
+    from robosuite import load_controller_config
+    
     if seed is None:
         create_seed = random.Random(None)
         create_seed = create_seed.getrandbits(32)
