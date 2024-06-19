@@ -870,8 +870,9 @@ class VideoImitation(nn.Module):
         """directly modifies output dict to put action outputs inside"""
         out = dict()
         # single-head case
-        demo_embed, img_embed = embed_out['demo_embed'], embed_out['img_embed']
-        assert demo_embed.shape[1] == self._demo_T
+        if embed_out is not None:
+            demo_embed, img_embed = embed_out['demo_embed'], embed_out['img_embed']
+            assert demo_embed.shape[1] == self._demo_T
 
         if not eval:
             obs_T = self._obs_T  # img_embed.shape[1]
@@ -890,12 +891,16 @@ class VideoImitation(nn.Module):
             else:
                 ac_in = img_embed
 
-        if self.demo_mean:
-            demo_embed = torch.mean(demo_embed, dim=1)
-        else:
-            # only take the last image, should alread be attended tho
-            demo_embed = demo_embed[:, -1, :]
-        demo_embed = repeat(demo_embed, 'B d -> B ob_T d', ob_T=obs_T)
+        demo_embed = None
+        img_embed = None
+        if self._concat_demo_emb:
+            if self.demo_mean:
+                demo_embed = torch.mean(demo_embed, dim=1)
+            else:
+                # only take the last image, should alread be attended tho
+                demo_embed = demo_embed[:, -1, :]
+
+            demo_embed = repeat(demo_embed, 'B d -> B ob_T d', ob_T=obs_T)
 
         if self._concat_target_obj_embedding and not eval:
             target_obj_embedding = target_obj_embedding.repeat(1, obs_T, 1)
@@ -924,7 +929,7 @@ class VideoImitation(nn.Module):
                     bb=bb[first_phase_indx, :, 0, :][:, :, None, :],
                     img_embed=ac_in[first_phase_indx] if ac_in is not None else ac_in,
                     states=states[first_phase_indx],
-                    demo_embed=demo_embed[first_phase_indx],
+                    demo_embed=demo_embed[first_phase_indx] if demo_embed is not None else None,
                     first_phase=True
                 )
                 mu_bc[first_phase_indx] = mu_picking
@@ -937,7 +942,7 @@ class VideoImitation(nn.Module):
                     bb=bb[second_phase_indx, :, 1, :][:, :, None, :],
                     img_embed=ac_in[second_phase_indx] if ac_in is not None else ac_in,
                     states=states[second_phase_indx],
-                    demo_embed=demo_embed[second_phase_indx],
+                    demo_embed=demo_embed[second_phase_indx] if demo_embed is not None else None,
                     first_phase=False
                 )
                 mu_bc[second_phase_indx] = mu_place
@@ -952,7 +957,7 @@ class VideoImitation(nn.Module):
                     bb=bb[:, :, 0, :][:, :, None, :],
                     img_embed=ac_in,
                     states=states,
-                    demo_embed=demo_embed,
+                    demo_embed=demo_embed if demo_embed is not None else None,
                     first_phase=True)
                 mu_bc = mu_picking
                 scale_bc = scale_picking
@@ -964,7 +969,7 @@ class VideoImitation(nn.Module):
                     bb=bb[:, :, 1, :][:, :, None, :],
                     img_embed=ac_in,
                     states=states,
-                    demo_embed=demo_embed,
+                    demo_embed=demo_embed if demo_embed is not None else None,
                     first_phase=False
                 )
                 mu_bc = mu_place
@@ -1020,8 +1025,10 @@ class VideoImitation(nn.Module):
         demo_T = context.shape[1]
         # if not eval:
         #     assert images_cp is not None, 'Must pass in augmented version of images'
-        embed_out = self._embed(
-            images, context, compute_activation_map=compute_activation_map)
+        embed_out = None
+        if self._concat_img_emb or self._concat_demo_emb:
+            embed_out = self._embed(
+                images, context, compute_activation_map=compute_activation_map)
 
         if self._concat_bb and self._object_detector is None:
             predict_gt_bb = True
@@ -1152,7 +1159,8 @@ class VideoImitation(nn.Module):
                 assert 'simclr' in k
                 out[k] = v
 
-        demo_embed, img_embed = out['demo_embed'], embed_out['img_embed']
+        if embed_out is not None and out['demo_embed'] is not None:
+            demo_embed, img_embed = out['demo_embed'], embed_out['img_embed']
 
         # B, T_im-1, d * 2
         if self._load_inv:
