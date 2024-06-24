@@ -274,12 +274,14 @@ class VideoImitation(nn.Module):
                 nn.Linear(ac_in_dim, action_cfg.out_dim), nn.ReLU())
         elif action_cfg.n_layers == 2:
             self._picking_module = nn.Sequential(
-                nn.Linear(ac_in_dim, action_cfg.hidden_dim), nn.ReLU(),
-                nn.Linear(action_cfg.hidden_dim, action_cfg.out_dim), nn.ReLU()
+                nn.Linear(ac_in_dim, action_cfg.hidden_dim), nn.Sigmoid(),
+                nn.Linear(action_cfg.hidden_dim,
+                          action_cfg.out_dim), nn.Sigmoid()
             )
             self._placing_module = nn.Sequential(
-                nn.Linear(ac_in_dim, action_cfg.hidden_dim), nn.ReLU(),
-                nn.Linear(action_cfg.hidden_dim, action_cfg.out_dim), nn.ReLU()
+                nn.Linear(ac_in_dim, action_cfg.hidden_dim), nn.Sigmoid(),
+                nn.Linear(action_cfg.hidden_dim,
+                          action_cfg.out_dim), nn.Sigmoid()
             )
 
         else:
@@ -544,8 +546,10 @@ class VideoImitation(nn.Module):
             prediction = self._object_detector(model_input,
                                                inference=True)
             embed_out['demo_embed'] = prediction['task_embedding']
-            embed_out['img_embed'] = F.normalize(torch.flatten(
-                self._pool(prediction['feature_map']), start_dim=1), dim=1)
+            # embed_out['img_embed'] = F.normalize(torch.flatten(
+            #     self._pool(prediction['feature_map']), start_dim=1), dim=1)
+            embed_out['img_embed'] = torch.flatten(
+                self._pool(prediction['feature_map']), start_dim=1)
             if len(prediction['classes_final']) == B*obs_T:
                 predicted_bb_list = list()
                 # check if there is a valid bounding box
