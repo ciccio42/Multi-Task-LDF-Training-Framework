@@ -19,7 +19,7 @@ LOG_FREQ=10
 VAL_FREQ=-1
 DEVICE=0
 DEBUG=false
-WANDB_LOG=false
+WANDB_LOG=true
 ROLLOUT=false
 EPOCH=90
 LOADER_WORKERS=8
@@ -153,7 +153,7 @@ elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after
 
     TASK_str=${TASK_NAME} #[pick_place,nut_assembly,stack_block,button]
     EXP_NAME=1Task-${TASK_str}-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}-CONCAT_IMG_EMB-${CONCAT_IMG_EMB}-CONCAT_DEMO_EMB-${CONCAT_DEMO_EMB}
-
+    PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'stack_block' ]; then
     echo "STACK_BLOCK"
     RESUME_PATH=1Task-press_button_close_after_reaching-Double-Policy-Contrastive-false-Inverse-false-Batch18
@@ -215,6 +215,7 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
 
     TASK_str=${TASK_NAME} #[pick_place,nut_assembly,stack_block,button]
     EXP_NAME=1Task-${TASK_str}-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}-CONCAT_IMG_EMB-${CONCAT_IMG_EMB}-CONCAT_DEMO_EMB-${CONCAT_DEMO_EMB}
+    PROJECT_NAME=${EXP_NAME}
 
 elif [ "$TASK_NAME" == 'pick_place' ]; then
     echo "Pick-Place"
@@ -225,7 +226,7 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
 
     LOAD_TARGET_OBJ_DETECTOR=true
     TARGET_OBJ_DETECTOR_STEP=37476 #68526 #129762 #198900 #65250
-    TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-KP-Batch112
+    TARGET_OBJ_DETECTOR_PATH=/home/rsofnc000/checkpoint_save_folder/1Task-Pick-Place-KP-Batch112
     CONCAT_BB=true
 
     BSIZE=32 #32 #128 #64 #32
