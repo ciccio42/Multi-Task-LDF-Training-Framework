@@ -149,6 +149,8 @@ class _DiscreteLogHead(nn.Module):
                            T=T)
         else:
             mu = self._mu(x).reshape((x.shape[:-1] + self._dist_size))
+            assert not torch.isnan(
+                mu).any(), "_DiscreteLogHead mu contains nan"
 
         if isinstance(self._ln_scale, nn.Linear):
             ln_scale = self._ln_scale(x).reshape(
@@ -225,7 +227,8 @@ class VideoImitation(nn.Module):
         self._bb_sequence = bb_sequence
         self._concat_img_emb = action_cfg.get("concat_img_emb", True)
         self._concat_demo_emb = action_cfg.get("concat_demo_emb", True)
-        self._kernel_size = 4
+        self._kernel_size_h = 4
+        self._kernel_size_w = 4
 
         self._object_detector = None
         self._target_obj_detector_path = target_obj_detector_path
@@ -251,8 +254,8 @@ class VideoImitation(nn.Module):
             ac_in_dim = int(latent_dim + float(concat_demo_act)
                             * latent_dim + float(concat_bb) * 4 * self._bb_sequence + float(concat_state) * sdim)
         else:
-            img_emb_dim = (int(((dim_H-self._kernel_size)/self._kernel_size) + 1)) * \
-                int(((dim_W-self._kernel_size)/self._kernel_size) + 1) * \
+            img_emb_dim = (int(((dim_H-self._kernel_size_h)/self._kernel_size_h) + 1)) * \
+                int(((dim_W-self._kernel_size_w)/self._kernel_size_w) + 1) * \
                 self._object_detector._agent_backone.out_channels_backbone
             demo_emb_dim = self._object_detector._agent_backone.task_embedding_dim
 
@@ -269,11 +272,6 @@ class VideoImitation(nn.Module):
                 nn.Linear(ac_in_dim, action_cfg.out_dim), nn.ReLU())
             self._placing_module = nn.Sequential(
                 nn.Linear(ac_in_dim, action_cfg.out_dim), nn.ReLU())
-            if load_inv:
-                self._picking_module_inv = nn.Sequential(
-                    nn.Linear(inv_input_dim, action_cfg.out_dim), nn.ReLU())
-                self._placing_module_inv = nn.Sequential(
-                    nn.Linear(inv_input_dim, action_cfg.out_dim), nn.ReLU())
         elif action_cfg.n_layers == 2:
             self._picking_module = nn.Sequential(
                 nn.Linear(ac_in_dim, action_cfg.hidden_dim), nn.ReLU(),
@@ -283,17 +281,6 @@ class VideoImitation(nn.Module):
                 nn.Linear(ac_in_dim, action_cfg.hidden_dim), nn.ReLU(),
                 nn.Linear(action_cfg.hidden_dim, action_cfg.out_dim), nn.ReLU()
             )
-            if load_inv:
-                self._picking_module_inv = nn.Sequential(
-                    nn.Linear(inv_input_dim, action_cfg.hidden_dim), nn.ReLU(),
-                    nn.Linear(action_cfg.hidden_dim,
-                              action_cfg.out_dim), nn.ReLU()
-                )
-                self._placing_module_inv = nn.Sequential(
-                    nn.Linear(inv_input_dim, action_cfg.hidden_dim), nn.ReLU(),
-                    nn.Linear(action_cfg.hidden_dim,
-                              action_cfg.out_dim), nn.ReLU()
-                )
 
         else:
             raise NotImplementedError
@@ -322,7 +309,8 @@ class VideoImitation(nn.Module):
             lstm=action_cfg.get('is_recurrent', False),
             lstm_config=action_cfg.get('lstm_config', None)
         )
-        self._avg_pool = nn.AvgPool2d(self._kernel_size)
+        self._pool = nn.AvgPool2d(
+            (self._kernel_size_h, self._kernel_size_w))
         self.demo_mean = demo_mean
         self.first_phase = True
 
@@ -367,6 +355,7 @@ class VideoImitation(nn.Module):
 
     def _get_action_distribution(self, action_module, action_dist, bb, img_embed, states, demo_embed, first_phase):
         if self.concat_demo_act:  # for action model
+            ac_in = img_embed
             if self._concat_demo_emb:
                 if img_embed is not None:
                     ac_in = torch.cat((img_embed, demo_embed), dim=2)
@@ -379,7 +368,7 @@ class VideoImitation(nn.Module):
                 else:
                     ac_in = torch.cat((ac_in, bb), dim=2)
 
-            ac_in = F.normalize(ac_in, dim=2)
+            ac_in = F.normalize(ac_in, dim=2).clamp(min=1e-10)
 
         ac_in = torch.cat((ac_in, states), 2) if self._concat_state else ac_in
 
@@ -555,8 +544,8 @@ class VideoImitation(nn.Module):
             prediction = self._object_detector(model_input,
                                                inference=True)
             embed_out['demo_embed'] = prediction['task_embedding']
-            embed_out['img_embed'] = torch.flatten(
-                self._avg_pool(prediction['feature_map']), start_dim=1)
+            embed_out['img_embed'] = F.normalize(torch.flatten(
+                self._pool(prediction['feature_map']), start_dim=1), dim=1)
             if len(prediction['classes_final']) == B*obs_T:
                 predicted_bb_list = list()
                 # check if there is a valid bounding box

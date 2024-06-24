@@ -6,19 +6,19 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=16
 
-# export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
-export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
+export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
+# export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 export CUDA_VISIBLE_DEVICES=0
 export HYDRA_FULL_ERROR=1
 
 echo $1
 TASK_NAME="$1"
 
-EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
+EXPERT_DATA=/mnt/sdc1/frosa/opt_dataset
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 POLICY='${mosaic}'
 TARGET='multi_task_il.models.no_mosaic_double_policy.VideoImitation'
@@ -35,7 +35,7 @@ LOADER_WORKERS=8
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
 CONCAT_IMG_EMB=true
-CONCAT_DEMO_EMB=true
+CONCAT_DEMO_EMB=false
 
 if [ "$TASK_NAME" == 'nut_assembly' ]; then
     echo "NUT-ASSEMBLY"
