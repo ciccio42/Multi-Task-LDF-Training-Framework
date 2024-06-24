@@ -626,6 +626,9 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
         actions = model_inputs['actions']
         if "CondPolicy" not in config.policy._target_:
             mu_bc, scale_bc, logit_bc = out['bc_distrib']
+            assert not torch.isnan(mu_bc).any(), "mu_bc contains nan"
+            assert not torch.isnan(scale_bc).any(), "scale_bc contains nan"
+            assert not torch.isnan(logit_bc).any(), "logit_bc contains nan"
             if "real" not in config.dataset_cfg.agent_name or ("real" in config.dataset_cfg.agent_name and config.dataset_cfg.get("pick_next", False)):
                 # mu_bc.shape: B, 7, 8, 4]) but actions.shape: B, 6, 7
                 action_distribution = DiscreteMixLogistic(
@@ -657,6 +660,7 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
                     B=model_inputs['actions'].shape[0],
                     T=model_inputs['actions'].shape[1])
 
+        assert not torch.isnan(act_prob).any(), "Act_prob contains nan"
         all_losses["l_bc"] = train_cfg.bc_loss_mult * \
             torch.mean(act_prob, dim=-1)
 

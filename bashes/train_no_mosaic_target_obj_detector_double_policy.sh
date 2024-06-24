@@ -35,7 +35,7 @@ LOADER_WORKERS=8
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
 CONCAT_IMG_EMB=true
-CONCAT_DEMO_EMB=true
+CONCAT_DEMO_EMB=false
 
 if [ "$TASK_NAME" == 'nut_assembly' ]; then
     echo "NUT-ASSEMBLY"
