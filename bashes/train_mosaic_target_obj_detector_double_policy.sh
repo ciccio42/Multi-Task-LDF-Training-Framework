@@ -226,7 +226,7 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
 
     LOAD_TARGET_OBJ_DETECTOR=true
     TARGET_OBJ_DETECTOR_STEP=37476 #68526 #129762 #198900 #65250
-    TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-KP-Batch112
+    TARGET_OBJ_DETECTOR_PATH=/home/rsofnc000/checkpoint_save_folder/1Task-Pick-Place-KP-Batch112
     CONCAT_BB=true
 
     BSIZE=32 #32 #128 #64 #32
