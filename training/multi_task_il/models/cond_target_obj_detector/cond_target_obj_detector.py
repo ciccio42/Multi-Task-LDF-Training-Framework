@@ -354,6 +354,7 @@ class AgentModule(nn.Module):
 
     def __init__(self, height=120, width=160, obs_T=4, model_name="resnet18", pretrained=False, load_film=True, n_res_blocks=6, n_classes=2, task_embedding_dim=128, dim_H=7, dim_W=7, conv_drop_dim=3, anc_scales=[1.0, 1.5, 2.0, 3.0, 4.0], anc_ratios=[0.2, 0.5, 0.8, 1, 1.2, 1.5, 2.0]):
         super().__init__()
+        self.task_embedding_dim = task_embedding_dim
         if not load_film:
             self._module = get_backbone(backbone_name=model_name,
                                         video_backbone=False,
@@ -426,6 +427,7 @@ class AgentModule(nn.Module):
 
         ret_dict = dict()
 
+        ret_dict['task_embedding'] = task_embedding
         # 1. Compute conditioned embedding
         feature_map = self._backbone(
             agent_obs=agent_obs, task_emb=task_embedding)
