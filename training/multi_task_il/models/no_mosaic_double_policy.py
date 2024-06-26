@@ -227,8 +227,6 @@ class VideoImitation(nn.Module):
         self._bb_sequence = bb_sequence
         self._concat_img_emb = action_cfg.get("concat_img_emb", True)
         self._concat_demo_emb = action_cfg.get("concat_demo_emb", True)
-        self._kernel_size_h = 4
-        self._kernel_size_w = 4
 
         self._object_detector = None
         self._target_obj_detector_path = target_obj_detector_path
@@ -250,14 +248,24 @@ class VideoImitation(nn.Module):
         self.concat_demo_head = concat_demo_head
         self.concat_demo_act = concat_demo_act
 
+        in_dim = self._object_detector._agent_backone.task_embedding_dim*dim_H*dim_W
+        self._linear_embed_img = nn.Sequential(
+            nn.Linear(in_dim, attn_cfg.embed_hidden),
+            nn.Dropout(attn_cfg.dropout), nn.ReLU(),
+            nn.Linear(attn_cfg.embed_hidden, latent_dim))
+        self._linear_embed_demo = nn.Sequential(
+            nn.Linear(
+                self._object_detector._agent_backone.task_embedding_dim, attn_cfg.embed_hidden),
+            nn.Dropout(attn_cfg.dropout), nn.ReLU(),
+            nn.Linear(attn_cfg.embed_hidden, latent_dim))
+
         if "KP" not in target_obj_detector_path:
             ac_in_dim = int(latent_dim + float(concat_demo_act)
                             * latent_dim + float(concat_bb) * 4 * self._bb_sequence + float(concat_state) * sdim)
         else:
-            img_emb_dim = (int(((dim_H-self._kernel_size_h)/self._kernel_size_h) + 1)) * \
-                int(((dim_W-self._kernel_size_w)/self._kernel_size_w) + 1) * \
-                self._object_detector._agent_backone.out_channels_backbone
-            demo_emb_dim = self._object_detector._agent_backone.task_embedding_dim
+            img_emb_dim = latent_dim
+
+            demo_emb_dim = latent_dim
 
             ac_in_dim = int(img_emb_dim * float(self._concat_img_emb) + float(self._concat_demo_emb)
                             * demo_emb_dim + float(concat_bb) * 4 + float(concat_state) * sdim)
@@ -274,14 +282,14 @@ class VideoImitation(nn.Module):
                 nn.Linear(ac_in_dim, action_cfg.out_dim), nn.ReLU())
         elif action_cfg.n_layers == 2:
             self._picking_module = nn.Sequential(
-                nn.Linear(ac_in_dim, action_cfg.hidden_dim), nn.Sigmoid(),
+                nn.Linear(ac_in_dim, action_cfg.hidden_dim), nn.ReLU(),
                 nn.Linear(action_cfg.hidden_dim,
-                          action_cfg.out_dim), nn.Sigmoid()
+                          action_cfg.out_dim), nn.ReLU()
             )
             self._placing_module = nn.Sequential(
-                nn.Linear(ac_in_dim, action_cfg.hidden_dim), nn.Sigmoid(),
+                nn.Linear(ac_in_dim, action_cfg.hidden_dim), nn.ReLU(),
                 nn.Linear(action_cfg.hidden_dim,
-                          action_cfg.out_dim), nn.Sigmoid()
+                          action_cfg.out_dim), nn.ReLU()
             )
 
         else:
@@ -311,8 +319,6 @@ class VideoImitation(nn.Module):
             lstm=action_cfg.get('is_recurrent', False),
             lstm_config=action_cfg.get('lstm_config', None)
         )
-        self._pool = nn.AvgPool2d(
-            (self._kernel_size_h, self._kernel_size_w))
         self.demo_mean = demo_mean
         self.first_phase = True
 
@@ -545,11 +551,13 @@ class VideoImitation(nn.Module):
             model_input['gt_classes'] = gt_classes
             prediction = self._object_detector(model_input,
                                                inference=True)
-            embed_out['demo_embed'] = prediction['task_embedding']
+            embed_out['demo_embed'] = self._linear_embed_demo(
+                prediction['task_embedding'].detach().clone())
             # embed_out['img_embed'] = F.normalize(torch.flatten(
             #     self._pool(prediction['feature_map']), start_dim=1), dim=1)
-            embed_out['img_embed'] = torch.flatten(
-                self._pool(prediction['feature_map']), start_dim=1)
+            conv_in = rearrange(
+                prediction['feature_map'].detach().clone(), 'B C H W -> B (C H W)')
+            embed_out['img_embed'] = self._linear_embed_img(conv_in)
             if len(prediction['classes_final']) == B*obs_T:
                 predicted_bb_list = list()
                 # check if there is a valid bounding box

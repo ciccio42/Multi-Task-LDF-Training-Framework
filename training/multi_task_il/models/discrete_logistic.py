@@ -28,9 +28,9 @@ class DiscreteMixLogistic(torch.distributions.Distribution):
             event_shape = mean.shape[1]
 
         super().__init__(batch_shape, event_shape, False)
-        self._mean = mean.clamp(min=1e-12)
-        self._log_scale = log_scale.clamp(min=1e-12)
-        self._logit_probs = logit_probs.clamp(min=1e-12)
+        self._mean = mean
+        self._log_scale = log_scale
+        self._logit_probs = logit_probs
         self._num_classes = num_classes
         self._log_scale_min = log_scale_min
         self._arg_constraints = arg_constraints
