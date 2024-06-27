@@ -1109,6 +1109,7 @@ class VideoImitation(nn.Module):
                 target_index = gt_classes == 1
                 predicted_bb = bb[target_index, :]
 
+            predicted_bb = torch.clamp(predicted_bb, min=0.0)
             assert not torch.isnan(predicted_bb).any(
             ), "The tensor contains NaN values"
             assert (predicted_bb >= 0).all(
