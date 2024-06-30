@@ -973,8 +973,11 @@ class Trainer:
             wandb_config = {k: self.config.get(k) for k in config_keys}
             wandb.login(key='1d9590e10967b8af6602ddae665dbcc77f88fbd5')
             print(f"Exp name: {self.config.exp_name}")
-            run = wandb.init(project=self.config.exp_name,
-                             name=self.config.exp_name, config=wandb_config, sync_tensorboard=False)
+            self.config.project_name = self.config.exp_name.split('-Batch')[0]
+            run = wandb.init(project=self.config.project_name,
+                             name=self.config.exp_name,
+                             config=wandb_config,
+                             sync_tensorboard=False)
 
         # create early stopping object
         self._early_stopping = EarlyStopping(patience=self.train_cfg.early_stopping.patience,
