@@ -201,7 +201,9 @@ class MultiTaskPairedDataset(Dataset):
                 first_phase = True if first_step_gripper_state == -1.0 else False
                 last_step_gripper_state = traj.get(last_t)['action'][-1]
 
-                if first_step_gripper_state != last_step_gripper_state:
+                # if first_step_gripper_state == 1.0 and last_step_gripper_state == -1.0:
+                #     print("Last with placing")
+                if (first_step_gripper_state != last_step_gripper_state) and not (first_step_gripper_state == 1.0 and last_step_gripper_state == -1.0):
                     # change in task phase
                     for indx, step in enumerate(range(first_t, last_t+1)):
                         action_t = traj.get(step)['action'][-1]
