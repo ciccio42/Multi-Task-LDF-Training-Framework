@@ -341,6 +341,8 @@ class VideoImitation(nn.Module):
         self._object_detector.load_state_dict(weights)
         # self._object_detector.to("cuda:0")
         self._object_detector.eval()
+        for p in self._object_detector.parameters():
+            p.requires_grad = False
 
     def get_conv_layer_reference(self,  model=None):
         if model == None:
@@ -553,8 +555,6 @@ class VideoImitation(nn.Module):
                                                inference=True)
             embed_out['demo_embed'] = self._linear_embed_demo(
                 prediction['task_embedding'].detach().clone())
-            # embed_out['img_embed'] = F.normalize(torch.flatten(
-            #     self._pool(prediction['feature_map']), start_dim=1), dim=1)
             conv_in = rearrange(
                 prediction['feature_map'].detach().clone(), 'B C H W -> B (C H W)')
             embed_out['img_embed'] = self._linear_embed_img(conv_in)
@@ -618,6 +618,12 @@ class VideoImitation(nn.Module):
                 # Get index for target object
                 target_index = gt_classes == 1
                 predicted_bb = bb[target_index, :]
+
+            predicted_bb = torch.clamp(predicted_bb, min=0.0)
+            assert not torch.isnan(predicted_bb).any(
+            ), "The tensor contains NaN values"
+            assert (predicted_bb >= 0).all(
+            ), "The tensor contains values less than zero"
 
         elif self._concat_bb and predict_gt_bb:
             if self._bb_sequence == 1:

@@ -1114,7 +1114,6 @@ class VideoImitation(nn.Module):
             ), "The tensor contains NaN values"
             assert (predicted_bb >= 0).all(
             ), "The tensor contains values less than zero"
-            predicted_bb_list.append(predicted_bb)
 
         elif self._concat_bb and predict_gt_bb:
             if self._bb_sequence == 1:
