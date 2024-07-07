@@ -656,10 +656,10 @@ class VideoImitation(nn.Module):
                 states=states,
                 eval=eval)
 
-        # if self._concat_bb:
-        #     out['predicted_bb'] = predicted_bb
-        #     if not predict_gt_bb:
-        #         out['target_obj_prediction'] = prediction
+        if self._concat_bb:
+            out['predicted_bb'] = predicted_bb
+            if not predict_gt_bb:
+                out['target_obj_prediction'] = prediction
 
         # if self._concat_target_obj_embedding:
         #     out["target_obj_embedding"] = target_obj_embedding
