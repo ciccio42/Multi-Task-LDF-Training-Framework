@@ -279,6 +279,10 @@ def _proc(model, config, results_dir, heights, widths, size, shape, color, env_n
                                                real=real,
                                                gt_file=gt_file)
         else:
+            if variation is not None:
+                variation_id = variation[n % len(variation)]
+            else:
+                variation_id = variation
             # Perform object detection inference
             return_rollout = object_detection_inference(model=model,
                                                         config=config,
@@ -291,7 +295,7 @@ def _proc(model, config, results_dir, heights, widths, size, shape, color, env_n
                                                         max_T=max_T,
                                                         env_name=env_name,
                                                         baseline=baseline,
-                                                        variation=variation,
+                                                        variation=variation_id,
                                                         controller_path=controller_path,
                                                         seed=seed,
                                                         action_ranges=np.array(
