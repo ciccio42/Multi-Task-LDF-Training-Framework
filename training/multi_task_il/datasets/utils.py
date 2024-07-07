@@ -309,10 +309,14 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                         if sub_task_id in spec.get('skip_ids', []):
                             # print(f"Sub_task id {sub_task_id}")
                             continue
-                        if not (sub_task_id >= target_obj_id*num_variation_per_object and sub_task_id < ((target_obj_id*num_variation_per_object)+num_variation_per_object)):
-                            # the following index has a differnt object
+                        if len(spec.get('skip_ids', [])) == 0:
+                            if not (sub_task_id >= target_obj_id*num_variation_per_object and sub_task_id < ((target_obj_id*num_variation_per_object)+num_variation_per_object)):
+                                # the following index has a differnt object
+                                agent_files.extend(random.sample(
+                                    dataset_loader.agent_files[name][sub_task_id], int(same_variation_number/(2*spec.get('n_tasks')-num_variation_per_object))))
+                        else:
                             agent_files.extend(random.sample(
-                                dataset_loader.agent_files[name][sub_task_id], int(same_variation_number/(2*spec.get('n_tasks')-num_variation_per_object))))
+                                dataset_loader.agent_files[name][sub_task_id], int(same_variation_number/(2*spec.get('n_tasks')-len(spec.get('skip_ids', []))))))
                     for agent_file in agent_files:
                         dataset_loader.all_file_pairs[count] = (
                             name, _id, demo_file, agent_file)
