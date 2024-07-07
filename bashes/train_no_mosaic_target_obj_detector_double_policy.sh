@@ -28,7 +28,7 @@ LOG_FREQ=10
 VAL_FREQ=-1
 DEVICE=0
 DEBUG=false
-WANDB_LOG=false
+WANDB_LOG=true
 ROLLOUT=false
 EPOCH=90
 LOADER_WORKERS=8
@@ -224,6 +224,7 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
 
     TASK_str=${TASK_NAME} #[pick_place,nut_assembly,stack_block,button]
     EXP_NAME=1Task-${TASK_str}-NO-MOSAIC-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}-CONCAT_IMG_EMB-${CONCAT_IMG_EMB}-CONCAT_DEMO_EMB-${CONCAT_DEMO_EMB}
+    echo ${EXP_NAME}
 
 elif [ "$TASK_NAME" == 'pick_place' ]; then
     echo "Pick-Place"

@@ -19,7 +19,8 @@ bsize:          30
 vsize:          ${bsize} # optionally, set to a different batchsize for validation loader
 optimizer:      null #Adam # RMSProp
 task_names: null
-dataset_target: 'multi_task_il.datasets.multi_task_datasets.MultiTaskPairedDataset'
+# multi_task_il.datasets.multi_task_datasets.MultiTaskPairedDataset
+dataset_target: 'multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset'
 # loss multipliers
 inv_mul:        0
 bc_mul:         0

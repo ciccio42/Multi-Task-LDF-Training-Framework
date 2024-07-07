@@ -6,6 +6,8 @@ import hydra
 torch.autograd.set_detect_anomaly(True)
 # from torch.utils.tensorboard import SummaryWriter
 # writer = SummaryWriter()
+
+
 def seed_everything(seed=42):
     print(f"Cuda available {torch.cuda.is_available()}")
     random.seed(seed)
@@ -15,6 +17,7 @@ def seed_everything(seed=42):
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
 
 @hydra.main(
     version_base=None,
@@ -51,9 +54,11 @@ def main(cfg):
     if cfg.set_same_n > -1:
         for tsk in cfg.tasks:
             tsk.n_per_task = cfg.set_same_n
+            print(f"Number task for {tsk.name} {len(tsk.task_ids)}")
         cfg.bsize = sum(
             [(len(tsk.task_ids)-len(getattr(tsk, "skip_ids", []))) * cfg.set_same_n for tsk in cfg.tasks])
         cfg.vsize = cfg.bsize
+        print(f"Computed batch-size {cfg.bsize}")
         print(
             f'To construct a training batch, set n_per_task of all tasks to {cfg.set_same_n}, new train/val batch sizes: {cfg.train_cfg.batch_size}/{cfg.train_cfg.val_size}')
 

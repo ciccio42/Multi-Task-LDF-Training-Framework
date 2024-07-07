@@ -19,14 +19,14 @@ LOG_FREQ=10
 VAL_FREQ=-1
 DEVICE=0
 DEBUG=false
-WANDB_LOG=true
+WANDB_LOG=false
 ROLLOUT=false
 EPOCH=90
 LOADER_WORKERS=8
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
-CONCAT_IMG_EMB=false
-CONCAT_DEMO_EMB=false
+CONCAT_IMG_EMB=true
+CONCAT_DEMO_EMB=true
 
 if [ "$TASK_NAME" == 'nut_assembly' ]; then
     echo "NUT-ASSEMBLY"
@@ -152,7 +152,7 @@ elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after
     COSINE_ANNEALING=false
 
     TASK_str=${TASK_NAME} #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}-CONCAT_IMG_EMB-${CONCAT_IMG_EMB}-CONCAT_DEMO_EMB-${CONCAT_DEMO_EMB}
+    EXP_NAME=1Task-press_button-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}-CONCAT_IMG_EMB-${CONCAT_IMG_EMB}-CONCAT_DEMO_EMB-${CONCAT_DEMO_EMB}-No-task-5
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'stack_block' ]; then
     echo "STACK_BLOCK"
@@ -214,7 +214,7 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
     COSINE_ANNEALING=false
 
     TASK_str=${TASK_NAME} #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}-CONCAT_IMG_EMB-${CONCAT_IMG_EMB}-CONCAT_DEMO_EMB-${CONCAT_DEMO_EMB}
+    EXP_NAME=1Task-${TASK_str}-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}-CONCAT_IMG_EMB-${CONCAT_IMG_EMB}-CONCAT_DEMO_EMB-${CONCAT_DEMO_EMB}-No-task-5
     PROJECT_NAME=${EXP_NAME}
 
 elif [ "$TASK_NAME" == 'pick_place' ]; then
@@ -279,7 +279,7 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}-CONCAT_IMG_EMB-${CONCAT_IMG_EMB}-CONCAT_DEMO_EMB-${CONCAT_DEMO_EMB}
+    EXP_NAME=1Task-${TASK_str}-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}-CONCAT_IMG_EMB-${CONCAT_IMG_EMB}-CONCAT_DEMO_EMB-${CONCAT_DEMO_EMB}-No-task-11-15
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
@@ -343,11 +343,11 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     COSINE_ANNEALING=false
 
     TASK_str=[pick_place,nut_assembly,stack_block,press_button_close_after_reaching]
-    EXP_NAME=1Task-Multi-Task-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}
+    EXP_NAME=1Task-Multi-Task-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}--No-task-8
     PROJECT_NAME=${EXP_NAME}
 fi
 
-srun --output=training_${TASK_NAME}.txt --job-name=training_${TASK_NAME} python ../training/train_scripts/train_any.py \
+srun --output=training_${TASK_NAME}.txt --job-name=training_${TASK_NAME} python -u ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \
