@@ -287,10 +287,12 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
             num_objects = NUM_VARIATION_PER_OBEJECT[name][1]
 
             # for each sub-task
-            n_tasks = len(spec.get('task_ids', [])) - \
-                len(spec.get('skip_ids', []))
-            for _id in range(n_tasks):
-
+            for _id in range(spec.get('n_tasks')):
+                if _id in spec.get('skip_ids', []):
+                    if (allow_train_skip and dataset_loader.mode == 'train') or (allow_val_skip and dataset_loader.mode == 'val'):
+                        print(
+                            'Warning! Excluding subtask id {} from loaded **{}** dataset for task {}'.format(_id, dataset_loader.mode, name))
+                        continue
                 # for each demo_file
                 demo_files = dataset_loader.demo_files[name][_id]
                 for demo_file in demo_files:
@@ -303,7 +305,10 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                         dataset_loader.agent_files[name][_id], int(same_variation_number/2))
                     # take indices for different manipulated objects
                     target_obj_id = int(_id/num_variation_per_object)
-                    for sub_task_id in range(n_tasks):
+                    for sub_task_id in range(spec.get('n_tasks')):
+                        if sub_task_id in spec.get('skip_ids', []):
+                            # print(f"Sub_task id {sub_task_id}")
+                            continue
                         if not (sub_task_id >= target_obj_id*num_variation_per_object and sub_task_id < ((target_obj_id*num_variation_per_object)+num_variation_per_object)):
                             # the following index has a differnt object
                             agent_files.extend(random.sample(
