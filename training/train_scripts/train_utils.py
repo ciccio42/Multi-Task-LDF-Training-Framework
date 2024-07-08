@@ -69,7 +69,8 @@ def make_data_loaders(config, dataset_cfg):
     """ Use .yaml cfg to create both train and val dataloaders """
     assert '_target_' in dataset_cfg.keys(), "Let's use hydra-config from now on. "
     print("Initializing {} with hydra config. \n".format(dataset_cfg._target_))
-
+    print(
+        f"---- Number of workder {config.get('loader_workers', cpu_count())}-----")
     dataset_cfg.mode = 'train'
     dataset = instantiate(dataset_cfg)
     train_step = int(config.get('epochs') *

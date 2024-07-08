@@ -692,7 +692,7 @@ def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0, real=True, pla
     return bb_t, np.array(gt_t, dtype=np.int16)
 
 
-def get_predicted_bb(prediction, pred_flags, perform_augs, model, formatted_img, gt_bb, gpu_id):
+def get_predicted_bb(prediction, pred_flags, perform_augs, model, formatted_img, gt_bb, gpu_id, pick=True):
     # 2. Get the confidence scores for the target predictions and the the max
     max_score = torch.argmax(
         prediction['conf_scores_final'][0][pred_flags])
@@ -734,7 +734,10 @@ def get_predicted_bb(prediction, pred_flags, perform_augs, model, formatted_img,
                                    int(gt_bb[indx][3])),
                                   color=(0, 255, 0), thickness=1)
 
-        cv2.imwrite("predicted_bb.png", image)
+        if pick:
+            cv2.imwrite("predicted_bb_pick.png", image)
+        elif not pick:
+            cv2.imwrite("predicted_bb_place.png", image)
 
         # compute IoU over time
         iou_t = box_iou(boxes1=torch.from_numpy(
@@ -994,7 +997,8 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                     model=model,
                     formatted_img=formatted_img,
                     gt_bb=bb_t[0][None],
-                    gpu_id=gpu_id)
+                    gpu_id=gpu_id,
+                    pick=True)
                 predicted_bb_list.append(target_pred_bb)
                 max_score_list.append(target_max_score)
                 iou_list.append(target_bb_iou)
@@ -1006,7 +1010,8 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                     model=model,
                     formatted_img=formatted_img,
                     gt_bb=bb_t[1][None],
-                    gpu_id=gpu_id)
+                    gpu_id=gpu_id,
+                    pick=False)
                 predicted_bb_list.append(place_pred_bb)
                 max_score_list.append(place_max_score)
                 iou_list.append(place_bb_iou)
@@ -1717,7 +1722,7 @@ def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img
             bb.append(bb_t_aug[None][None])
             gt_classes.append(torch.from_numpy(
                 gt_t[None][None]).to(device=gpu_id))
-    
+
     elapsed_time = 0
     start = time.time()
     if concat_bb:
@@ -1755,10 +1760,10 @@ def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img
             action_ranges=action_ranges,
             target_obj_embedding=target_obj_emb
         )
-    
+
     end = time.time()
     elapsed_time = end-start
-    
+
     if concat_bb and getattr(model, '_object_detector', None) is not None and not predict_gt_bb:
         prediction = prediction_internal_obj
 

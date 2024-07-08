@@ -301,8 +301,14 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                     same_variation_number = len(
                         dataset_loader.agent_files[name][_id])
                     # take the trajectories same variation as demo
+                    if 'stack_block' in name:
+                        same_sample_number = int(0.7*same_variation_number)
+                        different_sample_number = same_variation_number-same_sample_number
+                    else:
+                        same_sample_number = int(0.5*same_variation_number)
+                        different_sample_number = same_sample_number
                     agent_files = random.sample(
-                        dataset_loader.agent_files[name][_id], int(same_variation_number/2))
+                        dataset_loader.agent_files[name][_id], int(same_sample_number))
                     # take indices for different manipulated objects
                     target_obj_id = int(_id/num_variation_per_object)
                     for sub_task_id in range(spec.get('n_tasks')):
@@ -313,10 +319,10 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                             if not (sub_task_id >= target_obj_id*num_variation_per_object and sub_task_id < ((target_obj_id*num_variation_per_object)+num_variation_per_object)):
                                 # the following index has a differnt object
                                 agent_files.extend(random.sample(
-                                    dataset_loader.agent_files[name][sub_task_id], int(same_variation_number/(2*spec.get('n_tasks')-num_variation_per_object))))
+                                    dataset_loader.agent_files[name][sub_task_id], int(different_sample_number/(spec.get('n_tasks')-num_variation_per_object))))
                         else:
                             agent_files.extend(random.sample(
-                                dataset_loader.agent_files[name][sub_task_id], int(same_variation_number/(2*spec.get('n_tasks')-len(spec.get('skip_ids', []))))))
+                                dataset_loader.agent_files[name][sub_task_id], int(different_sample_number/(spec.get('n_tasks')-len(spec.get('skip_ids', []))))))
                     for agent_file in agent_files:
                         dataset_loader.all_file_pairs[count] = (
                             name, _id, demo_file, agent_file)
