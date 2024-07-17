@@ -306,7 +306,7 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                         different_sample_number = same_variation_number-same_sample_number
                     else:
                         same_sample_number = int(0.5*same_variation_number)
-                        different_sample_number = same_sample_number
+                        different_sample_number = same_variation_number-same_sample_number
                     agent_files = random.sample(
                         dataset_loader.agent_files[name][_id], int(same_sample_number))
                     # take indices for different manipulated objects
@@ -764,7 +764,7 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         dict_keys = list(step_t['obs']['obj_bb'].keys())
 
     if distractor:
-        end = 2 * (2*take_place_loc)
+        end = 4 if take_place_loc else 2
     else:
         end = 1
 
