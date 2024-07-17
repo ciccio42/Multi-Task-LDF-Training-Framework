@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+
 # export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
 # export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
 # # export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
@@ -12,7 +13,7 @@
 #SBATCH --gres=gpu:1   # Request 1 GPU
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=1
 
 export HYDRA_FULL_ERROR=1
 EXPERT_DATA=/home/rsofnc000/dataset/opt_dataset
@@ -29,7 +30,7 @@ VAL_FREQ=-1
 PRINT_FREQ=20
 DEVICE=0
 DEBUG=false
-WANDB_LOG=true
+WANDB_LOG=false
 
 EPOCH=90 # start from 16
 BSIZE=80 #16 #32
@@ -63,9 +64,9 @@ N_CLASSES=4
 if [ "$TASK_NAME" == 'nut_assembly' ]; then
     echo "NUT-ASSEMBLY"
     TASK_str="nut_assembly"
-    EXP_NAME=1Task-${TASK_str}-CTOD-KP
+    EXP_NAME=1Task-${TASK_str}-CTOD-KP_MO_0_4_8
     PROJECT_NAME=${EXP_NAME}
-
+    SET_SAME_N=7
     RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
     RESUME_STEP=72675
     RESUME=false
@@ -81,9 +82,9 @@ elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after
 elif [ "$TASK_NAME" == 'stack_block' ]; then
     echo "STACK_BLOCK"
     TASK_str="stack_block"
-    EXP_NAME=1Task-${TASK_str}-CTOD-KP
+    EXP_NAME=1Task-${TASK_str}-CTOD-KP_NO_0_3_5
     PROJECT_NAME=${EXP_NAME}
-
+    SET_SAME_N=7
     RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
     RESUME_STEP=72675
     RESUME=false
@@ -93,9 +94,9 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     EXP_NAME=1Task-${TASK_str}-CTOD-KP_NO_0_5_10_15
     PROJECT_NAME=${EXP_NAME}
     SET_SAME_N=7
-    RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
-    RESUME_STEP=72675
-    RESUME=false
+    RESUME_PATH=/home/rsofnc000/checkpoint_save_folder/1Task-pick_place-CTOD-KP_NO_0_5_10_15-Batch84
+    RESUME_STEP=10410
+    RESUME=true
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
     TASK_str=["pick_place","nut_assembly","stack_block","press_button_close_after_reaching"]
@@ -107,7 +108,7 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     RESUME=false
 fi
 
-srun --output=training_${TASK_NAME}.txt --job-name=training_${TASK_NAME} python -u ../training/train_scripts/train_any.py \
+srun --output=training_${TASK_NAME}.txt --job-name=training_${TASK_NAME} -w "gnode03" python -u ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \
