@@ -122,7 +122,8 @@ class CondTargetObjDetectorDataset(Dataset):
                               tasks_spec,
                               split,
                               allow_train_skip,
-                              allow_val_skip)
+                              allow_val_skip,
+                              mode=mode)
 
         self.pairs_count = count
         self.task_count = len(tasks_spec)

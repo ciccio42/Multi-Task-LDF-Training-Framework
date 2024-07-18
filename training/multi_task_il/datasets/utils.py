@@ -138,12 +138,17 @@ def collate_by_task(batch):
     return per_task_data
 
 
-def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_name: str = "panda", root_dir: str = "", task_spec=None, split: list = [0.9, 0.1], allow_train_skip: bool = False, allow_val_skip: bool = False, mix_variations: bool = False):
+def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_name: str = "panda", root_dir: str = "", task_spec=None, split: list = [0.9, 0.1], allow_train_skip: bool = False, allow_val_skip: bool = False, mix_variations: bool = False, mode='train'):
 
     count = 0
     agent_file_cnt = 0
     demo_file_cnt = 0
+    validation_on_skipped_task = False
+
     for spec in task_spec:
+        if mode == 'val' and len(spec.get('skip_ids', [])) != 0:
+            validation_on_skipped_task = True
+
         name, date = spec.get('name', None), spec.get('date', None)
         assert name, 'need to specify the task name for data generated, for easier tracking'
         dataset_loader.agent_files[name] = dict()
@@ -168,11 +173,22 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
         dataset_loader.subtask_to_idx[name] = defaultdict(list)
         dataset_loader.demo_subtask_to_idx[name] = defaultdict(list)
         for _id in range(spec.get('n_tasks')):
-            if _id in spec.get('skip_ids', []):
-                if (allow_train_skip and dataset_loader.mode == 'train') or (allow_val_skip and dataset_loader.mode == 'val'):
-                    print(
-                        'Warning! Excluding subtask id {} from loaded **{}** dataset for task {}'.format(_id, dataset_loader.mode, name))
-                    continue
+
+            # take demo file from no-skipped tasks
+            if not validation_on_skipped_task:
+                if _id in spec.get('skip_ids', []):
+                    if (allow_train_skip and dataset_loader.mode == 'train') or (allow_val_skip and dataset_loader.mode == 'val'):
+                        print(
+                            'Warning! Excluding subtask id {} from loaded **{}** dataset for task {}'.format(_id, dataset_loader.mode, name))
+                        continue
+            else:
+                # take demo file from skipped tasks
+                if _id not in spec.get('skip_ids', []):
+                    if (allow_train_skip and dataset_loader.mode == 'train') or (allow_val_skip and dataset_loader.mode == 'val'):
+                        print(
+                            'Warning! Excluding subtask id {} from loaded **{}** dataset for task {}'.format(_id, dataset_loader.mode, name))
+                        continue
+
             task_id = 'task_{:02d}'.format(_id)
             task_dir = expanduser(join(agent_dir,  task_id, '*.pkl'))
             agent_files = sorted(glob.glob(task_dir))
@@ -288,11 +304,21 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
 
             # for each sub-task
             for _id in range(spec.get('n_tasks')):
-                if _id in spec.get('skip_ids', []):
-                    if (allow_train_skip and dataset_loader.mode == 'train') or (allow_val_skip and dataset_loader.mode == 'val'):
-                        print(
-                            'Warning! Excluding subtask id {} from loaded **{}** dataset for task {}'.format(_id, dataset_loader.mode, name))
-                        continue
+                # take demo file from no-skipped tasks
+                if not validation_on_skipped_task:
+                    if _id in spec.get('skip_ids', []):
+                        if (allow_train_skip and dataset_loader.mode == 'train') or (allow_val_skip and dataset_loader.mode == 'val'):
+                            print(
+                                'Warning! Excluding subtask id {} from loaded **{}** dataset for task {}'.format(_id, dataset_loader.mode, name))
+                            continue
+                else:
+                    # take demo file from skipped tasks
+                    if _id not in spec.get('skip_ids', []):
+                        if (allow_train_skip and dataset_loader.mode == 'train') or (allow_val_skip and dataset_loader.mode == 'val'):
+                            print(
+                                'Warning! Excluding subtask id {} from loaded **{}** dataset for task {}'.format(_id, dataset_loader.mode, name))
+                            continue
+
                 # for each demo_file
                 demo_files = dataset_loader.demo_files[name][_id]
                 for demo_file in demo_files:
@@ -312,17 +338,31 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                     # take indices for different manipulated objects
                     target_obj_id = int(_id/num_variation_per_object)
                     for sub_task_id in range(spec.get('n_tasks')):
-                        if sub_task_id in spec.get('skip_ids', []):
-                            # print(f"Sub_task id {sub_task_id}")
+                        if not validation_on_skipped_task:
+                            if sub_task_id in spec.get('skip_ids', []):
+                                # print(f"Sub_task id {sub_task_id}")
+                                continue
+                        else:
+                            if sub_task_id not in spec.get('skip_ids', []):
+                                # print(f"Sub_task id {sub_task_id}")
+                                continue
+
+                        if sub_task_id == _id:
                             continue
+
                         if len(spec.get('skip_ids', [])) == 0:
                             if not (sub_task_id >= target_obj_id*num_variation_per_object and sub_task_id < ((target_obj_id*num_variation_per_object)+num_variation_per_object)):
                                 # the following index has a differnt object
                                 agent_files.extend(random.sample(
-                                    dataset_loader.agent_files[name][sub_task_id], int(different_sample_number/(spec.get('n_tasks')-num_variation_per_object))))
+                                    dataset_loader.agent_files[name][sub_task_id], round(different_sample_number/(spec.get('n_tasks')-num_variation_per_object))))
                         else:
+                            if not validation_on_skipped_task:
+                                div = spec.get('n_tasks') - \
+                                    len(spec.get('skip_ids', []))
+                            else:
+                                div = len(spec.get('skip_ids', []))
                             agent_files.extend(random.sample(
-                                dataset_loader.agent_files[name][sub_task_id], int(different_sample_number/(spec.get('n_tasks')-len(spec.get('skip_ids', []))))))
+                                dataset_loader.agent_files[name][sub_task_id], round(different_sample_number / div)))
                     for agent_file in agent_files:
                         dataset_loader.all_file_pairs[count] = (
                             name, _id, demo_file, agent_file)
@@ -1362,8 +1402,8 @@ class DIYBatchSampler(Sampler):
         print('Max length for sampler iterator:', self.max_len)
         self.n_tasks = n_tasks
 
-        assert idx == batch_size, "The constructed batch size {} doesn't match desired {}".format(
-            idx, batch_size)
+        # assert idx == batch_size, "The constructed batch size {} doesn't match desired {}".format(
+        #     idx, batch_size)
         self.batch_size = idx
         self.drop_last = drop_last
 
