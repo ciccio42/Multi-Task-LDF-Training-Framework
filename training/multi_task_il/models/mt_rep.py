@@ -501,7 +501,7 @@ class VideoImitation(nn.Module):
             self.load_target_obj_detector(target_obj_detector_path=target_obj_detector_path,
                                           target_obj_detector_step=target_obj_detector_step,
                                           )
-
+        print(f"Load Contrastive {load_contrastive} -- Load Inv {load_inv}")
         if load_contrastive:
             self._target_embed = copy.deepcopy(self._embed)
             self._target_embed.load_state_dict(self._embed.state_dict())
@@ -527,10 +527,13 @@ class VideoImitation(nn.Module):
                     print("Warning! pre and post attn features have different shapes:",
                           img_feat_dim, attn_feat_dim)
 
+            self._byol = None
+
             self._byol = BYOLModule(
                 embedder=self._target_embed,
                 img_feat_dim=img_feat_dim, attn_feat_dim=attn_feat_dim,
                 img_conv_dim=img_conv_dim, attn_conv_dim=attn_conv_dim, **byol_config)
+
             self._simclr = ContrastiveModule(
                 embedder=self._target_embed,
                 img_feat_dim=img_feat_dim, attn_feat_dim=attn_feat_dim,
@@ -594,16 +597,16 @@ class VideoImitation(nn.Module):
             lstm=action_cfg.get('is_recurrent', False),
             lstm_config=action_cfg.get('lstm_config', None)
         )
-        # if load_inv:
-        #     self._action_dist_inv = _DiscreteLogHead(
-        #         in_dim=head_in_dim,
-        #         out_dim=action_cfg.adim,
-        #         n_mixtures=action_cfg.n_mixtures,
-        #         const_var=action_cfg.const_var,
-        #         sep_var=action_cfg.sep_var,
-        #         lstm=action_cfg.get('is_recurrent', False),
-        #         lstm_config=action_cfg.get('lstm_config', None)
-        #     )
+        if load_inv:
+            self._action_dist_inv = _DiscreteLogHead(
+                in_dim=head_in_dim,
+                out_dim=action_cfg.adim,
+                n_mixtures=action_cfg.n_mixtures,
+                const_var=action_cfg.const_var,
+                sep_var=action_cfg.sep_var,
+                lstm=action_cfg.get('is_recurrent', False),
+                lstm_config=action_cfg.get('lstm_config', None)
+            )
         self.demo_mean = demo_mean
 
         model_parameters = filter(lambda p: p.requires_grad, self.parameters())
@@ -626,8 +629,8 @@ class VideoImitation(nn.Module):
         # self._object_detector.to("cuda:0")
         self._object_detector.eval()
 
-        for p in self._object_detector.parameters():
-            p.requires_grad = False
+        # for p in self._object_detector.parameters():
+        #     p.requires_grad = False
 
     def _load_model(self, model_path=None, step=0, conf_file=None, remove_class_layers=True, freeze=True):
         if model_path:
@@ -917,9 +920,10 @@ class VideoImitation(nn.Module):
             # run frozen transformer on augmented images
             embed_out_target = self._target_embed(images_cp, context_cp)
 
-            byol_out_dict = self._byol(embed_out, embed_out_target)
-            for k, v in byol_out_dict.items():
-                assert 'byol' in k
+            if self._byol is not None:
+                byol_out_dict = self._byol(embed_out, embed_out_target)
+                for k, v in byol_out_dict.items():
+                    assert 'byol' in k
                 out[k] = v
 
             simclr_out_dict = self._simclr(embed_out, embed_out_target)
@@ -929,43 +933,45 @@ class VideoImitation(nn.Module):
 
         demo_embed, img_embed = out['demo_embed'], embed_out['img_embed']
 
-        # B, T_im-1, d * 2
-        inv_in = torch.cat((img_embed[:, :-1], img_embed[:, 1:]), 2)
-        if self.concat_demo_act:
-            if self._concat_bb:
-                predicted_bb = rearrange(predicted_bb, 'B T O D -> B T (O D)')
+        if self._load_inv:
+            # B, T_im-1, d * 2
+            inv_in = torch.cat((img_embed[:, :-1], img_embed[:, 1:]), 2)
+            if self.concat_demo_act:
+                if self._concat_bb:
+                    predicted_bb = rearrange(
+                        predicted_bb, 'B T O D -> B T (O D)')
+                    inv_in = torch.cat(
+                        (
+                            F.normalize(
+                                torch.cat((img_embed[:, :-1], demo_embed[:, :-1], predicted_bb[:, :-1]), dim=2), dim=2),
+                            F.normalize(
+                                torch.cat((img_embed[:,  1:], demo_embed[:, :-1], predicted_bb[:, 1:]), dim=2), dim=2),
+                        ),
+                        dim=2)
+                else:
+                    inv_in = torch.cat(
+                        (
+                            F.normalize(
+                                torch.cat((img_embed[:, :-1], demo_embed[:, :-1]), dim=2), dim=2),
+                            F.normalize(
+                                torch.cat((img_embed[:,  1:], demo_embed[:, :-1]), dim=2), dim=2),
+                        ),
+                        dim=2)
+
+                # print(inv_in.shape)
+            if self._concat_state:
                 inv_in = torch.cat(
-                    (
-                        F.normalize(
-                            torch.cat((img_embed[:, :-1], demo_embed[:, :-1], predicted_bb[:, :-1]), dim=2), dim=2),
-                        F.normalize(
-                            torch.cat((img_embed[:,  1:], demo_embed[:, :-1], predicted_bb[:, 1:]), dim=2), dim=2),
-                    ),
-                    dim=2)
-            else:
-                inv_in = torch.cat(
-                    (
-                        F.normalize(
-                            torch.cat((img_embed[:, :-1], demo_embed[:, :-1]), dim=2), dim=2),
-                        F.normalize(
-                            torch.cat((img_embed[:,  1:], demo_embed[:, :-1]), dim=2), dim=2),
-                    ),
-                    dim=2)
+                    (torch.cat((inv_in, states[:, :-1]), dim=2), states[:, 1:]), dim=2)
 
-            # print(inv_in.shape)
-        if self._concat_state:
-            inv_in = torch.cat(
-                (torch.cat((inv_in, states[:, :-1]), dim=2), states[:, 1:]), dim=2)
+            inv_pred = self._inv_model(inv_in)
+            if self.concat_demo_head:
+                inv_pred = torch.cat((inv_pred, demo_embed[:, :-1]), dim=2)
+                # maybe better to normalize here
+                inv_pred = F.normalize(inv_pred, dim=2)
 
-        inv_pred = self._inv_model(inv_in)
-        if self.concat_demo_head:
-            inv_pred = torch.cat((inv_pred, demo_embed[:, :-1]), dim=2)
-            # maybe better to normalize here
-            inv_pred = F.normalize(inv_pred, dim=2)
-
-        mu_inv, scale_inv, logit_inv = self._action_dist(inv_pred)
-        out['inverse_distrib'] = DiscreteMixLogistic(mu_inv, scale_inv, logit_inv) \
-            if ret_dist else (mu_inv, scale_inv, logit_inv)
+            mu_inv, scale_inv, logit_inv = self._action_dist(inv_pred)
+            out['inverse_distrib'] = DiscreteMixLogistic(mu_inv, scale_inv, logit_inv) \
+                if ret_dist else (mu_inv, scale_inv, logit_inv)
 
         return out
 

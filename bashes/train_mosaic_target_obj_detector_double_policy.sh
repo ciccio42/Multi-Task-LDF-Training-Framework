@@ -6,17 +6,17 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=16
 
-export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0
-export HYDRA_FULL_ERROR=1
+# export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
+# export CUDA_VISIBLE_DEVICES=0
 
+export HYDRA_FULL_ERROR=1
 echo $1
 TASK_NAME="$1"
 
-EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
-SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
+EXPERT_DATA=/home/rsofnc000/dataset/opt_dataset/
+SAVE_PATH=/home/rsofnc000/checkpoint_save_folder
 POLICY='${mosaic}'
 TARGET='multi_task_il.models.mt_rep_double_policy.VideoImitation'
 
@@ -25,7 +25,7 @@ LOG_FREQ=10
 VAL_FREQ=-1
 DEVICE=0
 DEBUG=false
-WANDB_LOG=false
+WANDB_LOG=true
 ROLLOUT=false
 EPOCH=90
 LOADER_WORKERS=8
@@ -44,7 +44,7 @@ if [ "$TASK_NAME" == 'nut_assembly' ]; then
 
     LOAD_TARGET_OBJ_DETECTOR=true
     TARGET_OBJ_DETECTOR_STEP=53091 #68526 #129762 #198900 #65250
-    TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder//1Task-Nut-Assemly-KP-Batch63
+    TARGET_OBJ_DETECTOR_PATH=${SAVE_PATH}/1Task-Nut-Assemly-KP-Batch63
     CONCAT_BB=true
 
     BSIZE=27 #32 #128 #64 #32
@@ -96,7 +96,7 @@ if [ "$TASK_NAME" == 'nut_assembly' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="nut_assembly" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}-CONCAT_IMG_EMB-${CONCAT_IMG_EMB}-CONCAT_DEMO_EMB-${CONCAT_DEMO_EMB}
+    EXP_NAME=1Task-${TASK_str}-Double-Policy-Contrastive-No_0_4_8
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after_reaching' ]; then
     echo "BUTTON"
@@ -106,7 +106,7 @@ elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after
 
     LOAD_TARGET_OBJ_DETECTOR=true
     TARGET_OBJ_DETECTOR_STEP=44625 #68526 #129762 #198900 #65250
-    TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder//Task-button-KP-no-scaled-Batch36
+    TARGET_OBJ_DETECTOR_PATH=${SAVE_PATH}/Task-button-KP-no-scaled-Batch36
     CONCAT_BB=true
 
     BSIZE=27 #32 #128 #64 #32
@@ -168,7 +168,7 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
 
     LOAD_TARGET_OBJ_DETECTOR=true
     TARGET_OBJ_DETECTOR_STEP=37665 #68526 #129762 #198900 #65250
-    TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder//1Task-stack_block-CTOD-KP-Batch36
+    TARGET_OBJ_DETECTOR_PATH=${SAVE_PATH}/1Task-stack_block-CTOD-KP-Batch36
     CONCAT_BB=true
 
     BSIZE=27 #32 #128 #64 #32
@@ -220,7 +220,7 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
     COSINE_ANNEALING=false
 
     TASK_str=${TASK_NAME} #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}-CONCAT_IMG_EMB-${CONCAT_IMG_EMB}-CONCAT_DEMO_EMB-${CONCAT_DEMO_EMB}-No-task-5
+    EXP_NAME=1Task-${TASK_str}-Double-Policy-No_0_3_5
     PROJECT_NAME=${EXP_NAME}
 
 elif [ "$TASK_NAME" == 'pick_place' ]; then
@@ -228,11 +228,11 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     ### Pick-Place ###
     RESUME_PATH=1Task-pick_place-Double-Policy-Contrastive-false-Inverse-false-CONCAT_IMG_EMB-false-CONCAT_DEMO_EMB-true-Batch32
     RESUME_STEP=99417
-    RESUME=true
+    RESUME=false
 
     LOAD_TARGET_OBJ_DETECTOR=true
     TARGET_OBJ_DETECTOR_STEP=37476 #68526 #129762 #198900 #65250
-    TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-Pick-Place-KP-Batch112
+    TARGET_OBJ_DETECTOR_PATH=${SAVE_PATH}/1Task-Pick-Place-KP-Batch112
     CONCAT_BB=true
 
     BSIZE=32 #32 #128 #64 #32
@@ -285,7 +285,7 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}-CONCAT_IMG_EMB-${CONCAT_IMG_EMB}-CONCAT_DEMO_EMB-${CONCAT_DEMO_EMB}-No-task-11-15
+    EXP_NAME=1Task-${TASK_str}-Double-Policy-No_0_5_10_15
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"

@@ -5,7 +5,7 @@
 #SBATCH --gres=gpu:1   # Request 1 GPU
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=1
 
 export MUJOCO_PY_MUJOCO_PATH="/home/rsofnc000/.mujoco/mujoco210"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/rsofnc000/.mujoco/mujoco210/bin
@@ -19,32 +19,32 @@ GPU_ID=0
 BASE_PATH=/home/rsofnc000/Multi-Task-LFD-Framework
 CKP_FOLDER=/home/rsofnc000/checkpoint_save_folder
 if [ "$TASK_NAME" == 'pick_place' ]; then
-    PROJECT_NAME=1Task-pick_place-Double-Policy-Contrastive-false-Inverse-false-CONCAT_IMG_EMB-true-CONCAT_DEMO_EMB-true-No-task-11-15
-    BATCH=28 #32
+    PROJECT_NAME=1Task-pick_place-Double-Policy-No_0_5_10_15
+    BATCH=24 #32
     MODEL_PATH=${CKP_FOLDER}/${PROJECT_NAME}-Batch${BATCH}
     CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
     for MODEL in ${MODEL_PATH}; do
-        for S in 267960 264770; do #81000 89100; do
+        for S in 256800; do #81000 89100; do
             for TASK in pick_place; do
                 for COUNT in 1 2 3; do
                     if [ $COUNT -eq 1 ]; then
                         SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
-                        srun --output=test_${TASK_NAME}.txt --job-name=test_${TASK_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log --save_path ${SAVE_PATH} --save_files
+                        srun -w gnode11 --output=test_${TASK_NAME}.txt --job-name=test_${TASK_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log --save_path ${SAVE_PATH} --save_files
                     else
                         SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
-                        srun --output=test_${TASK_NAME}.txt --job-name=test_${TASK_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log
+                        srun -w gnode11 --output=test_${TASK_NAME}.txt --job-name=test_${TASK_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log
                     fi
                 done
             done
         done
     done
 elif [ "$TASK_NAME" == 'nut_assembly' ]; then
-    PROJECT_NAME=1Task-nut_assembly-Double-Policy-Contrastive-false-Inverse-false-CONCAT_IMG_EMB-true-CONCAT_DEMO_EMB-true
-    BATCH=24 #32
+    PROJECT_NAME=1Task-nut_assembly-CTOD-Contrastive-MOSAIC-No_0_4_8
+    BATCH=18 #32
     MODEL_PATH=${CKP_FOLDER}/${PROJECT_NAME}-Batch${BATCH}
     CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
     for MODEL in ${MODEL_PATH}; do
-        for S in 161124 162976 159272; do #81000 89100; do
+        for S in 164208; do #81000 89100; do
             for TASK in nut_assembly; do
                 for COUNT in 1 2 3; do
                     if [ $COUNT -eq 1 ]; then
@@ -79,17 +79,17 @@ elif [ "$TASK_NAME" == 'button' ]; then
         done
     done
 elif [ "$TASK_NAME" == 'stack_block' ]; then
-    PROJECT_NAME=1Task-stack_block-Double-Policy-Contrastive-false-Inverse-false-CONCAT_IMG_EMB-true-CONCAT_DEMO_EMB-true-No-task-5
-    BATCH=15 #32
+    PROJECT_NAME=1Task-stack_block-CTOD-MOSAIC-No_0_3_5
+    BATCH=9 #32
     MODEL_PATH=${CKP_FOLDER}/${PROJECT_NAME}-Batch${BATCH}
     CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
     for MODEL in ${MODEL_PATH}; do
-        for S in 168299 164517; do
+        for S in -1; do
             for TASK in stack_block; do
                 for COUNT in 1; do
                     if [ $COUNT -eq 1 ]; then
                         SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
-                        srun --output=test_${TASK_NAME}.txt --job-name=test_${TASK_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log --save_path ${SAVE_PATH} --save_files
+                        srun --output=test_${TASK_NAME}.txt --job-name=test_${TASK_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log #--save_path ${SAVE_PATH} --save_files
                     else
                         SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
                         srun --output=test_${TASK_NAME}.txt --job-name=test_${TASK_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log
