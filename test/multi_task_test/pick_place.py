@@ -588,7 +588,9 @@ def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_for
         return gt_traj, info
 
 
-def pick_place_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action=4, real=True, expert_traj=None):
+def pick_place_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action=4, real=True, expert_traj=None, place_bb_flag=True):
+
+    print(f"Model name {model_name}")
 
     if "vima" in model_name:
         return pick_place_eval_vima(model=model,
@@ -649,7 +651,8 @@ def pick_place_eval(model, env, gt_env, context, gpu_id, variation_id, img_forma
                                               'perform_augs', True),
                                           config=config,
                                           gt_traj=gt_file,
-                                          real=real
+                                          real=real,
+                                          place_bb_flag=place_bb_flag
                                           )
     else:
         # Instantiate Controller

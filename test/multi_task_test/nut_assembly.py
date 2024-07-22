@@ -18,7 +18,7 @@ def _clip_delta(delta, max_step=0.015):
     return delta / norm_delta * max_step
 
 
-def nut_assembly_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="nut_assembly", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action=4, real=True, **kwargs):
+def nut_assembly_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="nut_assembly", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action=4, real=True, place_bb_flag=True, **kwargs):
 
     if "vima" in model_name:
         return nut_assembly_eval_vima(model=model,
@@ -78,7 +78,8 @@ def nut_assembly_eval(model, env, gt_env, context, gpu_id, variation_id, img_for
                                           config=config,
                                           gt_traj=gt_file,
                                           task_name=task_name,
-                                          real=real
+                                          real=real,
+                                          place_bb_flag=place_bb_flag
                                           )
     else:
         # Instantiate Controller

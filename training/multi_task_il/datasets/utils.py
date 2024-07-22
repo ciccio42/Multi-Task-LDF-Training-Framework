@@ -358,9 +358,9 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                         else:
                             if not validation_on_skipped_task:
                                 div = spec.get('n_tasks') - \
-                                    len(spec.get('skip_ids', []))
+                                    len(spec.get('skip_ids', [])) - 1
                             else:
-                                div = len(spec.get('skip_ids', []))
+                                div = len(spec.get('skip_ids', [])) - 1
                             agent_files.extend(random.sample(
                                 dataset_loader.agent_files[name][sub_task_id], round(different_sample_number / div)))
                     for agent_file in agent_files:

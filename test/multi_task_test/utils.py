@@ -815,7 +815,7 @@ def plot_activation_map(activation_map, agent_obs, save_path="activation_map.png
 
 
 def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None, action_ranges=[], policy=True, perform_augs=False, config=None, gt_traj=None, activation_map=True, real=True, place_bb_flag=True, expert_traj=None):
-
+    print(f"Place bb flag: {place_bb_flag}")
     if gt_traj is None:
         done, states, images, context, obs, traj, tasks, bb, gt_classes, _, prev_action = \
             startup_env(model=model,
@@ -1086,17 +1086,28 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                     tp_array_t[0] += 1
                     obs[f'tp_{0}'] = 1
 
-                fn_array_t[1] += 1
-                obs[f'tn_{1}'] = 1
+                if place_bb_flag:
+                    fn_array_t[1] += 1
+                    obs[f'fn_{1}'] = 1
 
             elif cnt_target == 0 and cnt_place == 0:
                 fn_array_t[0] += 1
-                fn_array_t[1] += 1
+                obs[f'fn_{0}'] = 1
+                if place_bb_flag:
+                    fn_array_t[1] += 1
+                    obs[f'fn_{1}'] = 1
 
-            tp_array.append(tp_array_t)
-            fp_array.append(fp_array_t)
-            fn_array.append(fn_array_t)
-            iou_array.append(iou_array_t)
+            if place_bb_flag:
+                tp_array.append(tp_array_t)
+                fp_array.append(fp_array_t)
+                fn_array.append(fn_array_t)
+                iou_array.append(iou_array_t)
+            else:
+                tp_array.append([tp_array_t[0]])
+                fp_array.append([fp_array_t[0]])
+                fn_array.append([fn_array_t[0]])
+                iou_array.append([iou_array_t[0]])
+
             traj.append(obs)
 
             if controller is not None:
