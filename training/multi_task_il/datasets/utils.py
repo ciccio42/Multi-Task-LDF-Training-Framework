@@ -1225,6 +1225,9 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                         action_ranges=dataset_loader._normalization_ranges)
                     norm_end = time.time()
                     # print(f"Norm time {norm_end-norm_start}")
+                elif k == 'gripper_state':
+                    state_component = np.array(
+                        [step_t['action'][-1]], dtype=np.float32)
                 else:
                     if isinstance(step_t['obs'][k], int):
                         state_component = np.array(

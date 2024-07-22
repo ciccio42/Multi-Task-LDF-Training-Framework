@@ -247,7 +247,7 @@ class PickPlace(SingleArmEnv):
                     'yellowbox': [0.05, 0.055, 0.045],
                     'bluebox': [0.05, 0.055, 0.045],
                     'redbox': [0.05, 0.055, 0.045],
-                    'bin': [0.64, 0.07, 0.16]}
+                    'bin_box': [0.64, 0.07, 0.16]}
 
         nut_names = ['nut_gray',
                      'nut_ambra',
@@ -293,6 +293,7 @@ class PickPlace(SingleArmEnv):
                 self._obj_dim[box_name] = box_dims[box_name]
 
         self._obj_dim['bin'] = [0.64, 0.07, 0.16]
+        self._obj_dim['bin_box'] = [0.15, 0.06, 0.15]
 
     def reward(self, action):
         """

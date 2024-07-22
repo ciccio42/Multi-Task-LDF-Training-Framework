@@ -853,9 +853,10 @@ class VideoImitation(nn.Module):
                 else:
                     ac_in = torch.cat((ac_in, bb), dim=2)
 
-            ac_in = F.normalize(ac_in, dim=2)
+        if self._concat_state:
+            ac_in = torch.cat((ac_in, states), 2)
 
-        ac_in = torch.cat((ac_in, states), 2) if self._concat_state else ac_in
+        ac_in = F.normalize(ac_in, dim=2)
 
         # predict behavior cloning distribution
         ac_pred = action_module(

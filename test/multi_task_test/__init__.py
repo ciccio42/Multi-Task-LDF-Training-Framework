@@ -42,7 +42,7 @@ ENV_OBJECTS = {
         'obj_names': ['machine1_goal1', 'machine1_goal2', 'machine1_goal3',
                       'machine2_goal1', 'machine2_goal2', 'machine2_goal3'],
         'place_names': ['machine1_goal1_final', 'machine1_goal2_final', 'machine1_goal3_final',
-                      'machine2_goal1_final', 'machine2_goal2_final', 'machine2_goal3_final']
+                        'machine2_goal1_final', 'machine2_goal2_final', 'machine2_goal3_final']
     }
 }
 
