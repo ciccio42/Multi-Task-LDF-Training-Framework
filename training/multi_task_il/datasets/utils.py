@@ -358,9 +358,9 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                         else:
                             if not validation_on_skipped_task:
                                 div = spec.get('n_tasks') - \
-                                    len(spec.get('skip_ids', []))
+                                    len(spec.get('skip_ids', [])) - 1
                             else:
-                                div = len(spec.get('skip_ids', []))
+                                div = len(spec.get('skip_ids', [])) - 1
                             agent_files.extend(random.sample(
                                 dataset_loader.agent_files[name][sub_task_id], round(different_sample_number / div)))
                     for agent_file in agent_files:
@@ -1225,6 +1225,9 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                         action_ranges=dataset_loader._normalization_ranges)
                     norm_end = time.time()
                     # print(f"Norm time {norm_end-norm_start}")
+                elif k == 'gripper_state':
+                    state_component = np.array(
+                        [step_t['action'][-1]], dtype=np.float32)
                 else:
                     if isinstance(step_t['obs'][k], int):
                         state_component = np.array(

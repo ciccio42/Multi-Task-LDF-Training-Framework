@@ -134,6 +134,7 @@ class PickPlaceController:
                 dist_panda[obj_name] = 0.03
                 dist_sawyer[obj_name] = 0.03
                 dist_ur5e[obj_name] = 0.03
+            self.final_placing = [0, 0, 0.12]
 
         if "Panda" in self._env.robot_names:
             self.dist = dist_panda
@@ -344,6 +345,7 @@ def get_expert_trajectory(env_type, controller_type, renderer=False, camera_obs=
 
             obs, reward, done, info = env.step(action)
 
+            cv2.imwrite(f"debug.png", obs['camera_front_image'][:, :, ::-1])
             try:
                 os.makedirs("test")
             except:
