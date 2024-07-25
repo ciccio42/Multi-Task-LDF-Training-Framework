@@ -1907,6 +1907,6 @@ def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img
         #         f"gt_step_test.png", gt_obs['camera_front_image'][:, :, ::-1])
     except Exception as e:
         print(f"Exception during step {e}")
-        return obs, 0, None, action, False
+        return obs, 0, None, action, False, elapsed_time
 
     return obs, reward, info, action, env_done, elapsed_time

@@ -1071,7 +1071,7 @@ class Trainer:
         self.generated_png = False
         raw_stats = dict()
         if self._val_loader != None:
-            val_iter = iter(self._val_loader)
+            # val_iter = iter(self._val_loader)
             print(f"Training for {epochs} epochs train dataloader has length {len(self._train_loader)}, \ which sums to {epochs * len(self._train_loader)} total train steps, \ validation loader has length {len(self._val_loader)}")
         else:
             print(
@@ -1216,7 +1216,7 @@ class Trainer:
 
                 #### ---- Validation step ----####
                 # e != 0 and self._step % val_freq == 0
-                if e != 0 and (self._step % val_freq == 0) and not self.config.get("use_daml", False):
+                if (e % 10 == 0) and (self._step % val_freq == 0) and not self.config.get("use_daml", False):
                     print("Validation")
                     rollout = self.config.get("rollout", False)
                     model = model.eval()
@@ -1280,17 +1280,16 @@ class Trainer:
                             self._early_stopping(
                                 weighted_task_loss_val, model, self._step, optimizer)
                     elif rollout:  # and self._step != 0:
-                        from multi_task_test.test_any_task import _proc
                         import functools
                         from torch.multiprocessing import Pool
                         from train_any import seed_everything
-
+                        from multi_task_test.test_any_task import _proc
                         del inputs
                         gc.collect()
                         torch.cuda.empty_cache()
 
                         target_obj_dec = None
-                        controller_path = "/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json"
+                        controller_path = "/home/rsofnc000/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json"
                         model_name = self.config.policy._target_
 
                         for task in self.tasks:
@@ -1301,9 +1300,9 @@ class Trainer:
                             os.makedirs(results_dir, exist_ok=True)
                             seed_everything(seed=42)
                             n_run_per_task = 5
-                            N_step = 90
-                            # model, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, gt_bb, seed, n, gt_file
+                            N_step = 80
                             gt_bb = True if model._concat_bb and model._object_detector is None else False
+                            place = True if 'Double' in self.config.exp_name else False
                             if len(self.config["tasks_cfgs"][task['name']].get('skip_ids', [])) == 0:
                                 n_run = int(n_run_per_task *
                                             self.config["tasks_cfgs"][task['name']].get('n_tasks', 0))
@@ -1334,11 +1333,12 @@ class Trainer:
                                                   gt_bb,
                                                   -1,
                                                   -1,
-                                                  False
+                                                  False,
+                                                  place
                                                   )
-                            seeds = [(random.getrandbits(32), i, -1)
+                            seeds = [(random.getrandbits(32), i, None)
                                      for i in range(n_run)]
-                            with Pool(5) as p:
+                            with Pool(10) as p:
                                 task_success_flags = p.starmap(f, seeds)
                             if "CondTargetObjectDetector" in self.config.policy._target_:
                                 all_mean_iou = [t['avg_iou']
@@ -1354,30 +1354,26 @@ class Trainer:
                                     self.save_checkpoint(
                                         model, optimizer, weights_fn, save_fn)
                             else:
-                                all_succ_flags = [t['success']
-                                                  for t in task_success_flags]
-                                all_reached_flags = [t['reached']
-                                                     for t in task_success_flags]
-                                all_picked_flags = [t['picked']
-                                                    for t in task_success_flags]
-                                all_avg_pred = [t['avg_pred']
-                                                for t in task_success_flags]
-                                tolog['avg_success'] = np.mean(
-                                    all_succ_flags)
-                                tolog['avg_reached'] = np.mean(
-                                    all_reached_flags)
-                                tolog['avg_picked'] = np.mean(
-                                    all_picked_flags)
-                                tolog['avg_prediction'] = np.mean(
-                                    all_avg_pred)
-                                tolog['train_step'] = self._step
+                                to_log = dict()
+                                flags = dict()
+                                for t in task_success_flags:
+                                    for k in t.keys():
+                                        if flags.get(k, None) is None:
+                                            flags[k] = [int(t[k])]
+                                        else:
+                                            flags[k].append(int(t[k]))
+                                for k in flags.keys():
+                                    avg_flags = np.mean(flags[k])
+                                    to_log[f'avg_{k}'] = avg_flags
+                                to_log[f'epoch'] = e
+                                wandb.log(to_log)
 
                                 # if tolog['avg_success'] >= best_avg_success:
-                                print(
-                                    f"Save model best_avg_success from {best_avg_success} to {tolog['avg_success']}")
-                                best_avg_success = tolog['avg_success']
-                                self.save_checkpoint(
-                                    model, optimizer, weights_fn, save_fn)
+                                # print(
+                                #     f"Save model best_avg_success from {best_avg_success} to {tolog['avg_success']}")
+                                # best_avg_success = tolog['avg_success']
+                                # self.save_checkpoint(
+                                #     model, optimizer, weights_fn, save_fn)
 
                             if self.config.wandb_log:
                                 wandb.log(tolog)

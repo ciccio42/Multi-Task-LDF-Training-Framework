@@ -1,16 +1,15 @@
 #!/bin/bash
 
+# export CUDA_VISIBLE_DEVICES=0,1,2,3
 #SBATCH --partition=gpuq
 #SBATCH --gres=gpu:1   # Request 1 GPU
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=16
-#SBATCH -w gnode06
 
-# export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-# export CUDA_VISIBLE_DEVICES=0
+export MUJOCO_PY_MUJOCO_PATH="/home/rsofnc000/.mujoco/mujoco210"
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/rsofnc000/.mujoco/mujoco210/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 
 export HYDRA_FULL_ERROR=1
 echo $1
@@ -27,7 +26,7 @@ VAL_FREQ=-1
 DEVICE=0
 DEBUG=false
 WANDB_LOG=true
-ROLLOUT=false
+ROLLOUT=true
 EPOCH=90
 LOADER_WORKERS=8
 CONFIG_PATH=../experiments
@@ -43,6 +42,8 @@ SPLIT_PICK_PLACE=false
 
 LOAD_CONTRASTIVE=true
 LOAD_INV=true
+
+CONCAT_STATE=false
 
 if [ "$TASK_NAME" == 'nut_assembly' ]; then
     echo "NUT-ASSEMBLY"
@@ -71,7 +72,6 @@ if [ "$TASK_NAME" == 'nut_assembly' ]; then
     FREEZE_TARGET_OBJ_DETECTOR=false
     REMOVE_CLASS_LAYERS=false
     CONCAT_TARGET_OBJ_EMBEDDING=false
-    CONCAT_STATE=false
 
     ACTION_DIM=7
     N_MIXTURES=3       #14 MT #7 2Task, Nut, button, stack #3 Pick-place #2 Nut-Assembly
@@ -100,7 +100,7 @@ if [ "$TASK_NAME" == 'nut_assembly' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="nut_assembly" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-MOSAIC-No_0_4_8
+    EXP_NAME=1Task-${TASK_str}-MOSAIC-rollout
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after_reaching' ]; then
     echo "BUTTON"
@@ -127,14 +127,13 @@ elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after
     FREEZE_TARGET_OBJ_DETECTOR=false
     REMOVE_CLASS_LAYERS=false
     CONCAT_TARGET_OBJ_EMBEDDING=false
-    CONCAT_STATE=false
 
     ACTION_DIM=7
-    N_MIXTURES=7       #14 MT #7 2Task, Nut, button, stack #3 Pick-place #2 Nut-Assembly
-    OUT_DIM=64         #64 MT #64 2Task, Nut, button, stack #128 Pick-place
-    ATTN_FF=128        #256 MT #128 2Task, Nut, button, stack #256 Pick-place
-    COMPRESSOR_DIM=128 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
-    HIDDEN_DIM=128     #256 MT #128 2Task, Nut, button, stack #512 Pick-place
+    N_MIXTURES=3       #14 MT #7 2Task, Nut, button, stack #3 Pick-place #2 Nut-Assembly
+    OUT_DIM=128        #64 MT #64 2Task, Nut, button, stack #128 Pick-place
+    ATTN_FF=256        #256 MT #128 2Task, Nut, button, stack #256 Pick-place
+    COMPRESSOR_DIM=256 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
+    HIDDEN_DIM=512     #256 MT #128 2Task, Nut, button, stack #512 Pick-place
     CONCAT_DEMO_HEAD=false
     CONCAT_DEMO_ACT=true
     PRETRAINED=false
@@ -156,7 +155,7 @@ elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after
     COSINE_ANNEALING=false
 
     TASK_str=${TASK_NAME} #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-press_button-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}-CONCAT_IMG_EMB-${CONCAT_IMG_EMB}-CONCAT_DEMO_EMB-${CONCAT_DEMO_EMB}-No-task-5
+    EXP_NAME=1Task-press_button-MOSAIC-State_true
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'stack_block' ]; then
     echo "STACK_BLOCK"
@@ -183,14 +182,13 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
     FREEZE_TARGET_OBJ_DETECTOR=false
     REMOVE_CLASS_LAYERS=false
     CONCAT_TARGET_OBJ_EMBEDDING=false
-    CONCAT_STATE=false
 
     ACTION_DIM=7
-    N_MIXTURES=7       #14 MT #7 2Task, Nut, button, stack #3 Pick-place #2 Nut-Assembly
-    OUT_DIM=64         #64 MT #64 2Task, Nut, button, stack #128 Pick-place
-    ATTN_FF=128        #256 MT #128 2Task, Nut, button, stack #256 Pick-place
-    COMPRESSOR_DIM=128 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
-    HIDDEN_DIM=128     #256 MT #128 2Task, Nut, button, stack #512 Pick-place
+    N_MIXTURES=3       #14 MT #7 2Task, Nut, button, stack #3 Pick-place #2 Nut-Assembly
+    OUT_DIM=128        #64 MT #64 2Task, Nut, button, stack #128 Pick-place
+    ATTN_FF=256        #256 MT #128 2Task, Nut, button, stack #256 Pick-place
+    COMPRESSOR_DIM=256 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
+    HIDDEN_DIM=512     #256 MT #128 2Task, Nut, button, stack #512 Pick-place
     CONCAT_DEMO_HEAD=false
     CONCAT_DEMO_ACT=true
     PRETRAINED=false
@@ -212,7 +210,7 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
     COSINE_ANNEALING=false
 
     TASK_str=${TASK_NAME} #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-MOSAIC-No_0_3_5
+    EXP_NAME=1Task-${TASK_str}-MOSAIC-State_true
     PROJECT_NAME=${EXP_NAME}
 
 elif [ "$TASK_NAME" == 'pick_place' ]; then
@@ -242,7 +240,6 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     FREEZE_TARGET_OBJ_DETECTOR=false
     REMOVE_CLASS_LAYERS=false
     CONCAT_TARGET_OBJ_EMBEDDING=false
-    CONCAT_STATE=false
 
     ACTION_DIM=7
     N_MIXTURES=3       #14 MT #7 2Task, Nut, button, stack #3 Pick-place #2 Nut-Assembly
@@ -271,14 +268,14 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-MOSAIC-No_0_5_10_15
+    EXP_NAME=1Task-${TASK_str}-MOSAIC-Rollout
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
     ### Pick-Place ###
-    RESUME_PATH=
-    RESUME_STEP=
-    RESUME=true
+    RESUME_PATH=""
+    RESUME_STEP=""
+    RESUME=false
 
     TARGET_OBJ_DETECTOR_STEP=91800 #68526 #129762 #198900 #65250
     TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/4Task-CTOD-KP-Batch74/
@@ -300,7 +297,6 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     FREEZE_TARGET_OBJ_DETECTOR=false
     REMOVE_CLASS_LAYERS=false
     CONCAT_TARGET_OBJ_EMBEDDING=false
-    CONCAT_STATE=false
 
     ACTION_DIM=7
     N_MIXTURES=14      #14 MT #7 2Task, Nut, button, stack #3 Pick-place #2 Nut-Assembly
@@ -329,11 +325,11 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     COSINE_ANNEALING=false
 
     TASK_str=[pick_place,nut_assembly,stack_block,press_button_close_after_reaching]
-    EXP_NAME=1Task-Multi-Task-Double-Policy-Contrastive-${LOAD_CONTRASTIVE}-Inverse-${LOAD_INV}--No-task-8
+    EXP_NAME=Multi-Task-MOSAIC-State_true
     PROJECT_NAME=${EXP_NAME}
 fi
 
-srun --output=training_${TASK_NAME}_mosaic.txt --job-name=training_${TASK_NAME}_mosaic python -u ../training/train_scripts/train_any.py \
+srun --output=training_${TASK_NAME}_mosaic_rollout.txt --job-name=training_${TASK_NAME}_mosaic python -u ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \

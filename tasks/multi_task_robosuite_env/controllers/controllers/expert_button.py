@@ -5,7 +5,10 @@ if str(Path.cwd()) not in sys.path:
     sys.path.insert(0, str(Path.cwd()))
 import numpy as np
 from multi_task_il.datasets import Trajectory
-import pybullet as p
+try:
+    import pybullet as p
+except:
+    pass
 from pyquaternion import Quaternion
 import random
 from multi_task_robosuite_env.custom_ik_wrapper import normalize_action

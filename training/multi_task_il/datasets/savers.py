@@ -3,6 +3,7 @@ import copy
 import numpy as np
 
 try:
+    import pybullet as p
     from mujoco_py import load_model_from_xml, MjSim, MjRenderContextOffscreen
     from tasks.robosuite_env import postprocess_model_xml
 except:

@@ -113,7 +113,7 @@ dataset_cfg:
   data_augs:        ${augs}
   non_sequential:   False
   crop_twice:       True
-  state_spec:       [joint_pos, gripper_qpos]
+  state_spec:       [joint_pos, joint_vel, gripper_state]
   allow_val_skip:   ${val_skip}
   allow_train_skip: ${train_skip}
   use_strong_augs:  True 
@@ -231,7 +231,7 @@ mosaic:
   load_inv: True
   concat_target_obj_embedding: False
   latent_dim:         40
-  sdim:               12
+  sdim:               13
   concat_state:       True
   concat_bb:       True
   bb_sequence:     ${bb_sequence}
