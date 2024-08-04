@@ -1,70 +1,120 @@
-#!/bin/sh
+#!/bin/bash
 # export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
 # export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
-export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
+# export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 # export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=2
-export HYDRA_FULL_ERROR=1
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
+# export CUDA_VISIBLE_DEVICES=0
+# export HYDRA_FULL_ERROR=1
 
-EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
-SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/
+#SBATCH --partition=gpuq
+#SBATCH --gres=gpu:1   # Request 1 GPU
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+
+export HYDRA_FULL_ERROR=1
+EXPERT_DATA=/home/rsofnc000/dataset/opt_dataset
+SAVE_PATH=/home/rsofnc000/checkpoint_save_folder
 POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
 TASKS_CONFIG=7_tasks_real
-DEBUG=true
-WANDB_LOG=false
+AGENT_NAME=real_new_ur5e
+
+echo $1
+TASK_NAME="$1"
 
 SAVE_FREQ=-1
 LOG_FREQ=20
 VAL_FREQ=-1
-PRINT_FREQ=100
+PRINT_FREQ=20
+DEVICE=0
+DEBUG=false
+WANDB_LOG=true
 
-EXP_NAME=Real-Pick-Place-CTOD-Only-Front-Reduced-Space-Extended
-PROJECT_NAME=${EXP_NAME}
-TASK_str=pick_place
-EPOCH=90
+EPOCH=90 # start from 16
 BSIZE=80 #16 #32
+
 COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector_real.yaml
-LOADER_WORKERS=16
+LOADER_WORKERS=8
 BALANCING_POLICY=0
-SET_SAME_N=10
 OBS_T=7
 
-AGENT_NAME=real_ur5e
-
-EARLY_STOPPING_PATIECE=-1
+EARLY_STOPPING_PATIECE=10
 OPTIMIZER='AdamW'
-LR=0.0005
-WEIGHT_DECAY=0
-SCHEDULER=None
-FIRST_FRAMES=false
+LR=0.00001
+WEIGHT_DECAY=5
+SCHEDULER='ReduceLROnPlateau'
+FIRST_FRAMES=true
 ONLY_FIRST_FRAMES=false
 ROLLOUT=false
 PERFORM_AUGS=true
-PERFORM_SCALE_RESIZE=true
-NON_SEQUENTIAL=true 
-
-RESUME_PATH=Real-Pick-Place-MOSAIC-CTOD-Only-Front-Reduced-Space-Batch5/
-RESUME_STEP=70650
-RESUME=false
-FINETUNE=false
+NON_SEQUENTIAL=true
 
 DROP_DIM=4      # 2    # 3
 OUT_FEATURE=128 # 512 # 256
-DIM_H=13 #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
-DIM_W=23 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
+DIM_H=13        #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
+DIM_W=23        #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 HEIGHT=100
 WIDTH=180
+N_CLASSES=2
 
+if [ "$TASK_NAME" == 'nut_assembly' ]; then
+    echo "NUT-ASSEMBLY"
+    TASK_str="nut_assembly"
+    EXP_NAME=1Task-${TASK_str}-CTOD_No_0_4_8
+    PROJECT_NAME=${EXP_NAME}
+    SET_SAME_N=7
+    RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
+    RESUME_STEP=72675
+    RESUME=false
+elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after_reaching' ]; then
+    echo "BUTTON"
+    TASK_str="press_button_close_after_reaching"
+    EXP_NAME=1Task-press_button-CTOD
+    PROJECT_NAME=${EXP_NAME}
 
-python ../training/train_scripts/train_any.py \
+    RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
+    RESUME_STEP=72675
+    RESUME=true
+elif [ "$TASK_NAME" == 'stack_block' ]; then
+    echo "STACK_BLOCK"
+    TASK_str="stack_block"
+    EXP_NAME=1Task-${TASK_str}-CTOD_No_0_3_5
+    PROJECT_NAME=${EXP_NAME}
+
+    RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
+    RESUME_STEP=72675
+    RESUME=false
+elif [ "$TASK_NAME" == 'pick_place' ]; then
+    echo "Pick-Place"
+    TASK_str="pick_place"
+    EXP_NAME=1Task-REAL-${TASK_str}-CTOD
+    PROJECT_NAME=${EXP_NAME}
+    SET_SAME_N=7
+    RESUME_PATH=/home/rsofnc000/checkpoint_save_folder/1Task-Pick-Place-Cond-Target-Obj-Detector-separate-demo-agent-Batch80
+    RESUME_STEP=64152
+    RESUME=false
+    FINETUNE=true
+elif [ "$TASK_NAME" == 'multi' ]; then
+    echo "Multi Task"
+    TASK_str=["pick_place","nut_assembly","stack_block","press_button_close_after_reaching"]
+    EXP_NAME=4Task-CTOD #1Task-${TASK_str}-CTOD
+    PROJECT_NAME=${EXP_NAME}
+
+    RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
+    RESUME_STEP=72675
+    RESUME=false
+fi
+
+srun --output=${PROJECT_NAME}.txt --job-name=${PROJECT_NAME} python -u ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \
+    device=${DEVICE} \
     task_names=${TASK_str} \
     set_same_n=${SET_SAME_N} \
     rollout=${ROLLOUT} \
@@ -86,7 +136,6 @@ python ../training/train_scripts/train_any.py \
     dataset_cfg.height=${HEIGHT} \
     dataset_cfg.width=${WIDTH} \
     dataset_cfg.perform_augs=${PERFORM_AUGS} \
-    dataset_cfg.perform_scale_resize=${PERFORM_SCALE_RESIZE} \
     samplers.balancing_policy=${BALANCING_POLICY} \
     early_stopping_cfg.patience=${EARLY_STOPPING_PATIECE} \
     cond_target_obj_detector_cfg.height=${HEIGHT} \
@@ -95,6 +144,7 @@ python ../training/train_scripts/train_any.py \
     cond_target_obj_detector_cfg.dim_W=${DIM_W} \
     cond_target_obj_detector_cfg.n_channels=${OUT_FEATURE} \
     cond_target_obj_detector_cfg.conv_drop_dim=${DROP_DIM} \
+    cond_target_obj_detector_cfg.n_classes=${N_CLASSES} \
     project_name=${PROJECT_NAME} \
     EXPERT_DATA=${EXPERT_DATA} \
     save_path=${SAVE_PATH} \

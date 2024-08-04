@@ -28,7 +28,7 @@ T_aruco_table = np.array([[-1.0, 0.0, 0.0, 0.0],
                           [0.0, 0.0, 1.0, 0.0],
                           [0, 0, 0, 1]])
 T_aruco_bl = T_aruco_table  @ np.array([[-1, 0.0, 0, 0.01],
-                                        [0.0, -1.0, 0, 0.612],
+                                        [0.0, -1.0, 0, 0.612],  # 0.612
                                         [0, 0, 1, 0.120],
                                         [0, 0, 0, 1]])
 
@@ -36,6 +36,7 @@ camera_intrinsic = np.array([[345.2712097167969, 0.0, 337.5007629394531],
                              [0.0, 345.2712097167969,
                               179.0137176513672],
                              [0, 0, 1]])
+
 
 film_px_offset = np.array([[337.5007629394531],
                            [179.0137176513672]])
@@ -85,9 +86,9 @@ def plot_bb(img, obj_bb, show_image=False):
     assert indx == NUM_OBJ, "Number of bounding box must be equal to number of objects"
     if show_image:
         cv2.imwrite("test_bb.png", img)
-        cv2.imshow("Test", img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        # cv2.imshow("Test", img)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
@@ -133,7 +134,7 @@ if __name__ == '__main__':
             # print(trj.get(0)['obs'].keys())
             for t in range(len(trj)):
                 OBJ_PICKED = False
-                logger.info(f"Timestamp {t}")
+                logger.debug(f"Timestamp {t}")
                 # ENV_OBJECTS['camera_names']:
                 for camera_name in ['camera_front']:
                     # 1. Compute rotation_camera_to_world ()
@@ -170,6 +171,9 @@ if __name__ == '__main__':
 
                     # for each object in the observation get the position
                     obj_positions = dict()
+                    if traj.get(t)['action'][-1] == 1:
+                        # print("Closed gripper")
+                        pass
                     if task_name == 'pick_place':
                         try:
                             obs = traj.get(t)['obs']
@@ -193,6 +197,7 @@ if __name__ == '__main__':
                                     # convert gripper_pos to pixel
                                     gripper_pos_bl = np.array(
                                         [trj[t]['action'][:3]]).T
+                                    gripper_pos_bl[0] = gripper_pos_bl[0]
                                     gripper_quat_bl = np.array(
                                         trj[t]['action'][3:-1])
                                     gripper_rot_bl = quat2mat(
@@ -426,6 +431,9 @@ if __name__ == '__main__':
                             x_max, y_max]
                         obj_bb_novel[camera_name][obj_name]['bottom_right_corner'] = [
                             x_min, y_min]
+                        # check bb quality
+                        assert x_min < x_max and y_min < y_max, "Error on bb"
+
                         if obj_name == 'bin':
                             print(obj_bb_novel)
                     # draw center
@@ -458,12 +466,14 @@ if __name__ == '__main__':
                         logger.debug(f"Pixel coordinates\n{tcp_pixel_cord}")
 
                         # plot point
-                        # img = cv2.circle(
-                        #     img, (tcp_pixel_cord[0][0], tcp_pixel_cord[1][0]), radius=1, color=(255, 0, 0), thickness=-1)
-
+                        try:
+                            img = cv2.circle(
+                                img, (tcp_pixel_cord[0][0], tcp_pixel_cord[1][0]), radius=1, color=(255, 0, 0), thickness=-1)
+                        except:
+                            pass
                         # plot_bb(img=img,
                         #         obj_bb=obj_bb_novel[camera_name],
-                        #         show_image=False)
+                        #         show_image=True)
 
                     # print(obj_bb)
                     traj_bb.append(copy.deepcopy(obj_bb_novel))

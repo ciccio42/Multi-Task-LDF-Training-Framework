@@ -27,7 +27,7 @@ KEY_INTEREST = ["joint_pos", "joint_vel", "eef_pos",
                 "target-box-id", "target-object", "obj_bb",
                 "extent", "zfar", "znear", "eef_point", "ee_aa", "target-peg"]
 OFFSET = 0.0
-WORKERS = 50
+WORKERS = 1
 
 
 def crop_resize_img(task_cfg, task_name, obs, bb):
@@ -193,7 +193,7 @@ def overwrite_pkl_file(pkl_file_path, sample, traj_obj_bb):
         'task_id': sample['task_id']}, open(pkl_file_path, 'wb'))
 
 
-def opt_traj(task_name, task_spec, out_path, rescale_bb, pkl_file_path):
+def opt_traj(task_name, task_spec, out_path, rescale_bb, real, pkl_file_path):
     # pkl_file_path = os.path.join(task_path, pkl_file_path)
     # logger.info(f"Task id {dir} - Trajectory {pkl_file_path}")
     # 2. Load pickle file
@@ -221,7 +221,7 @@ def opt_traj(task_name, task_spec, out_path, rescale_bb, pkl_file_path):
             except:
                 pass
         if t != 0:
-            if "pick_place" in task_name:
+            if "pick_place" in task_name and not real:
                 obj_name = "single_bin"
                 obj_bb = dict()
                 bin_pos = OBJECTS_POS_DIM[task_name]['bin_position']
@@ -501,7 +501,7 @@ def opt_traj(task_name, task_spec, out_path, rescale_bb, pkl_file_path):
             if start_pick_t == 0 and gripper == 1.0:
                 start_pick_t = t
 
-    if "real" in pkl_file_path or args.real:
+    if ("real" in pkl_file_path or args.real) and "task_00" in pkl_file_path:
         sampled_trj = list()
         sampled_trj.extend(sample['traj']._data[:1])
         sampled_trj.extend(sample['traj']._data[1:start_pick_t:5])
@@ -546,6 +546,7 @@ def opt_traj(task_name, task_spec, out_path, rescale_bb, pkl_file_path):
     trj_name = pkl_file_path.split('/')[-1]
     out_pkl_file_path = os.path.join(out_path, trj_name)
     with open(out_pkl_file_path, "wb") as f:
+        print(out_pkl_file_path)
         pickle.dump(sample, f)
 
 
@@ -613,6 +614,7 @@ if __name__ == '__main__':
                                       args.task_name,
                                       task_conf,
                                       out_task,
-                                      args.rescale_bb
+                                      args.rescale_bb,
+                                      args.real
                                       )
                 p.map(f, trj_list)

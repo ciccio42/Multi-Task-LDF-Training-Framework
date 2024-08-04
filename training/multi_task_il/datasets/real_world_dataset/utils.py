@@ -38,7 +38,7 @@ ENV_OBJECTS = {
     'camera_fovx': 345.27,
     'camera_fovy': 345.27,
 
-    'camera_pos': {'camera_front': [-0.002826249197217832,
+    'camera_pos': {'camera_front': [-0.002826249197217832,  # -0.02826249197217832
                                     0.45380661695322316,
                                     0.5322894621129393],
                    'camera_lateral_right': [-0.3582777207605626,
@@ -68,9 +68,10 @@ OFFSET = 0.0  # CM
 def _compress_obs(obs):
     for key in obs.keys():
         if 'image' in key:
-            okay, im_string = cv2.imencode('.jpg', obs[key])
-            assert okay, "image encoding failed!"
-            obs[key] = im_string
+            if len(obs[key]) == 3:
+                okay, im_string = cv2.imencode('.jpg', obs[key])
+                assert okay, "image encoding failed!"
+                obs[key] = im_string
         if 'depth_norm' in key:
             assert len(
                 obs[key].shape) == 2 and obs[key].dtype == np.uint8, "assumes uint8 greyscale depth image!"

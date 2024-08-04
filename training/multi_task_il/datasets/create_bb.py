@@ -65,7 +65,7 @@ def plot_bb(img, obj_bb):
         img = cv2.rectangle(
             img, upper_left_corner,
             bottom_right_corner, (255, 0, 0), 1)
-    # cv2.imwrite("test_bb.png", img)
+    cv2.imwrite("test_bb.png", img)
     # cv2.imshow("Test", img)
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
@@ -308,9 +308,9 @@ def write_bb(pkl_file_path):
 
 if __name__ == '__main__':
     import debugpy
-    # debugpy.listen(('0.0.0.0', 5678))
-    # print("Waiting for debugger attach")
-    # debugpy.wait_for_client()
+    debugpy.listen(('0.0.0.0', 5678))
+    print("Waiting for debugger attach")
+    debugpy.wait_for_client()
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--task_path', default="/", help="Path to task")
@@ -329,6 +329,6 @@ if __name__ == '__main__':
             print(task_path)
             i = 0
             trj_list = glob.glob(f"{task_path}/*.pkl")
-            with Pool(10) as p:
+            with Pool(1) as p:
                 f = functools.partial(write_bb)
                 p.map(f, trj_list)

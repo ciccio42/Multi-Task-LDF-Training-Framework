@@ -147,7 +147,7 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
 
     for spec in task_spec:
         if mode == 'val' and len(spec.get('skip_ids', [])) != 0:
-            validation_on_skipped_task = True
+            validation_on_skipped_task = False
 
         name, date = spec.get('name', None), spec.get('date', None)
         assert name, 'need to specify the task name for data generated, for easier tracking'
@@ -514,6 +514,23 @@ def adjust_bb(dataset_loader, bb, obs, img_width=360, img_height=200, top=0, lef
                     y2),
                 color=(0, 0, 255),
                 thickness=1)
+            if x1 < 0:
+                x1 = 0
+            if x2 < 0:
+                x2 = 0
+            if y1 < 0:
+                y1 = 0
+            if y2 < 0:
+                y2 = 0
+
+            if x1 > dataset_loader.width:
+                x1 = dataset_loader.width
+            if x2 > dataset_loader.width:
+                x2 = dataset_loader.width
+            if y1 > dataset_loader.height:
+                y1 = dataset_loader.height
+            if y2 > dataset_loader.height:
+                y2 = dataset_loader.height
             cv2.imwrite("bb_cropped.png", image)
 
         # replace with new bb
@@ -685,11 +702,20 @@ def create_data_aug(dataset_loader=object):
                 image=obs_to_affine,
                 bboxes=norm_bb)
             obs = dataset_loader.toTensor(transformed['image'])
-            bb = np.array(A.augmentations.bbox_utils.denormalize_bboxes(bboxes=transformed['bboxes'],
-                                                                        rows=obs_to_affine.shape[0],
-                                                                        cols=obs_to_affine.shape[1]
-                                                                        ))
-
+            bb_denorm = np.array(A.augmentations.bbox_utils.denormalize_bboxes(bboxes=transformed['bboxes'],
+                                                                               rows=obs_to_affine.shape[0],
+                                                                               cols=obs_to_affine.shape[1]
+                                                                               ))
+            for obj_indx, obj_bb in enumerate(bb_denorm):
+                if bb_denorm[obj_indx][0] > obs_to_affine.shape[1]:
+                    bb_denorm[obj_indx][0] = obs_to_affine.shape[1]
+                if bb_denorm[obj_indx][1] > obs_to_affine.shape[0]:
+                    bb_denorm[obj_indx][1] = obs_to_affine.shape[0]
+                if bb_denorm[obj_indx][2] > obs_to_affine.shape[1]:
+                    bb_denorm[obj_indx][2] = obs_to_affine.shape[1]
+                if bb_denorm[obj_indx][3] > obs_to_affine.shape[0]:
+                    bb_denorm[obj_indx][3] = obs_to_affine.shape[0]
+            bb = bb_denorm
         # ---- Augmentation ----#
         if dataset_loader.use_strong_augs and second:
             augmented = dataset_loader.strong_augs(obs)
@@ -712,13 +738,16 @@ def create_data_aug(dataset_loader=object):
                 image = np.ascontiguousarray(np.array(np.moveaxis(
                     augmented.numpy()*255, 0, -1), dtype=np.uint8))
                 for single_bb in bb:
-                    image = cv2.rectangle(image,
-                                          (int(single_bb[0]),
-                                           int(single_bb[1])),
-                                          (int(single_bb[2]),
-                                              int(single_bb[3])),
-                                          color=(0, 0, 255),
-                                          thickness=1)
+                    try:
+                        image = cv2.rectangle(image,
+                                              (int(single_bb[0]),
+                                               int(single_bb[1])),
+                                              (int(single_bb[2]),
+                                               int(single_bb[3])),
+                                              color=(0, 0, 255),
+                                              thickness=1)
+                    except:
+                        print("Exception")
                 cv2.imwrite("bb_cropped_after_aug.png", image)
             return augmented, bb, class_frame
         else:
@@ -828,16 +857,18 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
             elif i == 3 and distractor:
                 object_name = no_place_obj_name
         try:
-            if not getattr(dataset_loader, "real", False):
-                top_left = step_t['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner']
-                bottom_right = step_t['obs']['obj_bb']["camera_front"][object_name]['upper_left_corner']
-            else:
-                top_left = step_t['obs']['obj_bb']["camera_front"][object_name]['upper_left_corner']
-                bottom_right = step_t['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner']
+            # if not getattr(dataset_loader, "real", False):
+            top_left = step_t['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner']
+            bottom_right = step_t['obs']['obj_bb']["camera_front"][object_name]['upper_left_corner']
+            # else:
+            #     top_left = step_t['obs']['obj_bb']["camera_front"][object_name]['upper_left_corner']
+            #     bottom_right = step_t['obs']['obj_bb']["camera_front"][object_name]['bottom_right_corner']
         except:
             top_left = step_t['obs']['obj_bb'][object_name]['upper_left_corner']
             bottom_right = step_t['obs']['obj_bb'][object_name]['bottom_right_corner']
 
+        # check bb coordinates
+        assert top_left[0] < bottom_right[0] and top_left[1] < bottom_right[1], "Error on bb"
         # 2. Get stored BB
         top_left_x = top_left[0]
         top_left_y = top_left[1]

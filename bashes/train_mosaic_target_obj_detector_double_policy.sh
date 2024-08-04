@@ -6,10 +6,9 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=16
 
-# export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-# export CUDA_VISIBLE_DEVICES=0
+export MUJOCO_PY_MUJOCO_PATH="/home/rsofnc000/.mujoco/mujoco210"
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/rsofnc000/.mujoco/mujoco210/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 
 export HYDRA_FULL_ERROR=1
 echo $1
@@ -26,14 +25,14 @@ VAL_FREQ=-1
 DEVICE=0
 DEBUG=false
 WANDB_LOG=true
-ROLLOUT=false
+ROLLOUT=true
 EPOCH=90
 LOADER_WORKERS=8
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
 CONCAT_IMG_EMB=true
 CONCAT_DEMO_EMB=true
-CONCAT_STATE=true
+CONCAT_STATE=false
 
 if [ "$TASK_NAME" == 'nut_assembly' ]; then
     echo "NUT-ASSEMBLY"
@@ -70,7 +69,7 @@ if [ "$TASK_NAME" == 'nut_assembly' ]; then
     CONCAT_TARGET_OBJ_EMBEDDING=false
 
     ACTION_DIM=7
-    N_MIXTURES=3       #14 MT #7 2Task, Nut, button, stack #3 Pick-place #2 Nut-Assembly
+    N_MIXTURES=7       #14 MT #7 2Task, Nut, button, stack #3 Pick-place #2 Nut-Assembly
     OUT_DIM=128        #64 MT #64 2Task, Nut, button, stack #128 Pick-place
     ATTN_FF=256        #256 MT #128 2Task, Nut, button, stack #256 Pick-place
     COMPRESSOR_DIM=256 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
@@ -96,7 +95,7 @@ if [ "$TASK_NAME" == 'nut_assembly' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="nut_assembly" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-Double-Policy-State_true
+    EXP_NAME=1Task-${TASK_str}-Double-Policy-Rollout-Mixtures-${N_MIXTURES}
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after_reaching' ]; then
     echo "BUTTON"
@@ -282,7 +281,7 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-Double-Policy-State_true
+    EXP_NAME=1Task-${TASK_str}-Double-Policy-Rollout
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
@@ -349,7 +348,7 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     PROJECT_NAME=${EXP_NAME}
 fi
 
-srun --output=training_${TASK_NAME}_state.txt --job-name=training_${TASK_NAME} python -u ../training/train_scripts/train_any.py \
+srun --output=training_${EXP_NAME}.txt --job-name=training_${TASK_NAME} python -u ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \
