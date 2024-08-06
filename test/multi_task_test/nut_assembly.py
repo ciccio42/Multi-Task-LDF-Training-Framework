@@ -108,7 +108,8 @@ def nut_assembly_eval(model, env, gt_env, context, gpu_id, variation_id, img_for
                                            sub_action=sub_action,
                                            gt_action=gt_action,
                                            real=real,
-                                           gt_file=gt_file
+                                           gt_file=gt_file,
+                                           place=place_bb_flag
                                            )
 
 
@@ -192,7 +193,7 @@ def nut_assembly_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None
         else:
             gripper_state = action[-1]
         states.append(np.concatenate(
-            (obs['joint_pos'], obs['joint_vel'], [gripper_state])).astype(np.float32)[None])
+            (obs['joint_pos'], [gripper_state])).astype(np.float32)[None])
 
         if n_steps == 0:
 
@@ -332,7 +333,7 @@ def nut_assembly_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None
     return traj, tasks
 
 
-def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False, sub_action=False, gt_action=4, real=True, gt_file=None):
+def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False, sub_action=False, gt_action=4, real=True, gt_file=None, place=False):
 
     start_up_env_return = \
         startup_env(model=model,
@@ -409,7 +410,7 @@ def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
         else:
             gripper_state = action[-1]
         states.append(np.concatenate(
-            (obs['joint_pos'], obs['joint_vel'], [gripper_state])).astype(np.float32)[None])
+            (obs['joint_pos'], [gripper_state])).astype(np.float32)[None])
 
         obs, reward, info, action, env_done, time_action = task_run_action(
             traj=traj,
@@ -435,7 +436,8 @@ def nut_assembly_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
             sub_action=sub_action,
             gt_action=gt_action,
             controller=controller,
-            target_obj_emb=target_obj_emb)
+            target_obj_emb=target_obj_emb,
+            place=place)
 
         traj.append(obs, reward, done, info, action)
 

@@ -57,6 +57,7 @@ TASK_MAP = {
     },
     'pick_place': {
         'num_variations':   16,
+        'num_variations_per_object':   4,
         'env_fn':   place_expert,
         'agent-teacher': ('UR5e_PickPlaceDistractor', 'Panda_PickPlaceDistractor'),
         'render_hw': (200, 360),  # (150, 270)

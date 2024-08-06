@@ -31,6 +31,16 @@ LOG_PATH = None
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 
 
+def seed_everything(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
 def extract_last_number(path):
     # Use regular expression to find the last number in the path
     check_point_number = path.split(
@@ -73,7 +83,7 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
                                                            seed=seed)
     else:
         env = None
-        variation_id = None
+        variation_id = variation
         expert_traj = None
         # open context pk file
         print(
@@ -247,6 +257,7 @@ def _proc(model, config, results_dir, heights, widths, size, shape, color, env_n
     else:
         if variation is not None:
             variation_id = variation[n % len(variation)]
+            print(f"Testing variation {variation_id}")
         else:
             variation_id = variation
         if ("cond_target_obj_detector" not in model_name) or ("CondPolicy" in model_name):
@@ -364,6 +375,7 @@ if __name__ == '__main__':
     parser.add_argument('--test_gt', action='store_true')
     parser.add_argument('--save_files', action='store_true')
     parser.add_argument('--gt_bb', action='store_true')
+    parser.add_argument('--test_skip', action='store_true')
 
     args = parser.parse_args()
 
@@ -373,13 +385,7 @@ if __name__ == '__main__':
         print("Waiting for debugger attach")
         debugpy.wait_for_client()
 
-    random.seed(42)
-    np.random.seed(42)
-    # torch.manual_seed(42)
-    # os.environ["PYTHONHASHSEED"] = "42"
-    # torch.backends.cudnn.deterministic = True
-    # torch.backends.cudnn.benchmark = False
-    # torch.set_num_threads(1)
+    seed_everything()
 
     try_path = args.model
     # if 'log' not in args.model and 'mosaic' not in args.model:
@@ -409,7 +415,7 @@ if __name__ == '__main__':
             # take the last check point
             try_paths = check_point_list
             epoch_numbers = len(try_paths)
-            try_path_list = try_paths[-1:]
+            try_path_list = try_paths[-10:]
 
     for try_path in try_path_list:
 
@@ -469,10 +475,21 @@ if __name__ == '__main__':
                         args.N = int(args.eval_each_task * args.eval_subsets)
                         args.variation = [i for i in range(args.eval_subsets)]
                 else:
-                    args.N = int(args.eval_each_task *
-                                 len(config["tasks_cfgs"][args.env].get('skip_ids', [])))
-                    args.variation = config["tasks_cfgs"][args.env].get(
-                        'skip_ids', [])
+                    if args.test_skip:
+                        args.N = int(args.eval_each_task *
+                                     len(config["tasks_cfgs"][args.env].get('skip_ids', [])))
+                        args.variation = config["tasks_cfgs"][args.env].get(
+                            'skip_ids', [])
+                    else:
+                        args.N = int(args.eval_each_task *
+                                     (len(config["tasks_cfgs"][args.env].get('task_ids', []))
+                                      - len(config["tasks_cfgs"][args.env].get('skip_ids', []))))
+                        test_variation = list()
+                        for variation_id in config["tasks_cfgs"][args.env].get('task_ids', []):
+                            if variation_id not in config["tasks_cfgs"][args.env].get('skip_ids', []):
+                                print(f"Testing variation {variation_id}")
+                                test_variation.append(variation_id)
+                        args.variation = test_variation
 
             else:
                 args.N = int(args.eval_each_task*len(args.variation))
@@ -531,9 +548,10 @@ if __name__ == '__main__':
         #     "demo_per_subtask": 100}
 
         config.dataset_cfg.mode = "val"
-        config.dataset_cfg.agent_name = "real_ur5e"
+        config.dataset_cfg.agent_name = "real_new_ur5e"
         config.dataset_cfg.change_command_epoch = False
-        config.dataset_cfg.root_dir = "/raid/home/frosa_Loc/opt_dataset"
+        config.dataset_cfg.root_dir = "/home/rsofnc000/dataset/opt_dataset"
+        config.dataset_cfg.mix_demo_agent = False
         dataset = instantiate(config.get('dataset_cfg', None))
         dataset._mix_demo_agent = False
         # get list of pkl files
@@ -546,10 +564,17 @@ if __name__ == '__main__':
                     for pkl_file in pkl_file_dict[task_name][task_id]:
                         pkl_file_list.append(pkl_file)
         else:
+            variation = list()
             file_pairs = dataset.all_file_pairs
             pkl_file_list = []
             for pkl_file in file_pairs.values():
                 pkl_file_list.append((pkl_file[3], pkl_file[2]))
+                variation_id = pkl_file[3].split(
+                    '/')[-2].split('task_')[-1].lstrip("0")
+                if variation_id == "":
+                    variation.append(0)
+                else:
+                    variation.append(int(variation_id))
             # for pkl_file in file_pairs.values():
             #     if 'traj010.pkl' in pkl_file[3]:
             #         pkl_file_list.append((pkl_file[3], '/raid/home/frosa_Loc/opt_dataset/pick_place/panda_pick_place/task_00/traj000.pkl'

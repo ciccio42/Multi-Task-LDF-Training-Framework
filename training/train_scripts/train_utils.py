@@ -1216,7 +1216,7 @@ class Trainer:
 
                 #### ---- Validation step ----####
                 # e != 0 and self._step % val_freq == 0
-                if (e % 10 == 0) and (self._step % val_freq == 0) and not self.config.get("use_daml", False):
+                if ((e % 10 == 0) and (self._step % val_freq == 0) and not self.config.get("use_daml", False)) or (e == epochs-1):
                     print("Validation")
                     rollout = self.config.get("rollout", False)
                     model = model.eval()
@@ -1300,7 +1300,7 @@ class Trainer:
                             os.makedirs(results_dir, exist_ok=True)
                             seed_everything(seed=42)
                             n_run_per_task = 5
-                            N_step = 80
+                            N_step = 95
                             gt_bb = True if model._concat_bb and model._object_detector is None else False
                             place = True if 'Double' in self.config.exp_name else False
                             if len(self.config["tasks_cfgs"][task['name']].get('skip_ids', [])) == 0:
@@ -1533,8 +1533,15 @@ class Workspace(object):
                 self._rpath)
             print('Finetuning model: load model from ...%s' %
                   self._rpath)
-            self.action_model.load_state_dict(torch.load(
-                self._rpath, map_location=torch.device('cpu')))
+            state_dict = torch.load(
+                self._rpath, map_location=torch.device('cpu'))
+            if finetune:
+                state_dict_keys = list(state_dict.keys())
+                for key in state_dict_keys:
+                    if '_object_detector' in key or '_cond_backbone' in key or '_agent_backbone' in key:
+                        state_dict.pop(key)
+            self.action_model.load_state_dict(state_dict,
+                                              strict=False)
             self.optimizer_state_dict = None
             if resume:
                 try:

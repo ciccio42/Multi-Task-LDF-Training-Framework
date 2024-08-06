@@ -48,7 +48,7 @@ INV_MUL=0.0
 FREEZE_TARGET_OBJ_DETECTOR=false
 REMOVE_CLASS_LAYERS=false
 CONCAT_TARGET_OBJ_EMBEDDING=false
-CONCAT_STATE=false
+CONCAT_STATE=true
 
 if [ "$TASK_NAME" == 'nut_assembly' ]; then
     echo "NUT-ASSEMBLY"
@@ -96,7 +96,7 @@ if [ "$TASK_NAME" == 'nut_assembly' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="nut_assembly" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-CTOD-rollout
+    EXP_NAME=1Task-${TASK_str}-MOSAIC-CTOD-State_pos_gripper
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after_reaching' ]; then
     echo "BUTTON"
@@ -252,7 +252,7 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-CTOD-Rollout
+    EXP_NAME=1Task-${TASK_str}-CTOD-MOSAIC-CTOD-State_pos_gripper
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
@@ -303,7 +303,7 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     PROJECT_NAME=${EXP_NAME}
 fi
 
-srun --output=training_${TASK_NAME}_rollout.txt --job-name=training_${TASK_NAME} python -u ../training/train_scripts/train_any.py \
+srun --output=${EXP_NAME}.txt --job-name=training_${TASK_NAME} python -u ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \

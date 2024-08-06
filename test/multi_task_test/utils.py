@@ -620,7 +620,7 @@ def retrieve_bb(obs, obj_name, camera_name='camera_front', real=True, scale=Fals
         [top_left_x, top_left_y, bottom_right_x, bottom_right_y], dtype=np.int16),
 
 
-def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0, real=True, place=True, expert_traj=None, scale=False):
+def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0, real=True, place=False, expert_traj=None, scale=False, variation_id=0):
     # Get GT Bounding Box
     if task_name != 'stack_block':
         try:
@@ -640,7 +640,9 @@ def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0, real=True, pla
                         len(expert_traj)-1)['obs']['obj_bb']['camera_front'][f"{agent_target_obj_id}"]
 
         except:
-            agent_target_obj_id = 0
+            agent_target_obj_id = int(
+                variation_id / TASK_MAP[task_name]['num_variations_per_object'])
+            # print(f"agent_target_obj_id {agent_target_obj_id}")
     else:
         agent_target_obj_id = "cubeA"
         agent_target_place_id = "cubeB"
@@ -814,7 +816,7 @@ def plot_activation_map(activation_map, agent_obs, save_path="activation_map.png
     plt.show()
 
 
-def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None, action_ranges=[], policy=True, perform_augs=False, config=None, gt_traj=None, activation_map=True, real=True, place_bb_flag=True, expert_traj=None):
+def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None, action_ranges=[], policy=True, perform_augs=False, config=None, gt_traj=None, activation_map=True, real=True, place_bb_flag=False, expert_traj=None):
     print(f"Place bb flag: {place_bb_flag}")
     if gt_traj is None:
         done, states, images, context, obs, traj, tasks, bb, gt_classes, _, prev_action = \
@@ -910,7 +912,8 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                                    real=real,
                                    place=place_bb_flag,
                                    expert_traj=expert_traj,
-                                   scale=False  # True if task_name =='button' else False
+                                   scale=False,
+                                   variation_id=variation_id  # True if task_name =='button' else False
                                    )
 
             if baseline and len(states) >= 5:
@@ -1171,7 +1174,8 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                 bb_t, gt_t = get_gt_bb(traj=gt_traj,
                                        obs=gt_traj[t]['obs'],
                                        task_name=task_name,
-                                       t=t)
+                                       t=t,
+                                       variation_id=variation_id)
 
                 if perform_augs:
                     if not real:
@@ -1191,7 +1195,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                 model_input['gt_bb'] = torch.from_numpy(
                     bb_t[None][None]).float().to(device=gpu_id)
                 model_input['gt_classes'] = torch.from_numpy(
-                    gt_t[None][None][None]).to(device=gpu_id)
+                    gt_t[None][None]).to(device=gpu_id)
 
                 prediction = model(model_input,
                                    inference=True)
@@ -1212,6 +1216,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                         scale_factor = model.get_scale_factors()
                         image = np.array(np.moveaxis(
                             formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+                        in_img = copy.deepcopy(image)
                         predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
                                                       width_scale_factor=scale_factor[0],
                                                       height_scale_factor=scale_factor[1],
@@ -1219,6 +1224,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                     else:
                         image = np.array(np.moveaxis(
                             formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
+                        in_img = copy.deepcopy(image)
                         scale_factor = model.get_scale_factors()
                         predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
                                                       width_scale_factor=scale_factor[0],
@@ -1250,6 +1256,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                                               color=(0, 255, 0), thickness=1)
 
                         gt_traj[t]['obs']['predicted_bb'] = predicted_bb
+                        gt_traj[t]['obs']['formatted_img'] = in_img
                         gt_traj[t]['obs']['gt_bb'] = bb_t
                         cv2.imwrite("predicted_bb.png", image)
 
@@ -1704,7 +1711,7 @@ def compute_error(action_t, gt_action):
 
 def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img_formatter,
                     model, predict_gt_bb, bb, gt_classes, concat_bb, states, context, n_steps,
-                    max_T, baseline, action_ranges, sub_action, gt_action, controller, target_obj_emb, expert_traj=None):
+                    max_T, baseline, action_ranges, sub_action, gt_action, controller, target_obj_emb, place, expert_traj=None):
     # Get GT BB
     # if concat_bb:
     bb_t, gt_t = get_gt_bb(traj=traj,
@@ -1712,7 +1719,8 @@ def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img
                            task_name=task_name,
                            env=env,
                            real=real,
-                           expert_traj=expert_traj)
+                           expert_traj=expert_traj,
+                           place=place)
     previous_predicted_bb = []
     previous_predicted_bb.append(torch.tensor(
         [.0, .0, .0, .0]).to(

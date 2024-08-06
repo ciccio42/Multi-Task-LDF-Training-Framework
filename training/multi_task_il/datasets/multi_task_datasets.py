@@ -221,7 +221,8 @@ class MultiTaskPairedDataset(Dataset):
             command=command,
             load_action=True,
             load_state=self._load_state_spec,
-            load_eef_point=self._load_eef_point)
+            load_eef_point=self._load_eef_point,
+            agent_task_id=sub_task_id)
 
         ret_dict['images'] = torch.stack(images)
 

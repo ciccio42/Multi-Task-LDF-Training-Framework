@@ -629,8 +629,8 @@ class VideoImitation(nn.Module):
         # self._object_detector.to("cuda:0")
         self._object_detector.eval()
 
-        # for p in self._object_detector.parameters():
-        #     p.requires_grad = False
+        for p in self._object_detector.parameters():
+            p.requires_grad = False
 
     def _load_model(self, model_path=None, step=0, conf_file=None, remove_class_layers=True, freeze=True):
         if model_path:

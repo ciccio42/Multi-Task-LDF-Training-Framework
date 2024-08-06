@@ -27,6 +27,7 @@ import logging
 import time
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
+import itertools
 
 logging.basicConfig(
     level=logging.INFO,
@@ -192,6 +193,10 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
             task_id = 'task_{:02d}'.format(_id)
             task_dir = expanduser(join(agent_dir,  task_id, '*.pkl'))
             agent_files = sorted(glob.glob(task_dir))
+            
+            if len(agent_files) < 100:
+                agent_files = list(itertools.chain.from_iterable((e, e) for e in agent_files))
+            
             assert len(agent_files) != 0, "Can't find dataset for task {}, subtask {} in dir {}".format(
                 name, _id, task_dir)
             subtask_size = spec.get('traj_per_subtask', 100)
@@ -206,6 +211,7 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
             task_dir = expanduser(join(demo_dir, task_id, '*.pkl'))
 
             demo_files = sorted(glob.glob(task_dir))
+
             subtask_size = spec.get('demo_per_subtask', 100)
             assert len(
                 demo_files) >= subtask_size, "Doesn't have enough data "+str(len(demo_files))
@@ -763,7 +769,11 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         # 1. Get Target Object
         if task_name != "stack_block":
             if "button" not in task_name:
-                target_obj_id = step_t['obs']['target-object']
+                if step_t['obs'].get('target-object', None) is None:
+                    target_obj_id = int(agent_task_id /
+                                        NUM_VARIATION_PER_OBEJECT[task_name][1])
+                else:
+                    target_obj_id = step_t['obs']['target-object']
             else:
                 target_obj_id = ENV_OBJECTS['button']['obj_names_to_id'][step_t['obs']
                                                                          ['target-object']]

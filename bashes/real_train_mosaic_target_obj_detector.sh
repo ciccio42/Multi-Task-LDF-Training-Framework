@@ -1,41 +1,45 @@
 #!/bin/sh
-# export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
-export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0
-export HYDRA_FULL_ERROR=1
+#SBATCH --partition=gpuq
+#SBATCH --gres=gpu:1   # Request 1 GPU
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=16
 
-EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset
-SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
+# export MUJOCO_PY_MUJOCO_PATH="/home/rsofnc000/.mujoco/mujoco210"
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/rsofnc000/.mujoco/mujoco210/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
+# export CUDA_VISIBLE_DEVICES=0
+
+export HYDRA_FULL_ERROR=1
+echo $1
+TASK_NAME="$1"
+
+EXPERT_DATA=/home/rsofnc000/dataset/opt_dataset/
+SAVE_PATH=/home/rsofnc000/checkpoint_save_folder
 POLICY='${mosaic}'
 
 SAVE_FREQ=-1
 LOG_FREQ=10
 VAL_FREQ=-1
 DEVICE=0
-DEBUG=false
-WANDB_LOG=true
+DEBUG=true
+WANDB_LOG=false
 
-EXP_NAME=Real-Pick-Place-MOSAIC-CTOD-Only-Front-Pos-State-Info-Reduced-Space-Extended-Next-Action
-#Real-1Task-Pick-Place-MOSAIC-Cond-Target-Obj-Detector-State
+EXP_NAME=Real-Pick-Place-MOSAIC-CTOD_No_State
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place #[pick_place,nut_assembly]
 
-RESUME_PATH=Real-Pick-Place-MOSAIC-CTOD-Only-Front-Pos-State-Info-Reduced-Space-Extended-Next-Action-Batch5/
-RESUME_STEP=20582
-RESUME=true
+RESUME_PATH=1Task-Pick-Place-100-180-BB-inference
+RESUME_STEP=85050
+RESUME=false
 FINETUNE=false
 
 LOAD_TARGET_OBJ_DETECTOR=true
-TARGET_OBJ_DETECTOR_STEP=32805
-TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-Pick-Place-CTOD-Only-Front-Reduced-Space-Extended-Batch10
+TARGET_OBJ_DETECTOR_STEP=37422
+TARGET_OBJ_DETECTOR_PATH=/home/rsofnc000/checkpoint_save_folder/1Task-REAL-pick_place-CTOD-Batch28
 CONCAT_BB=true
 
-AGENT_NAME=real_ur5e
-
+AGENT_NAME=real_new_ur5e
 
 ROLLOUT=false
 EPOCH=90
@@ -43,10 +47,10 @@ BSIZE=27 #32 #128 #64 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 # Policy 1: At each slot is assigned a RandomSampler
 BALANCING_POLICY=0
-SET_SAME_N=5
+SET_SAME_N=3
 CONFIG_PATH=../experiments
 CONFIG_NAME=config_real.yaml
-LOADER_WORKERS=16
+LOADER_WORKERS=8
 NORMALIZE_ACTION=true
 PICK_NEXT=true
 
@@ -63,11 +67,11 @@ CONCAT_TARGET_OBJ_EMBEDDING=false
 CONCAT_STATE=true
 
 ACTION_DIM=7
-N_MIXTURES=3 #7 MT #3 Pick-place
-OUT_DIM=128 #64 MT #128 Pick-place
-ATTN_FF=256 #128 MT #256 Pick-place
+N_MIXTURES=3       #7 MT #3 Pick-place
+OUT_DIM=128        #64 MT #128 Pick-place
+ATTN_FF=256        #128 MT #256 Pick-place
 COMPRESSOR_DIM=256 #128 MT #256 Pick-place
-HIDDEN_DIM=512 #128 MT #512 Pick-place
+HIDDEN_DIM=512     #128 MT #512 Pick-place
 CONCAT_DEMO_HEAD=false
 CONCAT_DEMO_ACT=true
 PRETRAINED=false
@@ -79,15 +83,15 @@ LR=0.0005
 WEIGHT_DECAY=0.0
 SCHEDULER=None
 
-DROP_DIM=4      # 2    # 3
-OUT_FEATURE=128 # 512 # 256
-DIM_H=13 #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
-DIM_W=23 #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
+DROP_DIM=3      # 2    # 3
+OUT_FEATURE=256 # 512 # 256
+DIM_H=7         #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
+DIM_W=12        #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 HEIGHT=100
 WIDTH=180
 
 COSINE_ANNEALING=false
-
+#srun --output=${PROJECT_NAME}.txt --job-name=${PROJECT_NAME}
 python ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \

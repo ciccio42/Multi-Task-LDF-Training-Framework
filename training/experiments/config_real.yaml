@@ -110,7 +110,7 @@ dataset_cfg:
   data_augs:        ${augs}
   non_sequential:   False
   crop_twice:       True
-  state_spec:       ['joint_pos']
+  state_spec:       ['joint_pos', 'gripper_state']
   allow_val_skip:   ${val_skip}
   allow_train_skip: ${train_skip}
   use_strong_augs:  True 
@@ -193,8 +193,8 @@ mosaic:
   load_contrastive: True
   concat_target_obj_embedding: False
   latent_dim:         40
-  sdim:               6
-  concat_state:       True
+  sdim:               7
+  concat_state:       False
   concat_bb:       True
   height:             ${train_cfg.dataset.height}
   width:              ${train_cfg.dataset.width} 
@@ -223,22 +223,22 @@ actions:
   demo_mean:        ${policy.demo_mean}
 
 attn:
-  embed_hidden:     256
-  dropout:          0.2
-  n_attn_layers:    2
-  attn_heads:       4
-  attn_ff:          128
-  pos_enc:          True 
-  max_len:          5000    
-  fuse_starts:      0   # default 0 so attend everywhere
-  causal:           True
-  attend_demo:      True
-  demo_out:         True     
-  img_cfg:           
-    network_flag:   0 # e.g Res18  
-    out_feature:    256
-    drop_dim:       3
-    pretrained:     False 
+  embed_hidden: 256
+  dropout: 0.2
+  n_attn_layers: 2
+  attn_heads: 4
+  attn_ff: 256
+  pos_enc: true
+  fuse_starts: 0
+  causal: true
+  attend_demo: true
+  demo_out: true
+  max_len: 3000
+  img_cfg:
+    network_flag: 0
+    out_feature: 256
+    drop_dim: 3
+    pretrained: false
 
 tosil:
   _target_:         multi_task_il.models.baselines.InverseImitation 
