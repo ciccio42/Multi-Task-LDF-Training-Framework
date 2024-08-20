@@ -59,17 +59,17 @@ elif [ "$TASK_NAME" == 'nut_assembly' ]; then
         done
     done
 elif [ "$TASK_NAME" == 'button' ]; then
-    PROJECT_NAME=1Task-press_button-MOSAIC-State_true
+    PROJECT_NAME=1Task-press_button-MOSAIC-State_pos_gripper
     BATCH=18 #32
     MODEL_PATH=${CKP_FOLDER}/${PROJECT_NAME}-Batch${BATCH}
     CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
     for MODEL in ${MODEL_PATH}; do
-        for S in 106304; do #81000 89100; do
+        for S in -1; do #81000 89100; do
             for TASK in button; do
                 for COUNT in 1 2 3; do
                     if [ $COUNT -eq 1 ]; then
                         SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
-                        srun --output=${PROJECT_NAME}.txt --job-name=${PROJECT_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log --save_path ${SAVE_PATH} --save_files
+                        srun --output=${PROJECT_NAME}.txt --job-name=${PROJECT_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log #--save_path ${SAVE_PATH} --save_files
                     else
                         SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
                         srun --output=${PROJECT_NAME}.txt --job-name=${PROJECT_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log
@@ -79,17 +79,17 @@ elif [ "$TASK_NAME" == 'button' ]; then
         done
     done
 elif [ "$TASK_NAME" == 'stack_block' ]; then
-    PROJECT_NAME=1Task-stack_block-MOSAIC-State_true
+    PROJECT_NAME=1Task-stack_block-MOSAIC-State_pos_gripper
     BATCH=18 #32
     MODEL_PATH=${CKP_FOLDER}/${PROJECT_NAME}-Batch${BATCH}
     CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
     for MODEL in ${MODEL_PATH}; do
-        for S in 157036; do
+        for S in -1; do
             for TASK in stack_block; do
                 for COUNT in 1 2 3; do
                     if [ $COUNT -eq 1 ]; then
                         SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
-                        srun --output=${PROJECT_NAME}.txt --job-name=${PROJECT_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log --save_path ${SAVE_PATH} --save_files
+                        srun --output=${PROJECT_NAME}.txt --job-name=${PROJECT_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log #--save_path ${SAVE_PATH} --save_files
                     else
                         SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
                         srun --output=${PROJECT_NAME}.txt --job-name=${PROJECT_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log

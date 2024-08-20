@@ -92,7 +92,7 @@ dataset_cfg:
   aux_pose:         True # only required for DAML baseline 
   height:           224 # 224 # 200 # 100
   width:            224 # 224 # 360 # 180
-  split:            [0.90, 0.10]
+  split:            [1.0, 0.0]
   demo_T:           4
   obs_T:            7
   normalize_action: True

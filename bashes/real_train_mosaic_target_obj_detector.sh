@@ -22,10 +22,10 @@ SAVE_FREQ=-1
 LOG_FREQ=10
 VAL_FREQ=-1
 DEVICE=0
-DEBUG=true
-WANDB_LOG=false
+DEBUG=false
+WANDB_LOG=true
 
-EXP_NAME=Real-Pick-Place-MOSAIC-CTOD_No_State
+EXP_NAME=Real-Pick-Place-MOSAIC-CTOD_No_State_No_finetuned_No_val
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place #[pick_place,nut_assembly]
 
@@ -64,7 +64,7 @@ INV_MUL=1.0
 FREEZE_TARGET_OBJ_DETECTOR=false
 REMOVE_CLASS_LAYERS=false
 CONCAT_TARGET_OBJ_EMBEDDING=false
-CONCAT_STATE=true
+CONCAT_STATE=false
 
 ACTION_DIM=7
 N_MIXTURES=3       #7 MT #3 Pick-place
@@ -91,7 +91,7 @@ HEIGHT=100
 WIDTH=180
 
 COSINE_ANNEALING=false
-#srun --output=${PROJECT_NAME}.txt --job-name=${PROJECT_NAME}
+# srun --output=${PROJECT_NAME}.txt --job-name=${PROJECT_NAME}
 python ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \

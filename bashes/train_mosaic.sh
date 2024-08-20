@@ -28,7 +28,7 @@ DEBUG=false
 WANDB_LOG=true
 ROLLOUT=true
 EPOCH=90
-LOADER_WORKERS=8
+LOADER_WORKERS=16
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
 CONCAT_IMG_EMB=true
@@ -43,7 +43,7 @@ SPLIT_PICK_PLACE=false
 LOAD_CONTRASTIVE=true
 LOAD_INV=true
 
-CONCAT_STATE=false
+CONCAT_STATE=true
 
 if [ "$TASK_NAME" == 'nut_assembly' ]; then
     echo "NUT-ASSEMBLY"
@@ -155,7 +155,7 @@ elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after
     COSINE_ANNEALING=false
 
     TASK_str=${TASK_NAME} #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-press_button-MOSAIC-State_true
+    EXP_NAME=1Task-press_button-MOSAIC-State_pos_gripper
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'stack_block' ]; then
     echo "STACK_BLOCK"
@@ -210,7 +210,7 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
     COSINE_ANNEALING=false
 
     TASK_str=${TASK_NAME} #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-MOSAIC-State_true
+    EXP_NAME=1Task-${TASK_str}-MOSAIC-State_pos_gripper
     PROJECT_NAME=${EXP_NAME}
 
 elif [ "$TASK_NAME" == 'pick_place' ]; then
@@ -268,7 +268,7 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-MOSAIC-Rollout
+    EXP_NAME=Provola      #1Task-${TASK_str}-MOSAIC-Rollout
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
@@ -329,7 +329,8 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     PROJECT_NAME=${EXP_NAME}
 fi
 
-srun --output=training_${TASK_NAME}_mosaic_rollout.txt --job-name=training_${TASK_NAME}_mosaic python -u ../training/train_scripts/train_any.py \
+#
+srun --output=training_${EXP_NAME}.txt --job-name=training_${EXP_NAME} python -u ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \

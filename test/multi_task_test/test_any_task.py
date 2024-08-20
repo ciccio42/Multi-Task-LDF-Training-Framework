@@ -140,7 +140,7 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
 
 
 def rollout_imitation(model, config, ctr,
-                      heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, gt_bb=False, sub_action=False, gt_action=4, real=True, gt_file=None):
+                      heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, gt_bb=False, sub_action=False, gt_action=4, real=True, gt_file=None, place=False):
     if gpu_id == -1:
         gpu_id = int(ctr % torch.cuda.device_count())
     print(f"Model GPU id {gpu_id}")
@@ -198,7 +198,8 @@ def rollout_imitation(model, config, ctr,
                              task_name=env_name,
                              real=real,
                              expert_traj=expert_traj,
-                             gt_file=gt_file)
+                             gt_file=gt_file,
+                             place_bb_flag=place)
         print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             ctr, variation_id, info['reached'], info['picked'], info['success']))
         # print(f"Avg prediction {info['avg_pred']}")
@@ -278,7 +279,8 @@ def _proc(model, config, results_dir, heights, widths, size, shape, color, env_n
                                                sub_action=sub_action,
                                                gt_action=gt_action,
                                                real=real,
-                                               gt_file=gt_file)
+                                               gt_file=gt_file,
+                                               place=place)
         else:
             if variation is not None:
                 variation_id = variation[n % len(variation)]
@@ -391,7 +393,7 @@ if __name__ == '__main__':
 
     try_path = args.model
     real = True if "Real" in try_path else False
-    place = True if "KP" in try_path else False
+    place = True if ("KP" in try_path or "Double" in try_path) else False
     # if 'log' not in args.model and 'mosaic' not in args.model:
     #     print("Appending dir to given exp_name: ", args.model)
     #     try_path = join(LOG_PATH, args.model)
@@ -595,8 +597,8 @@ if __name__ == '__main__':
                               args.gt_bb,
                               args.sub_action,
                               args.gt_action,
-                              place,
-                              real)
+                              real,
+                              place)
 
         random.seed(42)
         np.random.seed(42)

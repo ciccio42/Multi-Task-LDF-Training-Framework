@@ -26,14 +26,17 @@ VAL_FREQ=-1
 DEVICE=0
 DEBUG=false
 WANDB_LOG=true
-ROLLOUT=false
+ROLLOUT=true
 EPOCH=90
-LOADER_WORKERS=8
+LOADER_WORKERS=16
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
 CONCAT_IMG_EMB=true
 CONCAT_DEMO_EMB=true
-CONCAT_STATE=true
+CONCAT_STATE=false
+
+CONCAT_BB=false
+LOAD_TARGET_OBJ_DETECTOR=false
 
 if [ "$TASK_NAME" == 'nut_assembly' ]; then
     echo "NUT-ASSEMBLY"
@@ -43,10 +46,8 @@ if [ "$TASK_NAME" == 'nut_assembly' ]; then
     RESUME_STEP=18640
     RESUME=false
 
-    LOAD_TARGET_OBJ_DETECTOR=true
     TARGET_OBJ_DETECTOR_STEP=53091 #68526 #129762 #198900 #65250
     TARGET_OBJ_DETECTOR_PATH=${SAVE_PATH}/1Task-Nut-Assemly-KP-Batch63
-    CONCAT_BB=true
 
     BSIZE=27 #32 #128 #64 #32
     COMPUTE_OBJ_DISTRIBUTION=false
@@ -96,7 +97,7 @@ if [ "$TASK_NAME" == 'nut_assembly' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="nut_assembly" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-Double-Policy-Rollout-Mixtures
+    EXP_NAME=1Task-${TASK_str}-Double-Policy-No_bb
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after_reaching' ]; then
     echo "BUTTON"
@@ -104,10 +105,8 @@ elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after
     RESUME_STEP=3624
     RESUME=false
 
-    LOAD_TARGET_OBJ_DETECTOR=true
     TARGET_OBJ_DETECTOR_STEP=44625 #68526 #129762 #198900 #65250
     TARGET_OBJ_DETECTOR_PATH=${SAVE_PATH}/Task-button-KP-no-scaled-Batch36
-    CONCAT_BB=true
 
     BSIZE=27 #32 #128 #64 #32
     COMPUTE_OBJ_DISTRIBUTION=false
@@ -157,7 +156,7 @@ elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after
     COSINE_ANNEALING=false
 
     TASK_str=${TASK_NAME} #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-press_button-Double-Policy-State_true
+    EXP_NAME=1Task-press_button--Double-Policy-No_bb
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'stack_block' ]; then
     echo "STACK_BLOCK"
@@ -165,10 +164,8 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
     RESUME_STEP=3624
     RESUME=false
 
-    LOAD_TARGET_OBJ_DETECTOR=true
     TARGET_OBJ_DETECTOR_STEP=37665 #68526 #129762 #198900 #65250
     TARGET_OBJ_DETECTOR_PATH=${SAVE_PATH}/1Task-stack_block-CTOD-KP-Batch36
-    CONCAT_BB=true
 
     BSIZE=27 #32 #128 #64 #32
     COMPUTE_OBJ_DISTRIBUTION=false
@@ -218,7 +215,7 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
     COSINE_ANNEALING=false
 
     TASK_str=${TASK_NAME} #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-Double-Policy-State_true
+    EXP_NAME=1Task-${TASK_str}-Double-Policy-No_bb
     PROJECT_NAME=${EXP_NAME}
 
 elif [ "$TASK_NAME" == 'pick_place' ]; then
@@ -228,10 +225,8 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     RESUME_STEP=99417
     RESUME=false
 
-    LOAD_TARGET_OBJ_DETECTOR=true
     TARGET_OBJ_DETECTOR_STEP=37476 #68526 #129762 #198900 #65250
     TARGET_OBJ_DETECTOR_PATH=${SAVE_PATH}/1Task-Pick-Place-KP-Batch112
-    CONCAT_BB=true
 
     BSIZE=32 #32 #128 #64 #32
     COMPUTE_OBJ_DISTRIBUTION=false
@@ -282,7 +277,7 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-Double-Policy-Rollout
+    EXP_NAME=1Task-${TASK_str}-Double-Policy-No_bb
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
@@ -349,7 +344,7 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     PROJECT_NAME=${EXP_NAME}
 fi
 
-# srun --output=training_${EXP_NAME}.txt --job-name=training_${TASK_NAME}
+#
 srun --output=training_${EXP_NAME}.txt --job-name=training_${TASK_NAME} python -u ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \

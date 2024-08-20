@@ -874,7 +874,8 @@ class VideoImitation(nn.Module):
         """directly modifies output dict to put action outputs inside"""
         out = dict()
         # single-head case
-        bb.requires_grad = True
+        if bb is not None:
+            bb.requires_grad = True
         if embed_out is not None:
             demo_embed, img_embed = embed_out['demo_embed'], embed_out['img_embed']
             assert demo_embed.shape[1] == self._demo_T
@@ -1142,10 +1143,11 @@ class VideoImitation(nn.Module):
             out = self.get_action(
                 embed_out=embed_out,
                 target_obj_embedding=target_obj_embedding,
-                bb=None,
+                bb=torch.zeros(B, obs_T, 2, 4).to(images.get_device()),
                 ret_dist=ret_dist,
                 states=states,
-                eval=eval)
+                eval=eval,
+                first_phase=self.first_phase if eval else first_phase)
 
         if self._concat_bb:
             out['predicted_bb'] = predicted_bb

@@ -172,6 +172,7 @@ class MultiTaskPairedDataset(Dataset):
             sub_task_id)
         # end = time.time()
         # print(f"Make traj {end-start}")
+        # print(sub_task_id)
         return {'demo_data': demo_data, 'traj': traj, 'task_name': task_name, 'task_id': sub_task_id}
 
     def _make_traj(self, traj, command, task_name, sub_task_id):

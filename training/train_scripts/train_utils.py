@@ -600,17 +600,18 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
         all_losses["loss_sum"] = bc_loss + aux_loss
     else:
         if "VideoImitation" in config.policy._target_:
+            # assert model_inputs['images'].shape[0] == 12, f"Batch input {model_inputs['images'].shape[0]}"
             out = model(
-                images=model_inputs['images'],
-                images_cp=model_inputs['images_cp'],
-                context=model_inputs['demo'],
-                context_cp=model_inputs['demo_cp'],
-                states=model_inputs['states'],
-                bb=model_inputs['gt_bb'],
-                gt_classes=model_inputs['gt_classes'],
+                images=copy.deepcopy(model_inputs['images']),
+                images_cp=copy.deepcopy(model_inputs['images_cp']),
+                context=copy.deepcopy(model_inputs['demo']),
+                context_cp=copy.deepcopy(model_inputs['demo_cp']),
+                states=copy.deepcopy(model_inputs['states']),
+                bb=copy.deepcopy(model_inputs['gt_bb']),
+                gt_classes=copy.deepcopy(model_inputs['gt_classes']),
                 ret_dist=False,
-                actions=model_inputs['actions'],
-                first_phase=model_inputs.get('first_phase', None))
+                actions=copy.deepcopy(model_inputs['actions']),
+                first_phase=copy.deepcopy(model_inputs.get('first_phase', None)))
         elif "CondPolicy" in config.policy._target_:
             out = model(
                 inputs=model_inputs,
@@ -994,11 +995,11 @@ class Trainer:
         # wrap model in DataParallel if needed and transfer to correct device
         print('\n-------------------\nTraining stage\nFound {} GPU devices \n'.format(self.device_count))
 
-        if self.device_count > 1 and not isinstance(model, nn.DataParallel):
-            print("Training stage \n Device list: {}".format(self._device_list))
-            model = nn.DataParallel(model, device_ids=self._device_list).cuda()
-        else:
-            model = model.to(self._device)
+        # if self.device_count > 1 and not isinstance(model, nn.DataParallel):
+        #     print("Training stage \n Device list: {}".format(self._device_list))
+        #     model = nn.DataParallel(model, device_ids=self._device_list).cuda()
+        # else:
+        model = model.to(self._device)
 
         # save model
         # save the model's state dictionary to a file
@@ -1099,27 +1100,18 @@ class Trainer:
 
         for e in range(epochs):
             frac = e / epochs
+            print(f"Training frac {frac}")
             # with tqdm(self._train_loader, unit="batch") as tepoch:
+            
+            #### ---- Train loop ----####
             for inputs in tqdm(self._train_loader):
                 tolog = {}
                 # Save stats
                 if save_freq != 0 and self._step % save_freq == 0 and e != 0:  # stats
-                    if not self.config.get("rollout", False):
-                        self.save_checkpoint(
-                            model, optimizer, weights_fn, save_fn)
-                        if save_fn is not None:
-                            save_fn(self._save_fname, self._step)
-                        else:
-                            save_module = model
-                            if weights_fn is not None:
-                                save_module = weights_fn()
-                            elif isinstance(model, nn.DataParallel):
-                                save_module = model.module
-                            torch.save(save_module.state_dict(),
-                                       self._save_fname + '-{}.pt'.format(self._step))
-                        if self.config.get('save_optim', False):
-                            torch.save(optimizer.state_dict(
-                            ), self._save_fname + '-optim.pt')
+                    # if not self.config.get("rollout", False):
+                    self.save_checkpoint(
+                        model, optimizer, weights_fn, save_fn)
+                    
 
                     stats_save_name = join(
                         self.save_dir, 'stats', '{}.json'.format('train_val_stats'))
@@ -1214,174 +1206,7 @@ class Trainer:
                             'Training epoch {1}/{2}, step {0}: \t '.format(self._step, e, epochs))
                         print(train_print)
 
-                #### ---- Validation step ----####
-                # e != 0 and self._step % val_freq == 0
-                if ((e % 10 == 0) and (self._step % val_freq == 0) and not self.config.get("use_daml", False)) or (e == epochs-1):
-                    print("Validation")
-                    rollout = self.config.get("rollout", False)
-                    model = model.eval()
-                    if not rollout:
-                        # exhaust all data in val loader and take avg loss
-                        all_val_losses = {task: defaultdict(
-                            list) for task in task_names}
-                        # val_iter = iter(self._val_loader)
-                        # for i, val_inputs in tqdm(enumerate(self._val_loader), total=len(self._val_loader)):
-                        for val_inputs in tqdm(self._val_loader):
-                            use_daml = self.config.get("use_daml", False)
-                            if use_daml:  # allow grad!
-                                val_task_losses = loss_function(
-                                    self.config, self.train_cfg,  self._device, model, val_inputs)
-                            else:
-                                with torch.no_grad():
-                                    val_task_losses = loss_function(
-                                        self.config,
-                                        self.train_cfg,
-                                        self._device,
-                                        model,
-                                        val_inputs,
-                                        val=False)
-
-                            for task, losses in val_task_losses.items():
-                                for k, v in losses.items():
-                                    all_val_losses[task][k].append(v)
-
-                        # take average across all batches in the val loader
-                        avg_losses = dict()
-                        for task, losses in all_val_losses.items():
-                            avg_losses[task] = {
-                                k: torch.mean(torch.stack(v)) for k, v in losses.items()}
-
-                        if self.config.wandb_log:
-                            tolog['Validation Step'] = self._step
-                            for task_name, losses in avg_losses.items():
-                                for loss_name, loss_val in losses.items():
-                                    tolog[f'val/{loss_name}/{task_name}'] = loss_val
-                                    tolog[f'val/{task_name}/{loss_name}'] = loss_val
-
-                        val_print = collect_stats(
-                            self._step, avg_losses, raw_stats, prefix='val')
-                        if (self._step % len(self._train_loader) == 0):
-                            print('Validation step {}:'.format(self._step))
-                            print(val_print)
-
-                        # compute the sum of validation losses
-                        weighted_task_loss_val = sum(
-                            [l["loss_sum"] * task_loss_muls.get(name) for name, l in avg_losses.items()])
-                        if self.config.train_cfg.lr_schedule != 'None':
-                            # perform lr-scheduling step
-                            scheduler.step(val_loss=weighted_task_loss_val)
-                            if self.config.wandb_log:
-                                # log learning-rate
-                                tolog['Validation Step'] = self._step
-                                tolog['learning_rate'] = scheduler._schedule.optimizer.param_groups[0]['lr']
-
-                        # check for early stopping
-                        if self.train_cfg.early_stopping.patience != -1:
-                            self._early_stopping(
-                                weighted_task_loss_val, model, self._step, optimizer)
-                    elif rollout:  # and self._step != 0:
-                        import functools
-                        from torch.multiprocessing import Pool
-                        from train_any import seed_everything
-                        from multi_task_test.test_any_task import _proc
-                        del inputs
-                        gc.collect()
-                        torch.cuda.empty_cache()
-
-                        target_obj_dec = None
-                        controller_path = "/home/rsofnc000/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json"
-                        model_name = self.config.policy._target_
-
-                        for task in self.tasks:
-                            import random
-                            task_name = task['name']
-                            results_dir = os.path.join(
-                                self.save_dir, 'results_{}_{}/'.format(task_name, e))
-                            os.makedirs(results_dir, exist_ok=True)
-                            seed_everything(seed=42)
-                            n_run_per_task = 5
-                            N_step = 95
-                            gt_bb = True if model._concat_bb and model._object_detector is None else False
-                            place = True if 'Double' in self.config.exp_name else False
-                            if len(self.config["tasks_cfgs"][task['name']].get('skip_ids', [])) == 0:
-                                n_run = int(n_run_per_task *
-                                            self.config["tasks_cfgs"][task['name']].get('n_tasks', 0))
-                                variation = None
-                            else:
-                                n_run = int(n_run_per_task *
-                                            len(self.config["tasks_cfgs"][task['name']].get('skip_ids', [])))
-                                variation = self.config["tasks_cfgs"][task['name']].get(
-                                    'skip_ids', [])
-
-                            f = functools.partial(_proc,
-                                                  model,
-                                                  self.config,
-                                                  results_dir,
-                                                  200,
-                                                  360,
-                                                  False,
-                                                  False,
-                                                  False,
-                                                  task_name,
-                                                  None,
-                                                  variation,
-                                                  N_step,
-                                                  controller_path,
-                                                  model_name,
-                                                  self._device_id,
-                                                  False,
-                                                  gt_bb,
-                                                  -1,
-                                                  -1,
-                                                  False,
-                                                  place
-                                                  )
-                            seeds = [(random.getrandbits(32), i, None)
-                                     for i in range(n_run)]
-                            with Pool(10) as p:
-                                task_success_flags = p.starmap(f, seeds)
-                            if "CondTargetObjectDetector" in self.config.policy._target_:
-                                all_mean_iou = [t['avg_iou']
-                                                for t in task_success_flags]
-                                all_fp = [t['num_false_positive']
-                                          for t in task_success_flags]
-                                tolog['avg_iou'] = np.mean(all_mean_iou)
-                                tolog['fp'] = np.mean(all_fp)
-                                if tolog['fp'] <= best_fp:
-                                    print(
-                                        f"Saving best model, from {best_fp} to {tolog['fp']}")
-                                    best_fp = tolog['fp']
-                                    self.save_checkpoint(
-                                        model, optimizer, weights_fn, save_fn)
-                            else:
-                                to_log = dict()
-                                flags = dict()
-                                for t in task_success_flags:
-                                    for k in t.keys():
-                                        if flags.get(k, None) is None:
-                                            flags[k] = [int(t[k])]
-                                        else:
-                                            flags[k].append(int(t[k]))
-                                for k in flags.keys():
-                                    avg_flags = np.mean(flags[k])
-                                    to_log[f'avg_{k}'] = avg_flags
-                                to_log[f'epoch'] = e
-                                wandb.log(to_log)
-
-                                # if tolog['avg_success'] >= best_avg_success:
-                                # print(
-                                #     f"Save model best_avg_success from {best_avg_success} to {tolog['avg_success']}")
-                                # best_avg_success = tolog['avg_success']
-                                # self.save_checkpoint(
-                                #     model, optimizer, weights_fn, save_fn)
-
-                            if self.config.wandb_log:
-                                wandb.log(tolog)
-
-                    model = model.train()
-                    if self._early_stopping.early_stop:
-                        break
-
+                
                 if scheduler != 'None' and self.config.cosine_annealing:
                     if self.config.wandb_log:
                         # log learning-rate
@@ -1400,14 +1225,189 @@ class Trainer:
                         mod.momentum_update(frac)
                         if self._step % self.train_cfg.target_update_freq == 0:
                             mod.soft_param_update()
-                if self._early_stopping.early_stop:
-                    print("----Stop training for early-stopping----")
-                    break
+                
+            #### ---- Validation step ----####
+            # e != 0 and self._step % val_freq == 0
+            if (((e % 10 == 0) or (e == epochs-1)) and (self._step % val_freq == 0) and not self.config.get("use_daml", False)) and self._val_loader is not None:
+                print("Validation")
+                rollout = self.config.get("rollout", False)
+                model = model.eval()
+                if not rollout:
+                    # exhaust all data in val loader and take avg loss
+                    all_val_losses = {task: defaultdict(
+                        list) for task in task_names}
+                    # val_iter = iter(self._val_loader)
+                    # for i, val_inputs in tqdm(enumerate(self._val_loader), total=len(self._val_loader)):
+                    for val_inputs in tqdm(self._val_loader):
+                        use_daml = self.config.get("use_daml", False)
+                        if use_daml:  # allow grad!
+                            val_task_losses = loss_function(
+                                self.config, self.train_cfg,  self._device, model, val_inputs)
+                        else:
+                            with torch.no_grad():
+                                val_task_losses = loss_function(
+                                    self.config,
+                                    self.train_cfg,
+                                    self._device,
+                                    model,
+                                    val_inputs,
+                                    val=False)
 
+                        for task, losses in val_task_losses.items():
+                            for k, v in losses.items():
+                                all_val_losses[task][k].append(v)
+
+                    # take average across all batches in the val loader
+                    avg_losses = dict()
+                    for task, losses in all_val_losses.items():
+                        avg_losses[task] = {
+                            k: torch.mean(torch.stack(v)) for k, v in losses.items()}
+
+                    if self.config.wandb_log:
+                        tolog['Validation Step'] = self._step
+                        for task_name, losses in avg_losses.items():
+                            for loss_name, loss_val in losses.items():
+                                tolog[f'val/{loss_name}/{task_name}'] = loss_val
+                                tolog[f'val/{task_name}/{loss_name}'] = loss_val
+
+                    val_print = collect_stats(
+                        self._step, avg_losses, raw_stats, prefix='val')
+                    if (self._step % len(self._train_loader) == 0):
+                        print('Validation step {}:'.format(self._step))
+                        print(val_print)
+
+                    # compute the sum of validation losses
+                    weighted_task_loss_val = sum(
+                        [l["loss_sum"] * task_loss_muls.get(name) for name, l in avg_losses.items()])
+                    if self.config.train_cfg.lr_schedule != 'None':
+                        # perform lr-scheduling step
+                        scheduler.step(val_loss=weighted_task_loss_val)
+                        if self.config.wandb_log:
+                            # log learning-rate
+                            tolog['Validation Step'] = self._step
+                            tolog['learning_rate'] = scheduler._schedule.optimizer.param_groups[0]['lr']
+
+                    # check for early stopping
+                    if self.train_cfg.early_stopping.patience != -1:
+                        self._early_stopping(
+                            weighted_task_loss_val, model, self._step, optimizer)
+                
+                elif rollout:  # and self._step != 0:
+                    import functools
+                    from torch.multiprocessing import Pool
+                    from train_any import seed_everything
+                    from multi_task_test.test_any_task import _proc
+                    del inputs
+                    gc.collect()
+                    torch.cuda.empty_cache()
+
+                    target_obj_dec = None
+                    controller_path = "/home/rsofnc000/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json"
+                    model_name = self.config.policy._target_
+
+                    for task in self.tasks:
+                        import random
+                        task_name = task['name']
+                        results_dir = os.path.join(
+                            self.save_dir, 'results_{}_{}/'.format(task_name, e))
+                        os.makedirs(results_dir, exist_ok=True)
+                        seed_everything(seed=42)
+                        n_run_per_task = 5
+                        N_step = 95
+                        gt_bb = True if model._concat_bb and model._object_detector is None else False
+                        place = True if 'Double' in self.config.exp_name else False
+                        task_cfg = self.config["tasks_cfgs"][task['name']] if 'button' not in task_name else self.config["tasks_cfgs"]['button']
+                        if len(task_cfg.get('skip_ids', [])) == 0:
+                            n_run = int(n_run_per_task *
+                                        task_cfg.get('n_tasks', 0))
+                            variation = None
+                        else:
+                            n_run = int(n_run_per_task *
+                                        len(task_cfg.get('skip_ids', [])))
+                            variation = task_cfg.get(
+                                'skip_ids', [])
+                        if 'button' in task_name:
+                            task_name_proc = 'button'
+                        else:
+                            task_name_proc = task_name
+                        f = functools.partial(_proc,
+                                                model,
+                                                self.config,
+                                                results_dir,
+                                                200,
+                                                360,
+                                                False,
+                                                False,
+                                                False,
+                                                task_name_proc,
+                                                None,
+                                                variation,
+                                                N_step,
+                                                controller_path,
+                                                model_name,
+                                                self._device_id,
+                                                False,
+                                                gt_bb,
+                                                -1,
+                                                -1,
+                                                False,
+                                                place
+                                                )
+                        seeds = [(random.getrandbits(32), i, None)
+                                    for i in range(n_run)]
+                        with Pool(10) as p:
+                            task_success_flags = p.starmap(f, seeds)
+                        if "CondTargetObjectDetector" in self.config.policy._target_:
+                            all_mean_iou = [t['avg_iou']
+                                            for t in task_success_flags]
+                            all_fp = [t['num_false_positive']
+                                        for t in task_success_flags]
+                            tolog['avg_iou'] = np.mean(all_mean_iou)
+                            tolog['fp'] = np.mean(all_fp)
+                            if tolog['fp'] <= best_fp:
+                                print(
+                                    f"Saving best model, from {best_fp} to {tolog['fp']}")
+                                best_fp = tolog['fp']
+                                self.save_checkpoint(
+                                    model, optimizer, weights_fn, save_fn)
+                        else:
+                            to_log = dict()
+                            flags = dict()
+                            for t in task_success_flags:
+                                for k in t.keys():
+                                    if flags.get(k, None) is None:
+                                        flags[k] = [int(t[k])]
+                                    else:
+                                        flags[k].append(int(t[k]))
+                            for k in flags.keys():
+                                avg_flags = np.mean(flags[k])
+                                to_log[f'avg_{k}'] = avg_flags
+                            to_log[f'epoch'] = e
+                            wandb.log(to_log)
+
+                            # if tolog['avg_success'] >= best_avg_success:
+                            # print(
+                            #     f"Save model best_avg_success from {best_avg_success} to {tolog['avg_success']}")
+                            # best_avg_success = tolog['avg_success']
+                            self.save_checkpoint(
+                                model, optimizer, weights_fn, save_fn, str(round(to_log['avg_success'], 3)).replace('.','_'))
+
+                        if self.config.wandb_log:
+                            wandb.log(tolog)
+
+                model = model.train()
+                
+                if self._early_stopping.early_stop:
+                    break
+        
+            if self._early_stopping.early_stop:
+                print("----Stop training for early-stopping----")
+                break
         # when all epochs are done, save model one last time
         self.save_checkpoint(model, optimizer, weights_fn, save_fn)
 
-    def save_checkpoint(self, model, optimizer, weights_fn=None, save_fn=None):
+    def save_checkpoint(self, model, optimizer, weights_fn=None, save_fn=None, save_name=None):
+        
         if save_fn is not None:
             save_fn(self._save_fname, self._step)
         else:
@@ -1416,8 +1416,12 @@ class Trainer:
                 save_module = weights_fn()
             elif isinstance(model, nn.DataParallel):
                 save_module = model.module
-            torch.save(save_module.state_dict(),
-                       self._save_fname + '-{}.pt'.format(self._step))
+            if save_name is not None:
+                torch.save(save_module.state_dict(),
+                        self._save_fname +'-{}-{}.pt'.format(save_name,self._step))
+            else:
+                torch.save(save_module.state_dict(),
+                        self._save_fname + '-{}.pt'.format(self._step))
         if self.config.get('save_optim', False):
             torch.save(optimizer.state_dict(), self._save_fname +
                        '-optim.pt')

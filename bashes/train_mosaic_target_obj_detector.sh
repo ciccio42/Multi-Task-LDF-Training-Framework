@@ -27,7 +27,7 @@ DEBUG=false
 WANDB_LOG=true
 ROLLOUT=true
 EPOCH=90
-LOADER_WORKERS=8
+LOADER_WORKERS=16
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
 CONCAT_IMG_EMB=true
@@ -96,7 +96,7 @@ if [ "$TASK_NAME" == 'nut_assembly' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="nut_assembly" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-MOSAIC-CTOD-State_pos_gripper
+    EXP_NAME=1Task-${TASK_str}-MOSAIC-CTOD-No_inv_No_Contrastive
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after_reaching' ]; then
     echo "BUTTON"
@@ -105,8 +105,8 @@ elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after
     RESUME=false
 
     LOAD_TARGET_OBJ_DETECTOR=true
-    TARGET_OBJ_DETECTOR_STEP=44625 #68526 #129762 #198900 #65250
-    TARGET_OBJ_DETECTOR_PATH=${SAVE_PATH}/Task-button-KP-no-scaled-Batch36
+    TARGET_OBJ_DETECTOR_STEP=153000 #68526 #129762 #198900 #65250
+    TARGET_OBJ_DETECTOR_PATH=${SAVE_PATH}/1Task-Button-Cond-Target-Obj-Detector-Batch12
     CONCAT_BB=true
 
     BSIZE=27 #32 #128 #64 #32
@@ -116,7 +116,6 @@ elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after
     SET_SAME_N=3
     NORMALIZE_ACTION=true
     CHANGE_COMMAND_EPOCH=true
-    SPLIT_PICK_PLACE=true
 
     LOAD_CONTRASTIVE=false
     LOAD_INV=false
@@ -158,7 +157,7 @@ elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after
     COSINE_ANNEALING=false
 
     TASK_str=${TASK_NAME} #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-press_button-Contrastive-MOSAIC-No-task-5
+    EXP_NAME=1Task-press_button-MOSAIC-CTOD-State_pos_gripper
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'stack_block' ]; then
     echo "STACK_BLOCK"
@@ -204,7 +203,7 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
     COSINE_ANNEALING=false
 
     TASK_str=${TASK_NAME} #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-CTOD-MOSAIC-No_0_3_5
+    EXP_NAME=1Task-${TASK_str}-MOSAIC-CTOD-State_pos_gripper
     PROJECT_NAME=${EXP_NAME}
 
 elif [ "$TASK_NAME" == 'pick_place' ]; then
@@ -303,7 +302,7 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     PROJECT_NAME=${EXP_NAME}
 fi
 
-srun --output=${EXP_NAME}.txt --job-name=training_${TASK_NAME} python -u ../training/train_scripts/train_any.py \
+srun --output=${EXP_NAME}.txt --job-name=${EXP_NAME} python -u ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \

@@ -17,7 +17,7 @@ def block_stack_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None,
     return NotImplementedError
 
 
-def block_stack_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False, sub_action=False, gt_action=4, real=True, gt_file=None):
+def block_stack_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False, sub_action=False, gt_action=4, real=True, gt_file=None, place=False):
 
     start_up_env_return = \
         startup_env(model=model,
@@ -80,7 +80,7 @@ def block_stack_eval_demo_cond(model, env, context, gpu_id, variation_id, img_fo
         else:
             gripper_state = action[-1]
         states.append(np.concatenate(
-            (obs['joint_pos'], obs['joint_vel'], [gripper_state])).astype(np.float32)[None])
+            (obs['joint_pos'], [gripper_state])).astype(np.float32)[None])
 
         obs, reward, info, action, env_done, time_action = task_run_action(
             traj=traj,
@@ -106,7 +106,8 @@ def block_stack_eval_demo_cond(model, env, context, gpu_id, variation_id, img_fo
             sub_action=sub_action,
             gt_action=gt_action,
             controller=controller,
-            target_obj_emb=target_obj_emb)
+            target_obj_emb=target_obj_emb,
+            place=place)
 
         traj.append(obs, reward, done, info, action)
 
@@ -149,7 +150,7 @@ def block_stack_eval_demo_cond(model, env, context, gpu_id, variation_id, img_fo
     return traj, tasks
 
 
-def block_stack_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action=4, real=True, expert_traj=None):
+def block_stack_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="pick_place", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action=4, real=True, expert_traj=None, place_bb_flag=False):
 
     if "vima" in model_name:
         return block_stack_eval_vima(model=model,
@@ -241,7 +242,8 @@ def block_stack_eval(model, env, gt_env, context, gpu_id, variation_id, img_form
                                           predict_gt_bb=gt_bb,
                                           sub_action=sub_action,
                                           gt_action=gt_action,
-                                          real=real
+                                          real=real,
+                                          place=place_bb_flag
                                           )
 
 

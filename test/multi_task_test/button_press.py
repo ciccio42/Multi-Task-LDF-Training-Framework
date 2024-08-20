@@ -17,7 +17,7 @@ def press_button_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None
     return NotImplementedError
 
 
-def press_button_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False, sub_action=False, gt_action=4, real=True, gt_file=None, expert_traj=None):
+def press_button_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, predict_gt_bb=False, sub_action=False, gt_action=4, real=True, gt_file=None, expert_traj=None, place=False):
 
     start_up_env_return = \
         startup_env(model=model,
@@ -92,7 +92,7 @@ def press_button_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
         else:
             gripper_state = action[-1]
         states.append(np.concatenate(
-            (obs['joint_pos'], obs['joint_vel'], [gripper_state])).astype(np.float32)[None])
+            (obs['joint_pos'], [gripper_state])).astype(np.float32)[None])
 
         obs, reward, info, action, env_done, time_action = task_run_action(
             traj=traj,
@@ -119,7 +119,8 @@ def press_button_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
             gt_action=gt_action,
             controller=controller,
             target_obj_emb=target_obj_emb,
-            expert_traj=expert_traj)
+            expert_traj=expert_traj,
+            place=place)
 
         traj.append(obs, reward, done, info, action)
 
@@ -148,7 +149,7 @@ def press_button_eval_demo_cond(model, env, context, gpu_id, variation_id, img_f
     return traj, tasks
 
 
-def press_button_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="nut_assembly", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action=4, real=True, **kwargs):
+def press_button_eval(model, env, gt_env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, action_ranges=[], model_name=None, task_name="nut_assembly", config=None, gt_file=None, gt_bb=False, sub_action=False, gt_action=4, real=True, place_bb_flag=False, **kwargs):
 
     if "vima" in model_name:
         return press_button_eval_vima(model=model,
@@ -245,5 +246,6 @@ def press_button_eval(model, env, gt_env, context, gpu_id, variation_id, img_for
                                            real=real,
                                            gt_file=gt_file,
                                            expert_traj=kwargs.get(
-                                               'expert_traj', None)
+                                               'expert_traj', None),
+                                           place=place_bb_flag
                                            )

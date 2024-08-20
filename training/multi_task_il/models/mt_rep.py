@@ -817,6 +817,7 @@ class VideoImitation(nn.Module):
                 # Project bb over image
                 # 1. Get the index with target class
                 for indx in range(len(prediction['classes_final'])):
+                                            
                     target_indx_flags = prediction['classes_final'][indx] == 1
                     place_indx_flags = torch.zeros((1, 1))
                     if "KP" in self._target_obj_detector_path:
@@ -838,6 +839,14 @@ class VideoImitation(nn.Module):
                         print("No bb target for some frames")
                         # Get index for target object
                         predicted_bb = torch.zeros(
+                            4).to(device=images.get_device())
+                    
+                    if "REAL" in self._target_obj_detector_path or "real" in self._target_obj_detector_path:
+                        batch_indx = int(indx/obs_T)
+                        gripper_state = actions[batch_indx][0][0][-1]
+                        if gripper_state == 1:
+                            # if the gripper is closed (the robot has just picked the object or is moving, delete the bb input)
+                            predicted_bb = torch.zeros(
                             4).to(device=images.get_device())
 
                     # get place bb
