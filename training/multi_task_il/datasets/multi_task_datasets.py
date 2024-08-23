@@ -199,12 +199,12 @@ class MultiTaskPairedDataset(Dataset):
             last_t = chosen_t[-1].item()
             if task_name == 'nut_assembly' or task_name == 'pick_place' or 'button' in task_name or 'stack_block' in task_name:
                 first_step_gripper_state = traj.get(first_t)['action'][-1]
-                first_phase = True if first_step_gripper_state == -1.0 else False
+                first_phase = True if first_step_gripper_state == -1.0 or first_step_gripper_state == 0.0 else False
                 last_step_gripper_state = traj.get(last_t)['action'][-1]
 
                 # if first_step_gripper_state == 1.0 and last_step_gripper_state == -1.0:
                 #     print("Last with placing")
-                if (first_step_gripper_state != last_step_gripper_state) and not (first_step_gripper_state == 1.0 and last_step_gripper_state == -1.0):
+                if (first_step_gripper_state != last_step_gripper_state) and not (first_step_gripper_state == 1.0 and (last_step_gripper_state == -1.0 or last_step_gripper_state == 0.0)):
                     # change in task phase
                     for indx, step in enumerate(range(first_t, last_t+1)):
                         action_t = traj.get(step)['action'][-1]

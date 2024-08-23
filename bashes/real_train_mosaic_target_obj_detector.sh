@@ -25,7 +25,7 @@ DEVICE=0
 DEBUG=false
 WANDB_LOG=true
 
-EXP_NAME=Real-Pick-Place-MOSAIC-CTOD_No_State_No_finetuned_No_val
+EXP_NAME=Real-Pick-Place-MOSAIC-CTOD_No_State_No_finetuned_No_val_0_1_4_5_8_9
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place #[pick_place,nut_assembly]
 
@@ -35,8 +35,8 @@ RESUME=false
 FINETUNE=false
 
 LOAD_TARGET_OBJ_DETECTOR=true
-TARGET_OBJ_DETECTOR_STEP=37422
-TARGET_OBJ_DETECTOR_PATH=/home/rsofnc000/checkpoint_save_folder/1Task-REAL-pick_place-CTOD-Batch28
+TARGET_OBJ_DETECTOR_STEP=28272
+TARGET_OBJ_DETECTOR_PATH=/home/rsofnc000/checkpoint_save_folder/Real-1Task-pick_place-CTOD_0_1_4_5_8_9-Batch42
 CONCAT_BB=true
 
 AGENT_NAME=real_new_ur5e
@@ -50,16 +50,17 @@ BALANCING_POLICY=0
 SET_SAME_N=3
 CONFIG_PATH=../experiments
 CONFIG_NAME=config_real.yaml
-LOADER_WORKERS=8
+LOADER_WORKERS=16
 NORMALIZE_ACTION=true
 PICK_NEXT=true
 
-LOAD_CONTRASTIVE=true
-CONTRASTIVE_PRE=1.0
-CONTRASTIVE_POS=1.0
+LOAD_CONTRASTIVE=false
+LOAD_INV=false
+CONTRASTIVE_PRE=0.0
+CONTRASTIVE_POS=0.0
 MUL_INTM=0
 BC_MUL=1.0
-INV_MUL=1.0
+INV_MUL=0.0
 
 FREEZE_TARGET_OBJ_DETECTOR=false
 REMOVE_CLASS_LAYERS=false
@@ -83,16 +84,17 @@ LR=0.0005
 WEIGHT_DECAY=0.0
 SCHEDULER=None
 
-DROP_DIM=3      # 2    # 3
-OUT_FEATURE=256 # 512 # 256
-DIM_H=7         #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
-DIM_W=12        #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
+DROP_DIM=4      # 2    # 3
+OUT_FEATURE=128 # 512 # 256
+DIM_H=13        #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
+DIM_W=23        #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 HEIGHT=100
 WIDTH=180
 
 COSINE_ANNEALING=false
-# srun --output=${PROJECT_NAME}.txt --job-name=${PROJECT_NAME}
-python ../training/train_scripts/train_any.py \
+
+#
+srun --output=train_${EXP_NAME}.txt --job-name=${EXP_NAME} python ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \

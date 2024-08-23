@@ -835,10 +835,10 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
         if take_place_loc and 'button' not in task_name and task_name != 'stack_block':
             target_place_id = target_place_id + \
                 NUM_VARIATION_PER_OBEJECT[task_name][0] + \
-                1*(task_name == 'pick_place')
+                1*(task_name == 'pick_place' and 'bin' in dict_keys)
             no_target_place_id = no_target_place_id + \
                 NUM_VARIATION_PER_OBEJECT[task_name][0] + \
-                1*(task_name == 'pick_place')
+                1*(task_name == 'pick_place' and 'bin' in dict_keys)
     except:
         dict_keys = list(step_t['obs']['obj_bb'].keys())
 
@@ -926,9 +926,9 @@ def create_gt_bb(dataset_loader, traj, step_t, task_name, distractor=False, comm
             step_t['obs']['camera_front_image'][:, :, ::-1])
         for i, single_bb in enumerate(bb):
             if i == 0 or i == 2:
-                color = (0, 255, 0)
+                color = (0, 255, 0) # green no-targ
             else:
-                color = (255, 0, 0)
+                color = (255, 0, 0) # blue target
             image = cv2.rectangle(image,
                                   (int(single_bb[0]),
                                    int(single_bb[1])),

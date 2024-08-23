@@ -1,8 +1,9 @@
 #!/bin/bash
+
 # export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
 # export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
-# export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
+# # export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
+# # export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 # export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
 # export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 # export CUDA_VISIBLE_DEVICES=0
@@ -18,7 +19,7 @@ export HYDRA_FULL_ERROR=1
 EXPERT_DATA=/home/rsofnc000/dataset/opt_dataset
 SAVE_PATH=/home/rsofnc000/checkpoint_save_folder
 POLICY='${cond_target_obj_detector}'
-DATASET_TARGET=multi_task_il.datasets.multi_task_cond_target_obj_dataset.CondTargetObjDetectorDataset
+DATASET_TARGET=multi_task_il.datasets.multi_task_keypoint_dataset.MultiTaskPairedKeypointDetectionDataset
 TASKS_CONFIG=7_tasks_real
 AGENT_NAME=real_new_ur5e
 
@@ -39,7 +40,7 @@ BSIZE=80 #16 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector_real.yaml
-LOADER_WORKERS=8
+LOADER_WORKERS=16
 BALANCING_POLICY=0
 OBS_T=7
 
@@ -60,12 +61,12 @@ DIM_H=13        #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 
 DIM_W=23        #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
 HEIGHT=100
 WIDTH=180
-N_CLASSES=2
+N_CLASSES=4
 
 if [ "$TASK_NAME" == 'nut_assembly' ]; then
     echo "NUT-ASSEMBLY"
     TASK_str="nut_assembly"
-    EXP_NAME=1Task-${TASK_str}-CTOD_No_0_4_8
+    EXP_NAME=1Task-${TASK_str}-CTOD-KP_MO_0_4_8
     PROJECT_NAME=${EXP_NAME}
     SET_SAME_N=7
     RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
@@ -74,35 +75,35 @@ if [ "$TASK_NAME" == 'nut_assembly' ]; then
 elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after_reaching' ]; then
     echo "BUTTON"
     TASK_str="press_button_close_after_reaching"
-    EXP_NAME=1Task-press_button-CTOD
+    EXP_NAME=1Task-press_button-CTOD-KP
     PROJECT_NAME=${EXP_NAME}
 
     RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
     RESUME_STEP=72675
-    RESUME=true
+    RESUME=false
 elif [ "$TASK_NAME" == 'stack_block' ]; then
     echo "STACK_BLOCK"
     TASK_str="stack_block"
-    EXP_NAME=1Task-${TASK_str}-CTOD_No_0_3_5
+    EXP_NAME=1Task-${TASK_str}-CTOD-KP_NO_0_3_5
     PROJECT_NAME=${EXP_NAME}
-
+    SET_SAME_N=7
     RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
     RESUME_STEP=72675
     RESUME=false
 elif [ "$TASK_NAME" == 'pick_place' ]; then
     echo "Pick-Place"
     TASK_str="pick_place"
-    EXP_NAME=Real-1Task-${TASK_str}-CTOD_0_1_4_5_8_9
+    EXP_NAME=Real-1Task-${TASK_str}-KP_0_1_4_5_8_9
     PROJECT_NAME=${EXP_NAME}
     SET_SAME_N=7
-    RESUME_PATH=/home/rsofnc000/checkpoint_save_folder/1Task-Pick-Place-Cond-Target-Obj-Detector-separate-demo-agent-Batch80
-    RESUME_STEP=64152
+    RESUME_PATH=/home/rsofnc000/checkpoint_save_folder/1Task-Pick-Place-KP-Batch112
+    RESUME_STEP=37476
     RESUME=false
     FINETUNE=true
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
     TASK_str=["pick_place","nut_assembly","stack_block","press_button_close_after_reaching"]
-    EXP_NAME=4Task-CTOD #1Task-${TASK_str}-CTOD
+    EXP_NAME=4Task-CTOD-KP #1Task-${TASK_str}-CTOD-KP
     PROJECT_NAME=${EXP_NAME}
 
     RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
@@ -110,7 +111,7 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     RESUME=false
 fi
 
-srun --output=train_${PROJECT_NAME}.txt --job-name=${PROJECT_NAME} python -u ../training/train_scripts/train_any.py \
+srun --output=training_${EXP_NAME}.txt --job-name=training_${EXP_NAME} python -u ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \
@@ -127,8 +128,8 @@ srun --output=train_${PROJECT_NAME}.txt --job-name=${PROJECT_NAME} python -u ../
     bsize=${BSIZE} \
     vsize=${BSIZE} \
     epochs=${EPOCH} \
-    dataset_cfg.obs_T=${OBS_T} \
     dataset_cfg.agent_name=${AGENT_NAME} \
+    dataset_cfg.obs_T=${OBS_T} \
     dataset_cfg.non_sequential=${NON_SEQUENTIAL} \
     dataset_cfg.compute_obj_distribution=${COMPUTE_OBJ_DISTRIBUTION} \
     dataset_cfg.first_frames=${FIRST_FRAMES} \
@@ -157,5 +158,4 @@ srun --output=train_${PROJECT_NAME}.txt --job-name=${PROJECT_NAME} python -u ../
     debug=${DEBUG} \
     wandb_log=${WANDB_LOG} \
     resume=${RESUME} \
-    finetune=${FINETUNE} \
     loader_workers=${LOADER_WORKERS}

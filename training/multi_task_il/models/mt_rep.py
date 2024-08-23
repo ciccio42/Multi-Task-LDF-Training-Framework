@@ -841,7 +841,7 @@ class VideoImitation(nn.Module):
                         predicted_bb = torch.zeros(
                             4).to(device=images.get_device())
                     
-                    if "REAL" in self._target_obj_detector_path or "real" in self._target_obj_detector_path:
+                    if "REAL" in self._target_obj_detector_path or "real" in self._target_obj_detector_path or "Real" in self._target_obj_detector_path:
                         batch_indx = int(indx/obs_T)
                         gripper_state = actions[batch_indx][0][0][-1]
                         if gripper_state == 1:

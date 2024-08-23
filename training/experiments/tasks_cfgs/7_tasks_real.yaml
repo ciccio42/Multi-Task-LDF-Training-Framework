@@ -49,7 +49,7 @@ pick_place:
   agent_crop:        [0, 30, 120, 120] # Render: top, distance_bottom, left, distance_right
   n_per_task:        2
   task_ids:          [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] #[0,1,2,3] #[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
-  skip_ids:          [2,3,6,7,8,9,10,11,12,13,14,15]
+  skip_ids:          [2,3,6,7,10,11,12,13,14,15]
   loss_mul:          1
   task_per_batch:    16
   traj_per_subtask:  80

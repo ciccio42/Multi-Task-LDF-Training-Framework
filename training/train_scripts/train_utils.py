@@ -1084,7 +1084,7 @@ class Trainer:
         # summary(model)
 
         step = 0
-        best_fp = np.inf
+        best_tp = 0
         best_avg_success = 0.0
         # # take the parameters of action modules
         # torch.stack((model._action_module.parameters(
@@ -1225,14 +1225,22 @@ class Trainer:
                         mod.momentum_update(frac)
                         if self._step % self.train_cfg.target_update_freq == 0:
                             mod.soft_param_update()
-                
+                            
             #### ---- Validation step ----####
             # e != 0 and self._step % val_freq == 0
-            if (((e % 10 == 0) or (e == epochs-1)) and (self._step % val_freq == 0) and not self.config.get("use_daml", False)) and self._val_loader is not None:
+            validate = False
+            if "CondTargetObjectDetector" in self.config.policy._target_:
+                if (self._step % val_freq == 0) and not self.config.get("use_daml", False) and self._val_loader is not None:
+                    validate = True
+            else:
+                if (((e % 10 == 0) or (e == epochs-1)) and (self._step % val_freq == 0) and not self.config.get("use_daml", False)) and self._val_loader is not None:
+                    validate= True
+            if validate:
                 print("Validation")
                 rollout = self.config.get("rollout", False)
                 model = model.eval()
                 if not rollout:
+                    to_log = dict()
                     # exhaust all data in val loader and take avg loss
                     all_val_losses = {task: defaultdict(
                         list) for task in task_names}
@@ -1264,11 +1272,12 @@ class Trainer:
                             k: torch.mean(torch.stack(v)) for k, v in losses.items()}
 
                     if self.config.wandb_log:
-                        tolog['Validation Step'] = self._step
+                        to_log['Validation Step'] = self._step
+                        to_log['epoch'] = e
                         for task_name, losses in avg_losses.items():
                             for loss_name, loss_val in losses.items():
-                                tolog[f'val/{loss_name}/{task_name}'] = loss_val
-                                tolog[f'val/{task_name}/{loss_name}'] = loss_val
+                                to_log[f'val/{loss_name}/{task_name}'] = loss_val
+                                to_log[f'val/{task_name}/{loss_name}'] = loss_val
 
                     val_print = collect_stats(
                         self._step, avg_losses, raw_stats, prefix='val')
@@ -1284,13 +1293,16 @@ class Trainer:
                         scheduler.step(val_loss=weighted_task_loss_val)
                         if self.config.wandb_log:
                             # log learning-rate
-                            tolog['Validation Step'] = self._step
-                            tolog['learning_rate'] = scheduler._schedule.optimizer.param_groups[0]['lr']
+                            to_log['Validation Step'] = self._step
+                            to_log['learning_rate'] = scheduler._schedule.optimizer.param_groups[0]['lr']
 
                     # check for early stopping
                     if self.train_cfg.early_stopping.patience != -1:
                         self._early_stopping(
                             weighted_task_loss_val, model, self._step, optimizer)
+                        
+                    if self.config.wandb_log:
+                            wandb.log(to_log)
                 
                 elif rollout:  # and self._step != 0:
                     import functools
@@ -1314,7 +1326,10 @@ class Trainer:
                         seed_everything(seed=42)
                         n_run_per_task = 5
                         N_step = 95
-                        gt_bb = True if model._concat_bb and model._object_detector is None else False
+                        if "MOSAIC" in self.config.exp_name or "Double" in self.config.exp_name:
+                            gt_bb = True if model._concat_bb and model._object_detector is None else False
+                        else:
+                            gt_bb = False
                         place = True if 'Double' in self.config.exp_name else False
                         task_cfg = self.config["tasks_cfgs"][task['name']] if 'button' not in task_name else self.config["tasks_cfgs"]['button']
                         if len(task_cfg.get('skip_ids', [])) == 0:
@@ -1358,18 +1373,22 @@ class Trainer:
                         with Pool(10) as p:
                             task_success_flags = p.starmap(f, seeds)
                         if "CondTargetObjectDetector" in self.config.policy._target_:
+                            to_log = dict()
                             all_mean_iou = [t['avg_iou']
                                             for t in task_success_flags]
-                            all_fp = [t['num_false_positive']
+                            all_fp = [t['avg_fp']
                                         for t in task_success_flags]
-                            tolog['avg_iou'] = np.mean(all_mean_iou)
-                            tolog['fp'] = np.mean(all_fp)
-                            if tolog['fp'] <= best_fp:
+                            all_tp = [t['avg_tp']
+                                        for t in task_success_flags]
+                            to_log['avg_iou'] = np.mean(all_mean_iou)
+                            to_log['avg_fp'] = np.mean(all_fp)
+                            to_log['avg_tp'] = np.mean(all_tp)
+                            if to_log['avg_tp'] >= best_tp:
                                 print(
-                                    f"Saving best model, from {best_fp} to {tolog['fp']}")
-                                best_fp = tolog['fp']
+                                    f"Saving best model, from {best_tp} to {to_log['avg_tp']}")
+                                best_tp = to_log['avg_tp']
                                 self.save_checkpoint(
-                                    model, optimizer, weights_fn, save_fn)
+                                    model, optimizer, weights_fn, save_fn, to_log['avg_tp'])
                         else:
                             to_log = dict()
                             flags = dict()
@@ -1393,7 +1412,7 @@ class Trainer:
                                 model, optimizer, weights_fn, save_fn, str(round(to_log['avg_success'], 3)).replace('.','_'))
 
                         if self.config.wandb_log:
-                            wandb.log(tolog)
+                            wandb.log(to_log)
 
                 model = model.train()
                 

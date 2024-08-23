@@ -48,7 +48,7 @@ def extract_last_number(path):
     return int(check_point_number)
 
 
-def object_detection_inference(model, config, ctr, heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, traj_file=None, context_file=None, gt_bb=False, build_context_flag=False):
+def object_detection_inference(model, config, ctr, heights=100, widths=200, size=0, shape=0, color=0, max_T=150, env_name='place', gpu_id=-1, baseline=None, variation=None, controller_path=None, seed=None, action_ranges=[], model_name=None, traj_file=None, context_file=None, gt_bb=False, build_context_flag=False, place_bb_flag=False):
 
     if gpu_id == -1:
         gpu_id = int(ctr % torch.cuda.device_count())
@@ -133,7 +133,8 @@ def object_detection_inference(model, config, ctr, heights=100, widths=200, size
                          task_name=env_name,
                          config=config,
                          gt_file=traj_data_trj,
-                         gt_bb=gt_bb)
+                         gt_bb=gt_bb,
+                         place_bb_flag= place_bb_flag)
 
     if "cond_target_obj_detector" in model_name:
         print("Evaluated traj #{}, task #{}, TP {}, FP {}, FN {}".format(
@@ -245,7 +246,7 @@ def rollout_imitation(model, config, ctr,
     return traj, context, info
 
 
-def _proc(model, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, gt_bb, seed, n, traj_file, context_file):
+def _proc(model, config, results_dir, heights, widths, size, shape, color, env_name, baseline, variation, max_T, controller_path, model_name, gpu_id, save, gt_bb, place_bb_flag, seed, n, traj_file, context_file):
     json_name = results_dir + '/traj{}.json'.format(n)
     pkl_name = results_dir + '/traj{}.pkl'.format(n)
     if os.path.exists(json_name) and os.path.exists(pkl_name):
@@ -305,7 +306,8 @@ def _proc(model, config, results_dir, heights, widths, size, shape, color, env_n
                                                         gpu_id=gpu_id,
                                                         traj_file=traj_file,
                                                         context_file=context_file,
-                                                        build_context_flag=False)
+                                                        build_context_flag=False,
+                                                        place_bb_flag=place_bb_flag)
 
         if "vima" not in model_name:
             rollout, context, task_success_flags = return_rollout
@@ -514,6 +516,7 @@ if __name__ == '__main__':
         loaded = torch.load(model_path, map_location=torch.device('cpu'))
         model.load_state_dict(loaded)
 
+        place_bb_flag = True if "KP" in model_path else False
         model = model.eval()  # .cuda()
         n_success = 0
         size = args.size
@@ -599,7 +602,8 @@ if __name__ == '__main__':
                               model_name,
                               args.gpu_id,
                               args.save_files,
-                              args.gt_bb)
+                              args.gt_bb,
+                              place_bb_flag)
 
         seeds = []
         for i in range(args.N):

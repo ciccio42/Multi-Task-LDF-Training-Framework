@@ -16,19 +16,19 @@
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 
 BASE_PATH=/home/rsofnc000/Multi-Task-LFD-Framework
-PROJECT_NAME=1Task-REAL-pick_place-CTOD
-BATCH=28
-NUM_WORKERS=10
+PROJECT_NAME=Real-1Task-pick_place-KP_0_1_4_5_8_9
+BATCH=42
+NUM_WORKERS=1
 GPU_ID=0
 MODEL_PATH=/home/rsofnc000/checkpoint_save_folder/${PROJECT_NAME}-Batch${BATCH}/
 CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
 
 for MODEL in ${MODEL_PATH}; do
-    for S in 37422 37884; do #81000 89100; do
+    for S in -1; do #81000 89100; do
         for TASK in pick_place; do
             for COUNT in 1; do
                 SAVE_PATH=${MODEL}/results_${TASK}/run_${COUNT}
-                python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_real_world_dataset.py $MODEL --env $TASK --saved_step $S --eval_each_task 1 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log --save_path ${SAVE_PATH} --save_files
+                python $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_real_world_dataset.py $MODEL --env $TASK --saved_step $S --eval_each_task 1 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log #--save_path ${SAVE_PATH} --save_files
             done
         done
     done

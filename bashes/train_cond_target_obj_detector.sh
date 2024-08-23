@@ -8,6 +8,8 @@
 # export CUDA_VISIBLE_DEVICES=3
 # export HYDRA_FULL_ERROR=1
 
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
+# export CUDA_VISIBLE_DEVICES=0
 #SBATCH --partition=gpuq
 #SBATCH --gres=gpu:1   # Request 1 GPU
 #SBATCH --ntasks=1
@@ -36,7 +38,7 @@ BSIZE=80 #16 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector.yaml
-LOADER_WORKERS=8
+LOADER_WORKERS=32
 BALANCING_POLICY=0
 OBS_T=7
 
@@ -47,7 +49,7 @@ WEIGHT_DECAY=5
 SCHEDULER='ReduceLROnPlateau'
 FIRST_FRAMES=true
 ONLY_FIRST_FRAMES=false
-ROLLOUT=false
+ROLLOUT=true
 PERFORM_AUGS=true
 NON_SEQUENTIAL=true
 
@@ -94,7 +96,7 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     SET_SAME_N=7
     RESUME_PATH=/home/rsofnc000/checkpoint_save_folder/${EXP_NAME}-Batch84
     RESUME_STEP=27456
-    RESUME=true
+    RESUME=false
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
     TASK_str=["pick_place","nut_assembly","stack_block","press_button_close_after_reaching"]
@@ -106,7 +108,8 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     RESUME=false
 fi
 
-srun --output=training_${TASK_NAME}_ctdo.txt --job-name=training_${TASK_NAME}_ctdo python -u ../training/train_scripts/train_any.py \
+#
+srun --output=training_${EXP_NAME}_ctdo.txt --job-name=training_${EXP_NAME}_ctdo python -u ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \

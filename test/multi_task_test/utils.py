@@ -642,6 +642,9 @@ def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0, real=True, pla
         except:
             agent_target_obj_id = int(
                 variation_id / TASK_MAP[task_name]['num_variations_per_object'])
+            agent_target_place_id = int(variation_id % TASK_MAP[task_name]['num_variations_per_object'])
+            if 'pick_place' == task_name:
+                place_name =['bin_0', 'bin_1', 'bin_2', 'bin_3']
             # print(f"agent_target_obj_id {agent_target_obj_id}")
     else:
         agent_target_obj_id = "cubeA"
@@ -816,6 +819,146 @@ def plot_activation_map(activation_map, agent_obs, save_path="activation_map.png
     plt.show()
 
 
+def compute_bb_prediction(prediction, place_bb_flag, perform_augs, model, formatted_img, bb_t, gpu_id, obs, tp_array, fp_array, fn_array, iou_array):
+    
+    tp_array_t = np.zeros(2)
+    fp_array_t = np.zeros(2)
+    fn_array_t = np.zeros(2)
+    iou_array_t = np.zeros(2)
+    
+    # Project bb over image
+    # 1. Get the index with target class
+    # (prediction['classes_final'][0] == 1 or prediction['classes_final'][0] == 2)
+    target_indx_flags = prediction['classes_final'][0] == 1
+    cnt_target = torch.sum((target_indx_flags == True).int())
+
+    cnt_place = 0
+    if place_bb_flag:
+        place_indx_flags = prediction['classes_final'][0] == 2
+        cnt_place = torch.sum((place_indx_flags == True).int())
+        
+    # target found and place found
+    predicted_bb_list = list()
+    max_score_list = list()
+    iou_list = list()
+    if cnt_target != 0 and cnt_place != 0:
+        target_pred_bb, target_max_score, target_bb_iou = get_predicted_bb(
+            prediction=prediction,
+            pred_flags=target_indx_flags,
+            perform_augs=perform_augs,
+            model=model,
+            formatted_img=formatted_img,
+            gt_bb=bb_t[0][None],
+            gpu_id=gpu_id,
+            pick=True)
+        predicted_bb_list.append(target_pred_bb)
+        max_score_list.append(target_max_score)
+        iou_list.append(target_bb_iou)
+
+        place_pred_bb, place_max_score, place_bb_iou = get_predicted_bb(
+            prediction=prediction,
+            pred_flags=place_indx_flags,
+            perform_augs=perform_augs,
+            model=model,
+            formatted_img=formatted_img,
+            gt_bb=bb_t[1][None],
+            gpu_id=gpu_id,
+            pick=False)
+        predicted_bb_list.append(place_pred_bb)
+        max_score_list.append(place_max_score)
+        iou_list.append(place_bb_iou)
+
+        obs['predicted_bb'] = np.array(predicted_bb_list)
+        obs['predicted_score'] = np.array(max_score_list)
+        obs['iou'] = np.array(iou_list)
+
+        for indx, iou_obj in enumerate(iou_list):
+            # check if there are TP
+            iou_array_t[indx] = iou_obj
+            if iou_obj < 0.5:
+                fp_array_t[indx] += 1
+                obs[f'fp_{indx}'] = 1
+            else:
+                tp_array_t[indx] += 1
+                obs[f'tp_{indx}'] = 1
+
+    elif cnt_target == 0 and cnt_place != 0:
+        place_pred_bb, place_max_score, place_bb_iou = get_predicted_bb(
+            prediction=prediction,
+            pred_flags=place_indx_flags,
+            perform_augs=perform_augs,
+            model=model,
+            formatted_img=formatted_img,
+            gt_bb=bb_t[1][None],
+            gpu_id=gpu_id)
+        predicted_bb_list.append(place_pred_bb)
+        max_score_list.append(place_max_score)
+        iou_list.append(place_bb_iou)
+
+        obs['predicted_bb'] = np.array(predicted_bb_list)
+        obs['predicted_score'] = np.array(max_score_list)
+        obs['iou'] = np.array(iou_list)
+
+        # check if there are TP
+        iou_array_t[1] = iou_list[0]
+        if iou_list[0] < 0.5:
+            fp_array_t[1] += 1
+            obs[f'fp_{1}'] = 1
+        else:
+            tp_array_t[1] += 1
+            obs[f'tp_{1}'] = 1
+
+        fn_array_t[0] += 1
+        obs[f'fn_{0}'] = 1
+    elif cnt_target != 0 and cnt_place == 0:
+        target_pred_bb, target_max_score, target_bb_iou = get_predicted_bb(
+            prediction=prediction,
+            pred_flags=target_indx_flags,
+            perform_augs=perform_augs,
+            model=model,
+            formatted_img=formatted_img,
+            gt_bb=bb_t[0][None],
+            gpu_id=gpu_id)
+        predicted_bb_list.append(target_pred_bb)
+        max_score_list.append(target_max_score)
+        iou_list.append(target_bb_iou)
+
+        obs['predicted_bb'] = np.array(predicted_bb_list)
+        obs['predicted_score'] = np.array(max_score_list)
+        obs['iou'] = np.array(iou_list)
+
+        # check if there are TP
+        iou_array_t[0] = iou_list[0]
+        if iou_list[0] < 0.50:
+            fp_array_t[0] += 1
+            obs[f'fp_{0}'] = 1
+        else:
+            tp_array_t[0] += 1
+            obs[f'tp_{0}'] = 1
+
+        if place_bb_flag:
+            fn_array_t[1] += 1
+            obs[f'fn_{1}'] = 1
+
+    elif cnt_target == 0 and cnt_place == 0:
+        fn_array_t[0] += 1
+        obs[f'fn_{0}'] = 1
+        if place_bb_flag:
+            fn_array_t[1] += 1
+            obs[f'fn_{1}'] = 1
+
+    if place_bb_flag:
+        tp_array.append(tp_array_t)
+        fp_array.append(fp_array_t)
+        fn_array.append(fn_array_t)
+        iou_array.append(iou_array_t)
+    else:
+        tp_array.append([tp_array_t[0]])
+        fp_array.append([fp_array_t[0]])
+        fn_array.append([fn_array_t[0]])
+        iou_array.append([iou_array_t[0]])
+
+
 def object_detection_inference(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, baseline=False, task_name="pick_place", controller=None, action_ranges=[], policy=True, perform_augs=False, config=None, gt_traj=None, activation_map=True, real=True, place_bb_flag=False, expert_traj=None):
     print(f"Place bb flag: {place_bb_flag}")
     if gt_traj is None:
@@ -829,10 +972,6 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                         baseline=baseline,
                         bb_flag=True)
         n_steps = 0
-        fp = 0
-        tp = 0
-        fn = 0
-        iou = 0
         prev_action = normalize_action(
             action=prev_action,
             n_action_bin=256,
@@ -873,10 +1012,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
         fn_array = list()
         iou_array = list()
         while not done:
-            tp_array_t = np.zeros(2)
-            fp_array_t = np.zeros(2)
-            fn_array_t = np.zeros(2)
-            iou_array_t = np.zeros(2)
+
             if task_name == 'pick_place':
                 tasks['reached'] = check_reach(threshold=0.03,
                                                obj_distance=obs[obj_delta_key][:2],
@@ -976,141 +1112,22 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                 #                                        agent_obs=model_input,
                 #                                        prediction=prediction)
 
-            # Project bb over image
-            # 1. Get the index with target class
-            # (prediction['classes_final'][0] == 1 or prediction['classes_final'][0] == 2)
-            target_indx_flags = prediction['classes_final'][0] == 1
-            cnt_target = torch.sum((target_indx_flags == True).int())
-
-            cnt_place = 0
-            if place_bb_flag:
-                place_indx_flags = prediction['classes_final'][0] == 2
-                cnt_place = torch.sum((place_indx_flags == True).int())
-
             obs['gt_bb'] = bb_t
-            # target found and place found
-            predicted_bb_list = list()
-            max_score_list = list()
-            iou_list = list()
-            if cnt_target != 0 and cnt_place != 0:
-                target_pred_bb, target_max_score, target_bb_iou = get_predicted_bb(
-                    prediction=prediction,
-                    pred_flags=target_indx_flags,
-                    perform_augs=perform_augs,
-                    model=model,
-                    formatted_img=formatted_img,
-                    gt_bb=bb_t[0][None],
-                    gpu_id=gpu_id,
-                    pick=True)
-                predicted_bb_list.append(target_pred_bb)
-                max_score_list.append(target_max_score)
-                iou_list.append(target_bb_iou)
 
-                place_pred_bb, place_max_score, place_bb_iou = get_predicted_bb(
-                    prediction=prediction,
-                    pred_flags=place_indx_flags,
-                    perform_augs=perform_augs,
-                    model=model,
-                    formatted_img=formatted_img,
-                    gt_bb=bb_t[1][None],
-                    gpu_id=gpu_id,
-                    pick=False)
-                predicted_bb_list.append(place_pred_bb)
-                max_score_list.append(place_max_score)
-                iou_list.append(place_bb_iou)
-
-                obs['predicted_bb'] = np.array(predicted_bb_list)
-                obs['predicted_score'] = np.array(max_score_list)
-                obs['iou'] = np.array(iou_list)
-
-                for indx, iou_obj in enumerate(iou_list):
-                    # check if there are TP
-                    iou_array_t[indx] = iou_obj
-                    if iou_obj < 0.5:
-                        fp += 1
-                        fp_array_t[indx] += 1
-                        obs[f'fp_{indx}'] = 1
-                    else:
-                        tp += 1
-                        tp_array_t[indx] += 1
-                        obs[f'tp_{indx}'] = 1
-
-            elif cnt_target == 0 and cnt_place != 0:
-                place_pred_bb, place_max_score, place_bb_iou = get_predicted_bb(
-                    prediction=prediction,
-                    pred_flags=place_indx_flags,
-                    perform_augs=perform_augs,
-                    model=model,
-                    formatted_img=formatted_img,
-                    gt_bb=bb_t[1][None],
-                    gpu_id=gpu_id)
-                predicted_bb_list.append(place_pred_bb)
-                max_score_list.append(place_max_score)
-                iou_list.append(place_bb_iou)
-
-                obs['predicted_bb'] = np.array(predicted_bb_list)
-                obs['predicted_score'] = np.array(max_score_list)
-                obs['iou'] = np.array(iou_list)
-
-                # check if there are TP
-                iou_array_t[1] = iou_list[0]
-                if iou_list[0] < 0.5:
-                    fp_array_t[1] += 1
-                    obs[f'fp_{1}'] = 1
-                else:
-                    tp_array_t[1] += 1
-                    obs[f'tp_{1}'] = 1
-
-                fn_array_t[0] += 1
-                obs[f'fn_{0}'] = 1
-            elif cnt_target != 0 and cnt_place == 0:
-                target_pred_bb, target_max_score, target_bb_iou = get_predicted_bb(
-                    prediction=prediction,
-                    pred_flags=target_indx_flags,
-                    perform_augs=perform_augs,
-                    model=model,
-                    formatted_img=formatted_img,
-                    gt_bb=bb_t[0][None],
-                    gpu_id=gpu_id)
-                predicted_bb_list.append(target_pred_bb)
-                max_score_list.append(target_max_score)
-                iou_list.append(target_bb_iou)
-
-                obs['predicted_bb'] = np.array(predicted_bb_list)
-                obs['predicted_score'] = np.array(max_score_list)
-                obs['iou'] = np.array(iou_list)
-
-                # check if there are TP
-                iou_array_t[0] = iou_list[0]
-                if iou_list[0] < 0.5:
-                    fp_array_t[0] += 1
-                    obs[f'fp_{0}'] = 1
-                else:
-                    tp_array_t[0] += 1
-                    obs[f'tp_{0}'] = 1
-
-                if place_bb_flag:
-                    fn_array_t[1] += 1
-                    obs[f'fn_{1}'] = 1
-
-            elif cnt_target == 0 and cnt_place == 0:
-                fn_array_t[0] += 1
-                obs[f'fn_{0}'] = 1
-                if place_bb_flag:
-                    fn_array_t[1] += 1
-                    obs[f'fn_{1}'] = 1
-
-            if place_bb_flag:
-                tp_array.append(tp_array_t)
-                fp_array.append(fp_array_t)
-                fn_array.append(fn_array_t)
-                iou_array.append(iou_array_t)
-            else:
-                tp_array.append([tp_array_t[0]])
-                fp_array.append([fp_array_t[0]])
-                fn_array.append([fn_array_t[0]])
-                iou_array.append([iou_array_t[0]])
-
+            compute_bb_prediction(prediction=prediction,
+                                  place_bb_flag=place_bb_flag,
+                                  perform_augs=perform_augs,
+                                  model=model,
+                                  formatted_img=formatted_img,
+                                  bb_t = bb_t,
+                                  gpu_id=gpu_id,
+                                  obs=obs,
+                                  tp_array=tp_array,
+                                  fp_array=fp_array,
+                                  fn_array=fn_array,
+                                  iou_array=iou_array)
+            
+            
             traj.append(obs)
 
             if controller is not None:
@@ -1161,13 +1178,13 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
         states = deque([], maxlen=1)
         images = deque([], maxlen=1)
         bb = deque([], maxlen=1)
-        gt_classes = deque([], maxlen=1)
-        fp = 0
-        tp = 0
-        fn = 0
-        iou = 0
         info = {}
         # take current observation
+        tp_array = list()
+        fp_array = list()
+        fn_array = list()
+        iou_array = list()
+        n_steps = len(gt_traj)
         for t in range(len(gt_traj)):
             if True:  # t == 1:
                 agent_obs = gt_traj[t]['obs']['camera_front_image']
@@ -1175,7 +1192,8 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                                        obs=gt_traj[t]['obs'],
                                        task_name=task_name,
                                        t=t,
-                                       variation_id=variation_id)
+                                       variation_id=variation_id,
+                                       place=place_bb_flag)
 
                 if perform_augs:
                     if not real:
@@ -1200,96 +1218,28 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                 prediction = model(model_input,
                                    inference=True)
 
-                # Project bb over image
-                # 1. Get the index with target class
-                target_indx_flags = prediction['classes_final'][0] == 1
-                # 2. Get the confidence scores for the target predictions and the the max
-                try:
-                    target_max_score_indx = torch.argmax(
-                        prediction['conf_scores_final'][0][target_indx_flags])  # prediction['conf_scores_final'][0][target_indx_flags]
-                    max_score_target = prediction['conf_scores_final'][0]
-                except:
-                    print("No target bb found")
-                    max_score_target = [-1]
-                if max_score_target[0] != -1:
-                    if perform_augs:
-                        scale_factor = model.get_scale_factors()
-                        image = np.array(np.moveaxis(
-                            formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
-                        in_img = copy.deepcopy(image)
-                        predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
-                                                      width_scale_factor=scale_factor[0],
-                                                      height_scale_factor=scale_factor[1],
-                                                      mode='a2p')[0][target_indx_flags][target_max_score_indx][None]
-                    else:
-                        image = np.array(np.moveaxis(
-                            formatted_img[:, :, :].cpu().numpy()*255, 0, -1), dtype=np.uint8)
-                        in_img = copy.deepcopy(image)
-                        scale_factor = model.get_scale_factors()
-                        predicted_bb = project_bboxes(bboxes=prediction['proposals'][0][None][None],
-                                                      width_scale_factor=scale_factor[0],
-                                                      height_scale_factor=scale_factor[1],
-                                                      mode='a2p')[0][target_indx_flags][target_max_score_indx][None]
+                compute_bb_prediction(prediction=prediction,
+                        place_bb_flag=place_bb_flag,
+                        perform_augs=perform_augs,
+                        model=model,
+                        formatted_img=formatted_img,
+                        bb_t = bb_t,
+                        gpu_id=gpu_id,
+                        obs=gt_traj[t]['obs'],
+                        tp_array=tp_array,
+                        fp_array=fp_array,
+                        fn_array=fn_array,
+                        iou_array=iou_array)
 
-                    if True:
-                        for indx, bb in enumerate(predicted_bb):
-                            color = (255, 0, 0)
-                            image = cv2.rectangle(np.ascontiguousarray(image),
-                                                  (int(bb[0]),
-                                                   int(bb[1])),
-                                                  (int(bb[2]),
-                                                   int(bb[3])),
-                                                  color=color, thickness=1)
-                            image = cv2.putText(image, "Score {:.2f}".format(max_score_target[indx]),
-                                                (int(bb[0]),
-                                                int(bb[1])),
-                                                cv2.FONT_HERSHEY_SIMPLEX,
-                                                0.3,
-                                                (0, 0, 255),
-                                                1,
-                                                cv2.LINE_AA)
-                        image = cv2.rectangle(np.ascontiguousarray(image),
-                                              (int(bb_t[0][0]),
-                                               int(bb_t[0][1])),
-                                              (int(bb_t[0][2]),
-                                               int(bb_t[0][3])),
-                                              color=(0, 255, 0), thickness=1)
 
-                        gt_traj[t]['obs']['predicted_bb'] = predicted_bb
-                        gt_traj[t]['obs']['formatted_img'] = in_img
-                        gt_traj[t]['obs']['gt_bb'] = bb_t
-                        cv2.imwrite("predicted_bb.png", image)
-
-                        # compute IoU over time
-                        iou_t = box_iou(boxes1=torch.from_numpy(
-                            bb_t).to(device=gpu_id), boxes2=predicted_bb)
-                        gt_traj[t]['obs']['iou'] = iou_t[0][0].cpu().numpy()
-
-                        # check if there are TP
-                        if iou_t[0][0].cpu().numpy() < 0.5:
-                            fp += 1
-                            gt_traj[t]['obs']['fp'] = 1
-
-                        else:
-                            tp += 1
-                            gt_traj[t]['obs']['tp'] = 1
-
-                        iou += iou_t[0][0].cpu().numpy()
-                        gt_traj[t]['obs']['iou'] = iou_t[0][0].cpu().numpy()
-                        # traj.append(obs)
-
-                else:
-                    gt_traj[t]['obs']['predicted_bb'] = np.array([0, 0, 0, 0])[
-                        None]
-                    gt_traj[t]['obs']['gt_bb'] = bb_t
-                    gt_traj[t]['obs']['iou'] = 0.0
-                    gt_traj[t]['obs']['fn'] = 1
-                    fn += 1
-
-        info["avg_iou"] = iou/(len(gt_traj)-1)
-        info["avg_tp"] = tp/(len(gt_traj)-1)
-        info["avg_fp"] = fp/(len(gt_traj)-1)
-        info["avg_fn"] = fn/(len(gt_traj)-1)
+        tp_array = np.sum(np.array(tp_array), axis=0)
+        fp_array = np.sum(np.array(fp_array), axis=0)
+        fn_array = np.sum(np.array(fn_array), axis=0)
+        iou_array = np.sum(np.array(iou_array), axis=0)
+        info['avg_iou'] = np.sum(iou_array)/(iou_array.shape[0]*(n_steps))
+        info['avg_tp'] = np.sum(tp_array)/(iou_array.shape[0]*(n_steps))
+        info['avg_fp'] = np.sum(fp_array)/(iou_array.shape[0]*(n_steps))
+        info['avg_fn'] = np.sum(fn_array)/(iou_array.shape[0]*(n_steps))
         return gt_traj, info
 
 
