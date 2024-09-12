@@ -22,7 +22,7 @@ POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_keypoint_dataset.MultiTaskPairedKeypointDetectionDataset
 TASKS_CONFIG=7_tasks_real
 AGENT_NAME=real_new_ur5e
-
+export CUDA_VISIBLE_DEVICES=2
 echo $1
 TASK_NAME="$1"
 
@@ -40,7 +40,7 @@ BSIZE=80 #16 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector_real.yaml
-LOADER_WORKERS=16
+LOADER_WORKERS=32
 BALANCING_POLICY=0
 OBS_T=7
 
@@ -93,7 +93,7 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
 elif [ "$TASK_NAME" == 'pick_place' ]; then
     echo "Pick-Place"
     TASK_str="pick_place"
-    EXP_NAME=Real-1Task-${TASK_str}-KP_0_1_4_5_8_9
+    EXP_NAME=Real-1Task-${TASK_str}-KP_0_1_4_5_8_9_Mix_real_sim
     PROJECT_NAME=${EXP_NAME}
     SET_SAME_N=7
     RESUME_PATH=/home/rsofnc000/checkpoint_save_folder/1Task-Pick-Place-KP-Batch112
@@ -110,8 +110,8 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     RESUME_STEP=72675
     RESUME=false
 fi
-
-srun --output=training_${EXP_NAME}.txt --job-name=training_${EXP_NAME} python -u ../training/train_scripts/train_any.py \
+# srun --output=training_${EXP_NAME}.txt --job-name=training_${EXP_NAME}
+python -u ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \
@@ -137,6 +137,7 @@ srun --output=training_${EXP_NAME}.txt --job-name=training_${EXP_NAME} python -u
     dataset_cfg.height=${HEIGHT} \
     dataset_cfg.width=${WIDTH} \
     dataset_cfg.perform_augs=${PERFORM_AUGS} \
+    dataset_cfg.mix_sim_real=true \
     samplers.balancing_policy=${BALANCING_POLICY} \
     early_stopping_cfg.patience=${EARLY_STOPPING_PATIECE} \
     cond_target_obj_detector_cfg.height=${HEIGHT} \

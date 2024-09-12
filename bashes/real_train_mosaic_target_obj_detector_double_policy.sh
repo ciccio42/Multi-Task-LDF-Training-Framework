@@ -234,7 +234,7 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=Real-1Task-${TASK_str}-Double-Policy-No_State_No_finetuned_No_val_0_1_4_5_8_9
+    EXP_NAME=Real-1Task-${TASK_str}-Double-Policy-No-State_No_finetuned_No_val_0_1_4_5_8_9
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
@@ -301,8 +301,7 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     PROJECT_NAME=${EXP_NAME}
 fi
 
-# srun --output=training_${EXP_NAME}.txt --job-name=training_${TASK_NAME}
-python -u ../training/train_scripts/train_any.py \
+srun --output=training_${EXP_NAME}.txt --job-name=training_${TASK_NAME} python -u ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \

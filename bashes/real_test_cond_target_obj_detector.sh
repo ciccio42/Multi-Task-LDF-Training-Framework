@@ -16,7 +16,7 @@
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 
 BASE_PATH=/home/rsofnc000/Multi-Task-LFD-Framework
-PROJECT_NAME=Real-1Task-pick_place-KP_0_1_4_5_8_9
+PROJECT_NAME=Real-1Task-pick_place-KP_0_1_4_5_8_9_Mix_real_sim
 BATCH=42
 NUM_WORKERS=1
 GPU_ID=0

@@ -26,17 +26,18 @@ VAL_FREQ=-1
 DEVICE=0
 DEBUG=false
 WANDB_LOG=true
-ROLLOUT=true
+ROLLOUT=false
 EPOCH=90
 LOADER_WORKERS=16
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
 CONCAT_IMG_EMB=true
 CONCAT_DEMO_EMB=true
-CONCAT_STATE=false
+CONCAT_STATE=true
+CONVERT_ACTION=true
 
-CONCAT_BB=false
-LOAD_TARGET_OBJ_DETECTOR=false
+CONCAT_BB=true
+LOAD_TARGET_OBJ_DETECTOR=true
 
 if [ "$TASK_NAME" == 'nut_assembly' ]; then
     echo "NUT-ASSEMBLY"
@@ -277,7 +278,7 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-Double-Policy-No_bb
+    EXP_NAME=1Task-${TASK_str}-Double-Policy-Convert_action_State_${CONCAT_STATE}_Convert_${CONVERT_ACTION}
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
@@ -344,7 +345,6 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     PROJECT_NAME=${EXP_NAME}
 fi
 
-#
 srun --output=training_${EXP_NAME}.txt --job-name=training_${TASK_NAME} python -u ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
@@ -366,6 +366,7 @@ srun --output=training_${EXP_NAME}.txt --job-name=training_${TASK_NAME} python -
     dataset_cfg.height=${HEIGHT} \
     dataset_cfg.width=${WIDTH} \
     dataset_cfg.split_pick_place=${SPLIT_PICK_PLACE} \
+    dataset_cfg.convert_action=${CONVERT_ACTION} \
     samplers.balancing_policy=${BALANCING_POLICY} \
     mosaic._target_=${TARGET} \
     mosaic.load_target_obj_detector=${LOAD_TARGET_OBJ_DETECTOR} \

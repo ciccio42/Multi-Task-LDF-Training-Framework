@@ -553,6 +553,7 @@ class VideoImitation(nn.Module):
         concat_demo_head=False,
         concat_demo_act=False,
         demo_mean=0,
+        zero_bb_after_pick=False,
         byol_config=dict(),
         simclr_config=dict(),
     ):

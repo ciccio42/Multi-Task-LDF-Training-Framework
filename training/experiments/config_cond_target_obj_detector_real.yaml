@@ -127,6 +127,7 @@ dataset_cfg:
   perform_scale_resize: True
   change_command_epoch: False
   load_eef_point: False
+  mix_sim_real: False
 
 augs:
   old_aug: false
@@ -136,7 +137,7 @@ augs:
   hue: [-0.05, 0.05]
   p: 1.0
   horizontal_flip_p: 0.1
-  affine: true
+  affine: false
 
 
   brightness_strong: [0.875, 1.125]

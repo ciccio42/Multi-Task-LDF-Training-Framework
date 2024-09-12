@@ -25,13 +25,13 @@ DEVICE=0
 DEBUG=false
 WANDB_LOG=true
 
-EXP_NAME=Real-Pick-Place-MOSAIC-CTOD_No_State_No_finetuned_No_val_0_1_4_5_8_9
+EXP_NAME=Real-Pick-Place-MOSAIC-CTOD_State_finetuned_No_val_0_1_4_5_8_9
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place #[pick_place,nut_assembly]
 
-RESUME_PATH=1Task-Pick-Place-100-180-BB-inference
-RESUME_STEP=85050
-RESUME=false
+RESUME_PATH=Real-Pick-Place-MOSAIC-CTOD_State_finetuned_No_val_0_1_4_5_8_9-Batch18
+RESUME_STEP=31815
+RESUME=true
 FINETUNE=false
 
 LOAD_TARGET_OBJ_DETECTOR=true
@@ -65,7 +65,7 @@ INV_MUL=0.0
 FREEZE_TARGET_OBJ_DETECTOR=false
 REMOVE_CLASS_LAYERS=false
 CONCAT_TARGET_OBJ_EMBEDDING=false
-CONCAT_STATE=false
+CONCAT_STATE=true
 
 ACTION_DIM=7
 N_MIXTURES=3       #7 MT #3 Pick-place

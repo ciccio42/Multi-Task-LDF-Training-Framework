@@ -102,10 +102,17 @@ dataset_cfg:
   normalize_action: True
   load_bb: True
   # x, y, z, e_x, e_y, e_z
-  normalization_ranges: [[-0.35,  0.35],
-                        [-0.35,  0.35],
-                        [ 0.60,  1.20],
-                        [-3.14,  3.14911766],
+  # normalization_ranges: [[-0.35,  0.35],
+  #                       [-0.35,  0.35],
+  #                       [ 0.60,  1.20],
+  #                       [-3.14,  3.14911766],
+  #                       [-3.14911766, 3.14911766],
+  #                       [-3.14911766,  3.14911766]]
+  # use when convert is true
+  normalization_ranges: [[-0.40,  0.40],
+                        [0.10,  0.90],
+                        [ -0.20,  0.20],
+                        [-3.14911766,  3.14911766],
                         [-3.14911766, 3.14911766],
                         [-3.14911766,  3.14911766]]
   n_action_bin: 256
@@ -125,6 +132,7 @@ dataset_cfg:
   change_command_epoch: True
   load_eef_point: False
   split_pick_place: False
+  convert_action: False
 
 augs:
   # strong_jitter:     1  
@@ -234,6 +242,7 @@ mosaic:
   sdim:               7
   concat_state:       True
   concat_bb:       True
+  zero_bb_after_pick: False
   bb_sequence:     ${bb_sequence}
   height:             ${train_cfg.dataset.height}
   width:              ${train_cfg.dataset.width} 

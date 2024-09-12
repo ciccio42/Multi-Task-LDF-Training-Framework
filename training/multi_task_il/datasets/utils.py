@@ -9,6 +9,7 @@ from torchvision import transforms
 from torchvision.transforms import RandomAffine, ToTensor, Normalize, \
     RandomGrayscale, ColorJitter, RandomApply, RandomHorizontalFlip, GaussianBlur, RandomResizedCrop
 from torchvision.transforms.functional import resized_crop
+from robosuite.utils.transform_utils import quat2axisangle, axisangle2quat, quat2mat, mat2quat 
 
 import pickle as pkl
 from collections import defaultdict, OrderedDict
@@ -35,6 +36,15 @@ logging.basicConfig(
 
 # Create a logger object
 logger = logging.getLogger('Data-Loader')
+
+T_bl_sim_to_w_sim = np.array([[0, -1, 0, 0], 
+                              [1, 0, 0, 0.612],
+                              [0, 0, 1, -0.860],
+                              [0, 0, 0, 1]])
+R_g_sim_to_g_robot = np.array([[0, -1, 0], 
+                              [1, 0, 0],
+                              [0, 0, 1]])
+
 
 DEBUG = False
 
@@ -139,7 +149,7 @@ def collate_by_task(batch):
     return per_task_data
 
 
-def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_name: str = "panda", root_dir: str = "", task_spec=None, split: list = [0.9, 0.1], allow_train_skip: bool = False, allow_val_skip: bool = False, mix_variations: bool = False, mode='train'):
+def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_name: str = "panda", root_dir: str = "", task_spec=None, split: list = [0.9, 0.1], allow_train_skip: bool = False, allow_val_skip: bool = False, mix_variations: bool = False, mode='train', mix_sim_real=False):
 
     count = 0
     agent_file_cnt = 0
@@ -194,6 +204,10 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
             task_dir = expanduser(join(agent_dir,  task_id, '*.pkl'))
             agent_files = sorted(glob.glob(task_dir))
             
+            if 'real' in task_dir and dataset_loader._mix_sim_real:
+                task_dir_sim = task_dir.replace(agent_name, agent_name.replace('real_new_', ''))
+                agent_files.extend(sorted(glob.glob(task_dir_sim)))
+                
             if len(agent_files) < 100:
                 agent_files = list(itertools.chain.from_iterable((e, e) for e in agent_files))
             
@@ -385,6 +399,11 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
         if spec.get('agent_crop', None) is not None:
             dataset_loader.agent_crop[name] = spec.get(
                 'agent_crop', [0, 0, 0, 0])
+            
+        if spec.get('agent_sim_crop', None) is not None and hasattr(dataset_loader, 'agent_sim_crop'):
+            dataset_loader.agent_sim_crop[name] = spec.get(
+                'agent_sim_crop', [0, 0, 0, 0])
+            
         if spec.get('crop', None) is not None:
             dataset_loader.task_crops[name] = spec.get(
                 'crop', [0, 0, 0, 0])
@@ -645,7 +664,7 @@ def create_data_aug(dataset_loader=object):
                     bb[obj_indx] = np.array([[x1_new, y1, x2_new, y2]])
         return obs, bb
 
-    def frame_aug(task_name, obs, second=False, bb=None, class_frame=None, perform_aug=True, frame_number=-1, perform_scale_resize=True, agent=False):
+    def frame_aug(task_name, obs, second=False, bb=None, class_frame=None, perform_aug=True, frame_number=-1, perform_scale_resize=True, agent=False, sim_crop=False):
 
         if perform_scale_resize:
             img_height, img_width = obs.shape[:2]
@@ -653,8 +672,11 @@ def create_data_aug(dataset_loader=object):
             if len(getattr(dataset_loader, "demo_crop", OrderedDict())) != 0 and not agent:
                 crop_params = dataset_loader.demo_crop.get(
                     task_name, [0, 0, 0, 0])
-            if len(getattr(dataset_loader, "agent_crop", OrderedDict())) != 0 and agent:
+            if len(getattr(dataset_loader, "agent_crop", OrderedDict())) != 0 and agent and not sim_crop:
                 crop_params = dataset_loader.agent_crop.get(
+                    task_name, [0, 0, 0, 0])
+            if len(getattr(dataset_loader, "agent_sim_crop", OrderedDict())) != 0 and agent and sim_crop:
+                crop_params = dataset_loader.agent_sim_crop.get(
                     task_name, [0, 0, 0, 0])
             if len(getattr(dataset_loader, "task_crops", OrderedDict())) != 0:
                 crop_params = dataset_loader.task_crops.get(
@@ -1113,7 +1135,42 @@ def adjust_points(points, frame_dims, crop_params, height, width):
     return tuple([int(min(x, d - 1)) for x, d in zip([h, w], (height, width))])
 
 
-def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_action=False, load_state=False, load_eef_point=False, distractor=False, subtask_id=-1, agent_task_id=-1, bb_sequence=False, take_place_loc=False):
+def trasform_from_world_to_bl(action):
+    aa_gripper = action[3:-1]
+    # convert axes-angle into rotation matrix
+    R_w_sim_to_gripper_sim = quat2mat(axisangle2quat(aa_gripper))
+    
+    gripper_pos = action[0:3]
+    
+    T_w_sim_gripper_sim = np.zeros((4,4))
+    T_w_sim_gripper_sim[3,3] = 1
+    
+    # position
+    T_w_sim_gripper_sim[0,3] = gripper_pos[0]
+    T_w_sim_gripper_sim[1,3] = gripper_pos[1]
+    T_w_sim_gripper_sim[2,3] = gripper_pos[2]
+    # orientation
+    T_w_sim_gripper_sim[0:3, 0:3] = R_w_sim_to_gripper_sim
+    
+    T_bl_sim_gripper_sim = T_bl_sim_to_w_sim @ T_w_sim_gripper_sim
+    
+    # print(f"Transformation from world to bl:\n{T_bl_sim_gripper_sim}")
+    
+    R_bl_to_gripper_sim = T_bl_sim_gripper_sim[0:3, 0:3]
+    
+    R_bl_to_gripper_real = R_bl_to_gripper_sim @ R_g_sim_to_g_robot
+    
+    action_bl = np.zeros((7))
+    action_bl[0:3] = T_bl_sim_gripper_sim[0:3, 3]
+    action_bl[3:6] = quat2axisangle(mat2quat(R_bl_to_gripper_real))
+    if action[-1] == -1:
+        action_bl[6] = 0
+    else:
+        action_bl[6] = 1
+    
+    return action_bl
+
+def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_action=False, load_state=False, load_eef_point=False, distractor=False, subtask_id=-1, agent_task_id=-1, bb_sequence=False, take_place_loc=False, sim_crop=True, convert_action=True):
 
     images = []
     images_cp = []
@@ -1129,7 +1186,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
         t = t.item()
         step_t = traj.get(t)
 
-        if not getattr(dataset_loader, "real", False):
+        if not getattr(dataset_loader, "real", False) or (getattr(dataset_loader, "real", False) and sim_crop):
             # cv2.imwrite("prova.png", step_t['obs']['camera_front_image'])
             image = copy.copy(
                 step_t['obs']['camera_front_image'][:, :, ::-1])
@@ -1176,7 +1233,8 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                 class_frame,
                 perform_scale_resize=getattr(
                     dataset_loader, "perform_scale_resize", True),
-                agent=True)
+                agent=True,
+                sim_crop=sim_crop)
             end_aug = time.time()
             logger.debug(f"Aug time: {end_aug-aug_time}")
             images.append(processed)
@@ -1195,7 +1253,8 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                                                 True,
                                                 perform_scale_resize=getattr(
                                                     dataset_loader, "perform_scale_resize", True),
-                                                agent=True)
+                                                agent=True,
+                                                sim_crop=sim_crop)
             images_cp.append(image_cp)
             logger.debug(f"Aug twice time: {time.time()-aug_twice_time}")
 
@@ -1234,20 +1293,32 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                 else:
                     action = step_t['action']
                 if "real" in dataset_loader.agent_name:
-                    from robosuite.utils.transform_utils import quat2axisangle
-                    rot_quat = action[3:7]
-                    rot_axis_angle = quat2axisangle(rot_quat)
-                    action = normalize_action(
-                        action=np.concatenate(
-                            (action[:3], rot_axis_angle, [action[7]])),
-                        n_action_bin=dataset_loader._n_action_bin,
-                        action_ranges=dataset_loader._normalization_ranges)
-                else:
-                    if dataset_loader._normalize_action:
+                    if not sim_crop:
+                        from robosuite.utils.transform_utils import quat2axisangle
+                        rot_quat = action[3:7]
+                        rot_axis_angle = quat2axisangle(rot_quat)
                         action = normalize_action(
-                            action=action,
+                            action=np.concatenate(
+                                (action[:3], rot_axis_angle, [action[7]])),
                             n_action_bin=dataset_loader._n_action_bin,
                             action_ranges=dataset_loader._normalization_ranges)
+                    else:
+                        action =normalize_action(
+                            action=trasform_from_world_to_bl(action),
+                            n_action_bin=dataset_loader._n_action_bin,
+                            action_ranges=dataset_loader._normalization_ranges)                 
+                else:
+                    if dataset_loader._normalize_action:
+                        if not convert_action:
+                            action = normalize_action(
+                                action=action,
+                                n_action_bin=dataset_loader._n_action_bin,
+                                action_ranges=dataset_loader._normalization_ranges)
+                        else:
+                            action = normalize_action(
+                                action=trasform_from_world_to_bl(action),
+                                n_action_bin=dataset_loader._n_action_bin,
+                                action_ranges=dataset_loader._normalization_ranges)
                 action_list.append(action)
 
             actions.append(action_list)

@@ -27,7 +27,7 @@ DEBUG=false
 WANDB_LOG=true
 ROLLOUT=true
 EPOCH=90
-LOADER_WORKERS=16
+LOADER_WORKERS=32
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
 CONCAT_IMG_EMB=true
@@ -35,20 +35,24 @@ CONCAT_DEMO_EMB=true
 
 NORMALIZE_ACTION=true
 CHANGE_COMMAND_EPOCH=true
-SPLIT_PICK_PLACE=false
+SPLIT_PICK_PLACE=true
 
-LOAD_CONTRASTIVE=false
-LOAD_INV=false
-CONTRASTIVE_PRE=0.0
-CONTRASTIVE_POS=0.0
+LOAD_CONTRASTIVE=true
+LOAD_INV=true
+CONTRASTIVE_PRE=1.0 #0.0
+CONTRASTIVE_POS=1.0 #0.0
 MUL_INTM=0
 BC_MUL=1.0
-INV_MUL=0.0
+INV_MUL=1.0 #0.0
 
 FREEZE_TARGET_OBJ_DETECTOR=false
 REMOVE_CLASS_LAYERS=false
 CONCAT_TARGET_OBJ_EMBEDDING=false
-CONCAT_STATE=true
+CONCAT_STATE=false
+
+CONVERT_ACTION=false # when change this parameter check the normalization ranges
+
+ZERO_BB_AFTER_PICK=true
 
 if [ "$TASK_NAME" == 'nut_assembly' ]; then
     echo "NUT-ASSEMBLY"
@@ -96,7 +100,7 @@ if [ "$TASK_NAME" == 'nut_assembly' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="nut_assembly" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-MOSAIC-CTOD-No_inv_No_Contrastive
+    EXP_NAME=1Task-${TASK_str}-MOSAIC-CTOD-State-${CONCAT_STATE}-ZERO_BB_AFTER_PICK
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after_reaching' ]; then
     echo "BUTTON"
@@ -157,7 +161,7 @@ elif [ "$TASK_NAME" == 'button' ] || [ "$TASK_NAME" == 'press_button_close_after
     COSINE_ANNEALING=false
 
     TASK_str=${TASK_NAME} #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-press_button-MOSAIC-CTOD-State_pos_gripper
+    EXP_NAME=1Task-press_button-MOSAIC-CTOD-State-${CONCAT_STATE}-ZERO_BB_AFTER_PICK
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'stack_block' ]; then
     echo "STACK_BLOCK"
@@ -203,7 +207,7 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
     COSINE_ANNEALING=false
 
     TASK_str=${TASK_NAME} #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-MOSAIC-CTOD-State_pos_gripper
+    EXP_NAME=1Task-${TASK_str}-MOSAIC-CTOD-State-${CONCAT_STATE}-ZERO_BB_AFTER_PICK
     PROJECT_NAME=${EXP_NAME}
 
 elif [ "$TASK_NAME" == 'pick_place' ]; then
@@ -251,7 +255,7 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-CTOD-MOSAIC-CTOD-State_pos_gripper
+    EXP_NAME=1Task-${TASK_str}-MOSAIC-CTOD-State-${CONCAT_STATE}-ZERO_BB_AFTER_PICK
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
@@ -323,6 +327,7 @@ srun --output=${EXP_NAME}.txt --job-name=${EXP_NAME} python -u ../training/train
     dataset_cfg.height=${HEIGHT} \
     dataset_cfg.width=${WIDTH} \
     dataset_cfg.split_pick_place=${SPLIT_PICK_PLACE} \
+    dataset_cfg.convert_action=${CONVERT_ACTION} \
     samplers.balancing_policy=${BALANCING_POLICY} \
     mosaic._target_=${TARGET} \
     mosaic.load_target_obj_detector=${LOAD_TARGET_OBJ_DETECTOR} \
@@ -333,6 +338,7 @@ srun --output=${EXP_NAME}.txt --job-name=${EXP_NAME} python -u ../training/train
     mosaic.dim_H=${DIM_H} \
     mosaic.dim_W=${DIM_W} \
     mosaic.concat_bb=${CONCAT_BB} \
+    mosaic.zero_bb_after_pick=${ZERO_BB_AFTER_PICK} \
     mosaic.load_contrastive=${LOAD_CONTRASTIVE} \
     mosaic.load_inv=${LOAD_INV} \
     mosaic.concat_target_obj_embedding=${CONCAT_TARGET_OBJ_EMBEDDING} \

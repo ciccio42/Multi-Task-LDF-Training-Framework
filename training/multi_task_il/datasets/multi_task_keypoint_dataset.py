@@ -62,11 +62,13 @@ class MultiTaskPairedKeypointDetectionDataset(Dataset):
             mix_demo_agent=True,
             change_command_epoch=False,
             load_eef_point=False,
+            mix_sim_real=False,
             ** params):
 
         self.task_crops = OrderedDict()
         self.demo_crop = OrderedDict()
         self.agent_crop = OrderedDict()
+        self.agent_sim_crop = OrderedDict()
         # each idx i maps to a unique tuple of (task_name, sub_task_id, agent.pkl, demo.pkl)
         self.all_file_pairs = OrderedDict()
         self.all_agent_files = OrderedDict()
@@ -102,6 +104,7 @@ class MultiTaskPairedKeypointDetectionDataset(Dataset):
         self._n_tasks = n_tasks
         self._perform_augs = perform_augs
         self._mix_demo_agent = mix_demo_agent
+        self._mix_sim_real = mix_sim_real
 
         self.select_random_frames = select_random_frames
         self.compute_obj_distribution = compute_obj_distribution
@@ -122,7 +125,8 @@ class MultiTaskPairedKeypointDetectionDataset(Dataset):
                               tasks_spec,
                               split,
                               allow_train_skip,
-                              allow_val_skip)
+                              allow_val_skip,
+                              mix_sim_real=self._mix_sim_real)
 
         self.pairs_count = count
         self.task_count = len(tasks_spec)
@@ -153,6 +157,12 @@ class MultiTaskPairedKeypointDetectionDataset(Dataset):
 
         (task_name, sub_task_id, demo_file,
             agent_file) = self.all_file_pairs[idx]
+        
+        
+        sim_crop = False
+        if "real_new" not in agent_file:
+            sim_crop = True
+        
         demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
 
         agent_task_id = agent_file.split('/')[-2].split('_')[-1].lstrip('0')
@@ -168,7 +178,7 @@ class MultiTaskPairedKeypointDetectionDataset(Dataset):
 
         # start_trj = time.time()
         traj = self._make_traj(
-            agent_traj[0], demo_traj[1], task_name, sub_task_id, agent_task_id)
+            agent_traj[0], demo_traj[1], task_name, sub_task_id, agent_task_id, sim_crop)
         # end_trj = time.time()
         # print(f"Trj-time {end_trj-start_trj}")
 
@@ -177,7 +187,7 @@ class MultiTaskPairedKeypointDetectionDataset(Dataset):
         # print("Elapsed time: ", elapsed_time)
         return {'demo_data': demo_data, 'traj': traj, 'task_name': task_name, 'task_id': sub_task_id}
 
-    def _make_traj(self, traj, command, task_name, sub_task_id, agent_task_id):
+    def _make_traj(self, traj, command, task_name, sub_task_id, agent_task_id, sim_crop):
         # get the first frame from the trajectory
         ret_dict = {}
         # print(f"Command {command}")
@@ -229,7 +239,8 @@ class MultiTaskPairedKeypointDetectionDataset(Dataset):
             distractor=True,
             subtask_id=sub_task_id,
             agent_task_id=agent_task_id,
-            take_place_loc=True)
+            take_place_loc=True,
+            sim_crop=sim_crop)
         # end_create_sample = time.time()
         # print(f"Create sample time {end_create_sample-start_create_sample}")
 

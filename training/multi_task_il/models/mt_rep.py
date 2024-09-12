@@ -469,6 +469,7 @@ class VideoImitation(nn.Module):
         load_inv=True,
         concat_target_obj_embedding=True,
         concat_bb=False,
+        zero_bb_after_pick=False,
         bb_sequence=1,
         height=120,
         width=160,
@@ -491,6 +492,7 @@ class VideoImitation(nn.Module):
         super().__init__()
         self._remove_class_layers = remove_class_layers
         self._concat_bb = concat_bb
+        self._zero_bb_after_pick=zero_bb_after_pick
         self._bb_sequence = bb_sequence
         self._embed = _TransformerFeatures(
             latent_dim=latent_dim, demo_T=demo_T, dim_H=dim_H, dim_W=dim_W, concat_bb=concat_bb, **attn_cfg)
@@ -614,6 +616,8 @@ class VideoImitation(nn.Module):
         print(self)
         print('Total params in Imitation module:', params)
         print("\n---- Complete model ----\n")
+        
+        self.last_gripper = -1
         # summary(self)
 
     def load_target_obj_detector(self, target_obj_detector_path=None, target_obj_detector_step=-1, gpu_id=0):
@@ -841,14 +845,17 @@ class VideoImitation(nn.Module):
                         predicted_bb = torch.zeros(
                             4).to(device=images.get_device())
                     
-                    if "REAL" in self._target_obj_detector_path or "real" in self._target_obj_detector_path or "Real" in self._target_obj_detector_path:
+                    if "REAL" in self._target_obj_detector_path or "real" in self._target_obj_detector_path or "Real" in self._target_obj_detector_path or (self._zero_bb_after_pick and not eval):
                         batch_indx = int(indx/obs_T)
                         gripper_state = actions[batch_indx][0][0][-1]
                         if gripper_state == 1:
                             # if the gripper is closed (the robot has just picked the object or is moving, delete the bb input)
                             predicted_bb = torch.zeros(
                             4).to(device=images.get_device())
-
+                    if eval and  self.last_gripper == 1 and self._zero_bb_after_pick:
+                        predicted_bb = torch.zeros(
+                            4).to(device=images.get_device())
+                        
                     # get place bb
                     if torch.sum((place_indx_flags == True).int()) != 0 and "KP" in self._target_obj_detector_path:
                         # 2. Get the confidence scores for the target predictions and the the max

@@ -53,6 +53,8 @@ class MultiTaskPairedDataset(Dataset):
             change_command_epoch=True,
             load_eef_point=False,
             split_pick_place=False,
+            mix_sim_real=False,
+            convert_action=False,
             ** params):
 
         self.task_crops = OrderedDict()
@@ -99,6 +101,8 @@ class MultiTaskPairedDataset(Dataset):
         self._change_command_epoch = change_command_epoch
         self._load_eef_point = load_eef_point
         self.perform_scale_resize = perform_scale_resize
+        self._mix_sim_real = mix_sim_real
+        self._convert_action = convert_action
 
         # Frame distribution for each trajectory
         self._frame_distribution = OrderedDict()
@@ -158,6 +162,11 @@ class MultiTaskPairedDataset(Dataset):
         #     self._frame_distribution[agent_file] = np.zeros((1, 250))
         start = time.time()
         demo_traj, agent_traj = load_traj(demo_file), load_traj(agent_file)
+        
+        sim_crop = False
+        if "real_new" not in agent_file:
+            sim_crop = True
+        
         end = time.time()
         logger.debug(f"Loading time {end-start}")
         # start = time.time()
@@ -169,13 +178,15 @@ class MultiTaskPairedDataset(Dataset):
             agent_traj[0],
             agent_traj[1],
             task_name,
-            sub_task_id)
+            sub_task_id,
+            sim_crop,
+            self._convert_action)
         # end = time.time()
         # print(f"Make traj {end-start}")
         # print(sub_task_id)
         return {'demo_data': demo_data, 'traj': traj, 'task_name': task_name, 'task_id': sub_task_id}
 
-    def _make_traj(self, traj, command, task_name, sub_task_id):
+    def _make_traj(self, traj, command, task_name, sub_task_id, sim_crop, convert_action):
 
         ret_dict = {}
 
@@ -223,7 +234,9 @@ class MultiTaskPairedDataset(Dataset):
             load_action=True,
             load_state=self._load_state_spec,
             load_eef_point=self._load_eef_point,
-            agent_task_id=sub_task_id)
+            agent_task_id=sub_task_id,
+            sim_crop=sim_crop,
+            convert_action=convert_action)
 
         ret_dict['images'] = torch.stack(images)
 

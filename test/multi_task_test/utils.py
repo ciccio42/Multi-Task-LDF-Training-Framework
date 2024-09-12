@@ -25,6 +25,7 @@ from torchvision.transforms import ToTensor
 from robosuite import load_controller_config
 from multi_task_test import ENV_OBJECTS, TASK_MAP
 from collections import OrderedDict
+from robosuite.utils.transform_utils import quat2axisangle, axisangle2quat, quat2mat, mat2quat 
 import time
 
 DEBUG = False
@@ -44,7 +45,14 @@ t_delay = 0
 # PLACEHOLDERS = [token.content for token in PLACEHOLDER_TOKENS]
 # tokenizer = Tokenizer.from_pretrained("t5-base")
 # tokenizer.add_tokens(PLACEHOLDER_TOKENS)
-
+T_w_sim_to_bl_sim = np.array([[0, 1, 0, -0.612], 
+                              [-1, 0, 0, 0],
+                              [0, 0, 1, 0.860],
+                              [0, 0, 0, 1]])
+T_g_robot_to_g_sim = np.array([[0, 1, 0, 0], 
+                              [-1, 0, 0, 0],
+                              [0, 0, 1, 0],
+                               [0, 0, 0, 1]])
 
 def make_prompt(env: object, obs: object, command: str, task_name: str):
     ret_dict = {'states': [],
@@ -389,8 +397,43 @@ def adjust_bb(bb, crop_params=[20, 25, 80, 75]):
     y2 = int((y2_old/y_scale)+top)
     return [x1, y1, x2, y2]
 
+def transform_action_from_robot_to_world(action):
+    aa_gripper = action[3:-1]
+    # convert axes-angle into rotation matrix
+    R_bl_sim_to_gripper_r = quat2mat(axisangle2quat(aa_gripper))
+    
+    gripper_pos = action[0:3]
+    
+    T_bl_sim_gripper_r = np.zeros((4,4))
+    T_bl_sim_gripper_r[3,3] = 1
+    
+    # position
+    T_bl_sim_gripper_r[0,3] = gripper_pos[0]
+    T_bl_sim_gripper_r[1,3] = gripper_pos[1]
+    T_bl_sim_gripper_r[2,3] = gripper_pos[2]
+    # orientation
+    T_bl_sim_gripper_r[0:3, 0:3] = R_bl_sim_to_gripper_r
+    
+    T_bl_sim_gripper_sim = T_bl_sim_gripper_r @ T_g_robot_to_g_sim
+    
+    T_wl_sim_gripper_sim = T_w_sim_to_bl_sim @ T_bl_sim_gripper_sim
+    
+    R_wl_sim_gripper_sim = T_wl_sim_gripper_sim[0:3, 0:3]
+    
+    action_wl_sim = np.zeros((7))
+    action_wl_sim[0:3] = T_wl_sim_gripper_sim[0:3, 3]
+    action_wl_sim[3:6] = quat2axisangle(mat2quat(R_wl_sim_gripper_sim))
+    if action[-1] < 0.8:
+        action_wl_sim[6] = -1
+    else:
+        action_wl_sim[6] = 1
+    
+    return action_wl_sim
 
-def get_action(model, target_obj_dec, bb, predict_gt_bb, gt_classes, states, images, context, gpu_id, n_steps, max_T=80, baseline=None, action_ranges=[], target_obj_embedding=None, t=-1, real=False):
+
+
+def get_action(model, target_obj_dec, bb, predict_gt_bb, gt_classes, states, images, context, gpu_id, n_steps, max_T=80, baseline=None, action_ranges=[], target_obj_embedding=None, t=-1, real=False, convert_action=False):
+    
     s_t = torch.from_numpy(np.concatenate(states, 0).astype(np.float32))[None]
     if isinstance(images[-1], np.ndarray):
         i_t = torch.from_numpy(np.concatenate(
@@ -445,10 +488,15 @@ def get_action(model, target_obj_dec, bb, predict_gt_bb, gt_classes, states, ima
         action = action_list
     else:
         action = denormalize_action(action, action_ranges)
+        
+        if convert_action:
+            action = transform_action_from_robot_to_world(action)
+        
         # print(f"Model first_phase {model.first_phase}")
         if not real:
             action[-1] = 1 if action[-1] > 0 and n_steps < max_T - 1 else -1
-
+            if hasattr(model, 'last_gripper'):
+                model.last_gripper = action[-1] 
         if getattr(model, 'first_phase', None) is not None:
             # if model.first_phase and action[-1] == 1:
             #     print("Delay picking")
@@ -1661,7 +1709,7 @@ def compute_error(action_t, gt_action):
 
 def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img_formatter,
                     model, predict_gt_bb, bb, gt_classes, concat_bb, states, context, n_steps,
-                    max_T, baseline, action_ranges, sub_action, gt_action, controller, target_obj_emb, place, expert_traj=None):
+                    max_T, baseline, action_ranges, sub_action, gt_action, controller, target_obj_emb, place, expert_traj=None, convert_action=False):
     # Get GT BB
     # if concat_bb:
     bb_t, gt_t = get_gt_bb(traj=traj,
@@ -1710,7 +1758,8 @@ def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img
             baseline=baseline,
             action_ranges=action_ranges,
             target_obj_embedding=target_obj_emb,
-            t=n_steps
+            t=n_steps,
+            convert_action=convert_action
         )
     else:
         action, target_pred, target_obj_emb, activation_map, prediction_internal_obj, predicted_bb = get_action(
@@ -1727,7 +1776,8 @@ def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img
             max_T=max_T,
             baseline=baseline,
             action_ranges=action_ranges,
-            target_obj_embedding=target_obj_emb
+            target_obj_embedding=target_obj_emb,
+            convert_action=convert_action
         )
 
     end = time.time()

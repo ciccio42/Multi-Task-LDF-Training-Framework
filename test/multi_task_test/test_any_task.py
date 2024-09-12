@@ -199,7 +199,8 @@ def rollout_imitation(model, config, ctr,
                              real=real,
                              expert_traj=expert_traj,
                              gt_file=gt_file,
-                             place_bb_flag=place)
+                             place_bb_flag=place,
+                             convert_action=config.dataset_cfg.convert_action)
         print("Evaluated traj #{}, task#{}, reached? {} picked? {} success? {} ".format(
             ctr, variation_id, info['reached'], info['picked'], info['success']))
         # print(f"Avg prediction {info['avg_pred']}")
@@ -389,7 +390,7 @@ if __name__ == '__main__':
         print("Waiting for debugger attach")
         debugpy.wait_for_client()
 
-    seed_everything(seed=42)
+    # seed_everything(seed=42)
 
     try_path = args.model
     real = True if "Real" in try_path else False

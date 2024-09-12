@@ -22,10 +22,10 @@ SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
 DEVICE=0
-DEBUG=false
-WANDB_LOG=true
+DEBUG=debug
+WANDB_LOG=false
 
-EXP_NAME=Real-Pick-Place-MOSAIC_No_State_No_finetuned_No_val_0_1_4_5_8_9
+EXP_NAME=Real-Pick-Place-MOSAIC_No_State_No_finetuned_No_val_0_1_4_5_8_9_Mix_real_sim
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place #[pick_place,nut_assembly]
 

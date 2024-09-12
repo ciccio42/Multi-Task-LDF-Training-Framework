@@ -555,6 +555,7 @@ if __name__ == '__main__':
         config.dataset_cfg.change_command_epoch = False
         config.dataset_cfg.root_dir = "/home/rsofnc000/dataset/opt_dataset"
         config.dataset_cfg.mix_demo_agent = False
+        config.dataset_cfg.mix_sim_real = False
         dataset = instantiate(config.get('dataset_cfg', None))
         dataset._mix_demo_agent = False
         # get list of pkl files
