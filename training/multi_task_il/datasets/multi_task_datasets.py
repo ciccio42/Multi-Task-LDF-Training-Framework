@@ -152,7 +152,7 @@ class MultiTaskPairedDataset(Dataset):
             pass
         if not self._change_command_epoch:
             (task_name, sub_task_id, demo_file,
-             agent_file) = self.all_file_pairs[idx]
+             agent_file) = self.all_file_pairs[idx] # es. ('pick_place', 0, '/raid/home/frosa_Loc...raj039.pkl', 85)
         else:
             (task_name, sub_task_id, agent_file,
                 trj_length) = self.all_agent_files[idx[0]]

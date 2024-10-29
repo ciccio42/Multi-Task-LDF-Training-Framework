@@ -4,6 +4,12 @@ outputs/*
 wandb/*
 *.TXT
 
+# gianluigi
+.vscode
+training/multi_task_il/
+
+training/train_scripts/command_encoder/models/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

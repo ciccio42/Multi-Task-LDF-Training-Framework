@@ -7,16 +7,21 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=16
 
-export MUJOCO_PY_MUJOCO_PATH="/home/rsofnc000/.mujoco/mujoco210"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/rsofnc000/.mujoco/mujoco210/bin
+# export MUJOCO_PY_MUJOCO_PATH="/home/rsofnc000/.mujoco/mujoco210"
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/rsofnc000/.mujoco/mujoco210/bin
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
+
+export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 
 export HYDRA_FULL_ERROR=1
 echo $1
 TASK_NAME="$1"
 
-EXPERT_DATA=/home/rsofnc000/dataset/opt_dataset/
-SAVE_PATH=/home/rsofnc000/checkpoint_save_folder
+EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
+# SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
+SAVE_PATH=/raid/home/frosa_Loc/multi_task_lfd/checkpoint_save_folder
 POLICY='${mosaic}'
 TARGET='multi_task_il.models.mt_rep.VideoImitation'
 
@@ -24,9 +29,9 @@ SAVE_FREQ=-1
 LOG_FREQ=10
 VAL_FREQ=-1
 DEVICE=0
-DEBUG=false
-WANDB_LOG=true
-ROLLOUT=true
+DEBUG=true
+WANDB_LOG=false
+ROLLOUT=false
 EPOCH=90
 LOADER_WORKERS=16
 CONFIG_PATH=../experiments
@@ -216,8 +221,8 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
 elif [ "$TASK_NAME" == 'pick_place' ]; then
     echo "Pick-Place"
     ### Pick-Place ###
-    RESUME_PATH=1Task-pick_place-Double-Policy-Contrastive-false-Inverse-false-CONCAT_IMG_EMB-false-CONCAT_DEMO_EMB-true-Batch32
-    RESUME_STEP=99417
+    RESUME_PATH=""
+    RESUME_STEP=""
     RESUME=false
 
     TARGET_OBJ_DETECTOR_STEP=37476 #68526 #129762 #198900 #65250
@@ -329,8 +334,8 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     PROJECT_NAME=${EXP_NAME}
 fi
 
-#
-srun --output=training_${EXP_NAME}.txt --job-name=training_${EXP_NAME} python -u ../training/train_scripts/train_any.py \
+# srun --output=training_${EXP_NAME}.txt --job-name=training_${EXP_NAME}
+python -u ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \

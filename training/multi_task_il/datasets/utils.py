@@ -156,8 +156,8 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
     demo_file_cnt = 0
     validation_on_skipped_task = False
 
-    for spec in task_spec:
-        if mode == 'val' and len(spec.get('skip_ids', [])) != 0:
+    for spec in task_spec: # task_spec è una lista
+        if mode == 'val' and len(spec.get('skip_ids', [])) != 0:    
             validation_on_skipped_task = False
 
         name, date = spec.get('name', None), spec.get('date', None)
@@ -183,7 +183,7 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                 root_dir, name, '{}_{}_{}'.format(date, demo_name, name))
         dataset_loader.subtask_to_idx[name] = defaultdict(list)
         dataset_loader.demo_subtask_to_idx[name] = defaultdict(list)
-        for _id in range(spec.get('n_tasks')):
+        for _id in range(spec.get('n_tasks')):  # PER OGNI TASK
 
             # take demo file from no-skipped tasks
             if not validation_on_skipped_task:
@@ -295,10 +295,10 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                         count += 1
             elif not dataset_loader._mix_demo_agent and dataset_loader._change_command_epoch:
                 print(f"Loading task {name} - sub-task {_id}")
-                for agent in tqdm(agent_files):
+                for agent in tqdm(agent_files):   # FILE DELL'AGENTE
                     # open file and check trajectory lenght
                     with open(agent, "rb") as f:
-                        agent_data = pkl.load(f)
+                        agent_data = pkl.load(f)    # load del pickle
                         trj_len = agent_data['len']
                     # for t in range(trj_len):
                     dataset_loader.all_agent_files[agent_file_cnt] = (
@@ -309,7 +309,7 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                     count += trj_len
                     agent_file_cnt += 1
 
-                for demo_indx, demo in enumerate(demo_files):
+                for demo_indx, demo in enumerate(demo_files):   # FILE DIMOSTRAZIONE
                     dataset_loader.all_demo_files[demo_file_cnt] = (
                         name, _id, demo)
                     dataset_loader.demo_task_to_idx[name].append(
@@ -1616,7 +1616,7 @@ class TrajectoryBatchSampler(Sampler):
         self.balancing_policy = sampler_spec.get('balancing_policy', 0)
         self.num_step = n_step
 
-        # Create sampler for agent trajectories
+        ########################## Create sampler for agent trajectories ####################################
         self.agent_task_samplers = OrderedDict()
         self.agent_task_iterators = OrderedDict()
         self.agent_task_to_idx = agent_task_to_idx
@@ -1664,7 +1664,7 @@ class TrajectoryBatchSampler(Sampler):
             }
             self.task_info[task_name] = curr_task_info
 
-        # Create sampler for demo trajectories
+        ################################ Create sampler for demo trajectories #################################
         self.demo_task_samplers = OrderedDict()
         self.demo_task_iterators = OrderedDict()
         self.demo_task_to_idx = demo_task_to_idx
@@ -1747,13 +1747,13 @@ class TrajectoryBatchSampler(Sampler):
 
             # for each sample in the batch
             for idx in range(self.batch_size):
-                (name, sub_task) = self.idx_map[idx]
+                (name, sub_task) = self.idx_map[idx] # idx_map ha 32 elementi: 2 campioni per variazione di task (2*16 = 32)
 
-                agent_sampler = self.agent_task_samplers[name][sub_task]
-                agent_iterator = self.agent_task_iterators[name][sub_task]
+                agent_sampler = self.agent_task_samplers[name][sub_task]    
+                agent_iterator = self.agent_task_iterators[name][sub_task]  # prendo l'iteratore
 
                 try:
-                    agent_indx = self.agent_subtask_to_idx[name][sub_task][next(
+                    agent_indx = self.agent_subtask_to_idx[name][sub_task][next(    # con l'indice datomi dall'iteratore prendo l'indice della traiettoria dell'agente
                         agent_iterator)]
                 except StopIteration:  # print('early sstop:', i, name)
                     # re-start the smaller-sized tasks
@@ -1787,12 +1787,12 @@ class TrajectoryBatchSampler(Sampler):
                     self.demo_task_iterators[name][sub_task] = demo_iterator
                 agent_demo_pair[agent_indx] = demo_indx
 
-                batch.append([agent_indx, agent_demo_pair[agent_indx]])
+                batch.append([agent_indx, agent_demo_pair[agent_indx]]) # mi assicuro che nel batch ci vanno almeno due istanze per ogni variazione
 
             if len(batch) == self.batch_size:
                 if self.shuffle:
                     random.shuffle(batch)
-                yield batch
+                yield batch # con questo batch di numeri viene chiamata la __getitem__ del dataset tramite il dataloader
                 batch = []
             if len(batch) > 0 and not self.drop_last:
                 if self.shuffle:

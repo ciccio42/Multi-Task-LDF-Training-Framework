@@ -625,7 +625,7 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
                 ret_dist=False)
 
         # forward & backward action pred
-            actions = model_inputs['actions']
+        actions = model_inputs['actions']
         if "CondPolicy" not in config.policy._target_:
             mu_bc, scale_bc, logit_bc = out['bc_distrib']
             assert not torch.isnan(mu_bc).any(), "mu_bc contains nan"

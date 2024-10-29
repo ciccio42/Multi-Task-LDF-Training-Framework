@@ -54,7 +54,7 @@ def split_files(file_len, splits, mode='train'):
         [0 <= s for s in splits]), "splits is not valid pdf!"
 
     order = [i for i in range(file_len)]
-    random.Random(SHUFFLE_RNG).shuffle(order)
+    random.Random(SHUFFLE_RNG).shuffle(order) # usciranno sempre gli stessi numeri
     pivot = int(len(order) * splits[0])
     if mode == 'train':
         order = order[:pivot]
