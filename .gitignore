@@ -6,9 +6,10 @@ wandb/*
 
 # gianluigi
 .vscode
-training/multi_task_il/
-
 training/train_scripts/command_encoder/models/*
+training/multi_task_il/models/muse/models/*
+training/multi_task_il/models/muse/datasets/*
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
