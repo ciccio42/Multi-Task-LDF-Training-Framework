@@ -55,12 +55,14 @@ if __name__ == '__main__':
     LEARNING_RATE = 0.001
     MOMENTUM = 0.9 # for SGD
     USE_WANDB = True
-    EARLY_STOP = 45
+    EARLY_STOP = 200
     
     LR_SCHEDULER = True
     ### two optimizers
     TWO_OPTIMIZERS = False
     EPOCH_CHANGE_OPTIMIZER = 29
+    
+    STARTING_LR_OPTIMIZER_1 = 0.01
     
     LR_1 = 0.001
     LR_2 = 0.01
@@ -91,7 +93,7 @@ if __name__ == '__main__':
         from torch.optim import lr_scheduler
         # optimizer1 = torch.optim.Adam(cond_module.parameters(), lr=0.1)
         #####################################################################
-        optimizer1 = AdamW(params=cond_module.parameters(), lr=0.1) ####### 
+        optimizer1 = AdamW(params=cond_module.parameters(), lr=STARTING_LR_OPTIMIZER_1) ####### 
         #####################################################################
         if TWO_OPTIMIZERS:
             optimizer2 = torch.optim.SGD(cond_module.parameters(), lr=0.1, momentum=MOMENTUM)
@@ -107,8 +109,15 @@ if __name__ == '__main__':
                                             # milestones=[50,150,300], #0.05, 0.025, 0.00125 EPOCHS = 500
                                             # milestones=[100,250,500], #0->0.1, 100->0.05, 250->0.025, 500->0.00125 EPOCHS = 1000
                                             # milestones=[50,100,250], #0->0.1, 50->0.05, 100->0.025, 250->0.00125 EPOCHS = 1000
-                                            milestones=[100,250,500], #0->0.1, 100->0.05, 250->0.025, 500->0.00125 EPOCHS = 1000
+                                            # milestones=[50,250,500], #start lr 0->0.1, 50->0.05, 250->0.025, 500->0.00125 EPOCHS = 1000
+                                            # milestones=[50,250,500], #start lr 0->0.01, 50->0.005, 250->0.0025, 500->0.000125 EPOCHS = 1000
+                                            # milestones=[10,50,250], #start lr 0->0.1, 10>0.01, 50->0.001, 250->0.0001
+                                            milestones=[100,250], #start lr 0->0.01, 100>0.005, 250->0.0025
                                             gamma=0.5)
+            
+            ###############################################
+            # PROVARE EXPONENTIAL LR
+            ###############################################
             
         
         optimizer = optimizer1
@@ -193,12 +202,14 @@ if __name__ == '__main__':
 
             running_loss += loss.item()
             
-            if _i == (training_steps_per_epoch - 1):
-                last_loss = running_loss / 27
-                print('train loss: {}'.format(last_loss))
-                running_loss = 0.
-                if USE_WANDB:
-                    wandb.log({'train_loss' : last_loss})
+        # compute training loss for the entire epoch
+        assert (training_steps_per_epoch - 1) == _i, "something wrong"
+        if _i == (training_steps_per_epoch - 1):
+            last_loss = running_loss / training_steps_per_epoch
+            print('train loss: {}'.format(last_loss))
+            running_loss = 0.
+            if USE_WANDB:
+                wandb.log({'train_loss' : last_loss})
                 
         # validation loop
         cond_module.eval()
@@ -209,7 +220,7 @@ if __name__ == '__main__':
                 video_input, gt_embedding = data['demo_data']['demo'], data['embedding']['embedding']
                 video_input, gt_embedding = video_input.to(device), gt_embedding.to(device).squeeze(1)
                 output_embedding = cond_module(video_input)
-                
+                ############################# fai un check di target
                 val_loss, target = compute_cosine_similarity(output_embedding, gt_embedding, BATCH_SIZE, target)
                 avg_val_loss+=val_loss
                 #avg_accuracy

@@ -157,7 +157,7 @@ class CommandEncoderDataset(Dataset):
         name = 'pick_place'
         n_tasks = 16
         
-        split = [0.9,0.1]
+        split = [0.8,0.2]
         
         # directory dimostrazioni ed embeddings
         demo_dir = join(
