@@ -27,7 +27,8 @@ def get_backbone(backbone_name="slow_r50", video_backbone=True, pretrained=False
             if not pretrained:
                 weights = None
             else:
-                weights = R2Plus1D_18_Weights
+                # weights = R2Plus1D_18_Weights
+                weights = R2Plus1D_18_Weights.DEFAULT
 
             return nn.Sequential(*list(r2plus1d_18(weights=weights).children())[:-1])
     else:

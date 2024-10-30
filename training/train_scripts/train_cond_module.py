@@ -83,7 +83,10 @@ if __name__ == '__main__':
     # train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE)
     val_loader = DataLoader(val_dataset, batch_sampler=val_sampler)
 
-    cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512]).to(device)
+    # cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 256, 512]).to(device)
+    cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 256, 512], pretrained=True).to(device) # prossimo da provare
+    ######## provare anche resNet
+    # cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512]).to(device) # non sotto lo 0.35 val
     
     cosine_loss = CosineEmbeddingLoss()
     target = torch.ones(BATCH_SIZE).to(device) # se target 1, l'obietto è massimizzare la cosine similarity
@@ -202,14 +205,7 @@ if __name__ == '__main__':
 
             running_loss += loss.item()
             
-        # compute training loss for the entire epoch
-        assert (training_steps_per_epoch - 1) == _i, "something wrong"
-        if _i == (training_steps_per_epoch - 1):
-            last_loss = running_loss / training_steps_per_epoch
-            print('train loss: {}'.format(last_loss))
-            running_loss = 0.
-            if USE_WANDB:
-                wandb.log({'train_loss' : last_loss})
+        train_steps_this_epoch = _i
                 
         # validation loop
         cond_module.eval()
@@ -228,8 +224,14 @@ if __name__ == '__main__':
         avg_val_loss = avg_val_loss / (_i + 1)
         #avg_accuracy
         
-        if USE_WANDB:
-            wandb.log({'val_loss' : avg_val_loss})
+        # compute training loss for the entire epoch
+        assert (training_steps_per_epoch - 1) == train_steps_this_epoch, "something wrong"
+        if train_steps_this_epoch == (training_steps_per_epoch - 1):
+            last_loss = running_loss / training_steps_per_epoch
+            print('train loss: {}'.format(last_loss))
+            running_loss = 0.
+            if USE_WANDB:
+                wandb.log({'train_loss' : last_loss, 'val_loss' : avg_val_loss})
         
         best_val_counter+=1 # conta il numero di volte che la val_loss non migliora a ogni epoca
         
