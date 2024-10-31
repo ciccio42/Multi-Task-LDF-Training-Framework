@@ -175,7 +175,8 @@ elif SAVE_EMBEDDINGS_ONLY_CENTROIDS: # se vogliamo salvare SOLO i centoidi degli
             #     os.mkdir(f'{root_file}/{task}/{subtask}')
             if not os.path.exists(f'{root_file}/{subtask}'):
                 os.mkdir(f'{root_file}/{subtask}')
-            pickle.dump(centroids_subtasks[task][subtask], open(f'{root_file}/{subtask}/centroid_embedding.pkl', 'wb'))            
+            for i in range(len(embedding_subtasks[task][subtask].keys())): # il pezzone
+                pickle.dump(centroids_subtasks[task][subtask], open(f'{root_file}/{subtask}/centroid_embedding_{i}.pkl', 'wb'))            
             
 
 # ### EMBEDDING VISUALIZATION

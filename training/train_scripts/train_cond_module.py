@@ -43,7 +43,7 @@ def compute_cosine_similarity(output_embedding, gt_embedding, batch_size, target
 
 if __name__ == '__main__':
     
-    
+    USE_CENTROIDS = True
     # training parameters
     # EPOCHS = 150
     EPOCHS = 1000
@@ -72,8 +72,8 @@ if __name__ == '__main__':
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu' 
     
-    train_dataset = CommandEncoderDataset(data_augs=DATA_AUGS, mode='train')
-    val_dataset = CommandEncoderDataset(data_augs=DATA_AUGS, mode='val')
+    train_dataset = CommandEncoderDataset(data_augs=DATA_AUGS, mode='train', use_embedding_centroids=True)
+    val_dataset = CommandEncoderDataset(data_augs=DATA_AUGS, mode='val', use_embedding_centroids=True)
     # train_loader = DataLoader(dataset, batch_size=10, shuffle=True)
     train_sampler = CommandEncoderSampler(train_dataset, batch_size=BATCH_SIZE)
     val_sampler = CommandEncoderSampler(val_dataset, batch_size=BATCH_SIZE)
@@ -193,7 +193,10 @@ if __name__ == '__main__':
         last_loss = 0.
         for _i, data in enumerate(train_loader):
             
-            video_input, gt_embedding = data['demo_data']['demo'], data['embedding']['embedding']
+            if not USE_CENTROIDS:
+                video_input, gt_embedding = data['demo_data']['demo'], data['embedding']['embedding']
+            else:
+                video_input, gt_embedding = data['demo_data']['demo'], data['embedding']
             video_input, gt_embedding = video_input.to(device), gt_embedding.to(device).squeeze(1)
             optimizer.zero_grad()
             output_embedding = cond_module(video_input)
@@ -213,7 +216,10 @@ if __name__ == '__main__':
         
         with torch.no_grad():
             for _i, data in enumerate(val_loader):
-                video_input, gt_embedding = data['demo_data']['demo'], data['embedding']['embedding']
+                if not USE_CENTROIDS:
+                    video_input, gt_embedding = data['demo_data']['demo'], data['embedding']['embedding']
+                else:
+                    video_input, gt_embedding = data['demo_data']['demo'], data['embedding']
                 video_input, gt_embedding = video_input.to(device), gt_embedding.to(device).squeeze(1)
                 output_embedding = cond_module(video_input)
                 ############################# fai un check di target

@@ -128,7 +128,8 @@ class CommandEncoderDataset(Dataset):
                  aug_twice=True,
                  aux_pose=True,
                  use_strong_augs=True,
-                 data_augs=None) -> None:   # ricorda di mettere DATA_AUGS
+                 data_augs=None,
+                 use_embedding_centroids=False) -> None:   # ricorda di mettere DATA_AUGS
         
         
         assert mode == 'train' or mode == 'val', f'{mode} is not a valid modality, choose btw \'train\' or \'val\''
@@ -162,10 +163,15 @@ class CommandEncoderDataset(Dataset):
         # directory dimostrazioni ed embeddings
         demo_dir = join(
             root_dir, name, '{}_{}'.format("ur5e", name))
-        embedding_dir = join(
-            root_dir, name, '{}'.format('command_embs')
-        )
-            
+        if not use_embedding_centroids:
+            embedding_dir = join(
+                root_dir, name, '{}'.format('command_embs')
+            )
+        else: # se vogliamo caricare i centroidi per ogni sottotask come gt
+            embedding_dir = join(
+                root_dir, name, '{}'.format('centroids_commands_embs')
+            )
+                       
         count = 0
         demo_file_cnt = 0
         embedding_file_cnt = 0
