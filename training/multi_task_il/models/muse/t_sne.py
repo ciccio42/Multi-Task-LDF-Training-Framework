@@ -17,7 +17,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 # load data
 # os.chdir('repo/Multi-Task-LFD-Training-Framework/training/multi_task_il/models/muse/')
 os.chdir('training/multi_task_il/models/muse/')
-COMMAND_FILE_PATH = 'commands/commands_extended3.json'
+COMMAND_FILE_PATH = 'commands/command_files_extended_11-01_21:01.json'
 EXTENDED_JSON = True if 'extended' in COMMAND_FILE_PATH else False
 SAVE_DF_AS_PDF = False
 SAVE_EMBEDDINGS = False
@@ -91,7 +91,7 @@ for task in data.keys(): # per ogni task
             embedding_subtasks_tensor[task][sub_task_idx][id] = {'sentence' : sentence, 'embedding' : res.detach()}
 
 # tensore (N_elementi, size_embedding)  -> (16, 512)
-print(f"resulting tensor shape: {embeddings_tensor.shape}")
+print(f"resulting tensor shape (only for single embeddings): {embeddings_tensor.shape}")
 
 
 if SAVE_EMBEDDINGS_ONLY_CENTROIDS:
@@ -111,21 +111,6 @@ if SAVE_EMBEDDINGS_ONLY_CENTROIDS:
             _subtask_tensor = torch.mean(_subtask_tensor, 0)
             centroids_subtasks[_task][_sub_task] = _subtask_tensor
         
-
-# ## dataframe
-# embeddings_tensor = embeddings_tensor.detach()
-# embedding_numpy = embeddings_tensor.numpy()
-# feat_cols = [ 'e'+str(i) for i in range(embeddings_tensor.shape[1]) ]
-# df = pd.DataFrame(embedding_numpy,columns=feat_cols)
-# df['y'] = y # label numerica
-# df['label'] = df['y'].apply(lambda i: str(i)) # label di tipo stringas
-# df['command_str'] = command_str
-
-# print('Size of the dataframe: {}'.format(df.shape))
-# display(df)
-
-
-
 
 
 if SAVE_EMBEDDINGS: # se vogliamo salvare TUTTI gli embeddings prodotti per ogni sottotask
@@ -159,13 +144,15 @@ elif SAVE_EMBEDDINGS_ONLY_CENTROIDS: # se vogliamo salvare SOLO i centoidi degli
     ### save embedding in .pkl files
 
     if not SAVE_IN_OPT:
-        print(f"saving in current dir...")
+        print(f"saving the centroids in current dir...")
         root_file = 'centroids_commands_embs'
     else:
         print(f"saving in opt...")
         root_file = '/raid/home/frosa_Loc/opt_dataset/pick_place/centroids_commands_embs'
     if not os.path.exists(root_file):
         os.mkdir(root_file)
+        
+    MULTIPLY_FACTOR = 2
 
     for task in centroids_subtasks.keys():
         # if not os.path.exists(f'{root_file}/{task}'): # abbiamo solo pick_and_place
@@ -175,70 +162,86 @@ elif SAVE_EMBEDDINGS_ONLY_CENTROIDS: # se vogliamo salvare SOLO i centoidi degli
             #     os.mkdir(f'{root_file}/{task}/{subtask}')
             if not os.path.exists(f'{root_file}/{subtask}'):
                 os.mkdir(f'{root_file}/{subtask}')
-            for i in range(len(embedding_subtasks[task][subtask].keys())): # il pezzone
+            for i in range(len(embedding_subtasks[task][subtask].keys())*MULTIPLY_FACTOR): # il pezzone
                 pickle.dump(centroids_subtasks[task][subtask], open(f'{root_file}/{subtask}/centroid_embedding_{i}.pkl', 'wb'))            
             
 
-# ### EMBEDDING VISUALIZATION
-# # create TSNE object
-# time_start = time.time()
-# tsne = TSNE(n_components=2, verbose=1, perplexity=40, n_iter=300) # vedere se cambiare parametri
-# tsne_results = tsne.fit_transform(embeddings_tensor)
-# print('t-SNE done! Time elapsed: {} seconds'.format(time.time()-time_start))
+### EMBEDDING VISUALIZATION
 
-# ## add columns to df
-# df['tsne-2d-one'] = tsne_results[:,0]
-# df['tsne-2d-two'] = tsne_results[:,1]
+# create the dataframe
+embeddings_tensor = embeddings_tensor.detach()
+embedding_numpy = embeddings_tensor.numpy()
+feat_cols = [ 'e'+str(i) for i in range(embeddings_tensor.shape[1]) ]
+df = pd.DataFrame(embedding_numpy,columns=feat_cols)
+df['y'] = y # label numerica
+df['label'] = df['y'].apply(lambda i: str(i)) # label di tipo stringas
+df['command_str'] = command_str
 
-# # df[(df["y"] == '1') | (df["y"] == '0')]
-
-# x = df[(df["y"] == '1')]["tsne-2d-one"].mean()
-# y = df[(df["y"] == '1')]["tsne-2d-two"].mean()
+print('Size of the dataframe: {}'.format(df.shape))
+display(df)
 
 
-# # calcolo media centroidi e metto in un dataframe
-# indexes = []
-# for i in range(NUMBER_OF_TASK):
-#     x = df[(df["y"] == str(i))]["tsne-2d-one"].mean() # x coord del cluster
-#     y = df[(df["y"] == str(i))]["tsne-2d-two"].mean() # y coord del cluster
-#     if i == 0:
-#         embeddings_tensor = torch.unsqueeze(res, 0)
-#         cluster_tensor = torch.unsqueeze(torch.tensor((x,y)), 0)
-#     else:
-#         to_add = torch.unsqueeze(torch.tensor((x,y)), 0)
-#         cluster_tensor = torch.cat((cluster_tensor, to_add))
-#     indexes.append(i)
+# create TSNE object
+time_start = time.time()
+tsne = TSNE(n_components=2, verbose=1, perplexity=40, n_iter=300) # vedere se cambiare parametri
+tsne_results = tsne.fit_transform(embeddings_tensor)
+print('t-SNE done! Time elapsed: {} seconds'.format(time.time()-time_start))
 
-# cluster_tensor_numpy = cluster_tensor.detach().numpy()
-# cluster_df = pd.DataFrame(cluster_tensor_numpy,columns=['x', 'y'])
-# cluster_df['task'] = indexes
+## add columns to df
+df['tsne-2d-one'] = tsne_results[:,0]
+df['tsne-2d-two'] = tsne_results[:,1]
+
+# df[(df["y"] == '1') | (df["y"] == '0')]
+
+x = df[(df["y"] == '1')]["tsne-2d-one"].mean()
+y = df[(df["y"] == '1')]["tsne-2d-two"].mean()
 
 
-# ## dimensionality reduction
-# plt.figure(figsize=(16,10))
-# ax = sns.scatterplot(
-#     x="tsne-2d-one", y="tsne-2d-two",
-#     hue="y", # per ora non la uso visto che ogni campione è a se
-#     palette=sns.color_palette("Spectral", NUMBER_OF_TASK),
-#     data=df,
-#     legend=False,
-#     # alpha=0.3
-# )
+# calcolo media centroidi e metto in un dataframe
+indexes = []
+for i in range(NUMBER_OF_TASK):
+    x = df[(df["y"] == str(i))]["tsne-2d-one"].mean() # x coord del cluster
+    y = df[(df["y"] == str(i))]["tsne-2d-two"].mean() # y coord del cluster
+    if i == 0:
+        embeddings_tensor = torch.unsqueeze(res, 0)
+        cluster_tensor = torch.unsqueeze(torch.tensor((x,y)), 0)
+    else:
+        to_add = torch.unsqueeze(torch.tensor((x,y)), 0)
+        cluster_tensor = torch.cat((cluster_tensor, to_add))
+    indexes.append(i)
 
-# ax = sns.scatterplot(
-#     x="x", y="y",
-#     hue="task",
-#     palette=sns.color_palette("Spectral", NUMBER_OF_TASK),
-#     data=cluster_df,
-#     marker="*",
-#     s=600,
-#     legend="full",
-#     ax=ax
-# )
-# # plt.show()
+cluster_tensor_numpy = cluster_tensor.detach().numpy()
+cluster_df = pd.DataFrame(cluster_tensor_numpy,columns=['x', 'y'])
+cluster_df['task'] = indexes
 
-# from datetime import datetime
 
+## dimensionality reduction
+plt.figure(figsize=(16,10))
+ax = sns.scatterplot(
+    x="tsne-2d-one", y="tsne-2d-two",
+    hue="y", # per ora non la uso visto che ogni campione è a se
+    palette=sns.color_palette("Spectral", NUMBER_OF_TASK),
+    data=df,
+    legend=False,
+    # alpha=0.3
+)
+
+ax = sns.scatterplot(
+    x="x", y="y",
+    hue="task",
+    palette=sns.color_palette("Spectral", NUMBER_OF_TASK),
+    data=cluster_df,
+    marker="*",
+    s=600,
+    legend="full",
+    ax=ax
+)
+# plt.show()
+
+from datetime import datetime
+
+
+######## da sistemare, le immagini non da salvare in opt_dataset
 # if SAVE_IN_OPT: # salvo in opt_dataset
 #     try:
 #         root_dir = '/raid/home/frosa_Loc/opt_dataset/pick_place/command_embs'
@@ -257,16 +260,19 @@ elif SAVE_EMBEDDINGS_ONLY_CENTROIDS: # se vogliamo salvare SOLO i centoidi degli
 #         plt.savefig(f"figures/embeddings_clusters_{ts}.png")
     
 
+
+
+
+##### old code
+
+
+
 # ## save dataframe to json format
 # try:
 #     df.to_json(f'datasets/embeddings_dataset_{ts}.json')
 # except Exception:
 #     os.mkdir("datasets/")
 #     df.to_json(f'datasets/embeddings_dataset_{ts}.json')
-
-
-
-
 
 
 # if SAVE_DF_AS_PDF:
@@ -280,3 +286,5 @@ elif SAVE_EMBEDDINGS_ONLY_CENTROIDS: # se vogliamo salvare SOLO i centoidi degli
 #     pp = PdfPages("embeddings_dataframe.pdf")
 #     pp.savefig(fig, bbox_inches='tight')
 #     pp.close()
+
+

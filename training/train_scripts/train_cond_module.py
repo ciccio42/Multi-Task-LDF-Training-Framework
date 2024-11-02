@@ -72,8 +72,8 @@ if __name__ == '__main__':
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu' 
     
-    train_dataset = CommandEncoderDataset(data_augs=DATA_AUGS, mode='train', use_embedding_centroids=True)
-    val_dataset = CommandEncoderDataset(data_augs=DATA_AUGS, mode='val', use_embedding_centroids=True)
+    train_dataset = CommandEncoderDataset(data_augs=DATA_AUGS, mode='train', use_embedding_centroids=True, n_embeddings_per_subtask=60)
+    val_dataset = CommandEncoderDataset(data_augs=DATA_AUGS, mode='val', use_embedding_centroids=True, n_embeddings_per_subtask=60)
     # train_loader = DataLoader(dataset, batch_size=10, shuffle=True)
     train_sampler = CommandEncoderSampler(train_dataset, batch_size=BATCH_SIZE)
     val_sampler = CommandEncoderSampler(val_dataset, batch_size=BATCH_SIZE)
@@ -84,9 +84,14 @@ if __name__ == '__main__':
     val_loader = DataLoader(val_dataset, batch_sampler=val_sampler)
 
     # cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 256, 512]).to(device)
-    cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 256, 512], pretrained=True).to(device) # prossimo da provare
+    # cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 256, 512], pretrained=True).to(device) # prossimo da provare
+    cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512], pretrained=True).to(device) # prossimo da provare
     ######## provare anche resNet
     # cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512]).to(device) # non sotto lo 0.35 val
+    
+    ##### geliamo la backbone se il modello è pre-trainato
+    for name, par in cond_module._backbone.named_parameters():
+        par.requires_grad = False
     
     cosine_loss = CosineEmbeddingLoss()
     target = torch.ones(BATCH_SIZE).to(device) # se target 1, l'obietto è massimizzare la cosine similarity
