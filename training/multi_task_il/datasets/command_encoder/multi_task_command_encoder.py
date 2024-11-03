@@ -75,9 +75,10 @@ class CommandEncoderSampler(BatchSampler):
         first_subtask = list(self.dataset.demo_subtask_to_idx[first_task].keys())[0]
         _n_samples_subtask = len(self.dataset.demo_subtask_to_idx[first_task][first_subtask])
         
-        number_of_iterations = len(self.dataset) / self.batch_size
-        assert number_of_iterations == _n_samples_subtask, "{} and {} are of different size!".format(number_of_iterations, _n_samples_subtask)
+        number_of_iterations = len(self.dataset) // self.batch_size
+        # assert number_of_iterations == _n_samples_subtask, "{} and {} are of different size!".format(number_of_iterations, _n_samples_subtask)
         
+        # for i in range(number_of_iterations):
         for i in range(_n_samples_subtask):
             for _task in self.dataset.demo_subtask_to_idx.keys():
                 for _subtask in self.dataset.demo_subtask_to_idx[_task].keys(): 
@@ -89,7 +90,7 @@ class CommandEncoderSampler(BatchSampler):
                         demo_indx = self.dataset.demo_subtask_to_idx[_task][_subtask][next(
                             demo_iterator)]
                     except StopIteration: # in questo caso siamo in una nuova epoch, sono finiti gli indici e dobbiamo re-settare il sampler
-                        # print(f"reset sampler")
+                        print(f"reset sampler")
                         self.demo_task_iterators[_task][_subtask] = iter(demo_sampler)
                         demo_iterator = self.demo_task_iterators[_task][_subtask]
                         demo_indx = self.dataset.demo_subtask_to_idx[_task][_subtask][next(

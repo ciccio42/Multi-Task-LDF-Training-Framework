@@ -82,7 +82,8 @@ class CondModule(nn.Module):
                 input_dim = demo_linear_dim[indx-1]
             mlp_encoder.append(nn.Linear(in_features=input_dim,
                                          out_features=layer_dim))
-            mlp_encoder.append(nn.ReLU())
+            if indx != len(demo_linear_dim) - 1:
+                mlp_encoder.append(nn.ReLU())
 
         self._mlp_encoder = nn.Sequential(*mlp_encoder)
 

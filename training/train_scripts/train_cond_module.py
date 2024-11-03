@@ -6,6 +6,7 @@ import torch
 from torch.nn import CosineEmbeddingLoss
 from torch.optim import SGD
 from torch.optim import AdamW, RMSprop
+from torch.optim import lr_scheduler
 
 import wandb
 import random
@@ -40,65 +41,38 @@ def compute_cosine_similarity(output_embedding, gt_embedding, batch_size, target
         
     return loss, target
 
-
-if __name__ == '__main__':
-    
-    USE_CENTROIDS = True
-    # training parameters
-    # EPOCHS = 150
-    EPOCHS = 1000
-    # BATCH_SIZE = 32
-    # BATCH_SIZE = 16
-    BATCH_SIZE = 16
-    SHUFFLE = True
-    # LEARNING_RATE = 0.001
-    LEARNING_RATE = 0.001
-    MOMENTUM = 0.9 # for SGD
-    USE_WANDB = True
-    EARLY_STOP = 200
-    
-    LR_SCHEDULER = True
-    ### two optimizers
-    TWO_OPTIMIZERS = False
-    EPOCH_CHANGE_OPTIMIZER = 29
-    
-    STARTING_LR_OPTIMIZER_1 = 0.01
-    
-    LR_1 = 0.001
-    LR_2 = 0.01
-    
-    if USE_WANDB:
-        wandb.login()
-    
-    device = 'cuda' if torch.cuda.is_available() else 'cpu' 
-    
-    train_dataset = CommandEncoderDataset(data_augs=DATA_AUGS, mode='train', use_embedding_centroids=True, n_embeddings_per_subtask=60)
-    val_dataset = CommandEncoderDataset(data_augs=DATA_AUGS, mode='val', use_embedding_centroids=True, n_embeddings_per_subtask=60)
+def get_train_val_loader(data_augs, batch_size):
+    train_dataset = CommandEncoderDataset(data_augs=data_augs, mode='train', use_embedding_centroids=True, n_embeddings_per_subtask=60)
+    val_dataset = CommandEncoderDataset(data_augs=data_augs, mode='val', use_embedding_centroids=True, n_embeddings_per_subtask=60)
     # train_loader = DataLoader(dataset, batch_size=10, shuffle=True)
-    train_sampler = CommandEncoderSampler(train_dataset, batch_size=BATCH_SIZE)
-    val_sampler = CommandEncoderSampler(val_dataset, batch_size=BATCH_SIZE)
+    train_sampler = CommandEncoderSampler(train_dataset, batch_size=batch_size)
+    val_sampler = CommandEncoderSampler(val_dataset, batch_size=batch_size)
     # with sampler
     train_loader = DataLoader(train_dataset, batch_sampler=train_sampler)
     # no sampler
     # train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE)
     val_loader = DataLoader(val_dataset, batch_sampler=val_sampler)
+    return train_loader, val_loader
 
+def get_cond_module():
     # cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 256, 512]).to(device)
     # cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 256, 512], pretrained=True).to(device) # prossimo da provare
-    cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512], pretrained=True).to(device) # prossimo da provare
+    # cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512], pretrained=True).to(device)
+    # cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 256, 128, 256, 512], pretrained=True).to(device)
+    cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 256, 512], pretrained=True).to(device)
     ######## provare anche resNet
     # cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512]).to(device) # non sotto lo 0.35 val
     
     ##### geliamo la backbone se il modello è pre-trainato
     for name, par in cond_module._backbone.named_parameters():
         par.requires_grad = False
-    
-    cosine_loss = CosineEmbeddingLoss()
-    target = torch.ones(BATCH_SIZE).to(device) # se target 1, l'obietto è massimizzare la cosine similarity
         
-    #### lr scheduler
+    return cond_module
+
+
+def get_optimizer_lr_scheduler():
+        #### lr scheduler
     if LR_SCHEDULER:
-        from torch.optim import lr_scheduler
         # optimizer1 = torch.optim.Adam(cond_module.parameters(), lr=0.1)
         #####################################################################
         optimizer1 = AdamW(params=cond_module.parameters(), lr=STARTING_LR_OPTIMIZER_1) ####### 
@@ -106,6 +80,8 @@ if __name__ == '__main__':
         if TWO_OPTIMIZERS:
             optimizer2 = torch.optim.SGD(cond_module.parameters(), lr=0.1, momentum=MOMENTUM)
         # optimizer2 = torch.optim.SGD(cond_module.parameters(), lr=0.01)
+        else:
+            optimizer2 = None
         
         if TWO_OPTIMIZERS:
             scheduler = lr_scheduler.MultiStepLR(optimizer1,
@@ -120,7 +96,8 @@ if __name__ == '__main__':
                                             # milestones=[50,250,500], #start lr 0->0.1, 50->0.05, 250->0.025, 500->0.00125 EPOCHS = 1000
                                             # milestones=[50,250,500], #start lr 0->0.01, 50->0.005, 250->0.0025, 500->0.000125 EPOCHS = 1000
                                             # milestones=[10,50,250], #start lr 0->0.1, 10>0.01, 50->0.001, 250->0.0001
-                                            milestones=[100,250], #start lr 0->0.01, 100>0.005, 250->0.0025
+                                            # milestones=[100,250,500], #start lr 0->0.1, 100>0.05, 250->0.025 500->0.0125
+                                            milestones=[100,250], #start lr 0->0.01 100->0.005 250->0.0025
                                             gamma=0.5)
             
             ###############################################
@@ -128,14 +105,17 @@ if __name__ == '__main__':
             ###############################################
             
         
-        optimizer = optimizer1
+       # optimizer = optimizer1
+        
+        return scheduler, optimizer1, optimizer2
     else:
         # optimizer = SGD(cond_module.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM)
         optimizer = AdamW(params=cond_module.parameters(), lr=LEARNING_RATE)
         # optimizer = RMSprop(params=cond_module.parameters(), lr=LEARNING_RATE)
         
-    best_vloss = 99999.
+        return None, optimizer, None
     
+def create_save_path():
     # scusate
     import os
     root_dir = os.getcwd()
@@ -156,10 +136,73 @@ if __name__ == '__main__':
     curr_dir += f'/{str(EPOCHS)}_epochs'
     if not os.path.isdir(curr_dir):
         os.mkdir(curr_dir)
+    curr_dir += f'/{str(STARTING_LR_OPTIMIZER_1)}_lr'
+    if not os.path.isdir(curr_dir):
+        os.mkdir(curr_dir)
     save_path = curr_dir
     
     assert os.path.isdir(save_path) == True, f"{save_path} is not a valid save dir"
     print("save folder for the model: {}".format(save_path))
+    
+    return save_path
+
+
+if __name__ == '__main__':
+    
+    
+    CUDA_DEVICE = 1
+    USE_CENTROIDS = True
+    # training parameters
+    # EPOCHS = 150
+    EPOCHS = 10
+    # BATCH_SIZE = 32
+    # BATCH_SIZE = 16
+    # BATCH_SIZE = 16
+    # BATCH_SIZE = 32
+    BATCH_SIZE = 4
+    SHUFFLE = True
+    # LEARNING_RATE = 0.001
+    # LEARNING_RATE = 0.001
+    LEARNING_RATE = 0.001
+    MOMENTUM = 0.9 # for SGD
+    USE_WANDB = True
+    EARLY_STOP = 10
+    
+    LR_SCHEDULER = True
+    ### two optimizers
+    TWO_OPTIMIZERS = False
+    EPOCH_CHANGE_OPTIMIZER = 29
+    
+    # STARTING_LR_OPTIMIZER_1 = 0.01
+    # STARTING_LR_OPTIMIZER_1 = 0.001
+    # STARTING_LR_OPTIMIZER_1 = 0.00001
+    STARTING_LR_OPTIMIZER_1 = 0.0001
+    
+    LR_1 = 0.001
+    LR_2 = 0.01
+    
+    #### cuda device
+    print(f"current device: {torch.cuda.current_device()}")
+    if CUDA_DEVICE != 0:
+        print(f"switching to {CUDA_DEVICE}...")
+        torch.cuda.set_device(CUDA_DEVICE)
+        print(f"current device: {torch.cuda.current_device()}")
+    
+    if USE_WANDB:
+        wandb.login()
+    
+    device = 'cuda' if torch.cuda.is_available() else 'cpu' 
+    
+    train_loader, val_loader = get_train_val_loader(DATA_AUGS, BATCH_SIZE)
+    cond_module = get_cond_module()
+    
+    cosine_loss = CosineEmbeddingLoss()
+    target = torch.ones(BATCH_SIZE).to(device) # se target 1, l'obietto è massimizzare la cosine similarity
+        
+    scheduler, optimizer, optimizer2 = get_optimizer_lr_scheduler()
+    save_path = create_save_path()
+    best_vloss = 99999.
+    
     
     if USE_WANDB:
         run = wandb.init(
@@ -234,7 +277,7 @@ if __name__ == '__main__':
                 
         avg_val_loss = avg_val_loss / (_i + 1)
         #avg_accuracy
-        
+
         # compute training loss for the entire epoch
         assert (training_steps_per_epoch - 1) == train_steps_this_epoch, "something wrong"
         if train_steps_this_epoch == (training_steps_per_epoch - 1):

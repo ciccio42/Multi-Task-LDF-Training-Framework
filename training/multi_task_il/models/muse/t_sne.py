@@ -22,7 +22,7 @@ EXTENDED_JSON = True if 'extended' in COMMAND_FILE_PATH else False
 SAVE_DF_AS_PDF = False
 SAVE_EMBEDDINGS = False
 SAVE_EMBEDDINGS_ONLY_CENTROIDS = True
-SAVE_IN_OPT = True # flag per salvare in opt_dataset/
+SAVE_IN_OPT = False # flag per salvare in opt_dataset/
 
 print(f"current path: {os.getcwd()}")
 
@@ -180,7 +180,6 @@ df['command_str'] = command_str
 print('Size of the dataframe: {}'.format(df.shape))
 display(df)
 
-
 # create TSNE object
 time_start = time.time()
 tsne = TSNE(n_components=2, verbose=1, perplexity=40, n_iter=300) # vedere se cambiare parametri
@@ -193,8 +192,8 @@ df['tsne-2d-two'] = tsne_results[:,1]
 
 # df[(df["y"] == '1') | (df["y"] == '0')]
 
-x = df[(df["y"] == '1')]["tsne-2d-one"].mean()
-y = df[(df["y"] == '1')]["tsne-2d-two"].mean()
+# x = df[(df["y"] == '1')]["tsne-2d-one"].mean()
+# y = df[(df["y"] == '1')]["tsne-2d-two"].mean()
 
 
 # calcolo media centroidi e metto in un dataframe
@@ -203,7 +202,7 @@ for i in range(NUMBER_OF_TASK):
     x = df[(df["y"] == str(i))]["tsne-2d-one"].mean() # x coord del cluster
     y = df[(df["y"] == str(i))]["tsne-2d-two"].mean() # y coord del cluster
     if i == 0:
-        embeddings_tensor = torch.unsqueeze(res, 0)
+        # embeddings_tensor = torch.unsqueeze(res, 0)
         cluster_tensor = torch.unsqueeze(torch.tensor((x,y)), 0)
     else:
         to_add = torch.unsqueeze(torch.tensor((x,y)), 0)
@@ -214,13 +213,15 @@ cluster_tensor_numpy = cluster_tensor.detach().numpy()
 cluster_df = pd.DataFrame(cluster_tensor_numpy,columns=['x', 'y'])
 cluster_df['task'] = indexes
 
-
 ## dimensionality reduction
+import colorcet as cc
+palette = sns.color_palette(cc.glasbey, n_colors=4)
+
 plt.figure(figsize=(16,10))
 ax = sns.scatterplot(
     x="tsne-2d-one", y="tsne-2d-two",
     hue="y", # per ora non la uso visto che ogni campione è a se
-    palette=sns.color_palette("Spectral", NUMBER_OF_TASK),
+    palette=palette,
     data=df,
     legend=False,
     # alpha=0.3
@@ -229,7 +230,7 @@ ax = sns.scatterplot(
 ax = sns.scatterplot(
     x="x", y="y",
     hue="task",
-    palette=sns.color_palette("Spectral", NUMBER_OF_TASK),
+    palette=palette,
     data=cluster_df,
     marker="*",
     s=600,
@@ -242,22 +243,22 @@ from datetime import datetime
 
 
 ######## da sistemare, le immagini non da salvare in opt_dataset
-# if SAVE_IN_OPT: # salvo in opt_dataset
-#     try:
-#         root_dir = '/raid/home/frosa_Loc/opt_dataset/pick_place/command_embs'
-#         plt.savefig(f"{root_dir}/visual_representation/embeddings_clusters.png")
-#     except Exception:
-#         os.mkdir(f'{root_dir}/visual_representation/')
-#         root_dir = '/raid/home/frosa_Loc/opt_dataset/pick_place/command_embs'
-#         plt.savefig(f"{root_dir}/visual_representation/embeddings_clusters.png") 
-# else:
-#     ts = datetime.now().strftime("%m-%d_%H:%M")
-#     ## save clusters plot
-#     try:
-#         plt.savefig(f"figures/embeddings_clusters_{ts}.png")
-#     except Exception:
-#         os.mkdir("figures/")
-#         plt.savefig(f"figures/embeddings_clusters_{ts}.png")
+if SAVE_IN_OPT: # salvo in opt_dataset
+    try:
+        root_dir = '/raid/home/frosa_Loc/opt_dataset/pick_place/command_embs'
+        plt.savefig(f"{root_dir}/visual_representation/embeddings_clusters.png")
+    except Exception:
+        os.mkdir(f'{root_dir}/visual_representation/')
+        root_dir = '/raid/home/frosa_Loc/opt_dataset/pick_place/command_embs'
+        plt.savefig(f"{root_dir}/visual_representation/embeddings_clusters.png") 
+else:
+    ts = datetime.now().strftime("%m-%d_%H:%M")
+    ## save clusters plot
+    try:
+        plt.savefig(f"figures/embeddings_clusters_{ts}.png")
+    except Exception:
+        os.mkdir("figures/")
+        plt.savefig(f"figures/embeddings_clusters_{ts}.png")
     
 
 
