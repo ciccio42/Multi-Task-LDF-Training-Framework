@@ -90,7 +90,7 @@ class CommandEncoderSampler(BatchSampler):
                         demo_indx = self.dataset.demo_subtask_to_idx[_task][_subtask][next(
                             demo_iterator)]
                     except StopIteration: # in questo caso siamo in una nuova epoch, sono finiti gli indici e dobbiamo re-settare il sampler
-                        print(f"reset sampler")
+                        # print(f"reset sampler")
                         self.demo_task_iterators[_task][_subtask] = iter(demo_sampler)
                         demo_iterator = self.demo_task_iterators[_task][_subtask]
                         demo_indx = self.dataset.demo_subtask_to_idx[_task][_subtask][next(
@@ -184,7 +184,7 @@ class CommandEncoderDataset(Dataset):
         self.embedding_subtask_to_idx['pick_place'] = {}
         
         # transformations
-        DEMO_CROP = [0,0,0,0]
+        DEMO_CROP = [20, 25, 80, 75] 
         self.demo_crop[name] = DEMO_CROP
         
         for _id in range(n_tasks):

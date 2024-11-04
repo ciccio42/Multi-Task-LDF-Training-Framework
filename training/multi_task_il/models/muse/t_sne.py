@@ -6,7 +6,7 @@ import time
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os
-
+from copy import deepcopy
 from IPython.display import display
 
 from multi_task_il.models.muse.muse import get_model
@@ -105,11 +105,13 @@ if SAVE_EMBEDDINGS_ONLY_CENTROIDS:
             for _index in range(_n_subtask_istances):
                 if _index == 0:
                     _subtask_tensor = embedding_subtasks_tensor[_task][_sub_task][_index]['embedding']
+                    _sentence = embedding_subtasks_tensor[_task][_sub_task][_index]['sentence']
                 else:
                     _subtask_tensor = torch.cat((_subtask_tensor, embedding_subtasks_tensor[_task][_sub_task][_index]['embedding']))
             
             _subtask_tensor = torch.mean(_subtask_tensor, 0)
-            centroids_subtasks[_task][_sub_task] = _subtask_tensor
+            # centroids_subtasks[_task][_sub_task] = _subtask_tensor
+            centroids_subtasks[_task][_sub_task] = {'sentence' : _sentence, 'centroid_embedding' : deepcopy(_subtask_tensor)}
         
 
 
@@ -170,12 +172,19 @@ elif SAVE_EMBEDDINGS_ONLY_CENTROIDS: # se vogliamo salvare SOLO i centoidi degli
 
 # create the dataframe
 embeddings_tensor = embeddings_tensor.detach()
+
+for _subtask in centroids_subtasks['pick_place'].keys():
+    emb_centr = centroids_subtasks['pick_place'][_subtask]['centroid_embedding'].unsqueeze(0)
+    embeddings_tensor = torch.cat((embeddings_tensor, emb_centr), 0)
+
+y+=['20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35']
+
 embedding_numpy = embeddings_tensor.numpy()
 feat_cols = [ 'e'+str(i) for i in range(embeddings_tensor.shape[1]) ]
 df = pd.DataFrame(embedding_numpy,columns=feat_cols)
 df['y'] = y # label numerica
 df['label'] = df['y'].apply(lambda i: str(i)) # label di tipo stringas
-df['command_str'] = command_str
+# df['command_str'] = command_str
 
 print('Size of the dataframe: {}'.format(df.shape))
 display(df)
@@ -215,7 +224,7 @@ cluster_df['task'] = indexes
 
 ## dimensionality reduction
 import colorcet as cc
-palette = sns.color_palette(cc.glasbey, n_colors=4)
+palette = sns.color_palette(cc.glasbey, n_colors=32)
 
 plt.figure(figsize=(16,10))
 ax = sns.scatterplot(
@@ -223,20 +232,20 @@ ax = sns.scatterplot(
     hue="y", # per ora non la uso visto che ogni campione è a se
     palette=palette,
     data=df,
-    legend=False,
+    legend='full',
     # alpha=0.3
 )
 
-ax = sns.scatterplot(
-    x="x", y="y",
-    hue="task",
-    palette=palette,
-    data=cluster_df,
-    marker="*",
-    s=600,
-    legend="full",
-    ax=ax
-)
+# ax = sns.scatterplot(
+#     x="x", y="y",
+#     hue="task",
+#     palette=palette,
+#     data=cluster_df,
+#     marker="*",
+#     s=600,
+#     legend="full",
+#     ax=ax
+# )
 # plt.show()
 
 from datetime import datetime

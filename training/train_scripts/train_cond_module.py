@@ -10,6 +10,8 @@ from torch.optim import lr_scheduler
 
 import wandb
 import random
+import numpy as np
+import cv2
 
 DATA_AUGS = {
             "old_aug": False,
@@ -37,6 +39,7 @@ def compute_cosine_similarity(output_embedding, gt_embedding, batch_size, target
         loss = cosine_loss(output_embedding, gt_embedding, target)
         target = torch.ones(batch_size).to(device)
     else:
+        # loss = cosine_loss(output_embedding, gt_embedding, target)
         loss = cosine_loss(output_embedding, gt_embedding, target)
         
     return loss, target
@@ -59,13 +62,13 @@ def get_cond_module():
     # cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 256, 512], pretrained=True).to(device) # prossimo da provare
     # cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512], pretrained=True).to(device)
     # cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 256, 128, 256, 512], pretrained=True).to(device)
-    cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 256, 512], pretrained=True).to(device)
+    cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 512, 512], pretrained=True).to(device)
     ######## provare anche resNet
     # cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512]).to(device) # non sotto lo 0.35 val
     
     ##### geliamo la backbone se il modello è pre-trainato
     for name, par in cond_module._backbone.named_parameters():
-        par.requires_grad = False
+        par.requires_grad = True
         
     return cond_module
 
@@ -154,18 +157,19 @@ if __name__ == '__main__':
     USE_CENTROIDS = True
     # training parameters
     # EPOCHS = 150
-    EPOCHS = 10
+    EPOCHS = 4
     # BATCH_SIZE = 32
     # BATCH_SIZE = 16
     # BATCH_SIZE = 16
     # BATCH_SIZE = 32
-    BATCH_SIZE = 4
+    # BATCH_SIZE = 4
+    BATCH_SIZE = 32
     SHUFFLE = True
     # LEARNING_RATE = 0.001
     # LEARNING_RATE = 0.001
     LEARNING_RATE = 0.001
     MOMENTUM = 0.9 # for SGD
-    USE_WANDB = True
+    USE_WANDB = False
     EARLY_STOP = 10
     
     LR_SCHEDULER = True
@@ -196,12 +200,13 @@ if __name__ == '__main__':
     train_loader, val_loader = get_train_val_loader(DATA_AUGS, BATCH_SIZE)
     cond_module = get_cond_module()
     
+    # cosine_loss = CosineEmbeddingLoss(reduction='none')
     cosine_loss = CosineEmbeddingLoss()
     target = torch.ones(BATCH_SIZE).to(device) # se target 1, l'obietto è massimizzare la cosine similarity
         
     scheduler, optimizer, optimizer2 = get_optimizer_lr_scheduler()
     save_path = create_save_path()
-    best_vloss = 99999.
+    best_vloss = np.inf
     
     
     if USE_WANDB:
@@ -244,10 +249,56 @@ if __name__ == '__main__':
             if not USE_CENTROIDS:
                 video_input, gt_embedding = data['demo_data']['demo'], data['embedding']['embedding']
             else:
-                video_input, gt_embedding = data['demo_data']['demo'], data['embedding']
+                # video_input, gt_embedding = data['demo_data']['demo'], data['embedding']
+                video_input, gt_embedding = data['demo_data']['demo'], data['embedding']['centroid_embedding']
             video_input, gt_embedding = video_input.to(device), gt_embedding.to(device).squeeze(1)
             optimizer.zero_grad()
             output_embedding = cond_module(video_input)
+            
+            for indx, sample in enumerate(video_input):
+                # i-th sample
+                for t in range(4):
+                   if t == 3:
+                    img_tensor = np.moveaxis(sample[t].detach().cpu().numpy()*255, 0, -1)
+                    # print(data['embedding']['sentence'])
+                    # cv2.imwrite(f"{indx}_frame_{t}.png", img_tensor)
+                    if indx == 0:
+                        assert "green" in data['embedding']['sentence'][indx] and 'first' in data['embedding']['sentence'][indx], "not order"
+                    if indx == 1:
+                        assert "green" in data['embedding']['sentence'][indx] and 'second' in data['embedding']['sentence'][indx], "not order"
+                    if indx == 2:
+                        assert "green" in data['embedding']['sentence'][indx] and 'third' in data['embedding']['sentence'][indx], "not order"
+                    if indx == 3:
+                        assert "green" in data['embedding']['sentence'][indx] and 'fourth' in data['embedding']['sentence'][indx], "not order"
+                    
+                    if indx == 4:
+                        assert "yellow" in data['embedding']['sentence'][indx] and 'first' in data['embedding']['sentence'][indx], "not order"
+                    if indx == 5:
+                        assert "yellow" in data['embedding']['sentence'][indx] and 'second' in data['embedding']['sentence'][indx], "not order"
+                    if indx == 6:
+                        assert "yellow" in data['embedding']['sentence'][indx] and 'third' in data['embedding']['sentence'][indx], "not order"
+                    if indx == 7:
+                        assert "yellow" in data['embedding']['sentence'][indx] and 'fourth' in data['embedding']['sentence'][indx], "not order"
+                    
+                    if indx == 8:
+                        assert "blue" in data['embedding']['sentence'][indx] and 'first' in data['embedding']['sentence'][indx], "not order"
+                    if indx == 9:
+                        assert "blue" in data['embedding']['sentence'][indx] and 'second' in data['embedding']['sentence'][indx], "not order"
+                    if indx == 10:
+                        assert "blue" in data['embedding']['sentence'][indx] and 'third' in data['embedding']['sentence'][indx], "not order"
+                    if indx == 11:
+                        assert "blue" in data['embedding']['sentence'][indx] and 'fourth' in data['embedding']['sentence'][indx], "not order"
+                        
+                    if indx == 12:
+                        assert "red" in data['embedding']['sentence'][indx] and 'first' in data['embedding']['sentence'][indx], "not order"
+                    if indx == 13:
+                        assert "red" in data['embedding']['sentence'][indx] and 'second' in data['embedding']['sentence'][indx], "not order"
+                    if indx == 14:
+                        assert "red" in data['embedding']['sentence'][indx] and 'third' in data['embedding']['sentence'][indx], "not order"
+                    if indx == 15:
+                        assert "red" in data['embedding']['sentence'][indx] and 'fourth' in data['embedding']['sentence'][indx], "not order"
+                        
+            
             
             loss, target = compute_cosine_similarity(output_embedding, gt_embedding, BATCH_SIZE, target)
             loss.backward()
@@ -267,7 +318,8 @@ if __name__ == '__main__':
                 if not USE_CENTROIDS:
                     video_input, gt_embedding = data['demo_data']['demo'], data['embedding']['embedding']
                 else:
-                    video_input, gt_embedding = data['demo_data']['demo'], data['embedding']
+                    # video_input, gt_embedding = data['demo_data']['demo'], data['embedding']
+                    video_input, gt_embedding = data['demo_data']['demo'], data['embedding']['centroid_embedding']
                 video_input, gt_embedding = video_input.to(device), gt_embedding.to(device).squeeze(1)
                 output_embedding = cond_module(video_input)
                 ############################# fai un check di target

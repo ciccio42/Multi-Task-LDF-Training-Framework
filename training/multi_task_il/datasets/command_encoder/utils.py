@@ -47,7 +47,7 @@ R_g_sim_to_g_robot = np.array([[0, -1, 0],
                               [0, 0, 1]])
 
 
-DEBUG = False
+DEBUG = True
 
 OBJECTS_POS_DIM = {
     'pick_place': {

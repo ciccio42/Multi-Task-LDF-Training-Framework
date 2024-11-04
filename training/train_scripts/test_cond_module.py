@@ -2,7 +2,8 @@ from multi_task_il.datasets.command_encoder.cond_module import CondModule
 import torch
 from train_scripts.train_cond_module import get_train_val_loader
 import seaborn as sns
-
+import numpy as np
+import cv2
 
 CUDA_DEVICE = 1
 device = 'cuda' if torch.cuda.is_available() else 'cpu' 
@@ -33,7 +34,7 @@ DATA_AUGS = {
         }
 
 ## loading model
-cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 256, 512], pretrained=True).to(device)
+cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 512, 512], pretrained=True).to(device)
 # cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 1024, 2048, 1024, 512], pretrained=True).to(device)
 
 
@@ -47,7 +48,9 @@ cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 256, 51
 # MODEL_PATH = '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/command_encoder/models/batch_size/16_batch_size/num_epochs/10_epochs/1e-05_lr/cond_module_11-03_14:27.pth'
 # MODEL_PATH = '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/command_encoder/models/batch_size/16_batch_size/num_epochs/1_epochs/1e-05_lr/cond_module_11-03_14:31.pth'
 # MODEL_PATH = '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/command_encoder/models/batch_size/32_batch_size/num_epochs/10_epochs/0.0001_lr/cond_module_11-03_21:46.pth'
-MODEL_PATH = '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/command_encoder/models/batch_size/4_batch_size/num_epochs/10_epochs/0.0001_lr/cond_module_11-03_21:56.pth'
+# MODEL_PATH = '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/command_encoder/models/batch_size/4_batch_size/num_epochs/10_epochs/0.0001_lr/cond_module_11-03_21:56.pth'
+# MODEL_PATH = '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/command_encoder/models/batch_size/1_batch_size/num_epochs/5_epochs/0.0001_lr/cond_module_11-04_10:32.pth'
+MODEL_PATH = '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/command_encoder/models/batch_size/32_batch_size/num_epochs/4_epochs/0.0001_lr/cond_module_11-04_19:07.pth'
 
 weights = torch.load(MODEL_PATH, weights_only=True)
 
@@ -66,10 +69,19 @@ if TEST_TRAIN_SET:
     y = []
     with torch.no_grad():
         for _i, data in enumerate(train_loader):
-                video_input = data['demo_data']['demo']
+                video_input, sentence = data['demo_data']['demo'], data['embedding']['centroid_embedding']
                 video_input = video_input.to(device)
                 output_embedding = cond_module(video_input)
                 y += [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+                if _i == 0:
+                    for indx, sample in enumerate(video_input):
+                        # i-th sample
+                        for t in range(4):
+                            if t == 3:
+                                img_tensor = np.moveaxis(sample[t].detach().cpu().numpy()*255, 0, -1)
+                                print(data['embedding']['sentence'])
+                                cv2.imwrite(f"{indx}_frame_{t}.png", img_tensor)
+                        
                 if _i != 0:
                     embeddings_tensor = torch.cat((embeddings_tensor, output_embedding), 0)
                 else:
@@ -78,7 +90,7 @@ else:
     y = []
     with torch.no_grad():
         for _i, data in enumerate(val_loader):
-                video_input = data['demo_data']['demo']
+                video_input, sentence = data['demo_data']['demo'], data['embedding']['centroid_embedding']
                 video_input = video_input.to(device)
                 output_embedding = cond_module(video_input)
                 y += [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
@@ -138,7 +150,7 @@ cluster_df['task'] = indexes
 
 
 import colorcet as cc
-palette = sns.color_palette(cc.glasbey, n_colors=4)
+palette = sns.color_palette(cc.glasbey, n_colors=16)
 
 ## dimensionality reduction
 plt.figure(figsize=(16,10))
