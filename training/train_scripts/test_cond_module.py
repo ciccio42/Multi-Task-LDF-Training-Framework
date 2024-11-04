@@ -52,11 +52,12 @@ cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 512, 51
 # MODEL_PATH = '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/command_encoder/models/batch_size/32_batch_size/num_epochs/10_epochs/0.0001_lr/cond_module_11-03_21:46.pth'
 # MODEL_PATH = '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/command_encoder/models/batch_size/4_batch_size/num_epochs/10_epochs/0.0001_lr/cond_module_11-03_21:56.pth'
 # MODEL_PATH = '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/command_encoder/models/batch_size/1_batch_size/num_epochs/5_epochs/0.0001_lr/cond_module_11-04_10:32.pth'
-MODEL_PATH = '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/command_encoder/models/batch_size/32_batch_size/num_epochs/4_epochs/0.0001_lr/cond_module_11-04_19:07.pth'
+# MODEL_PATH = '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/command_encoder/models/batch_size/32_batch_size/num_epochs/4_epochs/0.0001_lr/cond_module_11-04_19:07.pth'
+MODEL_PATH = '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/command_encoder/models/batch_size/32_batch_size/num_epochs/4_epochs/0.0001_lr/cond_module_11-05_00:03.pth'
 
 weights = torch.load(MODEL_PATH, weights_only=True)
 
-TEST_TRAIN_SET = True # True if you want to check how the model performs with training samples, else False
+TEST_TRAIN_SET = False # True if you want to check how the model performs with training samples, else False
                       # to check with validation samples
 
 cond_module.load_state_dict(weights)
