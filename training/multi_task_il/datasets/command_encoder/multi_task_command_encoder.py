@@ -37,8 +37,9 @@ DATA_AUGS = {
 
 class CommandEncoderSampler(BatchSampler):
     
-    def __init__(self, dataset, batch_size):
+    def __init__(self, dataset, batch_size, shuffle=False):
         self.dataset, self.batch_size = dataset, batch_size
+        self.shuffle = shuffle # if we want to shuffle the elements in the batch which come ordered by subtask idx 
         
         self.demo_task_samplers = OrderedDict()
         self.demo_task_iterators = OrderedDict()
@@ -99,6 +100,8 @@ class CommandEncoderSampler(BatchSampler):
                     batch.append(demo_indx)
                     if len(batch) == self.batch_size:
                         # print(f"return batch: {batch}") # per debug, ha il comportamento desiderato
+                        if self.shuffle: # if we choose to shuffle the dataset
+                            random.shuffle(batch)
                         yield batch
                         batch = []
         

@@ -48,8 +48,8 @@ def get_train_val_loader(data_augs, batch_size):
     train_dataset = CommandEncoderDataset(data_augs=data_augs, mode='train', use_embedding_centroids=True, n_embeddings_per_subtask=60)
     val_dataset = CommandEncoderDataset(data_augs=data_augs, mode='val', use_embedding_centroids=True, n_embeddings_per_subtask=60)
     # train_loader = DataLoader(dataset, batch_size=10, shuffle=True)
-    train_sampler = CommandEncoderSampler(train_dataset, batch_size=batch_size)
-    val_sampler = CommandEncoderSampler(val_dataset, batch_size=batch_size)
+    train_sampler = CommandEncoderSampler(train_dataset, batch_size=batch_size, shuffle=True)
+    val_sampler = CommandEncoderSampler(val_dataset, batch_size=batch_size, shuffle=True)
     # with sampler
     train_loader = DataLoader(train_dataset, batch_sampler=train_sampler)
     # no sampler
