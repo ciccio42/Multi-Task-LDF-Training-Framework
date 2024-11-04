@@ -15,7 +15,6 @@ if CUDA_DEVICE != 0:
     torch.cuda.set_device(CUDA_DEVICE)
     print(f"current device: {torch.cuda.current_device()}")
 
-
 DATA_AUGS = {
             "old_aug": False,
             "brightness": [0.9, 1.1],
@@ -32,6 +31,9 @@ DATA_AUGS = {
             "horizontal_flip_p_strong": 0.5,
             "null_bb": False,
         }
+
+
+DEBUG = False
 
 ## loading model
 cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 512, 512], pretrained=True).to(device)
@@ -54,8 +56,8 @@ MODEL_PATH = '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-
 
 weights = torch.load(MODEL_PATH, weights_only=True)
 
-TEST_TRAIN_SET = False
-# print([k for k in weights.keys()])
+TEST_TRAIN_SET = True # True if you want to check how the model performs with training samples, else False
+                      # to check with validation samples
 
 cond_module.load_state_dict(weights)
 cond_module.eval()
@@ -64,6 +66,11 @@ if TEST_TRAIN_SET:
     train_loader, _ = get_train_val_loader(DATA_AUGS, 16)
 else:
     _, val_loader = get_train_val_loader(DATA_AUGS, 16)
+    
+    
+    
+embedding_avg_subtask = {} # it contains the sum of the embedding of the subtask
+embedding_avg_subtask_numpy = {} # it contains the sum of the embedding of the subtask
 
 if TEST_TRAIN_SET:
     y = []
@@ -73,22 +80,27 @@ if TEST_TRAIN_SET:
                 video_input = video_input.to(device)
                 output_embedding = cond_module(video_input)
                 y += [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
-                if _i == 0:
-                    for indx, sample in enumerate(video_input):
-                        # i-th sample
-                        for t in range(4):
-                            if t == 3:
-                                img_tensor = np.moveaxis(sample[t].detach().cpu().numpy()*255, 0, -1)
-                                print(data['embedding']['sentence'])
-                                cv2.imwrite(f"{indx}_frame_{t}.png", img_tensor)
+                if DEBUG:
+                    if _i == 0:
+                        for indx, sample in enumerate(video_input):
+                            # i-th sample
+                            for t in range(4):
+                                if t == 3:
+                                    img_tensor = np.moveaxis(sample[t].detach().cpu().numpy()*255, 0, -1)
+                                    print(data['embedding']['sentence'])
+                                    cv2.imwrite(f"{indx}_frame_{t}.png", img_tensor)
                         
                 if _i != 0:
                     embeddings_tensor = torch.cat((embeddings_tensor, output_embedding), 0)
+                    for _idx, emb in enumerate(output_embedding):
+                        embedding_avg_subtask[_idx] = torch.cat((embedding_avg_subtask[_idx], emb.unsqueeze(0)), 0)
                 else:
                     embeddings_tensor = output_embedding
+                    for _idx, emb in enumerate(output_embedding):
+                        embedding_avg_subtask[_idx] = emb.unsqueeze(0)                    
 else:
     y = []
-    with torch.no_grad():
+    with torch.no_grad(): 
         for _i, data in enumerate(val_loader):
                 video_input, sentence = data['demo_data']['demo'], data['embedding']['centroid_embedding']
                 video_input = video_input.to(device)
@@ -96,8 +108,21 @@ else:
                 y += [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
                 if _i != 0:
                     embeddings_tensor = torch.cat((embeddings_tensor, output_embedding), 0)
+                    for _idx, emb in enumerate(output_embedding):
+                        embedding_avg_subtask[_idx] = torch.cat((embedding_avg_subtask[_idx], emb.unsqueeze(0)), 0)
                 else:
                     embeddings_tensor = output_embedding
+                    for _idx, emb in enumerate(output_embedding):
+                        embedding_avg_subtask[_idx] = emb.unsqueeze(0)
+                    
+for _idx, val in embedding_avg_subtask.items():
+    embedding_avg_subtask[_idx] = torch.mean(embedding_avg_subtask[_idx], 0).detach().cpu()
+    embedding_avg_subtask_numpy[_idx] = embedding_avg_subtask[_idx].numpy()
+    if _idx == 0:
+        embedding_avg_tensor = embedding_avg_subtask[_idx].unsqueeze(0)
+    else:
+        embedding_avg_tensor = torch.cat((embedding_avg_tensor, embedding_avg_subtask[_idx].unsqueeze(0)), 0)
+        
 
 print(cond_module)
 
@@ -109,50 +134,42 @@ import pandas as pd
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 
-# create the dataframe
+# create the dataframe for single embeddings
 embeddings_tensor = embeddings_tensor.detach().cpu()
 embedding_numpy = embeddings_tensor.numpy()
 feat_cols = [ 'e'+str(i) for i in range(embeddings_tensor.shape[1]) ]
 df = pd.DataFrame(embedding_numpy,columns=feat_cols)
 df['y'] = y # label numerica
-df['label'] = df['y'].apply(lambda i: str(i)) # label di tipo stringas
+df['label'] = df['y'].apply(lambda i: str(i)) # label di tipo stringa
 
+# # create dataframe for the centroids
+df_centroids = pd.DataFrame.from_dict(embedding_avg_subtask_numpy, orient='index')
+df_centroids['y'] = list(embedding_avg_subtask.keys())
+
+union_tensor = torch.cat((embeddings_tensor, embedding_avg_tensor), 0)
+
+assert torch.all(union_tensor[:-16] == embeddings_tensor ).item()
+assert torch.all( union_tensor[-16:] == embedding_avg_tensor ).item()
 # create TSNE object
 time_start = time.time()
 tsne = TSNE(n_components=2, verbose=1, perplexity=40, n_iter=300) # vedere se cambiare parametri
-tsne_results = tsne.fit_transform(embeddings_tensor)
+# tsne_results = tsne.fit_transform(embeddings_tensor)
+# tsne_results_centroids = tsne.fit_transform(embedding_avg_tensor)
+tsne_results = tsne.fit_transform(union_tensor)
 print('t-SNE done! Time elapsed: {} seconds'.format(time.time()-time_start))
 
 ## add columns to df
 
-df['tsne-2d-one'] = tsne_results[:,0]
-df['tsne-2d-two'] = tsne_results[:,1]
+df['tsne-2d-one'] = tsne_results[:-16,0]
+df['tsne-2d-two'] = tsne_results[:-16,1]
 
-# x = df[(df["y"] == '1')]["tsne-2d-one"].mean()
-# y = df[(df["y"] == '1')]["tsne-2d-two"].mean()
+df_centroids['tsne-2d-one'] = tsne_results[-16:,0]
+df_centroids['tsne-2d-two'] = tsne_results[-16:,1]
 
-
-# calcolo media centroidi e metto in un dataframe
-indexes = []
-for i in range(NUMBER_OF_TASK):
-    x = df[(df["y"] == i)]["tsne-2d-one"].mean() # x coord del cluster
-    y = df[(df["y"] == i)]["tsne-2d-two"].mean() # y coord del cluster
-    if i == 0:
-        cluster_tensor = torch.unsqueeze(torch.tensor((x,y)), 0)
-    else:
-        to_add = torch.unsqueeze(torch.tensor((x,y)), 0)
-        cluster_tensor = torch.cat((cluster_tensor, to_add))
-    indexes.append(i)
-
-cluster_tensor_numpy = cluster_tensor.detach().numpy()
-cluster_df = pd.DataFrame(cluster_tensor_numpy,columns=['x', 'y'])
-cluster_df['task'] = indexes
-
-
+### plot tsne results
 import colorcet as cc
 palette = sns.color_palette(cc.glasbey, n_colors=16)
 
-## dimensionality reduction
 plt.figure(figsize=(16,10))
 ax = sns.scatterplot(
     x="tsne-2d-one", y="tsne-2d-two",
@@ -165,23 +182,23 @@ ax = sns.scatterplot(
 )
 
 ax = sns.scatterplot(
-    x="x", y="y",
-    hue="task",
-    # palette=sns.color_palette("Spectral", NUMBER_OF_TASK),
-    palette=palette, 
-    data=cluster_df,
+    x="tsne-2d-one", y="tsne-2d-two",
+    hue="y",
+    # palette=sns.color_palette("Spectral", NUMBER_OF_TASK),2
+    palette=palette,
+    data=df_centroids,
     marker="*",
     s=600,
     legend="full",
     ax=ax
 )
 
-
 from datetime import datetime
 print("saving results...")
 ts = datetime.now().strftime("%m-%d_%H:%M")
 
-plt.savefig(f'/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/test_{ts}.png')
+mode = 'train' if TEST_TRAIN_SET else 'val'
+plt.savefig(f'/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/{mode}_test_{ts}.png')
 
 
 
