@@ -423,6 +423,31 @@ class AgentModule(nn.Module):
 
         self.load_film = load_film
 
+    def visualize_attention(self, input_image, feature_map, save_path="attention_overlay.png"):
+        # Step 1: Get the feature map
+        # Assuming feature_map is of shape [batch_size, channels, height, width]
+        # For visualization, you can take the mean across the channel dimension
+        attention_map = torch.mean(feature_map, dim=1).squeeze()  # [height, width]
+
+        # Step 2: Rescale attention map to the input image size
+        attention_map_resized = F.interpolate(attention_map.unsqueeze(0).unsqueeze(0),
+                                            size=(input_image.shape[-2], input_image.shape[-1]),
+                                            mode='bilinear', align_corners=False).squeeze().cpu().detach().numpy()
+
+        # Normalize the attention map between 0 and 1
+        attention_map_resized = (attention_map_resized - np.min(attention_map_resized)) / (np.max(attention_map_resized) - np.min(attention_map_resized))
+
+        # Step 3: Convert the input image to numpy
+        input_image_np = 255*(input_image.squeeze().permute(1, 2, 0).cpu().detach().numpy())
+        # Step 4: Apply colormap to the attention map
+        heatmap = cv2.applyColorMap(np.uint8(255 * attention_map_resized), cv2.COLORMAP_JET)
+
+        # Step 5: Overlay the heatmap on the input image
+        overlay = 0.6 * input_image_np + 0.4 * heatmap  # Weighted sum for overlay
+
+        # Step 6: Save the result
+        cv2.imwrite(save_path, overlay)
+
     def forward(self, agent_obs, task_embedding, gt_bb=None, gt_classes=None, inference=False):
 
         ret_dict = dict()
@@ -432,6 +457,9 @@ class AgentModule(nn.Module):
         feature_map = self._backbone(
             agent_obs=agent_obs, task_emb=task_embedding)
 
+        # self.visualize_attention(input_image=agent_obs,
+        #                          feature_map=feature_map)        
+    
         # 2. Predict bounding boxes given conditioned embedding and input image
         agent_obs = rearrange(agent_obs, 'B T C H W -> (B T) C H W')
         # N is the number of objects, and C the bb components

@@ -89,7 +89,7 @@ dataset_cfg:
   root_dir:         ${EXPERT_DATA}
   mode:             ???
   tasks_spec:       ${tasks}
-  aux_pose:         True # only required for DAML baseline 
+  aux_pose:         False # only required for DAML baseline 
   height:           224 # 224 # 200 # 100
   width:            224 # 224 # 360 # 180
   split:            [1.0, 0.0]
@@ -98,6 +98,7 @@ dataset_cfg:
   normalize_action: True
   pick_next: True
   load_bb: True
+  dagger: False
   # x, y, z, e_x, e_y, e_z
   normalization_ranges: [[-0.40,  0.40],
                         [0.10,  0.90],

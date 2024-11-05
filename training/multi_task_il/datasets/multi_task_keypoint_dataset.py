@@ -63,6 +63,7 @@ class MultiTaskPairedKeypointDetectionDataset(Dataset):
             change_command_epoch=False,
             load_eef_point=False,
             mix_sim_real=False,
+            dagger=False,
             ** params):
 
         self.task_crops = OrderedDict()
@@ -85,6 +86,7 @@ class MultiTaskPairedKeypointDetectionDataset(Dataset):
 
         self._demo_T = demo_T
         self._obs_T = obs_T
+        self._dagger = dagger
 
         self._load_action = load_action
         self._load_state = load_state

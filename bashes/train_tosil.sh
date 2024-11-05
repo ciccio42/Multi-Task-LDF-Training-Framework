@@ -1,19 +1,24 @@
 #!/bin/bash
-export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
-# export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-export CUDA_VISIBLE_DEVICES=0
-export HYDRA_FULL_ERROR=1
 
+# export CUDA_VISIBLE_DEVICES=0,1,2,3
+#SBATCH --partition=gpuq
+#SBATCH --gres=gpu:1   # Request 1 GPU
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=16
+
+export MUJOCO_PY_MUJOCO_PATH="/home/rsofnc000/.mujoco/mujoco210"
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/rsofnc000/.mujoco/mujoco210/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
+
+export HYDRA_FULL_ERROR=1
 echo $1
 TASK_NAME="$1"
 
-EXPERT_DATA=/mnt/sdc1/frosa/opt_dataset/
-SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
+EXPERT_DATA=/home/rsofnc000/dataset/opt_dataset/
+SAVE_PATH=/home/rsofnc000/checkpoint_save_folder
 POLICY='${tosil}'
+TARGET='multi_task_il.models.mt_rep.VideoImitation'
 
 SAVE_FREQ=-1
 LOG_FREQ=10
@@ -23,9 +28,11 @@ DEBUG=false
 WANDB_LOG=true
 ROLLOUT=false
 EPOCH=90
-LOADER_WORKERS=8
+LOADER_WORKERS=16
 CONFIG_PATH=../experiments
 CONFIG_NAME=config.yaml
+
+SPLIT_PICK_PLACE=false
 
 BC_MUL=1.0
 INV_MUL=1.0
@@ -166,6 +173,10 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi-Task"
+    RESUME_PATH=4Task-TOSIL-multi-task-Batch74
+    RESUME_STEP=138229
+    RESUME=true
+
     BSIZE=27 #32 #128 #64 #32
     COMPUTE_OBJ_DISTRIBUTION=false
     # Policy 1: At each slot is assigned a RandomSampler
@@ -218,6 +229,7 @@ python ../training/train_scripts/train_any.py \
     dataset_cfg.width=${WIDTH} \
     dataset_cfg.load_eef_point=${LOAD_EEF_POINTS} \
     samplers.balancing_policy=${BALANCING_POLICY} \
+    dataset_cfg.split_pick_place=${SPLIT_PICK_PLACE} \
     tosil.adim=${ACTION_DIM} \
     tosil.n_mixtures=${N_MIXTURES} \
     augs.null_bb=${NULL_BB} \

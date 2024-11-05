@@ -30,12 +30,11 @@ DEBUG=false
 WANDB_LOG=true
 ROLLOUT=false
 EPOCH=90
-LOADER_WORKERS=16
+LOADER_WORKERS=32
 CONFIG_PATH=../experiments
 CONFIG_NAME=config_real.yaml
 CONCAT_IMG_EMB=true
 CONCAT_DEMO_EMB=true
-CONCAT_STATE=false
 PICK_NEXT=true
 NORMALIZE_ACTION=true
 CHANGE_COMMAND_EPOCH=true
@@ -55,6 +54,9 @@ CONCAT_TARGET_OBJ_EMBEDDING=false
 
 CONCAT_BB=true
 LOAD_TARGET_OBJ_DETECTOR=true
+
+CONCAT_STATE=true
+DAGGER=true
 
 if [ "$TASK_NAME" == 'nut_assembly' ]; then
     echo "NUT-ASSEMBLY"
@@ -194,9 +196,10 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
 elif [ "$TASK_NAME" == 'pick_place' ]; then
     echo "Pick-Place"
     ### Pick-Place ###
-    RESUME_PATH=1Task-pick_place-Double-Policy-Contrastive-false-Inverse-false-CONCAT_IMG_EMB-false-CONCAT_DEMO_EMB-true-Batch32
-    RESUME_STEP=99417
+    RESUME_PATH=Real-Pick-Place-MOSAIC-Double_Policy_State_true_finetuned_No_val_0_1_4_5_8_9-Batch18
+    RESUME_STEP=63630
     RESUME=false
+    FINETUNE=true
 
     TARGET_OBJ_DETECTOR_STEP=20064 #68526 #129762 #198900 #65250
     TARGET_OBJ_DETECTOR_PATH=${SAVE_PATH}/Real-1Task-pick_place-KP_0_1_4_5_8_9-Batch42
@@ -234,7 +237,7 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=Real-1Task-${TASK_str}-Double-Policy-No-State_No_finetuned_No_val_0_1_4_5_8_9
+    EXP_NAME=Real-Pick-Place-MOSAIC-Double_Policy_State_${CONCAT_STATE}_finetuned_No_val_Dagger_${DAGGER}_0_1_4_5_8_9
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
@@ -324,6 +327,7 @@ srun --output=training_${EXP_NAME}.txt --job-name=training_${TASK_NAME} python -
     dataset_cfg.height=${HEIGHT} \
     dataset_cfg.width=${WIDTH} \
     dataset_cfg.split_pick_place=${SPLIT_PICK_PLACE} \
+    dataset_cfg.dagger=${DAGGER} \
     samplers.balancing_policy=${BALANCING_POLICY} \
     mosaic._target_=${TARGET} \
     mosaic.load_target_obj_detector=${LOAD_TARGET_OBJ_DETECTOR} \

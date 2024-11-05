@@ -62,6 +62,8 @@ class CondTargetObjDetectorDataset(Dataset):
             mix_demo_agent=True,
             change_command_epoch=False,
             load_eef_point=False,
+            mix_sim_real=False,
+            dagger=False,
             ** params):
 
         self.task_crops = OrderedDict()
@@ -102,6 +104,8 @@ class CondTargetObjDetectorDataset(Dataset):
         self._n_tasks = n_tasks
         self._perform_augs = perform_augs
         self._mix_demo_agent = mix_demo_agent
+        self._mix_sim_real = mix_sim_real
+        self._dagger = dagger
 
         self.select_random_frames = select_random_frames
         self.compute_obj_distribution = compute_obj_distribution
@@ -221,7 +225,8 @@ class CondTargetObjDetectorDataset(Dataset):
             load_state=self._load_state,
             distractor=True,
             subtask_id=sub_task_id,
-            agent_task_id=agent_task_id)
+            agent_task_id=agent_task_id,
+            sim_crop=False)
         # end_create_sample = time.time()
         # print(f"Create sample time {end_create_sample-start_create_sample}")
 

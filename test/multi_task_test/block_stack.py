@@ -212,7 +212,8 @@ def block_stack_eval(model, env, gt_env, context, gpu_id, variation_id, img_form
                                           config=config,
                                           gt_traj=gt_file,
                                           task_name=task_name,
-                                          real=real
+                                          real=real,
+                                          place_bb_flag=place_bb_flag
                                           )
     else:
         # Instantiate Controller

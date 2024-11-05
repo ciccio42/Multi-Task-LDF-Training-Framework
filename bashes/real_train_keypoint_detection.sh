@@ -44,12 +44,12 @@ LOADER_WORKERS=32
 BALANCING_POLICY=0
 OBS_T=7
 
-EARLY_STOPPING_PATIECE=10
+EARLY_STOPPING_PATIECE=20
 OPTIMIZER='AdamW'
 LR=0.00001
 WEIGHT_DECAY=5
 SCHEDULER='ReduceLROnPlateau'
-FIRST_FRAMES=true
+FIRST_FRAMES=false
 ONLY_FIRST_FRAMES=false
 ROLLOUT=false
 PERFORM_AUGS=true
@@ -62,11 +62,12 @@ DIM_W=23        #14        # 12 (180 DROP_DIM 3)        #8         # 6         #
 HEIGHT=100
 WIDTH=180
 N_CLASSES=4
+DAGGER=false
 
 if [ "$TASK_NAME" == 'nut_assembly' ]; then
     echo "NUT-ASSEMBLY"
     TASK_str="nut_assembly"
-    EXP_NAME=1Task-${TASK_str}-CTOD-KP_MO_0_4_8
+    EXP_NAME=1Task-${TASK_str}-CTOD-KP_NO_0_4_8
     PROJECT_NAME=${EXP_NAME}
     SET_SAME_N=7
     RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/${EXP_NAME}-Batch74/
@@ -93,13 +94,13 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
 elif [ "$TASK_NAME" == 'pick_place' ]; then
     echo "Pick-Place"
     TASK_str="pick_place"
-    EXP_NAME=Real-1Task-${TASK_str}-KP_0_1_4_5_8_9_Mix_real_sim
+    EXP_NAME=Real-1Task-${TASK_str}-KP_0_1_4_5_8_9_second
     PROJECT_NAME=${EXP_NAME}
     SET_SAME_N=7
     RESUME_PATH=/home/rsofnc000/checkpoint_save_folder/1Task-Pick-Place-KP-Batch112
     RESUME_STEP=37476
     RESUME=false
-    FINETUNE=true
+    FINETUNE=false
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
     TASK_str=["pick_place","nut_assembly","stack_block","press_button_close_after_reaching"]
@@ -110,8 +111,8 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     RESUME_STEP=72675
     RESUME=false
 fi
-# srun --output=training_${EXP_NAME}.txt --job-name=training_${EXP_NAME}
-python -u ../training/train_scripts/train_any.py \
+
+srun --output=training_${EXP_NAME}.txt --job-name=training_${EXP_NAME} python -u ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \
@@ -128,6 +129,7 @@ python -u ../training/train_scripts/train_any.py \
     bsize=${BSIZE} \
     vsize=${BSIZE} \
     epochs=${EPOCH} \
+    finetune=${FINETUNE} \
     dataset_cfg.agent_name=${AGENT_NAME} \
     dataset_cfg.obs_T=${OBS_T} \
     dataset_cfg.non_sequential=${NON_SEQUENTIAL} \
@@ -137,7 +139,8 @@ python -u ../training/train_scripts/train_any.py \
     dataset_cfg.height=${HEIGHT} \
     dataset_cfg.width=${WIDTH} \
     dataset_cfg.perform_augs=${PERFORM_AUGS} \
-    dataset_cfg.mix_sim_real=true \
+    dataset_cfg.mix_sim_real=false \
+    dataset_cfg.dagger=${DAGGER} \
     samplers.balancing_policy=${BALANCING_POLICY} \
     early_stopping_cfg.patience=${EARLY_STOPPING_PATIECE} \
     cond_target_obj_detector_cfg.height=${HEIGHT} \

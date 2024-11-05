@@ -27,6 +27,7 @@ from multi_task_test import ENV_OBJECTS, TASK_MAP
 from collections import OrderedDict
 from robosuite.utils.transform_utils import quat2axisangle, axisangle2quat, quat2mat, mat2quat 
 import time
+import torch.nn.functional as F
 
 DEBUG = False
 set_start_method('forkserver', force=True)
@@ -745,6 +746,31 @@ def get_gt_bb(env=None, traj=None, obs=None, task_name=None, t=0, real=True, pla
     return bb_t, np.array(gt_t, dtype=np.int16)
 
 
+def visualize_attention(input_image, feature_map, save_path="attention_overlay.png"):
+    # Step 1: Get the feature map
+    # Assuming feature_map is of shape [batch_size, channels, height, width]
+    # For visualization, you can take the mean across the channel dimension
+    attention_map = torch.mean(feature_map, dim=1).squeeze()  # [height, width]
+
+    # Step 2: Rescale attention map to the input image size
+    attention_map_resized = F.interpolate(attention_map.unsqueeze(0).unsqueeze(0),
+                                        size=(input_image.shape[-3], input_image.shape[-2]),
+                                        mode='bilinear', align_corners=False).squeeze().cpu().detach().numpy()
+
+    # Normalize the attention map between 0 and 1
+    attention_map_resized = (attention_map_resized - np.min(attention_map_resized)) / (np.max(attention_map_resized) - np.min(attention_map_resized))
+
+    # Step 3: Convert the input image to numpy
+    input_image_np = input_image
+    # Step 4: Apply colormap to the attention map
+    heatmap = cv2.applyColorMap(np.uint8(255 * attention_map_resized), cv2.COLORMAP_JET)
+
+    # Step 5: Overlay the heatmap on the input image
+    overlay = 0.6 * input_image_np + 0.4 * heatmap  # Weighted sum for overlay
+
+    # Step 6: Save the result
+    cv2.imwrite(save_path, overlay)
+
 def get_predicted_bb(prediction, pred_flags, perform_augs, model, formatted_img, gt_bb, gpu_id, pick=True):
     # 2. Get the confidence scores for the target predictions and the the max
     max_score = torch.argmax(
@@ -779,6 +805,9 @@ def get_predicted_bb(prediction, pred_flags, perform_augs, model, formatted_img,
             #                     (0, 0, 255),
             #                     1,
             #                     cv2.LINE_AA)
+            
+        visualize_attention(input_image=image,
+                                feature_map=prediction['feature_map'])
         for indx, bb in enumerate(gt_bb):
             image = cv2.rectangle(np.ascontiguousarray(image),
                                   (int(gt_bb[indx][0]),
@@ -786,7 +815,7 @@ def get_predicted_bb(prediction, pred_flags, perform_augs, model, formatted_img,
                                   (int(gt_bb[indx][2]),
                                    int(gt_bb[indx][3])),
                                   color=(0, 255, 0), thickness=1)
-
+            
         if pick:
             cv2.imwrite("predicted_bb_pick.png", image)
         elif not pick:
@@ -826,47 +855,6 @@ def compute_activation_map(model, agent_obs, prediction):
 
     return activation_map
 
-
-def plot_activation_map(activation_map, agent_obs, save_path="activation_map.png"):
-    """
-    Compute and plot the activation map overlaid on the original image.
-
-    Parameters:
-    - model: The pre-trained model.
-    - agent_obs: The input tensor to the model. Expected shape is [B, C, H, W].
-    - target_class: The target class for which the activation map should be computed.
-    - save_path: Path to save the overlaid image.
-
-    Returns:
-    - None. The function saves the overlaid image to the specified path.
-    """
-
-    # Get the first image from the batch
-    input_image = np.array((agent_obs[0, :, :, :].cpu(
-    ).numpy() * 255).transpose((1, 2, 0)), dtype=np.uint8)
-
-    # Resize the activation map to match the input image size
-    heatmap_resized = cv2.resize(
-        activation_map, (input_image.shape[1], input_image.shape[0]))
-
-    # Convert the heatmap values between 0 and 255 for visualization
-    heatmap_np = np.uint8(255 * heatmap_resized)
-
-    # Convert the heatmap into a colormap
-    heatmap_colormap = cv2.applyColorMap(heatmap_np, cv2.COLORMAP_JET)
-
-    # Overlay the colormap on the original image
-    overlaid_image = cv2.addWeighted(
-        input_image, 0.5, heatmap_colormap, 0.5, 0)
-
-    # Display the image using matplotlib
-    plt.imshow(cv2.cvtColor(overlaid_image, cv2.COLOR_BGR2RGB))
-    plt.axis('off')
-    plt.title("Activation Map Overlaid on Image")
-    plt.savefig(save_path)
-    plt.show()
-
-
 def compute_bb_prediction(prediction, place_bb_flag, perform_augs, model, formatted_img, bb_t, gpu_id, obs, tp_array, fp_array, fn_array, iou_array):
     
     tp_array_t = np.zeros(2)
@@ -879,7 +867,7 @@ def compute_bb_prediction(prediction, place_bb_flag, perform_augs, model, format
     # (prediction['classes_final'][0] == 1 or prediction['classes_final'][0] == 2)
     target_indx_flags = prediction['classes_final'][0] == 1
     cnt_target = torch.sum((target_indx_flags == True).int())
-
+    obs['gt_bb'] = bb_t
     cnt_place = 0
     if place_bb_flag:
         place_indx_flags = prediction['classes_final'][0] == 2
@@ -1149,7 +1137,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
             else:
                 bc_distrib = prediction['bc_distrib']
                 bb_queue = prediction['prediction_target_obj_detector']['proposals']
-                prediction = prediction['prediction_target_obj_detector']
+                prediction = prediction['prediction_target_obj_detector']                            
 
             if activation_map:
                 pass
@@ -1159,8 +1147,6 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                 # actvation_map = compute_activation_map(model=model,
                 #                                        agent_obs=model_input,
                 #                                        prediction=prediction)
-
-            obs['gt_bb'] = bb_t
 
             compute_bb_prediction(prediction=prediction,
                                   place_bb_flag=place_bb_flag,
@@ -1174,9 +1160,6 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                                   fp_array=fp_array,
                                   fn_array=fn_array,
                                   iou_array=iou_array)
-            
-            
-            traj.append(obs)
 
             if controller is not None:
                 # compute the action for the current state

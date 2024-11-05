@@ -207,13 +207,20 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
             if 'real' in task_dir and dataset_loader._mix_sim_real:
                 task_dir_sim = task_dir.replace(agent_name, agent_name.replace('real_new_', ''))
                 agent_files.extend(sorted(glob.glob(task_dir_sim)))
+            if 'real' in task_dir and dataset_loader._dagger:
+                dagger_path = join(task_dir.split('/opt_dataset/')[0], 'dagger_elaborated', task_dir.split('/opt_dataset/')[1])
+                dagger_files = sorted(glob.glob(dagger_path))
+                agent_files.extend(dagger_files)
                 
-            if len(agent_files) < 100:
+            if len(agent_files) < 100: #and 'real' not in task_dir:
                 agent_files = list(itertools.chain.from_iterable((e, e) for e in agent_files))
             
             assert len(agent_files) != 0, "Can't find dataset for task {}, subtask {} in dir {}".format(
                 name, _id, task_dir)
             subtask_size = spec.get('traj_per_subtask', 100)
+            if dataset_loader._dagger:
+                subtask_size = len(agent_files)
+            
             assert len(
                 agent_files) >= subtask_size, "Doesn't have enough data "+str(len(agent_files))
             agent_files = agent_files[:subtask_size]
@@ -1191,8 +1198,12 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
             image = copy.copy(
                 step_t['obs']['camera_front_image'][:, :, ::-1])
         else:
-            image = copy.copy(
-                step_t['obs']['camera_front_image'])
+            if step_t['obs'].get('camera_front_image_full_size', None) is not None:
+                image = copy.copy(
+                cv2.imdecode(step_t['obs']['camera_front_image_full_size'], cv2.IMREAD_COLOR))
+            else:
+                image = copy.copy(
+                    step_t['obs']['camera_front_image'])
 
         if DEBUG:
             cv2.imwrite("original_image.png", image)
@@ -1293,7 +1304,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                 else:
                     action = step_t['action']
                 if "real" in dataset_loader.agent_name:
-                    if not sim_crop:
+                    if not sim_crop and action.shape[0] == 8:
                         from robosuite.utils.transform_utils import quat2axisangle
                         rot_quat = action[3:7]
                         rot_axis_angle = quat2axisangle(rot_quat)
@@ -1302,6 +1313,11 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                                 (action[:3], rot_axis_angle, [action[7]])),
                             n_action_bin=dataset_loader._n_action_bin,
                             action_ranges=dataset_loader._normalization_ranges)
+                    elif not sim_crop and action.shape[0] == 7:
+                        action =normalize_action(
+                            action=action,
+                            n_action_bin=dataset_loader._n_action_bin,
+                            action_ranges=dataset_loader._normalization_ranges)   
                     else:
                         action =normalize_action(
                             action=trasform_from_world_to_bl(action),
@@ -1340,13 +1356,25 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                 elif k == 'gripper_state':
                     state_component = np.array(
                         [step_t['action'][-1]], dtype=np.float32)
-                else:
-                    if isinstance(step_t['obs'][k], int):
+                else:                        
+                    if step_t['obs'].get(k, None) is not None and isinstance(step_t['obs'][k], int):
                         state_component = np.array(
                             [step_t['obs'][k]], dtype=np.float32)
                     else:
-                        state_component = np.array(
-                            step_t['obs'][k], dtype=np.float32)
+                        if "real" in dataset_loader.agent_name:
+                            if step_t['obs'].get(k, None) is not None and k == 'joint_pos':
+                                state_component = np.array(
+                                    step_t['obs'][k], dtype=np.float32)
+                            elif step_t['obs'].get(k, None) is None and k == 'joint_pos':
+                                state_component = step_t['obs']['state'][:-1]
+                            shoulder_pan_joint = state_component[2]
+                            state_component[2] = state_component[0]
+                            state_component[0] = shoulder_pan_joint
+                        else:
+                            state_component = np.array(
+                                step_t['obs'][k], dtype=np.float32)
+                            
+                        
                 state.append(state_component)
             states.append(np.concatenate(state))
             logger.debug(f"State: {time.time()-state_time}")
@@ -1474,9 +1502,9 @@ class DIYBatchSampler(Sampler):
                 else:
                     self.task_samplers[task_name][sub_task] = SubsetRandomSampler(
                         sub_idxs)
-                    assert len(sub_idxs) == sub_task_size, \
-                        'Got uneven data sizes for sub-{} under the task {}!'.format(
-                            sub_task, task_name)
+                    # assert len(sub_idxs) == sub_task_size, \
+                    #     'Got uneven data sizes for sub-{} under the task {}!'.format(
+                    #         sub_task, task_name)
                     self.task_iterators[task_name][sub_task] = iter(
                         SubsetRandomSampler(sub_idxs))
                     # print('subtask indexs:', sub_task, max(sub_idxs))
@@ -1649,9 +1677,9 @@ class TrajectoryBatchSampler(Sampler):
 
                 self.agent_task_samplers[task_name][sub_task] = RandomSampler(
                     data_source=sub_idxs)
-                assert len(sub_idxs) == sub_task_size, \
-                    'Got uneven data sizes for sub-{} under the task {}!'.format(
-                        sub_task, task_name)
+                # assert len(sub_idxs) == sub_task_size, \
+                #     'Got uneven data sizes for sub-{} under the task {}!'.format(
+                #         sub_task, task_name)
                 self.agent_task_iterators[task_name][sub_task] = iter(
                     RandomSampler(data_source=sub_idxs))
                 # print('subtask indexs:', sub_task, max(sub_idxs))
@@ -1690,9 +1718,9 @@ class TrajectoryBatchSampler(Sampler):
 
                 self.demo_task_samplers[task_name][sub_task] = RandomSampler(
                     data_source=sub_idxs)
-                assert len(sub_idxs) == sub_task_size, \
-                    'Got uneven data sizes for sub-{} under the task {}!'.format(
-                        sub_task, task_name)
+                # assert len(sub_idxs) == sub_task_size, \
+                #     'Got uneven data sizes for sub-{} under the task {}!'.format(
+                #         sub_task, task_name)
                 self.demo_task_iterators[task_name][sub_task] = iter(
                     RandomSampler(sub_idxs))
                 # print('subtask indexs:', sub_task, max(sub_idxs))

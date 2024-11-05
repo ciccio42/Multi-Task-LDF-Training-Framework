@@ -13,7 +13,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 
 echo $1
 TASK_NAME="$1"
-NUM_WORKERS=10
+NUM_WORKERS=20
 GPU_ID=0
 
 BASE_PATH=/home/rsofnc000/Multi-Task-LFD-Framework
@@ -100,14 +100,14 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
     done
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
-    PROJECT_NAME=Multi-Task-MOSAIC-Generalization
-    BATCH=52 #32
+    PROJECT_NAME=4Task-MOSAIC-State_pos_gripper
+    BATCH=74
     MODEL_PATH=${CKP_FOLDER}/${PROJECT_NAME}-Batch${BATCH}
     CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
 
     for MODEL in ${MODEL_PATH}; do
-        for S in 239105; do
-            for TASK in stack_block pick_place nut_assembly; do
+        for S in 253890; do
+            for TASK in pick_place nut_assembly stack_block button; do
                 for COUNT in 1 2 3; do
                     if [ $COUNT -eq 1 ]; then
                         SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}

@@ -55,6 +55,7 @@ class MultiTaskPairedDataset(Dataset):
             split_pick_place=False,
             mix_sim_real=False,
             convert_action=False,
+            dagger=False,
             ** params):
 
         self.task_crops = OrderedDict()
@@ -103,6 +104,7 @@ class MultiTaskPairedDataset(Dataset):
         self.perform_scale_resize = perform_scale_resize
         self._mix_sim_real = mix_sim_real
         self._convert_action = convert_action
+        self._dagger = dagger 
 
         # Frame distribution for each trajectory
         self._frame_distribution = OrderedDict()

@@ -26,7 +26,7 @@ VAL_FREQ=-1
 DEVICE=0
 DEBUG=false
 WANDB_LOG=true
-ROLLOUT=true
+ROLLOUT=false
 EPOCH=90
 LOADER_WORKERS=16
 CONFIG_PATH=../experiments
@@ -43,7 +43,8 @@ SPLIT_PICK_PLACE=false
 LOAD_CONTRASTIVE=true
 LOAD_INV=true
 
-CONCAT_STATE=true
+CONCAT_STATE=false
+CONVERT_ACTION=true
 
 if [ "$TASK_NAME" == 'nut_assembly' ]; then
     echo "NUT-ASSEMBLY"
@@ -216,12 +217,13 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
 elif [ "$TASK_NAME" == 'pick_place' ]; then
     echo "Pick-Place"
     ### Pick-Place ###
-    RESUME_PATH=1Task-pick_place-Double-Policy-Contrastive-false-Inverse-false-CONCAT_IMG_EMB-false-CONCAT_DEMO_EMB-true-Batch32
-    RESUME_STEP=99417
+    RESUME_PATH=""
+    RESUME_STEP=""
     RESUME=false
+    FINETUNE=false
 
-    TARGET_OBJ_DETECTOR_STEP=37476 #68526 #129762 #198900 #65250
-    TARGET_OBJ_DETECTOR_PATH=${SAVE_PATH}/1Task-Pick-Place-KP-Batch112
+    TARGET_OBJ_DETECTOR_STEP="" #68526 #129762 #198900 #65250
+    TARGET_OBJ_DETECTOR_PATH=""
 
     BSIZE=32 #32 #128 #64 #32
     COMPUTE_OBJ_DISTRIBUTION=false
@@ -267,8 +269,8 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
 
     COSINE_ANNEALING=false
 
-    TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=Provola      #1Task-${TASK_str}-MOSAIC-Rollout
+    TASK_str="pick_place"                                                    #[pick_place,nut_assembly,stack_block,button]
+    EXP_NAME=1Task-pick_place-MOSAIC-Convert_action_State_false_Convert_true #1Task-${TASK_str}-MOSAIC-Rollout
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
@@ -325,7 +327,7 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     COSINE_ANNEALING=false
 
     TASK_str=[pick_place,nut_assembly,stack_block,press_button_close_after_reaching]
-    EXP_NAME=Multi-Task-MOSAIC-State_true
+    EXP_NAME=4Task-MOSAIC-State_pos_gripper
     PROJECT_NAME=${EXP_NAME}
 fi
 
@@ -351,6 +353,7 @@ srun --output=training_${EXP_NAME}.txt --job-name=training_${EXP_NAME} python -u
     dataset_cfg.height=${HEIGHT} \
     dataset_cfg.width=${WIDTH} \
     dataset_cfg.split_pick_place=${SPLIT_PICK_PLACE} \
+    dataset_cfg.convert_action=${CONVERT_ACTION} \
     samplers.balancing_policy=${BALANCING_POLICY} \
     mosaic._target_=${TARGET} \
     mosaic.load_target_obj_detector=${LOAD_TARGET_OBJ_DETECTOR} \

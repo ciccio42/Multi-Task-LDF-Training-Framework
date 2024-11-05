@@ -25,14 +25,14 @@ DEVICE=0
 DEBUG=false
 WANDB_LOG=true
 
-EXP_NAME=Real-Pick-Place-MOSAIC-CTOD_State_finetuned_No_val_0_1_4_5_8_9
+EXP_NAME=Real-Pick-Place-MOSAIC-CTOD_State_finetuned_No_val_0_1_4_5_8_9_2_second_it_dagger
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place #[pick_place,nut_assembly]
 
-RESUME_PATH=Real-Pick-Place-MOSAIC-CTOD_State_finetuned_No_val_0_1_4_5_8_9-Batch18
-RESUME_STEP=31815
-RESUME=true
-FINETUNE=false
+RESUME_PATH=1Task-pick_place-MOSAIC-CTOD-State-true-ZERO_BB_AFTER_PICK_Convertion_true-Batch32
+RESUME_STEP=288630
+RESUME=false
+FINETUNE=true
 
 LOAD_TARGET_OBJ_DETECTOR=true
 TARGET_OBJ_DETECTOR_STEP=28272

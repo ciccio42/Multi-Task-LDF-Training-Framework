@@ -213,7 +213,8 @@ def press_button_eval(model, env, gt_env, context, gpu_id, variation_id, img_for
                                           task_name=task_name,
                                           real=real,
                                           expert_traj=kwargs.get(
-                                              'expert_traj', None)
+                                              'expert_traj', None),
+                                          place_bb_flag=place_bb_flag
                                           )
     else:
         # Instantiate Controller

@@ -43,12 +43,12 @@ LOADER_WORKERS=8
 BALANCING_POLICY=0
 OBS_T=7
 
-EARLY_STOPPING_PATIECE=10
+EARLY_STOPPING_PATIECE=20
 OPTIMIZER='AdamW'
 LR=0.00001
 WEIGHT_DECAY=5
 SCHEDULER='ReduceLROnPlateau'
-FIRST_FRAMES=true
+FIRST_FRAMES=false
 ONLY_FIRST_FRAMES=false
 ROLLOUT=false
 PERFORM_AUGS=true
@@ -92,13 +92,13 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
 elif [ "$TASK_NAME" == 'pick_place' ]; then
     echo "Pick-Place"
     TASK_str="pick_place"
-    EXP_NAME=Real-1Task-${TASK_str}-CTOD_0_1_4_5_8_9
+    EXP_NAME=Real-1Task-${TASK_str}-CTOD_0_1_4_5_8_9_second
     PROJECT_NAME=${EXP_NAME}
     SET_SAME_N=7
     RESUME_PATH=/home/rsofnc000/checkpoint_save_folder/1Task-Pick-Place-Cond-Target-Obj-Detector-separate-demo-agent-Batch80
     RESUME_STEP=64152
     RESUME=false
-    FINETUNE=true
+    FINETUNE=false
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
     TASK_str=["pick_place","nut_assembly","stack_block","press_button_close_after_reaching"]

@@ -103,15 +103,15 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
     done
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
-    PROJECT_NAME=Multi-Task-MOSAIC-CTOD-Generalization
-    BATCH=52 #32
+    PROJECT_NAME=4Task-Double-Policy
+    BATCH=74 #52 #32
     MODEL_PATH=${CKP_FOLDER}/${PROJECT_NAME}-Batch${BATCH}
     CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
 
     for MODEL in ${MODEL_PATH}; do
-        for S in 247544; do
-            for TASK in stack_block pick_place nut_assembly; do
-                for COUNT in 1 2 3; do
+        for S in 253890; do
+            for TASK in pick_place nut_assembly stack_block button; do
+                for COUNT in 2 3; do
                     if [ $COUNT -eq 1 ]; then
                         SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
                         srun --output=test_${PROJECT_NAME}.txt --job-name=test_${PROJECT_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log --save_path ${SAVE_PATH} --save_files

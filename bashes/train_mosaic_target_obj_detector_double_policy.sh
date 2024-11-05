@@ -34,7 +34,7 @@ CONFIG_NAME=config.yaml
 CONCAT_IMG_EMB=true
 CONCAT_DEMO_EMB=true
 CONCAT_STATE=true
-CONVERT_ACTION=true
+CONVERT_ACTION=false
 
 CONCAT_BB=true
 LOAD_TARGET_OBJ_DETECTOR=true
@@ -341,7 +341,7 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     COSINE_ANNEALING=false
 
     TASK_str=[pick_place,nut_assembly,stack_block,press_button_close_after_reaching]
-    EXP_NAME=Multi-Task-Double-Policy
+    EXP_NAME=4Task-Double-Policy
     PROJECT_NAME=${EXP_NAME}
 fi
 

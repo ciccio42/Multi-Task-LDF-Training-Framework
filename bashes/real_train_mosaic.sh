@@ -22,20 +22,21 @@ SAVE_FREQ=-1
 LOG_FREQ=100
 VAL_FREQ=-1
 DEVICE=0
-DEBUG=debug
-WANDB_LOG=false
+DEBUG=false
+WANDB_LOG=true
 
-EXP_NAME=Real-Pick-Place-MOSAIC_No_State_No_finetuned_No_val_0_1_4_5_8_9_Mix_real_sim
+EXP_NAME=Real-1Task-pick_place-MOSAIC-No_State_finetuned_No_val_0_1_4_5_8_9-Batch18
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place #[pick_place,nut_assembly]
 
-RESUME_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-1Task-Pick-Place-MOSAIC-Cond-Target-Obj-Detector-Batch12/
-RESUME_STEP=27807
+RESUME_PATH="1Task-pick_place-MOSAIC-Convert_action_State_false_Convert_true-Batch32"
+RESUME_STEP="288630"
 RESUME=false
+FINETUNE=true
 
 LOAD_TARGET_OBJ_DETECTOR=false
 TARGET_OBJ_DETECTOR_STEP=36000
-TARGET_OBJ_DETECTOR_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder/Real-1Task-Pick-Place-Cond-Target-Obj-Detector-Batch8
+TARGET_OBJ_DETECTOR_PATH=""
 CONCAT_BB=false
 
 AGENT_NAME=real_new_ur5e
@@ -153,4 +154,5 @@ srun --output=train_${PROJECT_NAME}.txt --job-name=${PROJECT_NAME} python ../tra
     debug=${DEBUG} \
     wandb_log=${WANDB_LOG} \
     resume=${RESUME} \
+    finetune=${FINETUNE} \
     loader_workers=${LOADER_WORKERS}

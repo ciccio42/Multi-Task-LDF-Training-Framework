@@ -25,7 +25,7 @@ VAL_FREQ=-1
 DEVICE=0
 DEBUG=false
 WANDB_LOG=true
-ROLLOUT=true
+ROLLOUT=false
 EPOCH=90
 LOADER_WORKERS=32
 CONFIG_PATH=../experiments
@@ -37,22 +37,22 @@ NORMALIZE_ACTION=true
 CHANGE_COMMAND_EPOCH=true
 SPLIT_PICK_PLACE=true
 
-LOAD_CONTRASTIVE=true
-LOAD_INV=true
-CONTRASTIVE_PRE=1.0 #0.0
-CONTRASTIVE_POS=1.0 #0.0
+LOAD_CONTRASTIVE=false
+LOAD_INV=false
+CONTRASTIVE_PRE=0.0 #0.0
+CONTRASTIVE_POS=0.0 #0.0
 MUL_INTM=0
 BC_MUL=1.0
-INV_MUL=1.0 #0.0
+INV_MUL=0.0 #0.0
 
 FREEZE_TARGET_OBJ_DETECTOR=false
 REMOVE_CLASS_LAYERS=false
 CONCAT_TARGET_OBJ_EMBEDDING=false
-CONCAT_STATE=false
+CONCAT_STATE=true
 
 CONVERT_ACTION=false # when change this parameter check the normalization ranges
 
-ZERO_BB_AFTER_PICK=true
+ZERO_BB_AFTER_PICK=false
 
 if [ "$TASK_NAME" == 'nut_assembly' ]; then
     echo "NUT-ASSEMBLY"
@@ -255,7 +255,7 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-MOSAIC-CTOD-State-${CONCAT_STATE}-ZERO_BB_AFTER_PICK
+    EXP_NAME=1Task-${TASK_str}-MOSAIC-CTOD-State-${CONCAT_STATE}-ZERO_BB_AFTER_PICK_Convertion_${CONVERT_ACTION}
     PROJECT_NAME=${EXP_NAME}
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
@@ -302,7 +302,7 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     COSINE_ANNEALING=false
 
     TASK_str=[pick_place,nut_assembly,stack_block,press_button_close_after_reaching]
-    EXP_NAME=Multi-Task-MOSAIC-CTOD-Generalization
+    EXP_NAME=4Task-MOSAIC-CTOD-State_pos_gripper
     PROJECT_NAME=${EXP_NAME}
 fi
 

@@ -49,18 +49,18 @@ if [ "$TASK_NAME" == 'pick_place' ]; then
         done
     done
 elif [ "$TASK_NAME" == 'nut_assembly' ]; then
-    PROJECT_NAME=1Task-Nut-Assembly-Cond-Target-Obj-Detector-separate-demo-agent
-    BATCH=54 #32
+    PROJECT_NAME=1Task-Nut-Assemly-KP
+    BATCH=63 #32
     MODEL_PATH=${CKP_FOLDER}/${PROJECT_NAME}-Batch${BATCH}
     CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
     for MODEL in ${MODEL_PATH}; do
-        for S in 65250; do #81000 89100; do
+        for S in 53091; do #81000 89100; do
             for TASK in nut_assembly; do
                 for COUNT in 1; do
                     if [ $COUNT -eq 1 ]; then
                         SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
                         #srun --output=test_${TASK_NAME}_ctod.txt --job-name=test_${TASK_NAME}
-                        python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --save_path ${SAVE_PATH} --save_files --debug #--wandb_log
+                        python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --save_path ${SAVE_PATH} --save_files #--debug #--wandb_log
                     else
                         SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
                         srun --output=test_${TASK_NAME}_ctod.txt --job-name=test_${TASK_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log
@@ -70,17 +70,18 @@ elif [ "$TASK_NAME" == 'nut_assembly' ]; then
         done
     done
 elif [ "$TASK_NAME" == 'button' ]; then
-    PROJECT_NAME=1Task-press_button-Double-Policy-Contrastive-false-Inverse-false-CONCAT_IMG_EMB-true-CONCAT_DEMO_EMB-true-No-task-5
-    BATCH=15 #32
+    PROJECT_NAME=Task-button-KP-no-scaled
+    BATCH=36 #32
     MODEL_PATH=${CKP_FOLDER}/${PROJECT_NAME}-Batch${BATCH}
     CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
     for MODEL in ${MODEL_PATH}; do
-        for S in -1; do #81000 89100; do
+        for S in 44625; do #81000 89100; do
             for TASK in button; do
                 for COUNT in 1; do
                     if [ $COUNT -eq 1 ]; then
                         SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
-                        srun --output=test_${TASK_NAME}_ctod.txt --job-name=test_${TASK_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log #--save_path ${SAVE_PATH} --save_files
+                        #srun --output=test_${TASK_NAME}_ctod.txt --job-name=test_${TASK_NAME}
+                        python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --save_path ${SAVE_PATH} --save_files #--wandb_log #
                     else
                         SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
                         srun --output=test_${TASK_NAME}_ctod.txt --job-name=test_${TASK_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log
@@ -91,16 +92,17 @@ elif [ "$TASK_NAME" == 'button' ]; then
     done
 elif [ "$TASK_NAME" == 'stack_block' ]; then
     PROJECT_NAME=1Task-stack_block-CTOD-KP
-    BATCH=21 #32
+    BATCH=36 #32
     MODEL_PATH=${CKP_FOLDER}/${PROJECT_NAME}-Batch${BATCH}
     CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
     for MODEL in ${MODEL_PATH}; do
-        for S in 1928; do
+        for S in 37665; do
             for TASK in stack_block; do
                 for COUNT in 1; do
                     if [ $COUNT -eq 1 ]; then
                         SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
-                        srun --output=test_${TASK_NAME}_ctod.txt --job-name=test_${TASK_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} #--wandb_log --save_path ${SAVE_PATH} --save_files
+                        #srun --output=test_${TASK_NAME}_ctod.txt --job-name=test_${TASK_NAME}
+                        python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --save_path ${SAVE_PATH} --save_files #--wandb_log
                     else
                         SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
                         srun --output=test_${TASK_NAME}_ctod.txt --job-name=test_${TASK_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log
@@ -111,13 +113,13 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
     done
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
-    PROJECT_NAME=4Task-CTOD
+    PROJECT_NAME=4Task-CTOD-KP
     BATCH=74 #32
     MODEL_PATH=${CKP_FOLDER}/${PROJECT_NAME}-Batch${BATCH}
     CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
     for MODEL in ${MODEL_PATH}; do
         for S in 91800; do
-            for TASK in pick_place nut_assembly button stack_block; do
+            for TASK in pick_place; do
                 for COUNT in 1; do
                     if [ $COUNT -eq 1 ]; then
                         SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
