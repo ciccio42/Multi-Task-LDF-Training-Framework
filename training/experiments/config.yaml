@@ -227,7 +227,68 @@ attn:
     drop_dim:       3
     pretrained:     False 
 
+
+##### TO DO
+# 1° addestramento:
+#   A) dim: panda sim  -- ur5 sim -> Tasso medio di successo (correlazione tra tasso medio e MSE)
+#   B) test su istanze mai viste
+# 2° addestramento:
+#   A) dim: panda sim -- ur5 reale FROM SCRATCH
+# 3° addestramento:
+#   A) dim: panda sim -- ur5 reale FINETUNING dal checkpoint punto 1°
+
 #--- Policy ---
+# shape: [3, ${dataset_cfg.height}, ${dataset_cfg.width}]
+
+rt1:
+  _target_: multi_task_il.models.rt1.repo.pytorch_robotics_transformer.transformer_network.TransformerNetwork
+  input_tensor_space:
+    image:
+      low: 0.0
+      high: 1.0
+      shape:
+        - 3
+        - ${dataset_cfg.height}
+        - ${dataset_cfg.width}
+      dtype: numpy.float32
+    natural_language_embedding:
+      low: float("-inf")
+      high: float("inf")
+      shape: [512]
+      dtype: numpy.float32
+  output_tensor_space:
+    terminate_episode: 2
+    world_vector:
+      low: -1.0
+      high: 1.0
+      shape: [3]
+      dtype: numpy.float32
+    rotation_delta:
+      low: -numpy.pi/2
+      high: numpy.pi/2
+      shape: [3]
+      dtype: numpy.float32
+    gripper_closedness_action:
+      low: -1.0
+      high: 1.0
+      shape: [1]
+      dtype: numpy.float32
+  train_step_counter: 0
+  vocab_size: 256
+  token_embedding_size: 512
+  num_layers: 1
+  layer_size: 4096
+  num_heads: 8
+  feed_forward_size: 512
+  dropout_rate: 0.1
+  time_sequence_length: 1
+  crop_size: 236
+  use_token_learner: True
+  return_attention_scores: False
+  img_height: ${dataset_cfg.height}
+  img_width: ${dataset_cfg.width}
+  # action_order: Optional[List[str]] = None,
+
 mosaic:
   _target_:           multi_task_il.models.mt_rep.VideoImitation 
   load_target_obj_detector: False
