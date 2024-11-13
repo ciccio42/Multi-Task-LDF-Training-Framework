@@ -44,9 +44,17 @@ def compute_cosine_similarity(output_embedding, gt_embedding, batch_size, target
         
     return loss, target
 
-def get_train_val_loader(data_augs, batch_size, shuffle=False):
-    train_dataset = CommandEncoderDataset(data_augs=data_augs, mode='train', use_embedding_centroids=True, n_embeddings_per_subtask=60)
-    val_dataset = CommandEncoderDataset(data_augs=data_augs, mode='val', use_embedding_centroids=True, n_embeddings_per_subtask=60)
+def get_train_val_loader(data_augs, batch_size, robot='panda',shuffle=False):
+    train_dataset = CommandEncoderDataset(data_augs=data_augs,
+                                          robot=robot,
+                                          mode='train',
+                                          use_embedding_centroids=True,
+                                          n_train_and_val_samples_per_subtask=60)
+    val_dataset = CommandEncoderDataset(data_augs=data_augs,
+                                        robot=robot,
+                                        mode='val',
+                                        use_embedding_centroids=True,
+                                        n_train_and_val_samples_per_subtask=60)
     # train_loader = DataLoader(dataset, batch_size=10, shuffle=True)
     train_sampler = CommandEncoderSampler(train_dataset, batch_size=batch_size, shuffle=shuffle)
     val_sampler = CommandEncoderSampler(val_dataset, batch_size=batch_size, shuffle=shuffle)
@@ -127,22 +135,38 @@ def create_save_path():
     save_path = 'training/train_scripts/command_encoder/models'
     if not os.path.isdir(save_path):
         os.mkdir(save_path)
-    curr_dir = f'{save_path}/batch_size'
-    if not os.path.isdir(curr_dir):
-        os.mkdir(curr_dir)
-    curr_dir += f'/{str(BATCH_SIZE)}_batch_size'
-    if not os.path.isdir(curr_dir):
-        os.mkdir(curr_dir)
-    curr_dir += f'/num_epochs'
-    if not os.path.isdir(curr_dir):
-        os.mkdir(curr_dir)
-    curr_dir += f'/{str(EPOCHS)}_epochs'
-    if not os.path.isdir(curr_dir):
-        os.mkdir(curr_dir)
-    curr_dir += f'/{str(STARTING_LR_OPTIMIZER_1)}_lr'
-    if not os.path.isdir(curr_dir):
-        os.mkdir(curr_dir)
+
+    subfolders = [f'{save_path}/{ROBOT}',
+                  f'/{str(BATCH_SIZE)}_batch_size',
+                  f'/{str(EPOCHS)}_epochs',
+                  f'/{str(STARTING_LR_OPTIMIZER_1)}_lr']
+    
+    for _idx_subf, name_subf in enumerate(subfolders):
+        
+        if _idx_subf == 0:
+            curr_dir = name_subf
+            if not os.path.isdir(curr_dir):
+                os.mkdir(curr_dir)
+        else:
+            curr_dir += name_subf
+            if not os.path.isdir(curr_dir):
+                os.mkdir(curr_dir)
+            
     save_path = curr_dir
+
+    # curr_dir += 
+    # if not os.path.isdir(curr_dir):
+    #     os.mkdir(curr_dir)
+    # curr_dir += 
+    # if not os.path.isdir(curr_dir):
+    #     os.mkdir(curr_dir)
+    # curr_dir += 
+    # if not os.path.isdir(curr_dir):
+    #     os.mkdir(curr_dir)
+    # curr_dir += 
+    # if not os.path.isdir(curr_dir):
+    #     os.mkdir(curr_dir)
+    # save_path = curr_dir
     
     assert os.path.isdir(save_path) == True, f"{save_path} is not a valid save dir"
     print("save folder for the model: {}".format(save_path))
@@ -153,11 +177,12 @@ def create_save_path():
 if __name__ == '__main__':
     
     
+    DEBUG = False
     CUDA_DEVICE = 1
     USE_CENTROIDS = True
     # training parameters
     # EPOCHS = 150
-    EPOCHS = 4
+    EPOCHS = 5
     # BATCH_SIZE = 32
     # BATCH_SIZE = 16
     # BATCH_SIZE = 16
@@ -169,8 +194,8 @@ if __name__ == '__main__':
     # LEARNING_RATE = 0.001
     LEARNING_RATE = 0.001
     MOMENTUM = 0.9 # for SGD
-    USE_WANDB = False
-    EARLY_STOP = 10
+    USE_WANDB = True
+    EARLY_STOP = 2
     
     LR_SCHEDULER = True
     ### two optimizers
@@ -181,6 +206,9 @@ if __name__ == '__main__':
     # STARTING_LR_OPTIMIZER_1 = 0.001
     # STARTING_LR_OPTIMIZER_1 = 0.00001
     STARTING_LR_OPTIMIZER_1 = 0.0001
+    
+    # ROBOT='panda'
+    ROBOT='panda'
     
     LR_1 = 0.001
     LR_2 = 0.01
@@ -197,7 +225,7 @@ if __name__ == '__main__':
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu' 
     
-    train_loader, val_loader = get_train_val_loader(DATA_AUGS, BATCH_SIZE, shuffle=True) # we set shuffle=True because we want to shuffle batch indexes with sampler
+    train_loader, val_loader = get_train_val_loader(DATA_AUGS, BATCH_SIZE, robot=ROBOT, shuffle=True) # we set shuffle=True because we want to shuffle batch indexes with sampler
     cond_module = get_cond_module()
     
     # cosine_loss = CosineEmbeddingLoss(reduction='none')
@@ -254,6 +282,15 @@ if __name__ == '__main__':
             video_input, gt_embedding = video_input.to(device), gt_embedding.to(device).squeeze(1)
             optimizer.zero_grad()
             output_embedding = cond_module(video_input)
+            if DEBUG:
+                if _i == 0:
+                    for indx, sample in enumerate(video_input):
+                        # i-th sample
+                        for t in range(4):
+                            if t == 3:
+                                img_tensor = np.moveaxis(sample[t].detach().cpu().numpy()*255, 0, -1)
+                                print(data['embedding']['sentence'])
+                                cv2.imwrite(f"{indx}_frame_{t}.png", img_tensor)
             
             # for indx, sample in enumerate(video_input):
             #     # i-th sample

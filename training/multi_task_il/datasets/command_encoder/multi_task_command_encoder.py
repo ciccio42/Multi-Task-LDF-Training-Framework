@@ -125,7 +125,9 @@ class CommandEncoderDataset(Dataset):
     
     def __init__(self,
                  mode='',
-                 n_embeddings_per_subtask=30,
+                 robot='',
+                 n_train_and_val_samples_per_subtask=None,
+                 n_test_samples_per_subtask = None,
                  demo_T=4,
                  width=180,
                  height=100,
@@ -135,9 +137,17 @@ class CommandEncoderDataset(Dataset):
                  data_augs=None,
                  use_embedding_centroids=False) -> None:   # ricorda di mettere DATA_AUGS
         
+        self.available_robots = ['ur5e' , 'panda']
         
-        assert mode == 'train' or mode == 'val', f'{mode} is not a valid modality, choose btw \'train\' or \'val\''
+        assert mode == 'train' or mode == 'val' or mode == 'test', f'{mode} is not a valid modality, choose btw \'train\', \'val\' or \'test\''
         assert data_augs != None, f'choose some data augmentations!'
+        if mode == 'train' or mode == 'val':
+            assert n_train_and_val_samples_per_subtask != None, 'you must specify the number of train and val samples'
+        else: # if test
+            assert n_train_and_val_samples_per_subtask != None and n_test_samples_per_subtask != None, 'you must specify train,val and test samples number'
+        assert robot != '', 'you must choose a robot'
+        assert robot in self.available_robots, f'{robot} is not available. Choose one from the list: {self.available_robots}' 
+            
         # self.embedding_dir = embedding_dir
         self.mode = mode
         # dizionari per video dimostrazione
@@ -157,6 +167,7 @@ class CommandEncoderDataset(Dataset):
         self.aug_twice = aug_twice
         self.aux_pose = aux_pose
         self.select_random_frames = True
+        self.n_test_samples_per_subtask = n_test_samples_per_subtask
         
         root_dir = '/raid/home/frosa_Loc/opt_dataset/'
         name = 'pick_place'
@@ -166,7 +177,7 @@ class CommandEncoderDataset(Dataset):
         
         # directory dimostrazioni ed embeddings
         demo_dir = join(
-            root_dir, name, '{}_{}'.format("ur5e", name))
+            root_dir, name, '{}_{}'.format(robot, name))
         if not use_embedding_centroids:
             embedding_dir = join(
                 root_dir, name, '{}'.format('command_embs')
@@ -199,17 +210,24 @@ class CommandEncoderDataset(Dataset):
             embedding_id = task_id
             embedding_task_dir = expanduser(join(embedding_dir, embedding_id, '*.pkl')) # '/raid/home/frosa_Loc/opt_dataset/pick_place/command_embs/task_00/*.pkl'
             embedding_files = sorted(glob.glob(embedding_task_dir))
-            
-            subtask_size = n_embeddings_per_subtask
+        
+            subtask_size = n_train_and_val_samples_per_subtask
             assert len(demo_files) >= subtask_size, "Doesn't have enough demonstration data "+str(len(demo_files))
             assert len(embedding_files) >= subtask_size, "Doesn't have enough embedding data "+str(len(embedding_files))
-            demo_files = demo_files[:subtask_size]
-            embedding_files = embedding_files[:subtask_size]
-            
-            idxs = split_files(len(demo_files), split, self.mode) # train/test split
-            demo_files = [demo_files[i] for i in idxs] # file di train
-            embedding_files = [embedding_files[i] for i in idxs] # train embeddings (task0 e emb0 non necessariamente devono essere accoppiati)
-            
+            if self.mode != 'test':
+                demo_files = demo_files[:subtask_size]
+                embedding_files = embedding_files[:subtask_size]
+            else: # in test mode we want to take other samples from train/val
+                end_file_idx = subtask_size + self.n_test_samples_per_subtask # where we want to stop with training examples
+                assert end_file_idx <= len(demo_files), 'you don\'t have enough demo data for test'
+                demo_files = demo_files[subtask_size:end_file_idx]
+                embedding_files = embedding_files[:self.n_test_samples_per_subtask]
+                
+            if self.mode != 'test':
+                idxs = split_files(len(demo_files), split, self.mode) # train/test split
+                demo_files = [demo_files[i] for i in idxs] # file di train
+                embedding_files = [embedding_files[i] for i in idxs] # train embeddings (task0 e emb0 non necessariamente devono essere accoppiati)
+                
             self.demo_files[name][_id] = deepcopy(demo_files)   # pick_place -> 00/01/../15 -> paths
             self.embedding_files[name][_id] = deepcopy(embedding_files)
             
