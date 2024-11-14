@@ -134,5 +134,8 @@ python -u ../training/train_scripts/train_any.py \
     wandb_log=${WANDB_LOG} \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS} \
-    save_path=${SAVE_PATH}
+    save_path=${SAVE_PATH} \
+    policy=${POLICY} \
+    EXPERT_DATA=${EXPERT_DATA} \
+    optimizer=${OPTIMIZER}
 

@@ -71,7 +71,7 @@ def make_data_loaders(config, dataset_cfg):
     print("Initializing {} with hydra config. \n".format(dataset_cfg._target_))
     print(
         f"---- Number of workder {config.get('loader_workers', cpu_count())}-----")
-    dataset_cfg.mode = 'train'
+    dataset_cfg.mode = 'train'  
     dataset = instantiate(dataset_cfg)
     train_step = int(config.get('epochs') *
                      int(len(dataset)/config.get('bsize')))
@@ -617,6 +617,12 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
                 inputs=model_inputs,
                 inference=False,
                 oracle=False)
+        elif "TransformerNetwork" in config.policy._target_:
+            #TODO: input and outputs
+            pass
+            # out = model(
+                
+            # )
         else:  # other baselines
             out = model(
                 images=model_inputs['images'],
@@ -1599,7 +1605,8 @@ class Workspace(object):
 
     def run(self):
         loss_function = None
-        if "VideoImitation" in self.config.policy._target_ or "InverseImitation" in self.config.policy._target_ or "DAMLNetwork" in self.config.policy._target_ or "CondPolicy" in self.config.policy._target_:
+        #TODO:non propriamente, la loss si trova nella forward di TransformerNetwork
+        if "TransformerNetwork" in self.config.policy._target_ or "VideoImitation" in self.config.policy._target_ or "InverseImitation" in self.config.policy._target_ or "DAMLNetwork" in self.config.policy._target_ or "CondPolicy" in self.config.policy._target_:
             if "grad_norm" not in self.config.get("loss", ""):
                 loss_function = calculate_task_loss
             else:

@@ -288,6 +288,7 @@ rt1:
   img_height: ${dataset_cfg.height}
   img_width: ${dataset_cfg.width}
   # action_order: Optional[List[str]] = None,
+  concat_target_obj_embedding: False
 
 mosaic:
   _target_:           multi_task_il.models.mt_rep.VideoImitation 
