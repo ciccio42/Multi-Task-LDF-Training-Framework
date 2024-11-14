@@ -240,6 +240,11 @@ attn:
 #--- Policy ---
 # shape: [3, ${dataset_cfg.height}, ${dataset_cfg.width}]
 
+
+#TODO: inserire cond_module
+# rt1_conditioner:
+#   _target_:
+
 rt1:
   _target_: multi_task_il.models.rt1.repo.pytorch_robotics_transformer.transformer_network.TransformerNetwork
   input_tensor_space:

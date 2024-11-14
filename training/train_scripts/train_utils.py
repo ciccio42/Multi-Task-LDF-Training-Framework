@@ -618,10 +618,19 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
                 inference=False,
                 oracle=False)
         elif "TransformerNetwork" in config.policy._target_:
-            #TODO: input and outputs
             pass
-            # out = model(
-                
+            #TODO: input and outputs
+            # sample_obs = {
+            #     'image': model_inputs['images'], # sono lo stato o la dimostrazione?
+            #     #TODO: inserire output di cond_module (inserire nella configurazione di RT1)
+            #     'natural_language_embedding': torch.randn((TRAIN_BATCH_SIZE,TIME_SEQUENCE_LENGHT,512)) # embedding delle dimostrazioni
+            # }
+            
+            #TODO: vedere se campionare a caso
+            # network_state = batched_space_sampler(model._state_space, TRAIN_BATCH_SIZE) # campionamento a caso
+            # out = model( # il modello calcola anche la loss
+            #     sample_obs,
+            #     network_state
             # )
         else:  # other baselines
             out = model(
