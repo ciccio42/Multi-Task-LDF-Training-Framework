@@ -92,8 +92,8 @@ dataset_cfg:
   mode:             ???
   tasks_spec:       ${tasks}
   aux_pose:         True # only required for DAML baseline 
-  height:           224 # 224 # 200 # 100
-  width:            224 # 224 # 360 # 180
+  height:           100 # 224 # 200 # 100
+  width:            180 # 224 # 360 # 180
   split:            [0.90, 0.10]
   demo_T:           4
   obs_T:            7
@@ -228,7 +228,7 @@ attn:
     pretrained:     False 
 
 
-##### TO DO
+##### TODO
 # 1° addestramento:
 #   A) dim: panda sim  -- ur5 sim -> Tasso medio di successo (correlazione tra tasso medio e MSE)
 #   B) test su istanze mai viste
@@ -241,9 +241,73 @@ attn:
 # shape: [3, ${dataset_cfg.height}, ${dataset_cfg.width}]
 
 
-#TODO: inserire cond_module
+#TODO: inserire configurazione per istanziare RT1_video_cond
 # rt1_conditioner:
 #   _target_:
+
+rt1_video_cond:
+  _target_: multi_task_il.models.rt1.repo.pytorch_robotics_transformer.rt1_video_cond.RT1_video_cond
+  ### rt1 params
+  input_tensor_space:
+    image:
+      low: 0.0
+      high: 1.0
+      shape:
+        - 3
+        - ${dataset_cfg.height}
+        - ${dataset_cfg.width}
+      dtype: numpy.float32
+    natural_language_embedding:
+      low: float("-inf")
+      high: float("inf")
+      shape: [512]
+      dtype: numpy.float32
+  output_tensor_space:
+    terminate_episode: 2
+    world_vector:
+      low: -1.0
+      high: 1.0
+      shape: [3]
+      dtype: numpy.float32
+    rotation_delta:
+      low: -numpy.pi/2
+      high: numpy.pi/2
+      shape: [3]
+      dtype: numpy.float32
+    gripper_closedness_action:
+      low: -1.0
+      high: 1.0
+      shape: [1]
+      dtype: numpy.float32
+  train_step_counter: 0
+  vocab_size: 256
+  token_embedding_size: 512
+  num_layers: 1
+  layer_size: 4096
+  num_heads: 8
+  feed_forward_size: 512
+  dropout_rate: 0.1
+  time_sequence_length: 7
+  crop_size: 236
+  use_token_learner: True
+  return_attention_scores: False
+  img_height: ${dataset_cfg.height}
+  img_width: ${dataset_cfg.width}
+  # action_order: Optional[List[str]] = None
+  concat_target_obj_embedding: False
+  ### cond_module paramams
+  height: 120
+  width: 160
+  demo_T: 4
+  model_name: "r2plus1d_18"
+  pretrained: True
+  cond_video: True
+  n_layers: 3
+  demo_W: 7
+  demo_H: 7
+  demo_ff_dim: [128, 64, 32]
+  demo_linear_dim: [512, 512, 512]
+  conv_drop_dim: 3
 
 rt1:
   _target_: multi_task_il.models.rt1.repo.pytorch_robotics_transformer.transformer_network.TransformerNetwork

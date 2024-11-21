@@ -17,7 +17,8 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 
 export HYDRA_FULL_ERROR=1
 echo $1
-TASK_NAME="$1"
+# TASK_NAME="$1"
+TASK_NAME="pick_place"
 
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
 # SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
@@ -28,9 +29,9 @@ TARGET='multi_task_il.models.mt_rep.VideoImitation'
 SAVE_FREQ=-1
 LOG_FREQ=10
 VAL_FREQ=-1
-DEVICE=0
+DEVICE=0    # cuda gpu selection
 DEBUG=true
-WANDB_LOG=false
+WANDB_LOG=false # weight and bias
 ROLLOUT=false
 EPOCH=90
 LOADER_WORKERS=16

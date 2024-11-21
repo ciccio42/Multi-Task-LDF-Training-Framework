@@ -617,21 +617,21 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
                 inputs=model_inputs,
                 inference=False,
                 oracle=False)
-        elif "TransformerNetwork" in config.policy._target_:
-            pass
-            #TODO: input and outputs
-            # sample_obs = {
-            #     'image': model_inputs['images'], # sono lo stato o la dimostrazione?
-            #     #TODO: inserire output di cond_module (inserire nella configurazione di RT1)
-            #     'natural_language_embedding': torch.randn((TRAIN_BATCH_SIZE,TIME_SEQUENCE_LENGHT,512)) # embedding delle dimostrazioni
-            # }
+        elif "rt1" in config.policy._target_:
             
-            #TODO: vedere se campionare a caso
-            # network_state = batched_space_sampler(model._state_space, TRAIN_BATCH_SIZE) # campionamento a caso
-            # out = model( # il modello calcola anche la loss
-            #     sample_obs,
-            #     network_state
-            # )
+            import cv2
+            debug_image = False
+            if debug_image:
+                for ep_idx, ep in enumerate(model_inputs['images']):
+                    for t, img in enumerate(ep):
+                        cv2.imwrite(f'/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/{ep_idx}_{t}.png', (img*255).type(torch.IntTensor).permute(1,2,0).cpu().numpy())    
+            
+            out = model(  # 1550MB
+                images=model_inputs['images'],
+                states=model_inputs['states'],
+                demo=model_inputs['demo'],
+                bsize=config['bsize']
+            )            
         else:  # other baselines
             out = model(
                 images=model_inputs['images'],
@@ -641,7 +641,7 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
 
         # forward & backward action pred
         actions = model_inputs['actions']
-        if "CondPolicy" not in config.policy._target_:
+        if "CondPolicy" not in config.policy._target_ and "rt1" not in config.policy._target_:
             mu_bc, scale_bc, logit_bc = out['bc_distrib']
             assert not torch.isnan(mu_bc).any(), "mu_bc contains nan"
             assert not torch.isnan(scale_bc).any(), "scale_bc contains nan"
@@ -662,6 +662,8 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
                 act_prob = rearrange(act_prob,
                                      'B T A -> B (T A)')
 
+        elif "rt1" in config.policy._target_:
+            pass
         else:
             actions = rearrange(actions, 'B T act_dim -> (B T) act_dim')
             act_prob = - out['bc_distrib'].log_prob(actions)
@@ -1615,7 +1617,7 @@ class Workspace(object):
     def run(self):
         loss_function = None
         #TODO:non propriamente, la loss si trova nella forward di TransformerNetwork
-        if "TransformerNetwork" in self.config.policy._target_ or "VideoImitation" in self.config.policy._target_ or "InverseImitation" in self.config.policy._target_ or "DAMLNetwork" in self.config.policy._target_ or "CondPolicy" in self.config.policy._target_:
+        if  "rt1" in self.config.policy._target_ or "VideoImitation" in self.config.policy._target_ or "InverseImitation" in self.config.policy._target_ or "DAMLNetwork" in self.config.policy._target_ or "CondPolicy" in self.config.policy._target_:
             if "grad_norm" not in self.config.get("loss", ""):
                 loss_function = calculate_task_loss
             else:

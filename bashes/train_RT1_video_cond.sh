@@ -27,7 +27,7 @@ TASK_NAME="pick_place"
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
 # SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 SAVE_PATH=/raid/home/frosa_Loc/multi_task_lfd/checkpoint_save_folder
-POLICY='${rt1}'
+POLICY='${rt1_video_cond}'
 TARGET='multi_task_il.models.mt_rep.VideoImitation'
 
 SAVE_FREQ=-1
@@ -137,4 +137,5 @@ python -u ../training/train_scripts/train_any.py \
     save_path=${SAVE_PATH} \
     EXPERT_DATA=${EXPERT_DATA} \
     optimizer=${OPTIMIZER}
-
+    # width=${WIDTH} \
+    # height=${HEIGHT}
