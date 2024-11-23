@@ -619,17 +619,19 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
                 oracle=False)
         elif "rt1" in config.policy._target_:
             
-            import cv2
-            debug_image = False
-            if debug_image:
-                for ep_idx, ep in enumerate(model_inputs['images']):
-                    for t, img in enumerate(ep):
-                        cv2.imwrite(f'/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/{ep_idx}_{t}.png', (img*255).type(torch.IntTensor).permute(1,2,0).cpu().numpy())    
+            # TODO: image_cp
+            # import cv2
+            # debug_image = False
+            # if debug_image:
+            #     for ep_idx, ep in enumerate(model_inputs['images']):
+            #         for t, img in enumerate(ep):
+            #             cv2.imwrite(f'/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/{ep_idx}_{t}.png', (img*255).type(torch.IntTensor).permute(1,2,0).cpu().numpy())    
             
             out = model(  # 1550MB
-                images=model_inputs['images'],
-                states=model_inputs['states'],
-                demo=model_inputs['demo'],
+                images=copy.deepcopy(model_inputs['images']), # sono obs_T step perché la traiettoria viene tagliata
+                states=copy.deepcopy(model_inputs['states']),
+                demo=copy.deepcopy(model_inputs['demo']),
+                actions=copy.deepcopy(model_inputs['actions']),
                 bsize=config['bsize']
             )            
         else:  # other baselines

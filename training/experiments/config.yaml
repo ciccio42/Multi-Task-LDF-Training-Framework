@@ -102,19 +102,19 @@ dataset_cfg:
   normalize_action: True
   load_bb: True
   # x, y, z, e_x, e_y, e_z
-  # normalization_ranges: [[-0.35,  0.35],
-  #                       [-0.35,  0.35],
-  #                       [ 0.60,  1.20],
-  #                       [-3.14,  3.14911766],
-  #                       [-3.14911766, 3.14911766],
-  #                       [-3.14911766,  3.14911766]]
-  # use when convert is true
-  normalization_ranges: [[-0.40,  0.40],
-                        [0.10,  0.90],
-                        [ -0.20,  0.20],
-                        [-3.14911766,  3.14911766],
+  normalization_ranges: [[-0.35,  0.35],
+                        [-0.35,  0.35],
+                        [ 0.60,  1.20],
+                        [-3.14,  3.14911766],
                         [-3.14911766, 3.14911766],
                         [-3.14911766,  3.14911766]]
+  # use when convert is true
+  # normalization_ranges: [[-0.40,  0.40],
+  #                       [0.10,  0.90],
+  #                       [ -0.20,  0.20],
+  #                       [-3.14911766,  3.14911766],
+  #                       [-3.14911766, 3.14911766],
+  #                       [-3.14911766,  3.14911766]]
   n_action_bin: 256
   take_first_frame: ${policy.concat_target_obj_embedding}
   data_augs:        ${augs}
@@ -258,8 +258,8 @@ rt1_video_cond:
         - ${dataset_cfg.width}
       dtype: numpy.float32
     natural_language_embedding:
-      low: float("-inf")
-      high: float("inf")
+      low: float("-inf")  # -1.0
+      high: float("inf")  # 1.0
       shape: [512]
       dtype: numpy.float32
   output_tensor_space:
@@ -269,9 +269,14 @@ rt1_video_cond:
       high: 1.0
       shape: [3]
       dtype: numpy.float32
+    # rotation_delta:
+    #   low: -numpy.pi/2
+    #   high: numpy.pi/2
+    #   shape: [3]
+    #   dtype: numpy.float32
     rotation_delta:
-      low: -numpy.pi/2
-      high: numpy.pi/2
+      low: -1.0
+      high: 1.0
       shape: [3]
       dtype: numpy.float32
     gripper_closedness_action:

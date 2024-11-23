@@ -175,8 +175,8 @@ class MultiTaskPairedDataset(Dataset):
         # print(f"Make demo {end-start}")
         # start = time.time()
         traj = self._make_traj(
-            agent_traj[0],
-            agent_traj[1],
+            agent_traj[0], # traj object
+            agent_traj[1], # command
             task_name,
             sub_task_id,
             sim_crop,

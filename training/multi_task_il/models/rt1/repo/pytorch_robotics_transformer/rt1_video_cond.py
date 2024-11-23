@@ -87,10 +87,13 @@ class RT1_video_cond(nn.Module):
                 images,
                 states,
                 demo,
+                actions, # actions are normalized in [-1.0, 1.0] with normalizations ranges defined in .yaml
                 bsize):
         
         # create embedding from video demonstration that will be use to condition
         # conv function activations via film layers
+        
+        # TODO: load the weights of pretrained cond_module
         with torch.no_grad():
             cond_embedding = self.cond_module(demo) # 15GB for the computation graph -> 4GB with torch no grad
         cond_embedding = cond_embedding.tile((7,1,1)).permute(1,0,2)

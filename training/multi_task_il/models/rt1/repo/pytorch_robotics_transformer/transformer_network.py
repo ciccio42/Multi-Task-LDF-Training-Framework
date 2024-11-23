@@ -174,8 +174,14 @@ class TransformerNetwork(nn.Module):
                                         high=world_vec_conf['high'],
                                         shape=world_vec_conf['shape'],
                                         dtype=eval(world_vec_conf['dtype']))),
-            ('rotation_delta', spaces.Box(low= eval(rotation_delta_conf['low']),
-                                          high= eval(rotation_delta_conf['high']),
+            # When normalization range is [-pi/2, pi/2]
+            # ('rotation_delta', spaces.Box(low= eval(rotation_delta_conf['low']),
+            #                               high= eval(rotation_delta_conf['high']),
+            #                               shape=rotation_delta_conf['shape'],
+            #                               dtype=eval(rotation_delta_conf['dtype']))),
+            # When normalization range is [-1.0, 1.0]
+            ('rotation_delta', spaces.Box(low=rotation_delta_conf['low'],
+                                          high=rotation_delta_conf['high'],
                                           shape=rotation_delta_conf['shape'],
                                           dtype=eval(rotation_delta_conf['dtype']))),
             ('gripper_closedness_action', spaces.Box(low= gripper_closedness_conf['low'],
@@ -516,6 +522,9 @@ class TransformerNetwork(nn.Module):
 
         # preprocess image
         image = image.view((b*input_t, c, h, w))# image is already tensor and its range is [0,1]
+        
+        # import cv2
+        
         image = preprocessors.convert_dtype_and_crop_images(image)
         image =image.view((b, input_t, c, h, w))
 

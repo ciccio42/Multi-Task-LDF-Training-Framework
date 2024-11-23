@@ -1309,7 +1309,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
                             action_ranges=dataset_loader._normalization_ranges)                 
                 else:
                     if dataset_loader._normalize_action:
-                        if not convert_action:
+                        if not convert_action: #TODO: understand normalization
                             action = normalize_action(
                                 action=action,
                                 n_action_bin=dataset_loader._n_action_bin,
