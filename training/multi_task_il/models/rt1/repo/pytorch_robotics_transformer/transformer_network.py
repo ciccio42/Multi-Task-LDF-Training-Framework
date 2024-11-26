@@ -97,7 +97,7 @@ class TransformerNetwork(nn.Module):
             num_tokens=8)
         self._action_tokenizer = action_tokenizer.RT1ActionTokenizer(
             self._output_tensor_space, # action space
-            vocab_size=self._vocab_size)    
+            vocab_size=self._vocab_size)
 
         # Get the number of tokens
         self._tokens_per_action = self._action_tokenizer.tokens_per_action
@@ -127,7 +127,7 @@ class TransformerNetwork(nn.Module):
                             spaces.MultiDiscrete(np.full((time_sequence_length, self._tokens_per_action), vocab_size)),
                 # Stores where in the window we are.
                 # This value is within range [0, time_sequence_length + 1].
-                # When seq_idx == time_sequence_length, context_image_tokens and
+                # TODO: capire When seq_idx == time_sequence_length, context_image_tokens and
                 # action_tokens need to be shifted to the left.
                  'seq_idx': 
                             spaces.Discrete(time_sequence_length+1)
@@ -162,34 +162,59 @@ class TransformerNetwork(nn.Module):
         }
         )
         
-        terminate_conf = output_tensor_cfg['terminate_episode']
+        if 'terminate_episode' in output_tensor_cfg:
+            terminate_conf = output_tensor_cfg['terminate_episode']
         world_vec_conf = output_tensor_cfg['world_vector']
         rotation_delta_conf = output_tensor_cfg['rotation_delta']
         gripper_closedness_conf = output_tensor_cfg['gripper_closedness_action']
         
-        action_space = spaces.Dict(
-        OrderedDict([
-            ('terminate_episode', spaces.Discrete(terminate_conf)), 
-            ('world_vector', spaces.Box(low=world_vec_conf['low'],
-                                        high=world_vec_conf['high'],
-                                        shape=world_vec_conf['shape'],
-                                        dtype=eval(world_vec_conf['dtype']))),
-            # When normalization range is [-pi/2, pi/2]
-            # ('rotation_delta', spaces.Box(low= eval(rotation_delta_conf['low']),
-            #                               high= eval(rotation_delta_conf['high']),
-            #                               shape=rotation_delta_conf['shape'],
-            #                               dtype=eval(rotation_delta_conf['dtype']))),
-            # When normalization range is [-1.0, 1.0]
-            ('rotation_delta', spaces.Box(low=rotation_delta_conf['low'],
-                                          high=rotation_delta_conf['high'],
-                                          shape=rotation_delta_conf['shape'],
-                                          dtype=eval(rotation_delta_conf['dtype']))),
-            ('gripper_closedness_action', spaces.Box(low= gripper_closedness_conf['low'],
-                                                     high= gripper_closedness_conf['high'],
-                                                     shape=gripper_closedness_conf['shape'],
-                                                     dtype=eval(gripper_closedness_conf['dtype'])))
-            ])
-        )
+        if 'terminate_episode' in output_tensor_cfg:
+            action_space = spaces.Dict(
+            OrderedDict([
+                ('terminate_episode', spaces.Discrete(terminate_conf)), 
+                ('world_vector', spaces.Box(low=world_vec_conf['low'],
+                                            high=world_vec_conf['high'],
+                                            shape=world_vec_conf['shape'],
+                                            dtype=eval(world_vec_conf['dtype']))),
+                # When normalization range is [-pi/2, pi/2]
+                # ('rotation_delta', spaces.Box(low= eval(rotation_delta_conf['low']),
+                #                               high= eval(rotation_delta_conf['high']),
+                #                               shape=rotation_delta_conf['shape'],
+                #                               dtype=eval(rotation_delta_conf['dtype']))),
+                # When normalization range is [-1.0, 1.0]
+                ('rotation_delta', spaces.Box(low=rotation_delta_conf['low'],
+                                            high=rotation_delta_conf['high'],
+                                            shape=rotation_delta_conf['shape'],
+                                            dtype=eval(rotation_delta_conf['dtype']))),
+                ('gripper_closedness_action', spaces.Box(low= gripper_closedness_conf['low'],
+                                                        high= gripper_closedness_conf['high'],
+                                                        shape=gripper_closedness_conf['shape'],
+                                                        dtype=eval(gripper_closedness_conf['dtype'])))
+                ])
+            )
+        else: # with no terminate episode
+            action_space = spaces.Dict(
+            OrderedDict([
+                ('world_vector', spaces.Box(low=world_vec_conf['low'],
+                                            high=world_vec_conf['high'],
+                                            shape=world_vec_conf['shape'],
+                                            dtype=eval(world_vec_conf['dtype']))),
+                # When normalization range is [-pi/2, pi/2]
+                # ('rotation_delta', spaces.Box(low= eval(rotation_delta_conf['low']),
+                #                               high= eval(rotation_delta_conf['high']),
+                #                               shape=rotation_delta_conf['shape'],
+                #                               dtype=eval(rotation_delta_conf['dtype']))),
+                # When normalization range is [-1.0, 1.0]
+                ('rotation_delta', spaces.Box(low=rotation_delta_conf['low'],
+                                            high=rotation_delta_conf['high'],
+                                            shape=rotation_delta_conf['shape'],
+                                            dtype=eval(rotation_delta_conf['dtype']))),
+                ('gripper_closedness_action', spaces.Box(low= gripper_closedness_conf['low'],
+                                                        high= gripper_closedness_conf['high'],
+                                                        shape=gripper_closedness_conf['shape'],
+                                                        dtype=eval(gripper_closedness_conf['dtype'])))
+                ])
+            )           
         
         return state_space, action_space
 
@@ -291,7 +316,7 @@ class TransformerNetwork(nn.Module):
         context_image_tokens, action_tokens, attention_mask = self._get_tokens_and_mask(
         observations, network_state)
 
-        self._aux_info = {'action_labels': action_tokens} # TODO: GLI ACTION TOKENS SONO QUELLI DI GROUND TRUTH
+        self._aux_info = {'action_labels': action_tokens} # GLI ACTION TOKENS SONO QUELLI DI GROUND TRUTH
 
         if outer_rank == 1:  # This is an inference call
             # run transformer in loop to produce action tokens one-by-one
@@ -381,9 +406,14 @@ class TransformerNetwork(nn.Module):
             # action_logits_for_training: (b, t, self._tokens_per_action, vocab_size)
             # action_tokens, (b, t, self._tokens_per_action)
             # action_loss: (b, t) 
-            action_loss = torch.mean( # action_tokens must be the gt action
-                self._loss_object(action_logits_for_training.permute(0, 3, 1, 2), action_tokens) /num_items, # (b, t, self._tokens_per_action)
-                dim=-1)
+            
+            # implementazione errata
+            # action_loss = torch.mean( # action_tokens must be the gt action
+            #     self._loss_object(action_logits_for_training.permute(0, 3, 1, 2), action_tokens.to(torch.int64)) /num_items, # (b, t, self._tokens_per_action)
+            #     dim=-1)
+            action_loss = self._loss_object(
+                action_logits_for_training.permute(0, 3, 1, 2), action_tokens.to(torch.int64)
+            )  # (b, t, self._tokens_per_action)
                 
             self._loss = action_loss
 
@@ -392,7 +422,8 @@ class TransformerNetwork(nn.Module):
                 'action_predictions':
                     torch.argmax(action_logits_for_training, dim=-1),
                 'action_loss':
-                    action_loss,
+                    torch.mean(self._loss).item(), # media nella dimensione delle azioni, tempo e batch
+                    # torch.mean(self._loss, dim=-1), # media solo nella dimensione delle azioni
                 'actor_loss_mask':
                     torch.ones((b), dtype=torch.float32)
             })
@@ -443,11 +474,10 @@ class TransformerNetwork(nn.Module):
     # input_token_sequence = [context_image_tokens + action_tokens]
     def _assemble_input_token_sequence(self, context_image_tokens, action_tokens, batch_size):
         # embed action tokens
-        action_tokens = F.one_hot(action_tokens, num_classes=self._vocab_size).to(torch.float32) # one hot for the 256 bins (self._vocab_size)
+        action_tokens = F.one_hot(action_tokens.to(torch.int64), num_classes=self._vocab_size).to(torch.float32) # one hot for the 256 bins (self._vocab_size)
         action_tokens = self._action_token_emb(action_tokens) # [b, t , num_action_tokens, emb_dim]
 
         action_tokens = torch.zeros_like(action_tokens) # This removes autoregressively conditioning on actions becuase it did not benefit performance and slowed inference.
-        
 
         # assemble token sequence
         input_token_sequence = torch.concat((context_image_tokens, action_tokens),dim=2)
@@ -483,8 +513,7 @@ class TransformerNetwork(nn.Module):
 
         # 3) generate transformer attention mask
         attention_mask = self._default_attention_mask
-        device = observations['image'].device
-        attention_mask = attention_mask.to(device)
+        attention_mask = attention_mask.to(observations['image'].device)
         
         
         # #debug: plotting
@@ -521,11 +550,15 @@ class TransformerNetwork(nn.Module):
         context = self._extract_context_from_observation(observations, input_t) # [b, t, emb_size] or None        
 
         # preprocess image
-        image = image.view((b*input_t, c, h, w))# image is already tensor and its range is [0,1]
+        try:
+            image = image.view((b*input_t, c, h, w))# image is already tensor and its range is [0,1]
+        except RuntimeError:
+            image = image.reshape((b*input_t, c, h, w))
         
         # import cv2
         
-        image = preprocessors.convert_dtype_and_crop_images(image)
+        # we already do that
+        # image = preprocessors.convert_dtype_and_crop_images(image)
         image =image.view((b, input_t, c, h, w))
 
         # get image tokens (context: [b,t,emb_size])
@@ -576,7 +609,7 @@ class TransformerNetwork(nn.Module):
         else:
             assert outer_rank == 2
             # self._actions was set through set_actions function.
-            if self._actions is None: # When there is no action that will be tokenized to begin with, we create zero tensor.
+            if self._actions is None: # WheWn there is no action tWhat will be tokenized to begin with, we create zero tensor.
                 b, t = self._get_batch_size_and_seq_len(network_state)
                 device = observations['image'].device
                 action_tokens = torch.zeros(
@@ -584,7 +617,7 @@ class TransformerNetwork(nn.Module):
                     # [b, t, self._tokens_per_action], dtype=torch.int32)
                     [b, t, self._tokens_per_action], dtype=torch.int64).to(device)
             else:
-                action_tokens = self._action_tokenizer.tokenize(self._actions)
+                action_tokens = self._action_tokenizer.tokenize(self._actions, skip_norm=True)
         return action_tokens
 
     # output context from observation. size: [b, t, emb-size]
@@ -604,7 +637,7 @@ class TransformerNetwork(nn.Module):
         """Sets actions that will be tokenized and used in transformer network.
 
         Args:
-        actions: actions to be tokenized and used in transformer network. example
+        actions: actions to be tokenized and used in transformer network. examples
             actions are terminate = 1 world_vector = [0.9, 0.8, -0.3]
             rotation_delta = [-0.1, 0.2, .6] gripper_closedness = 0.9
         ※ terminate is either 0 or 1.

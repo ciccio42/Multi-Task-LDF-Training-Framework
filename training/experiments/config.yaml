@@ -263,7 +263,7 @@ rt1_video_cond:
       shape: [512]
       dtype: numpy.float32
   output_tensor_space:
-    terminate_episode: 2
+    # terminate_episode: 2 #TODO: valutare se metterlo
     world_vector:
       low: -1.0
       high: 1.0
@@ -292,7 +292,7 @@ rt1_video_cond:
   num_heads: 8
   feed_forward_size: 512
   dropout_rate: 0.1
-  time_sequence_length: 7
+  time_sequence_length: 6 # 7
   crop_size: 236
   use_token_learner: True
   return_attention_scores: False

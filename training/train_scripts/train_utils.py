@@ -619,6 +619,13 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
                 oracle=False)
         elif "rt1" in config.policy._target_:
             
+            total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+            print("[RT-1] number of model params:", total_params)
+            total_size_bytes = total_params * 4
+            # Parameter is in torch.float32，Each parameter takes 4 bytes
+            total_size_mb = round(total_size_bytes / (1024 * 1024), 2)
+            print("model size: ", total_size_mb, " MB")
+            
             # TODO: image_cp
             # import cv2
             # debug_image = False
@@ -627,7 +634,7 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
             #         for t, img in enumerate(ep):
             #             cv2.imwrite(f'/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/{ep_idx}_{t}.png', (img*255).type(torch.IntTensor).permute(1,2,0).cpu().numpy())    
             
-            out = model(  # 1550MB
+            out, ce_loss = model(  # 1550MB
                 images=copy.deepcopy(model_inputs['images']), # sono obs_T step perché la traiettoria viene tagliata
                 states=copy.deepcopy(model_inputs['states']),
                 demo=copy.deepcopy(model_inputs['demo']),

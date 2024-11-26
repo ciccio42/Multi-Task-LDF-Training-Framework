@@ -26,6 +26,8 @@ def normalize_action(action, n_action_bin, action_ranges, continous=False):
     if action.shape[0] == 7:
         norm_action[:-1] = (2 * (norm_action[:-1] - action_ranges[:, 0]) /
                             (action_ranges[:, 1] - action_ranges[:, 0])) - 1
+        # norm_action[:-1] = (2 * (norm_action[:-1] - action_ranges[:, 0]) /
+        #                     (action_ranges[:, 1] - action_ranges[:, 0])) - 1
 
     else:
         norm_action = (2 * (norm_action - action_ranges[:, 0]) /

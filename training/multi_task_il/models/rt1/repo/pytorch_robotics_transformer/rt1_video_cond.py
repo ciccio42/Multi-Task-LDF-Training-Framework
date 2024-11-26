@@ -96,22 +96,55 @@ class RT1_video_cond(nn.Module):
         # TODO: load the weights of pretrained cond_module
         with torch.no_grad():
             cond_embedding = self.cond_module(demo) # 15GB for the computation graph -> 4GB with torch no grad
-        cond_embedding = cond_embedding.tile((7,1,1)).permute(1,0,2)
+        t = actions.shape[1]
+        cond_embedding = cond_embedding.tile((t,1,1)).permute(1,0,2)
         
         #TODO: inputs
         rt1_obs = {
-            "image": images,
+            "image": images[:,:-1,:,:,:], # we exclude the last one
             "natural_language_embedding": cond_embedding
         }
+        
+        rt1_actions = {
+            'world_vector' : actions[:,:,:,0:3].squeeze(),
+            'rotation_delta' : actions[:,:,:,3:6].squeeze(),
+            'gripper_closedness_action' : actions[:,:,:,-1].squeeze()
+        }
+        self.rt1.set_actions(rt1_actions)
+        
+        #TODO: [TEST] output -> azione dell'ultimo istante -> ERRORE 
+        # last_action = actions[:, -1]
+        # rt1_action = {
+        #     'world_vector' : last_action[:,:,0:3].squeeze(),
+        #     'rotation_delta' : last_action[:,:,3:6].squeeze(),
+        #     'gripper_closedness_action' : last_action[:,:,-1].squeeze()
+        # }
+        # self.rt1.set_actions(rt1_action)
+        
+        # set action that will be used in RT1
+        
+        # 2 metodi per training:
+            # 1 [SCELTO]
+            # Prendere stack di 7 immagini e for di 7 iterazioni dove l'ultima immagine è t_i e azione a_i
+            # 2
+            # Usare stack di 7 immagini una sola volta con azione quella finale
+        
         #TODO: vedere se campionare a caso
         #TODO: comprendere a cosa serve in inferenza e perché viene usato solo in quel caso
         rt1_network_state = batched_space_sampler(self.rt1._state_space, bsize) # campionamento a caso
         rt1_network_state = np_to_tensor(rt1_network_state)
         rt1_network_state = tensor_from_cpu_to_cuda(rt1_network_state, next(self.cond_module.parameters()).device)
         
-        out = self.rt1(rt1_obs, rt1_network_state)
+        # test for actions
+        # test_action = batched_space_sampler(self.rt1._output_tensor_space, bsize)
+        # test_action = np_to_tensor(test_action)
+        # self.rt1.set_actions(test_action)
         
-        return out
+        # actions[:,:,:,0] -> un tipo particolare di azione
+        
+        out = self.rt1(rt1_obs, rt1_network_state) # usa tutte le 6 azioni per calcolo loss ma l'output è data dall'ultima azione
+        
+        return out, self.rt1._aux_info['action_loss']
         
 if __name__ == '__main__':
     pass

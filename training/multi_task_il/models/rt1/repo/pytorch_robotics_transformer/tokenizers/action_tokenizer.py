@@ -102,7 +102,7 @@ class RT1ActionTokenizer():
     def tokens_per_action(self) -> int:
         return self._tokens_per_action
 
-    def tokenize(self, action: Dict[str, torch.Tensor]) -> torch.Tensor:
+    def tokenize(self, action: Dict[str, torch.Tensor], skip_norm=False) -> torch.Tensor:
         """Tokenizes an action."""
         action_tokens = []
         # Perform tokenizing in order of self._action_order 
@@ -114,8 +114,8 @@ class RT1ActionTokenizer():
                 token = a #  Discrete action is already token. The size is () or (batch,)
                 token = a.unsqueeze(-1) # The size is (1,) or (batch, 1). Discrete action will be one token.
             else: # if a is Box, size of a is (action_size) or (batch, action_size).
-                low = torch.tensor(a_space.low)
-                high = torch.tensor(a_space.high)
+                low = torch.tensor(a_space.low).to(a.device)
+                high = torch.tensor(a_space.high).to(a.device)
                 a = torch.clamp(a, low, high)
                 # Normalize the action.
                 token = (a - low) / (high - low)
@@ -124,8 +124,13 @@ class RT1ActionTokenizer():
                 token = token.to(torch.int32) # The size is (action_size) or (batch, action_size).
             action_tokens.append(token) # if this action has action_size, this action will be action_size tokens.
         # Contatenate all actions. The size will be (tokens_per_action) or (batch,  tokens_per_action)
-        action_tokens = torch.concat(action_tokens, dim=-1)
-        return action_tokens
+        try:
+            action_tokens = torch.concat(action_tokens, dim=-1)
+        except RuntimeError:
+            # action_tokens[2] = action_tokens[2].unsqueeze(1) # with terminate episode
+            action_tokens[2] = action_tokens[2].unsqueeze(-1)  # with no 'terminate_episode'
+            action_tokens = torch.concat(action_tokens, dim=-1)
+        return action_tokens # (32,6,7) with time step (32,8) or (32,7) if excluding 'terminate_episode'
 
     # The size of action_tokens is (tokens_per_action) or  (batch, tokens_per_action)
     def detokenize(self, action_tokens: torch.Tensor) -> Dict[str, torch.Tensor]:
