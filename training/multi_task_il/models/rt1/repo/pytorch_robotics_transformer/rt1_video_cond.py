@@ -6,6 +6,7 @@ from typing import Optional, Tuple, Union, Any, Dict, List
 from gym import spaces
 from collections import OrderedDict
 from multi_task_il.models.rt1.repo.pytorch_robotics_transformer.tokenizers.utils import *
+import cv2
 
 #TODO implement RT1 + cond_module (video conditioned)
 class RT1_video_cond(nn.Module):
@@ -82,6 +83,11 @@ class RT1_video_cond(nn.Module):
             conv_drop_dim= conv_drop_dim      
         ).eval() # in evaluation because already training and for memory consumption purposes
         
+        # used to store network_state
+        # this is used for inference in order to remember the previous tokens up to _time_sequence_length steps
+        self.rt1_memory = None
+        self.base_net_state_sampler = RT1_SpaceSampler() # random sampler class
+        self.inference_first_state_sampler = FirstStep_RT1_SpaceSampler(self.base_net_state_sampler) # sampler for first state at inference
         
     def forward(self,
                 images,
@@ -92,6 +98,7 @@ class RT1_video_cond(nn.Module):
         
         # create embedding from video demonstration that will be use to condition
         # conv function activations via film layers
+        debug = False
         
         # TODO: load the weights of pretrained cond_module
         with torch.no_grad():
@@ -112,15 +119,31 @@ class RT1_video_cond(nn.Module):
                 'gripper_closedness_action' : actions[:,:,:,-1].squeeze()
             }
             self.rt1.set_actions(rt1_actions) # gt_action for ce loss
+            
+            # rt1_network_state = batched_space_sampler(self.rt1._state_space, bsize) # campionamento a caso
+            rt1_network_state = self.base_net_state_sampler.batched_space_sampler(self.rt1._state_space, bsize) # campionamento a caso
+            rt1_network_state = np_to_tensor(rt1_network_state)
+            rt1_network_state = tensor_from_cpu_to_cuda(rt1_network_state, next(self.cond_module.parameters()).device)
+        
         else:
-            # we are in inference, the model expects (b,c,h,w) observations ???
+            # we are in inference, the model expects (b,c,h,w) observations
             rt1_obs = {
                 "image": images.squeeze(1), # remove time dimension
                 "natural_language_embedding": cond_embedding
             }
+            
+            if debug:
+                img_debug = np.moveaxis(rt1_obs['image'][0].detach().cpu().numpy()*255, 0, -1)
+                cv2.imwrite(f"debug_rt1_obs.png", img_debug) #images are already rgb
+            # cv2.imwrite(f"debug_rt1.png", img_tensor[:, :, ::-1]) #BGR -> RGB
         
-            # add something if needed here
-
+            
+            if self.rt1_memory == None: # if this is the initial step
+                rt1_network_state = self.inference_first_state_sampler.batched_space_sampler(self.rt1._state_space, bsize)
+                rt1_network_state = np_to_tensor(rt1_network_state)
+                rt1_network_state = tensor_from_cpu_to_cuda(rt1_network_state, next(self.cond_module.parameters()).device)
+            else: # if at least one step has been executed
+                rt1_network_state = self.rt1_memory # retrieve the network state of the previous timestep
         
         #TODO: [TEST] output -> azione dell'ultimo istante -> ERRORE 
         # last_action = actions[:, -1]
@@ -139,11 +162,6 @@ class RT1_video_cond(nn.Module):
             # 2
             # Usare stack di 7 immagini una sola volta con azione quella finale
         
-        #TODO: inferenza: self.rt1._state_space (1x7) no (tx7) -> all'inizio tutti zero?
-        #TODO: comprendere a cosa serve in inferenza e perché viene usato solo in quel caso
-        rt1_network_state = batched_space_sampler(self.rt1._state_space, bsize) # campionamento a caso
-        rt1_network_state = np_to_tensor(rt1_network_state)
-        rt1_network_state = tensor_from_cpu_to_cuda(rt1_network_state, next(self.cond_module.parameters()).device)
         
         # test for actions
         # test_action = batched_space_sampler(self.rt1._output_tensor_space, bsize)
@@ -151,11 +169,13 @@ class RT1_video_cond(nn.Module):
         # self.rt1.set_actions(test_action)
         
         # actions[:,:,:,0] -> un tipo particolare di azione
-        out = self.rt1(rt1_obs, rt1_network_state) # usa tutte le 6 azioni per calcolo loss ma l'output è data dall'ultima azione
+        
+        out, rt1_network_state = self.rt1(rt1_obs, rt1_network_state)
         
         if actions is None: # inference
             # return out, self.rt1._aux_info['action_labels'], self.rt1._aux_info['action_predictions_logits']
-            return out
+            self.rt1_memory = rt1_network_state # save new network state
+            return out, rt1_network_state
         else: # training
             return out, self.rt1._aux_info['action_loss']
         

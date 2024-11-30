@@ -484,15 +484,14 @@ def get_action(model, target_obj_dec, bb, predict_gt_bb, gt_classes, states, ima
                 
             else:
                 # RT1 inference
-                # TODO: capire come passare network state
-                out = model(images=i_t,
+                out, _ = model(images=i_t,
                                 states=s_t,
                                 demo=context,
                                 actions=None,
-                                bsize=1
+                                bsize=1,
                                 )
                 
-                temp_action_dict = out[0]
+                temp_action_dict = out
                 temp_action_list = []
                 for k in temp_action_dict.keys():
                     print(temp_action_dict[k].shape)
@@ -1933,8 +1932,11 @@ def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img
         else:
             image = np.array(obs['camera_front_image'][:, :, ::-1])
 
-        cv2.imwrite(
-            f"step_test_prova_{time.time()}.png",  image)
+        
+        # cv2.imwrite(
+        #     f"step_test_prova_{time.time()}.png",  image)
+        
+        
         # if controller is not None and gt_env is not None:
         #     gt_action, gt_status = controller.act(gt_obs)
         #     gt_obs, gt_reward, gt_env_done, gt_info = gt_env.step(

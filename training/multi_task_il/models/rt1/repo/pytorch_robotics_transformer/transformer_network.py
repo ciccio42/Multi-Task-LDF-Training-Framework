@@ -316,7 +316,7 @@ class TransformerNetwork(nn.Module):
         context_image_tokens, action_tokens, attention_mask = self._get_tokens_and_mask(
         observations, network_state)
 
-        self._aux_info = {'action_labels': action_tokens} # GLI ACTION TOKENS SONO QUELLI DI GROUND TRUTH
+        self._aux_info = {'action_labels': action_tokens} # training: action tokens are gt
 
         if outer_rank == 1:  # This is an inference call
             # run transformer in loop to produce action tokens one-by-one
@@ -334,21 +334,21 @@ class TransformerNetwork(nn.Module):
             current_action_tokens = []
             action_predictions_logits = []
             # Repeat inference tokens_per_action times.
-            for k in range(self._tokens_per_action):
+            for k in range(self._tokens_per_action): #NOTE: in inference, it predicts one action token at time starting from token at action_t * self._single_time_step_num_tokens
                 action_index = start_index + k
                 # token: (1, 1)
                 # token_logits: (1, 1 vocab_size)
                 token, token_logits = self._transformer_call_and_slice(
                     context_image_tokens,
                     action_tokens,
-                    attention_mask=attention_mask,
+                    attention_mask=attention_mask, # for causality
                     batch_size=b,
                     slice_start=action_index  # slicing single action dimension
                 )
                 action_predictions_logits.append(token_logits)
                 current_action_tokens.append(token)
 
-                # Add the predicted token to action_tokens
+                # Add the predicted token to action_tokens (to memory)
                 action_tokens = action_tokens.view(b, -1) # [b, t, self._tokens_per_action] -> [b, t * self._tokens_per_action]
                 action_start_index = (action_t * self._tokens_per_action) + k
                 # replace action_tokens[:, action_start_index] with the predicted token. Note that this is not insert.
@@ -364,10 +364,11 @@ class TransformerNetwork(nn.Module):
                 'action_predictions_logits': torch.concat(action_predictions_logits, 1)
             })
             
+            # NOTE: predicted tokens at seq_idx step
             predicted_tokens_for_output = torch.concat(current_action_tokens, 1) # [1, self._tokens_per_action]
             one_state_action_tokens = predicted_tokens_for_output.unsqueeze(1) # [1, 1, self._tokens_per_action]
 
-            # Add predicted action tokens  to network_state['action_tokens']
+            # Add predicted action tokens to network_state['action_tokens']
             state_action_tokens = network_state['action_tokens'] # (1, time_sequence_length, self._tokens_per_action)
             # replace state_action_tokens[:, action_t, ...] with the predicted tokens. Note that this is not insert.
             network_state['action_tokens'] = torch.concat([
@@ -379,6 +380,9 @@ class TransformerNetwork(nn.Module):
             # network_state['seq_idx'] never exceed time_sequence_length.
             network_state['seq_idx'] = torch.minimum(seq_idx + 1, 
                         torch.tensor(self._time_sequence_length))
+
+            if network_state['seq_idx'].shape == torch.Size([]):
+                network_state['seq_idx'] = network_state['seq_idx'].unsqueeze(0)
 
             self._loss = torch.tensor(0.0)
 
@@ -504,9 +508,9 @@ class TransformerNetwork(nn.Module):
                            observations: Dict[str, torch.Tensor],
                            network_state: Dict[str, torch.Tensor]):
         
-        # 1) tokenize all inputs
+        # 1) tokenize all inputs -> produce context_image_tokens
         context_image_tokens, network_state = self._tokenize_images(
-            observations, network_state) # se in training network_state non viene usato
+            observations, network_state) # NOTE: in training network_state is not used, in inference is update at time step t with new context_image_tokens
 
         # 2) tokenize actions
         action_tokens = self._tokenize_actions(observations, network_state) # actions set with set_actions() method
@@ -534,7 +538,7 @@ class TransformerNetwork(nn.Module):
 
         if outer_rank == 1:  # This is an inference call
             seq_idx = network_state['seq_idx'][0] # 0 ~ time_sequence_length
-            time_step = torch.minimum(seq_idx, #TODO: cosa serve
+            time_step = torch.minimum(seq_idx,
                     torch.tensor(self._time_sequence_length - 1))
             image = image.unsqueeze(1) # [b, c, h, w] -> [b, 1, c, h, w]
 
@@ -549,15 +553,12 @@ class TransformerNetwork(nn.Module):
         ################ QUI VA L'EMBEDDING DEL CONDIZIONAMENTO DA VIDEO ####################
         context = self._extract_context_from_observation(observations, input_t) # [b, t, emb_size] or None        
 
-        # preprocess image
+        # for our implementation, we don't need to preprocessing...
+        # we already do that!
         # try:
         #     image = image.view((b*input_t, c, h, w))# image is already tensor and its range is [0,1]
         # except RuntimeError:
         #     image = image.reshape((b*input_t, c, h, w))
-        
-        # import cv2
-        
-        ####### we already do that!
         # image = preprocessors.convert_dtype_and_crop_images(image)
         image =image.view((b, input_t, c, h, w))
 

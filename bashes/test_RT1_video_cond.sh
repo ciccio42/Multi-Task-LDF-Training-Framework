@@ -44,7 +44,7 @@ if [ "$TASK_NAME" == 'pick_place' ]; then
                         --debug \
                         --env $TASK \
                         --saved_step $S \
-                        --eval_each_task 10 \
+                        --eval_each_task 1 \
                         --num_workers ${NUM_WORKERS} \
                         --project_name ${PROJECT_NAME} \
                         --controller_path ${CONTROLLER_PATH} \
