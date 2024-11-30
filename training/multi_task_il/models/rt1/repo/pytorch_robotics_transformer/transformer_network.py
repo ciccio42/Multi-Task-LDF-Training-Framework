@@ -306,13 +306,13 @@ class TransformerNetwork(nn.Module):
         outer_rank = self._get_outer_rank(observations)
         assert outer_rank in (1, 2), "outer rank should be 1 or 2"
 
-        b, t = self._get_batch_size_and_seq_len(network_state)
+        b, t = self._get_batch_size_and_seq_len(network_state) #TODO: capire se action_tokens da cambiare
         # network_state is used when inference.
-        # b : batch size
+        # b: batch size
         # t: time_sequence_length of this model
 
         # context_image_tokens: (b, t, num_tokens, embedding_dim)
-        # action_tokens: (b, t, self._tokens_per_action) # if self._action is not set, all zeros
+        # action_tokens: (b, t, self._tokens_per_action) # if self._actions is not set, all zeros
         context_image_tokens, action_tokens, attention_mask = self._get_tokens_and_mask(
         observations, network_state)
 
@@ -422,7 +422,7 @@ class TransformerNetwork(nn.Module):
                 'action_predictions':
                     torch.argmax(action_logits_for_training, dim=-1),
                 'action_loss':
-                    torch.mean(self._loss).item(), # media nella dimensione delle azioni, tempo e batch
+                    torch.mean(self._loss), # media nella dimensione delle azioni, tempo e batch
                     # torch.mean(self._loss, dim=-1), # media solo nella dimensione delle azioni
                 'actor_loss_mask':
                     torch.ones((b), dtype=torch.float32)
@@ -534,7 +534,7 @@ class TransformerNetwork(nn.Module):
 
         if outer_rank == 1:  # This is an inference call
             seq_idx = network_state['seq_idx'][0] # 0 ~ time_sequence_length
-            time_step = torch.minimum(seq_idx, 
+            time_step = torch.minimum(seq_idx, #TODO: cosa serve
                     torch.tensor(self._time_sequence_length - 1))
             image = image.unsqueeze(1) # [b, c, h, w] -> [b, 1, c, h, w]
 
@@ -550,14 +550,14 @@ class TransformerNetwork(nn.Module):
         context = self._extract_context_from_observation(observations, input_t) # [b, t, emb_size] or None        
 
         # preprocess image
-        try:
-            image = image.view((b*input_t, c, h, w))# image is already tensor and its range is [0,1]
-        except RuntimeError:
-            image = image.reshape((b*input_t, c, h, w))
+        # try:
+        #     image = image.view((b*input_t, c, h, w))# image is already tensor and its range is [0,1]
+        # except RuntimeError:
+        #     image = image.reshape((b*input_t, c, h, w))
         
         # import cv2
         
-        # we already do that
+        ####### we already do that!
         # image = preprocessors.convert_dtype_and_crop_images(image)
         image =image.view((b, input_t, c, h, w))
 

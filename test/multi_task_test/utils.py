@@ -460,26 +460,50 @@ def get_action(model, target_obj_dec, bb, predict_gt_bb, gt_classes, states, ima
         action = out['action_dist'].sample()[-1].cpu().detach().numpy()
     else:
         with torch.no_grad():
-            out = model(states=s_t,
-                        images=i_t,
-                        context=context,
-                        bb=bb,
-                        gt_classes=gt_classes,
-                        predict_gt_bb=predict_gt_bb,
-                        eval=True,
-                        target_obj_embedding=target_obj_embedding,
-                        compute_activation_map=True,
-                        t=t)  # to avoid computing ATC loss
+            if not 'RT1' in str(model.__class__):
+                out = model(states=s_t,
+                            images=i_t,
+                            context=context,
+                            bb=bb,
+                            gt_classes=gt_classes,
+                            predict_gt_bb=predict_gt_bb,
+                            eval=True,
+                            target_obj_embedding=target_obj_embedding,
+                            compute_activation_map=True,
+                            t=t)  # to avoid computing ATC loss
+                
+                target_obj_embedding = out.get('target_obj_embedding', None)
 
-            target_obj_embedding = out.get('target_obj_embedding', None)
-
-            action = out['bc_distrib'].sample()[0, -1].cpu().numpy()
-            if target_obj_dec is not None:
-                target_obj_position = target_obj_dec(i_t, context, eval=True)
-                predicted_prob = torch.nn.Softmax(dim=2)(
-                    target_obj_position['target_obj_pred']).to('cpu').tolist()
+                action = out['bc_distrib'].sample()[0, -1].cpu().numpy()
+                if target_obj_dec is not None:
+                    target_obj_position = target_obj_dec(i_t, context, eval=True)
+                    predicted_prob = torch.nn.Softmax(dim=2)(
+                        target_obj_position['target_obj_pred']).to('cpu').tolist()
+                else:
+                    predicted_prob = None
+                
             else:
-                predicted_prob = None
+                # RT1 inference
+                # TODO: capire come passare network state
+                out = model(images=i_t,
+                                states=s_t,
+                                demo=context,
+                                actions=None,
+                                bsize=1
+                                )
+                
+                temp_action_dict = out[0]
+                temp_action_list = []
+                for k in temp_action_dict.keys():
+                    print(temp_action_dict[k].shape)
+                    if temp_action_dict[k].shape[1] != 1:
+                        temp_action = temp_action_dict[k].squeeze()
+                    else:
+                        temp_action = temp_action_dict[k].squeeze(1)
+                    temp_action_list.append(temp_action)
+                    
+                action = torch.cat(temp_action_list).cpu().numpy()
+
     # action[3:7] = [1.0, 1.0, 0.0, 0.0]
     if len(action.shape) != 1:
         action_list = list()
@@ -509,7 +533,11 @@ def get_action(model, target_obj_dec, bb, predict_gt_bb, gt_classes, states, ima
             model.first_phase = action[-1] != 1.
             # if not model.first_phase:
             #     print("changed phase")
-    return action, predicted_prob, target_obj_embedding, out.get('activation_map', None), out.get('target_obj_prediction', None), out.get('predicted_bb', None)
+            
+    if 'RT1' in str(model.__class__):
+        return action, None, None, None, None, None
+    else:
+        return action, predicted_prob, target_obj_embedding, out.get('activation_map', None), out.get('target_obj_prediction', None), out.get('predicted_bb', None)
 
 
 def set_obj_pos(env_name, dest_env, src_env, obs):
@@ -1588,7 +1616,7 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights
         variation = variation
 
     teacher_expert_rollout = env_fn(teacher_name,
-                                    controller_type=controller,
+                                    controller_type=controller, #TODO:
                                     task=variation,
                                     seed=seed,
                                     gpu_id=gpu_id,
@@ -1612,11 +1640,11 @@ def build_env_context(img_formatter, T_context=4, ctr=0, env_name='nut', heights
                         object_set=TASK_MAP[env_name]['object_set'])
 
     assert isinstance(teacher_expert_rollout, Trajectory)
-    context = select_random_frames(
+    context = select_random_frames(  # 4 frames
         teacher_expert_rollout, T_context, sample_sides=True, random_frames=random_frames)
     # convert BGR context image to RGB and scale to 0-1
-    # for i, img in enumerate(context):
-    #     cv2.imwrite(f"context_{i}.png", np.array(img[:, :, ::-1]))
+    for i, img in enumerate(context):
+        cv2.imwrite(f"context_{i}.png", np.array(img[:, :, ::-1]))
     context = [img_formatter(i[:, :, ::-1])[None] for i in context]
     # assert len(context ) == 6
     if isinstance(context[0], np.ndarray):
@@ -1792,7 +1820,7 @@ def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img
                 action, _ = controller.act(obs)
         # action = clip_action(action, prev_action)
         # prev_action = action
-        obs, reward, env_done, info = env.step(action)
+        obs, reward, env_done, info = env.step(action) #TODO: study
         if concat_bb and not predict_gt_bb:
 
             # get predicted bb from prediction
@@ -1906,7 +1934,7 @@ def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img
             image = np.array(obs['camera_front_image'][:, :, ::-1])
 
         cv2.imwrite(
-            f"step_test_prova.png",  image)
+            f"step_test_prova_{time.time()}.png",  image)
         # if controller is not None and gt_env is not None:
         #     gt_action, gt_status = controller.act(gt_obs)
         #     gt_obs, gt_reward, gt_env_done, gt_info = gt_env.step(

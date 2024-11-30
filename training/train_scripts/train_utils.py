@@ -619,12 +619,12 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
                 oracle=False)
         elif "rt1" in config.policy._target_:
             
-            total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-            print("[RT-1] number of model params:", total_params)
-            total_size_bytes = total_params * 4
-            # Parameter is in torch.float32，Each parameter takes 4 bytes
-            total_size_mb = round(total_size_bytes / (1024 * 1024), 2)
-            print("model size: ", total_size_mb, " MB")
+            # total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+            # print("[RT-1] number of model params:", total_params)
+            # total_size_bytes = total_params * 4
+            # # Parameter is in torch.float32，Each parameter takes 4 bytes
+            # total_size_mb = round(total_size_bytes / (1024 * 1024), 2)
+            # print("model size: ", total_size_mb, " MB")
             
             # TODO: image_cp
             # import cv2
@@ -650,119 +650,123 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
 
         # forward & backward action pred
         actions = model_inputs['actions']
-        if "CondPolicy" not in config.policy._target_ and "rt1" not in config.policy._target_:
-            mu_bc, scale_bc, logit_bc = out['bc_distrib']
-            assert not torch.isnan(mu_bc).any(), "mu_bc contains nan"
-            assert not torch.isnan(scale_bc).any(), "scale_bc contains nan"
-            assert not torch.isnan(logit_bc).any(), "logit_bc contains nan"
-            if "real" not in config.dataset_cfg.agent_name or ("real" in config.dataset_cfg.agent_name and config.dataset_cfg.get("pick_next", False)):
-                # mu_bc.shape: B, 7, 8, 4]) but actions.shape: B, 6, 7
-                action_distribution = DiscreteMixLogistic(
-                    mu_bc[:, :-1], scale_bc[:, :-1], logit_bc[:, :-1])
-            else:
-                action_distribution = DiscreteMixLogistic(
-                    mu_bc, scale_bc, logit_bc)
-
-            act_prob = - action_distribution.log_prob(actions)
-            if config.actions.get('is_recurrent', False):
-                act_prob = rearrange(act_prob,
-                                     'B T S A -> B (T S A)')
-            else:
-                act_prob = rearrange(act_prob,
-                                     'B T A -> B (T A)')
-
-        elif "rt1" in config.policy._target_:
-            pass
-        else:
-            actions = rearrange(actions, 'B T act_dim -> (B T) act_dim')
-            act_prob = - out['bc_distrib'].log_prob(actions)
-            if len(act_prob.shape) == 1:
-                act_prob = rearrange(
-                    act_prob, '(B T) -> B T',
-                    B=model_inputs['actions'].shape[0],
-                    T=model_inputs['actions'].shape[1])
-            else:
-                act_prob = torch.sum(act_prob, dim=-1)
-                act_prob = rearrange(
-                    act_prob, '(B T) -> B T',
-                    B=model_inputs['actions'].shape[0],
-                    T=model_inputs['actions'].shape[1])
-
-        assert not torch.isnan(act_prob).any(), "Act_prob contains nan"
-        all_losses["l_bc"] = train_cfg.bc_loss_mult * \
-            torch.mean(act_prob, dim=-1)
-
-        if 'inverse_distrib' in out.keys():
-            inv_distribution = DiscreteMixLogistic(*out['inverse_distrib'])
-            if "real" not in config.dataset_cfg.agent_name or ("real" in config.dataset_cfg.agent_name and config.dataset_cfg.get("pick_next", False)):
-                inv_prob = - inv_distribution.log_prob(actions)
-            else:
-                inv_prob = - inv_distribution.log_prob(actions[:, :-1, :])
-
-            if config.actions.get('is_recurrent', False):
-                inv_prob = rearrange(inv_prob,
-                                     'B T S A -> B (T S A)')
-            else:
-                inv_prob = rearrange(inv_prob,
-                                     'B T A -> B (T A)')
-
-            all_losses["l_inv"] = train_cfg.inv_loss_mult * \
-                torch.mean(inv_prob, dim=-1)
-
-        if 'point_ll' in out and train_cfg.pnt_loss_mult != 0.0:
-            pnts = model_inputs['points']
-
-            l_point = -train_cfg.pnt_loss_mult * out['point_ll'][range(pnts.shape[0]),
-                                                                 pnts[:, -1,
-                                                                      0].long(),
-                                                                 pnts[:, -1, 1].long()]
-
-            all_losses["point_loss"] = l_point
-
-        # NOTE: the model should output calculated rep-learning loss
-        if (hasattr(model, "_load_target_obj_detector") and hasattr(model, "_freeze_target_obj_detector")) or (hasattr(model.module, "_load_target_obj_detector") and hasattr(model.module, "_freeze_target_obj_detector")):
-            try:
-                if not model._load_target_obj_detector or not model._freeze_target_obj_detector:
-                    rep_loss = torch.zeros_like(all_losses["l_bc"])
-                    for k, v in out.items():
-                        if k in train_cfg.rep_loss_muls.keys():
-                            # just return size (B,) here
-                            v = torch.mean(v, dim=-1)
-                            v = v * train_cfg.rep_loss_muls.get(k, 0)
-                            all_losses[k] = v
-                            rep_loss = rep_loss + v
-                    all_losses["rep_loss"] = rep_loss
+        if not "rt1" in config.policy._target_:
+            if "CondPolicy" not in config.policy._target_ and "rt1" not in config.policy._target_:
+                mu_bc, scale_bc, logit_bc = out['bc_distrib']
+                assert not torch.isnan(mu_bc).any(), "mu_bc contains nan"
+                assert not torch.isnan(scale_bc).any(), "scale_bc contains nan"
+                assert not torch.isnan(logit_bc).any(), "logit_bc contains nan"
+                if "real" not in config.dataset_cfg.agent_name or ("real" in config.dataset_cfg.agent_name and config.dataset_cfg.get("pick_next", False)):
+                    # mu_bc.shape: B, 7, 8, 4]) but actions.shape: B, 6, 7
+                    action_distribution = DiscreteMixLogistic(
+                        mu_bc[:, :-1], scale_bc[:, :-1], logit_bc[:, :-1])
                 else:
-                    all_losses["rep_loss"] = 0
-            except:
-                if not model.module._load_target_obj_detector or not model.module._freeze_target_obj_detector:
-                    rep_loss = torch.zeros_like(all_losses["l_bc"])
-                    for k, v in out.items():
-                        if k in train_cfg.rep_loss_muls.keys():
-                            # just return size (B,) here
-                            v = torch.mean(v, dim=-1)
-                            v = v * train_cfg.rep_loss_muls.get(k, 0)
-                            all_losses[k] = v
-                            rep_loss = rep_loss + v
-                    all_losses["rep_loss"] = rep_loss
+                    action_distribution = DiscreteMixLogistic(
+                        mu_bc, scale_bc, logit_bc)
+
+                act_prob = - action_distribution.log_prob(actions)
+                if config.actions.get('is_recurrent', False):
+                    act_prob = rearrange(act_prob,
+                                        'B T S A -> B (T S A)')
                 else:
-                    all_losses["rep_loss"] = 0
-        else:
-            pass
+                    act_prob = rearrange(act_prob,
+                                        'B T A -> B (T A)')
 
-        loss_sum = 0
-        for loss_key in ['l_bc', 'l_inv', 'rep_loss']:
-            loss_sum += all_losses[loss_key] if loss_key in all_losses.keys() else 0.0
-        all_losses["loss_sum"] = loss_sum
+            elif "rt1" in config.policy._target_:
+                pass
+            else:
+                actions = rearrange(actions, 'B T act_dim -> (B T) act_dim')
+                act_prob = - out['bc_distrib'].log_prob(actions)
+                if len(act_prob.shape) == 1:
+                    act_prob = rearrange(
+                        act_prob, '(B T) -> B T',
+                        B=model_inputs['actions'].shape[0],
+                        T=model_inputs['actions'].shape[1])
+                else:
+                    act_prob = torch.sum(act_prob, dim=-1)
+                    act_prob = rearrange(
+                        act_prob, '(B T) -> B T',
+                        B=model_inputs['actions'].shape[0],
+                        T=model_inputs['actions'].shape[1])
 
-        all_losses["loss_sum"] = all_losses["loss_sum"] + \
-            all_losses["point_loss"] if 'point_ll' in out else all_losses["loss_sum"]
+            assert not torch.isnan(act_prob).any(), "Act_prob contains nan"
+            all_losses["l_bc"] = train_cfg.bc_loss_mult * \
+                torch.mean(act_prob, dim=-1)
 
-    # flatten here to avoid headache
-    for (task_name, idxs) in task_to_idx.items():
-        for (loss_name, loss_val) in all_losses.items():
-            if len(loss_val.shape) > 0:
-                task_losses[task_name][loss_name] = torch.mean(loss_val[idxs])
+            if 'inverse_distrib' in out.keys():
+                inv_distribution = DiscreteMixLogistic(*out['inverse_distrib'])
+                if "real" not in config.dataset_cfg.agent_name or ("real" in config.dataset_cfg.agent_name and config.dataset_cfg.get("pick_next", False)):
+                    inv_prob = - inv_distribution.log_prob(actions)
+                else:
+                    inv_prob = - inv_distribution.log_prob(actions[:, :-1, :])
+
+                if config.actions.get('is_recurrent', False):
+                    inv_prob = rearrange(inv_prob,
+                                        'B T S A -> B (T S A)')
+                else:
+                    inv_prob = rearrange(inv_prob,
+                                        'B T A -> B (T A)')
+
+                all_losses["l_inv"] = train_cfg.inv_loss_mult * \
+                    torch.mean(inv_prob, dim=-1)
+
+            if 'point_ll' in out and train_cfg.pnt_loss_mult != 0.0:
+                pnts = model_inputs['points']
+
+                l_point = -train_cfg.pnt_loss_mult * out['point_ll'][range(pnts.shape[0]),
+                                                                    pnts[:, -1,
+                                                                        0].long(),
+                                                                    pnts[:, -1, 1].long()]
+
+                all_losses["point_loss"] = l_point
+
+            # NOTE: the model should output calculated rep-learning loss
+            if (hasattr(model, "_load_target_obj_detector") and hasattr(model, "_freeze_target_obj_detector")) or (hasattr(model.module, "_load_target_obj_detector") and hasattr(model.module, "_freeze_target_obj_detector")):
+                try:
+                    if not model._load_target_obj_detector or not model._freeze_target_obj_detector:
+                        rep_loss = torch.zeros_like(all_losses["l_bc"])
+                        for k, v in out.items():
+                            if k in train_cfg.rep_loss_muls.keys():
+                                # just return size (B,) here
+                                v = torch.mean(v, dim=-1)
+                                v = v * train_cfg.rep_loss_muls.get(k, 0)
+                                all_losses[k] = v
+                                rep_loss = rep_loss + v
+                        all_losses["rep_loss"] = rep_loss
+                    else:
+                        all_losses["rep_loss"] = 0
+                except:
+                    if not model.module._load_target_obj_detector or not model.module._freeze_target_obj_detector:
+                        rep_loss = torch.zeros_like(all_losses["l_bc"])
+                        for k, v in out.items():
+                            if k in train_cfg.rep_loss_muls.keys():
+                                # just return size (B,) here
+                                v = torch.mean(v, dim=-1)
+                                v = v * train_cfg.rep_loss_muls.get(k, 0)
+                                all_losses[k] = v
+                                rep_loss = rep_loss + v
+                        all_losses["rep_loss"] = rep_loss
+                    else:
+                        all_losses["rep_loss"] = 0
+            else:
+                pass
+
+            loss_sum = 0
+            for loss_key in ['l_bc', 'l_inv', 'rep_loss']:
+                loss_sum += all_losses[loss_key] if loss_key in all_losses.keys() else 0.0
+            all_losses["loss_sum"] = loss_sum
+
+            all_losses["loss_sum"] = all_losses["loss_sum"] + \
+                all_losses["point_loss"] if 'point_ll' in out else all_losses["loss_sum"]
+
+            # flatten here to avoid headache
+            for (task_name, idxs) in task_to_idx.items():
+                for (loss_name, loss_val) in all_losses.items():
+                    if len(loss_val.shape) > 0:
+                        task_losses[task_name][loss_name] = torch.mean(loss_val[idxs])
+        else: # rt1 losses
+            task_losses['pick_place']['l_ce'] = ce_loss # loss is computed internally in rt1 implementation
+            task_losses['pick_place']['loss_sum'] = task_losses['pick_place']['l_ce']
     return task_losses
 
 
@@ -1142,7 +1146,7 @@ class Trainer:
                     stats_save_name = join(
                         self.save_dir, 'stats', '{}.json'.format('train_val_stats'))
                     json.dump({k: str(v) for k, v in raw_stats.items()},
-                              open(stats_save_name, 'w'))
+                            open(stats_save_name, 'w'))
 
                 torch.cuda.empty_cache()
 
@@ -1252,9 +1256,11 @@ class Trainer:
                         if self._step % self.train_cfg.target_update_freq == 0:
                             mod.soft_param_update()
                             
+                # break
+                            
             #### ---- Validation step ----####
             # e != 0 and self._step % val_freq == 0
-            validate = False
+            validate = True
             if "CondTargetObjectDetector" in self.config.policy._target_:
                 if (self._step % val_freq == 0) and not self.config.get("use_daml", False) and self._val_loader is not None:
                     validate = True
@@ -1287,7 +1293,7 @@ class Trainer:
                                     val_inputs,
                                     val=False)
 
-                        for task, losses in val_task_losses.items():
+                        for task, losses in val_task_losses.items(): #TODO: check
                             for k, v in losses.items():
                                 all_val_losses[task][k].append(v)
 

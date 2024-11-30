@@ -96,21 +96,31 @@ class RT1_video_cond(nn.Module):
         # TODO: load the weights of pretrained cond_module
         with torch.no_grad():
             cond_embedding = self.cond_module(demo) # 15GB for the computation graph -> 4GB with torch no grad
-        t = actions.shape[1]
-        cond_embedding = cond_embedding.tile((t,1,1)).permute(1,0,2)
+        if actions is not None:
+            # not inference: there is more than one time step
+            t = actions.shape[1]
+            cond_embedding = cond_embedding.tile((t,1,1)).permute(1,0,2)
+
+            rt1_obs = {
+                "image": images[:,:-1,:,:,:], # we exclude the last one
+                "natural_language_embedding": cond_embedding
+            }
+            
+            rt1_actions = {
+                'world_vector' : actions[:,:,:,0:3].squeeze(),
+                'rotation_delta' : actions[:,:,:,3:6].squeeze(),
+                'gripper_closedness_action' : actions[:,:,:,-1].squeeze()
+            }
+            self.rt1.set_actions(rt1_actions) # gt_action for ce loss
+        else:
+            # we are in inference, the model expects (b,c,h,w) observations ???
+            rt1_obs = {
+                "image": images.squeeze(1), # remove time dimension
+                "natural_language_embedding": cond_embedding
+            }
         
-        #TODO: inputs
-        rt1_obs = {
-            "image": images[:,:-1,:,:,:], # we exclude the last one
-            "natural_language_embedding": cond_embedding
-        }
-        
-        rt1_actions = {
-            'world_vector' : actions[:,:,:,0:3].squeeze(),
-            'rotation_delta' : actions[:,:,:,3:6].squeeze(),
-            'gripper_closedness_action' : actions[:,:,:,-1].squeeze()
-        }
-        self.rt1.set_actions(rt1_actions)
+            # add something if needed here
+
         
         #TODO: [TEST] output -> azione dell'ultimo istante -> ERRORE 
         # last_action = actions[:, -1]
@@ -129,7 +139,7 @@ class RT1_video_cond(nn.Module):
             # 2
             # Usare stack di 7 immagini una sola volta con azione quella finale
         
-        #TODO: vedere se campionare a caso
+        #TODO: inferenza: self.rt1._state_space (1x7) no (tx7) -> all'inizio tutti zero?
         #TODO: comprendere a cosa serve in inferenza e perché viene usato solo in quel caso
         rt1_network_state = batched_space_sampler(self.rt1._state_space, bsize) # campionamento a caso
         rt1_network_state = np_to_tensor(rt1_network_state)
@@ -141,10 +151,13 @@ class RT1_video_cond(nn.Module):
         # self.rt1.set_actions(test_action)
         
         # actions[:,:,:,0] -> un tipo particolare di azione
-        
         out = self.rt1(rt1_obs, rt1_network_state) # usa tutte le 6 azioni per calcolo loss ma l'output è data dall'ultima azione
         
-        return out, self.rt1._aux_info['action_loss']
+        if actions is None: # inference
+            # return out, self.rt1._aux_info['action_labels'], self.rt1._aux_info['action_predictions_logits']
+            return out
+        else: # training
+            return out, self.rt1._aux_info['action_loss']
         
 if __name__ == '__main__':
     pass

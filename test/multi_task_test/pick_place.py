@@ -230,7 +230,7 @@ def pick_place_eval_vima(model, env, gpu_id, variation_id, target_obj_dec=None, 
 
 def pick_place_eval_demo_cond(model, env, context, gpu_id, variation_id, img_formatter, max_T=85, concat_bb=False, baseline=False, action_ranges=[], gt_env=None, controller=None, task_name=None, config=None, gt_traj=None, perform_augs=True, predict_gt_bb=False, sub_action=False, gt_action=4, real=True, place=False, convert_action=False):
 
-    if gt_traj is None:
+    if gt_traj is None: # inizialize env and get first state
         start_up_env_return = \
             startup_env(model=model,
                         env=env,

@@ -180,7 +180,7 @@ def rollout_imitation(model, config, ctr,
         build_task = TASK_MAP.get(env_name, None)
         assert build_task, 'Got unsupported task '+env_name
         eval_fn = get_eval_fn(env_name=env_name)
-        traj, info = eval_fn(model,
+        traj, info = eval_fn(model, #TODO: solve errors
                              env,
                              gt_env,
                              context,
