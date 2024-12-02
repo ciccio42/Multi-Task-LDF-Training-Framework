@@ -15,8 +15,8 @@ export MUJOCO_PY_MUJOCO_PATH=/home/frosa_Loc/.mujoco/mujoco210/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 
-export PYTHONPATH=/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/multi_task_il/models/rt1/repo
-echo "pythonpath: " $PYTHONPATH
+# export PYTHONPATH=/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/multi_task_il/models/rt1/repo
+# echo "pythonpath: " $PYTHONPATH
 
 export HYDRA_FULL_ERROR=1
 echo $1
@@ -26,7 +26,7 @@ TASK_NAME="pick_place"
 EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/ 
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 # SAVE_PATH=/raid/home/frosa_Loc/multi_task_lfd/checkpoint_save_folder
-POLICY='${rt1_video_cond}'
+POLICY='${cond_module}'
 TARGET='multi_task_il.models.mt_rep.VideoImitation'
 
 SAVE_FREQ=-1
@@ -36,10 +36,10 @@ DEVICE=0    # cuda gpu selection
 DEBUG=true #false
 WANDB_LOG=false #true
 ROLLOUT=false
-EPOCH=90
+EPOCH=2
 LOADER_WORKERS=16
 CONFIG_PATH=../experiments
-CONFIG_NAME=config.yaml
+CONFIG_NAME=config_cond_module.yaml
 CONCAT_IMG_EMB=true
 CONCAT_DEMO_EMB=true
 
@@ -109,7 +109,7 @@ if [ "$TASK_NAME" == 'pick_place' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-Panda_dem_sim_agent_ur5e_sim_2      #1Task-${TASK_str}-MOSAIC-Rollout
+    EXP_NAME=1Task-${TASK_str}-cond_module   #1Task-${TASK_str}-Panda_dem_sim_agent_ur5e_sim_2      #1Task-${TASK_str}-MOSAIC-Rollout
     PROJECT_NAME=${EXP_NAME}
 fi
 

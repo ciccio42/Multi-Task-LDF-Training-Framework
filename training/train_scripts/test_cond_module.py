@@ -40,7 +40,7 @@ DATA_AUGS = {
         }
 DEBUG = False
 DATASET = 'test' # use this for see how the model performs with train, val or test data
-MODEL_PATH = '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/command_encoder/models/batch_size/32_batch_size/num_epochs/4_epochs/0.0001_lr/cond_module_11-05_00:03.pth'
+MODEL_PATH = '/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module-Batch32/model_save-48.pt'
 ROBOT = 'panda'
 
 ## loading model

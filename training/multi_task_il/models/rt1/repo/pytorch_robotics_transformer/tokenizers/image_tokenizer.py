@@ -66,7 +66,10 @@ class RT1ImageTokenizer(nn.Module):
         b, t, c , h, w = image.shape
 
         # Fold the time axis into the batch axis.
-        image = image.view(b * t, c, h, w)
+        try:
+            image = image.view(b * t, c, h, w)
+        except RuntimeError:
+            image = image.reshape(b * t, c, h, w)
         if context is not None:
             try:
                 context = context.view(b * t, -1)

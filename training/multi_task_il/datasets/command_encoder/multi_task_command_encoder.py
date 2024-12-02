@@ -11,11 +11,34 @@ import glob
 import numpy as np
 import matplotlib.pyplot as plt
 import copy
-
 from multi_task_il.utils import normalize_action
 from multi_task_il.datasets.command_encoder.utils import *
-
 from torch.utils.data import DataLoader
+from torch.nn import CosineEmbeddingLoss
+
+
+class CosineLossCalculator():
+    
+    def __init__(self,
+                 batch_size,
+                 target,
+                 device) -> None:
+        
+        self.cosine_loss = CosineEmbeddingLoss()
+        self.batch_size = batch_size
+        self.target = target
+        self.device = device
+  
+    def compute_cosine_similarity(self, output_embedding, gt_embedding):
+        # if the input is not of batch self.batch_size
+        if output_embedding.shape[0] == gt_embedding.shape[0] and self.batch_size != output_embedding.shape[0]:
+            target = torch.ones(output_embedding.shape[0]).to(self.device)
+            loss = self.cosine_loss(output_embedding, gt_embedding, target)
+        else:
+            loss = self.cosine_loss(output_embedding, gt_embedding, self.target)
+            
+        return loss 
+
 
 DATA_AUGS = {
             "old_aug": False,
@@ -135,7 +158,12 @@ class CommandEncoderDataset(Dataset):
                  aux_pose=True,
                  use_strong_augs=True,
                  data_augs=None,
-                 use_embedding_centroids=False) -> None:   # ricorda di mettere DATA_AUGS
+                 use_embedding_centroids=False,
+                 root_dir='/raid/home/frosa_Loc/opt_dataset/',
+                 name='pick_place',
+                 n_tasks=16,
+                 split=[0.8,0.2],
+                 demo_crop=[20, 25, 80, 75]) -> None:   # ricorda di mettere DATA_AUGS
         
         self.available_robots = ['ur5e' , 'panda']
         
@@ -168,13 +196,7 @@ class CommandEncoderDataset(Dataset):
         self.aux_pose = aux_pose
         self.select_random_frames = True
         self.n_test_samples_per_subtask = n_test_samples_per_subtask
-        
-        root_dir = '/raid/home/frosa_Loc/opt_dataset/'
-        name = 'pick_place'
-        n_tasks = 16
-        
-        split = [0.8,0.2]
-        
+
         # directory dimostrazioni ed embeddings
         demo_dir = join(
             root_dir, name, '{}_{}'.format(robot, name))
@@ -198,8 +220,8 @@ class CommandEncoderDataset(Dataset):
         self.embedding_subtask_to_idx['pick_place'] = {}
         
         # transformations
-        DEMO_CROP = [20, 25, 80, 75] 
-        self.demo_crop[name] = DEMO_CROP
+        
+        self.demo_crop[name] = demo_crop
         
         for _id in range(n_tasks):
             
@@ -294,7 +316,7 @@ class CommandEncoderDataset(Dataset):
         demo_data = make_demo(self, demo_traj[0], task_name)    # solo video di 4 frame del task
         
         # return {'demo_data' : demo_data, 'label' : embedding}
-        return {'demo_data' : demo_data, 'embedding' : embedding_data}
+        return {'demo_data' : demo_data, 'embedding' : embedding_data, 'task_name' : task_name, 'task_id' : sub_task_id}
     
         # return traj_video, label    # label sarebbe l'embedding
     

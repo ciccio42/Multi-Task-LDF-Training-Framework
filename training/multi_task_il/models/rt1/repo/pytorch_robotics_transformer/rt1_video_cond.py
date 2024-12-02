@@ -68,23 +68,30 @@ class RT1_video_cond(nn.Module):
             img_width=img_width,
             concat_target_obj_embedding=concat_target_obj_embedding
         )
-        self.cond_module = CondModule(
-            height=height,
-            width=width,
-            demo_T=demo_T,
-            model_name=model_name,
-            pretrained=pretrained,
-            cond_video=cond_video,
-            n_layers=n_layers,
-            demo_W=demo_W,
-            demo_H=demo_H,
-            demo_ff_dim=demo_ff_dim,
-            demo_linear_dim=demo_linear_dim,
-            conv_drop_dim= conv_drop_dim      
-        ).eval() # in evaluation because already training and for memory consumption purposes
+        # self.cond_module = CondModule(
+        #     height=height,
+        #     width=width,
+        #     demo_T=demo_T,
+        #     model_name=model_name,
+        #     pretrained=pretrained,
+        #     cond_video=cond_video,
+        #     n_layers=n_layers,
+        #     demo_W=demo_W,
+        #     demo_H=demo_H,
+        #     demo_ff_dim=demo_ff_dim,
+        #     demo_linear_dim=demo_linear_dim,
+        #     conv_drop_dim= conv_drop_dim      
+        # ).eval() # in evaluation because already training and for memory consumption purposes
         
+        # load pretrained weights of cond_module
+        MODEL_PATH = '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/command_encoder/models/batch_size/32_batch_size/num_epochs/4_epochs/0.0001_lr/cond_module_11-05_00:03.pth'        
+        self.cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 512, 512], pretrained=True)
+        weights = torch.load(MODEL_PATH, weights_only=True)
+        self.cond_module.load_state_dict(weights)
+        self.cond_module.eval()
         # used to store network_state
         # this is used for inference in order to remember the previous tokens up to _time_sequence_length steps
+
         self.rt1_memory = None
         self.base_net_state_sampler = RT1_SpaceSampler() # random sampler class
         self.inference_first_state_sampler = FirstStep_RT1_SpaceSampler(self.base_net_state_sampler) # sampler for first state at inference
@@ -144,32 +151,7 @@ class RT1_video_cond(nn.Module):
                 rt1_network_state = tensor_from_cpu_to_cuda(rt1_network_state, next(self.cond_module.parameters()).device)
             else: # if at least one step has been executed
                 rt1_network_state = self.rt1_memory # retrieve the network state of the previous timestep
-        
-        #TODO: [TEST] output -> azione dell'ultimo istante -> ERRORE 
-        # last_action = actions[:, -1]
-        # rt1_action = {
-        #     'world_vector' : last_action[:,:,0:3].squeeze(),
-        #     'rotation_delta' : last_action[:,:,3:6].squeeze(),
-        #     'gripper_closedness_action' : last_action[:,:,-1].squeeze()
-        # }
-        # self.rt1.set_actions(rt1_action)
-        
-        # set action that will be used in RT1
-        
-        # 2 metodi per training:
-            # 1 [SCELTO]
-            # Prendere stack di 7 immagini e for di 7 iterazioni dove l'ultima immagine è t_i e azione a_i
-            # 2
-            # Usare stack di 7 immagini una sola volta con azione quella finale
-        
-        
-        # test for actions
-        # test_action = batched_space_sampler(self.rt1._output_tensor_space, bsize)
-        # test_action = np_to_tensor(test_action)
-        # self.rt1.set_actions(test_action)
-        
-        # actions[:,:,:,0] -> un tipo particolare di azione
-        
+                
         out, rt1_network_state = self.rt1(rt1_obs, rt1_network_state)
         
         if actions is None: # inference

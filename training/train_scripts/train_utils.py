@@ -34,6 +34,7 @@ from multi_task_il.models.cond_target_obj_detector.utils import project_bboxes
 from torchmetrics.classification import Accuracy
 import gc
 from colorama import Fore, Back
+from multi_task_il.datasets.command_encoder.multi_task_command_encoder import CommandEncoderSampler, CosineLossCalculator
 
 
 torch.autograd.set_detect_anomaly(True)
@@ -75,27 +76,35 @@ def make_data_loaders(config, dataset_cfg):
     dataset = instantiate(dataset_cfg)
     train_step = int(config.get('epochs') *
                      int(len(dataset)/config.get('bsize')))
-    if not dataset_cfg.change_command_epoch:
-        samplerClass = DIYBatchSampler
-        train_sampler = samplerClass(
-            task_to_idx=dataset.task_to_idx,
-            subtask_to_idx=dataset.subtask_to_idx,
-            tasks_spec=dataset_cfg.tasks_spec,
-            object_distribution_to_indx=dataset.object_distribution_to_indx,
-            sampler_spec=config.samplers,
-            n_step=train_step)
+    
+    
+    if dataset_cfg._target_.split(".")[-1] == 'CommandEncoderDataset':
+        samplerClass = CommandEncoderSampler
+        train_sampler = samplerClass(dataset,
+                                     batch_size=config.train_cfg.batch_size,
+                                     shuffle=config.sampler_cfg.shuffle)
     else:
-        samplerClass = TrajectoryBatchSampler
-        train_sampler = samplerClass(
-            agent_task_to_idx=dataset.task_to_idx,
-            agent_subtask_to_idx=dataset.subtask_to_idx,
-            demo_task_to_idx=dataset.demo_task_to_idx,
-            demo_subtask_to_idx=dataset.demo_subtask_to_idx,
-            tasks_spec=dataset_cfg.tasks_spec,
-            sampler_spec=config.samplers,
-            n_step=train_step,
-            epoch_steps=int(len(dataset)/config.get('bsize'))
-        )
+        if not dataset_cfg.change_command_epoch:
+            samplerClass = DIYBatchSampler
+            train_sampler = samplerClass(
+                task_to_idx=dataset.task_to_idx,
+                subtask_to_idx=dataset.subtask_to_idx,
+                tasks_spec=dataset_cfg.tasks_spec,
+                object_distribution_to_indx=dataset.object_distribution_to_indx,
+                sampler_spec=config.samplers,
+                n_step=train_step)
+        else:
+            samplerClass = TrajectoryBatchSampler
+            train_sampler = samplerClass(
+                agent_task_to_idx=dataset.task_to_idx,
+                agent_subtask_to_idx=dataset.subtask_to_idx,
+                demo_task_to_idx=dataset.demo_task_to_idx,
+                demo_subtask_to_idx=dataset.demo_subtask_to_idx,
+                tasks_spec=dataset_cfg.tasks_spec,
+                sampler_spec=config.samplers,
+                n_step=train_step,
+                epoch_steps=int(len(dataset)/config.get('bsize'))
+            )
 
     train_loader = DataLoader(
         dataset,
@@ -117,28 +126,34 @@ def make_data_loaders(config, dataset_cfg):
         config.samplers.batch_size = config.train_cfg.val_size
         val_step = int(config.get('epochs') *
                        int(len(val_dataset)/config.get('vsize')))
-
-        if not dataset_cfg.change_command_epoch:
-            samplerClass = DIYBatchSampler
-            val_sampler = samplerClass(
-                task_to_idx=val_dataset.task_to_idx,
-                subtask_to_idx=val_dataset.subtask_to_idx,
-                tasks_spec=dataset_cfg.tasks_spec,
-                object_distribution_to_indx=val_dataset.object_distribution_to_indx,
-                sampler_spec=config.samplers,
-                n_step=val_step)
+        
+        if dataset_cfg._target_.split(".")[-1] == 'CommandEncoderDataset':
+            samplerClass = CommandEncoderSampler
+            val_sampler = samplerClass(val_dataset,
+                                        batch_size=config.train_cfg.batch_size,
+                                        shuffle=config.sampler_cfg.shuffle)
         else:
-            samplerClass = TrajectoryBatchSampler
-            val_sampler = samplerClass(
-                agent_task_to_idx=val_dataset.task_to_idx,
-                agent_subtask_to_idx=val_dataset.subtask_to_idx,
-                demo_task_to_idx=val_dataset.demo_task_to_idx,
-                demo_subtask_to_idx=val_dataset.demo_subtask_to_idx,
-                tasks_spec=dataset_cfg.tasks_spec,
-                sampler_spec=config.samplers,
-                n_step=val_step,
-                epoch_steps=int(len(val_dataset)/config.get('bsize'))
-            )
+            if not dataset_cfg.change_command_epoch:
+                samplerClass = DIYBatchSampler
+                val_sampler = samplerClass(
+                    task_to_idx=val_dataset.task_to_idx,
+                    subtask_to_idx=val_dataset.subtask_to_idx,
+                    tasks_spec=dataset_cfg.tasks_spec,
+                    object_distribution_to_indx=val_dataset.object_distribution_to_indx,
+                    sampler_spec=config.samplers,
+                    n_step=val_step)
+            else:
+                samplerClass = TrajectoryBatchSampler
+                val_sampler = samplerClass(
+                    agent_task_to_idx=val_dataset.task_to_idx,
+                    agent_subtask_to_idx=val_dataset.subtask_to_idx,
+                    demo_task_to_idx=val_dataset.demo_task_to_idx,
+                    demo_subtask_to_idx=val_dataset.demo_subtask_to_idx,
+                    tasks_spec=dataset_cfg.tasks_spec,
+                    sampler_spec=config.samplers,
+                    n_step=val_step,
+                    epoch_steps=int(len(val_dataset)/config.get('bsize'))
+                )
 
         val_loader = DataLoader(
             val_dataset,
@@ -566,21 +581,34 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
     task_losses = OrderedDict()
     start = 0
     for idx, (task_name, inputs) in enumerate(task_inputs.items()):
-        traj = inputs['traj']
-        input_keys = traj.keys()
+        
+        if not 'CondModule' in str(type(model)):
+            traj = inputs['traj']
+            input_keys = traj.keys()
 
-        if config.get('use_daml', False):
-            input_keys.append('aux_pose')
-        for key in input_keys:
-            model_inputs[key].append(traj[key].to(device))
+            if config.get('use_daml', False):
+                input_keys.append('aux_pose')
+            for key in input_keys:
+                model_inputs[key].append(traj[key].to(device))
 
-        # if 'points' in traj.keys():
-        #     model_inputs['points'].append(traj['points'].to(device).long())
+            # if 'points' in traj.keys():
+            #     model_inputs['points'].append(traj['points'].to(device).long())
 
-        for key in inputs['demo_data'].keys():
-            model_inputs[key].append(inputs['demo_data'][key].to(device))
+            for key in inputs['demo_data'].keys():
+                model_inputs[key].append(inputs['demo_data'][key].to(device))
 
-        task_bsize = traj['actions'].shape[0]
+            task_bsize = traj['actions'].shape[0]
+        else: #CondModule
+            for key in inputs.keys():
+                if key == 'demo_data':
+                    model_inputs[key].append(inputs[key]['demo'].to(device))
+                if key == 'embedding':
+                    model_inputs[key].append(inputs[key]['centroid_embedding'].to(device))
+                
+            task_bsize = inputs['demo_data']['demo'].shape[0]
+            target = torch.ones(task_bsize).to(device)
+            cosine_loss_calculator = CosineLossCalculator(task_bsize, target, device)
+                
         task_to_idx[task_name] = [start + i for i in range(task_bsize)]
         task_losses[task_name] = OrderedDict()
         start += task_bsize
@@ -640,7 +668,9 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
                 demo=copy.deepcopy(model_inputs['demo']),
                 actions=copy.deepcopy(model_inputs['actions']),
                 bsize=config['bsize']
-            )            
+            )
+        elif "CondModule" in config.policy._target_:
+            out = model(model_inputs['demo_data'])
         else:  # other baselines
             out = model(
                 images=model_inputs['images'],
@@ -650,7 +680,7 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
 
         # forward & backward action pred
         actions = model_inputs['actions']
-        if not "rt1" in config.policy._target_:
+        if not "rt1" in config.policy._target_ and not "CondModule" in config.policy._target_:
             if "CondPolicy" not in config.policy._target_ and "rt1" not in config.policy._target_:
                 mu_bc, scale_bc, logit_bc = out['bc_distrib']
                 assert not torch.isnan(mu_bc).any(), "mu_bc contains nan"
@@ -765,8 +795,13 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
                     if len(loss_val.shape) > 0:
                         task_losses[task_name][loss_name] = torch.mean(loss_val[idxs])
         else: # rt1 losses
-            task_losses['pick_place']['l_ce'] = ce_loss # loss is computed internally in rt1 implementation
-            task_losses['pick_place']['loss_sum'] = task_losses['pick_place']['l_ce']
+            if "rt1" in config.policy._target_:
+                task_losses[task_name]['l_ce'] = ce_loss # loss is computed internally in rt1 implementation
+                task_losses[task_name]['loss_sum'] = task_losses['pick_place']['l_ce']
+            elif "CondModule" in config.policy._target_:
+                loss = cosine_loss_calculator.compute_cosine_similarity(out, model_inputs['embedding'])
+                task_losses[task_name]['cosine_loss'] = loss
+                task_losses[task_name]['loss_sum'] = task_losses[task_name]['cosine_loss'] 
     return task_losses
 
 
@@ -1632,7 +1667,7 @@ class Workspace(object):
     def run(self):
         loss_function = None
         #TODO:non propriamente, la loss si trova nella forward di TransformerNetwork
-        if  "rt1" in self.config.policy._target_ or "VideoImitation" in self.config.policy._target_ or "InverseImitation" in self.config.policy._target_ or "DAMLNetwork" in self.config.policy._target_ or "CondPolicy" in self.config.policy._target_:
+        if  "CondModule" in self.config.policy._target_ or "rt1" in self.config.policy._target_ or "VideoImitation" in self.config.policy._target_ or "InverseImitation" in self.config.policy._target_ or "DAMLNetwork" in self.config.policy._target_ or "CondPolicy" in self.config.policy._target_:
             if "grad_norm" not in self.config.get("loss", ""):
                 loss_function = calculate_task_loss
             else:

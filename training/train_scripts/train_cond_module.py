@@ -80,7 +80,6 @@ def get_cond_module():
         
     return cond_module
 
-
 def get_optimizer_lr_scheduler():
         #### lr scheduler
     if LR_SCHEDULER:
@@ -223,7 +222,7 @@ if __name__ == '__main__':
     if USE_WANDB:
         wandb.login()
     
-    device = 'cuda' if torch.cuda.is_available() else 'cpu' 
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
     train_loader, val_loader = get_train_val_loader(DATA_AUGS, BATCH_SIZE, robot=ROBOT, shuffle=True) # we set shuffle=True because we want to shuffle batch indexes with sampler
     cond_module = get_cond_module()
@@ -268,7 +267,7 @@ if __name__ == '__main__':
         else:
             print(f'epoch {epoch + 1}')
         
-        # train loop
+        ####### train loop
         cond_module.train()
         running_loss = 0.
         last_loss = 0.
@@ -292,49 +291,7 @@ if __name__ == '__main__':
                                 print(data['embedding']['sentence'])
                                 cv2.imwrite(f"{indx}_frame_{t}.png", img_tensor)
             
-            # for indx, sample in enumerate(video_input):
-            #     # i-th sample
-            #     for t in range(4):
-            #        if t == 3:
-            #         img_tensor = np.moveaxis(sample[t].detach().cpu().numpy()*255, 0, -1)
-            #         # print(data['embedding']['sentence'])
-            #         # cv2.imwrite(f"{indx}_frame_{t}.png", img_tensor)
-            #         if indx == 0:
-            #             assert "green" in data['embedding']['sentence'][indx] and 'first' in data['embedding']['sentence'][indx], "not order"
-            #         if indx == 1:
-            #             assert "green" in data['embedding']['sentence'][indx] and 'second' in data['embedding']['sentence'][indx], "not order"
-            #         if indx == 2:
-            #             assert "green" in data['embedding']['sentence'][indx] and 'third' in data['embedding']['sentence'][indx], "not order"
-            #         if indx == 3:
-            #             assert "green" in data['embedding']['sentence'][indx] and 'fourth' in data['embedding']['sentence'][indx], "not order"
-                    
-            #         if indx == 4:
-            #             assert "yellow" in data['embedding']['sentence'][indx] and 'first' in data['embedding']['sentence'][indx], "not order"
-            #         if indx == 5:
-            #             assert "yellow" in data['embedding']['sentence'][indx] and 'second' in data['embedding']['sentence'][indx], "not order"
-            #         if indx == 6:
-            #             assert "yellow" in data['embedding']['sentence'][indx] and 'third' in data['embedding']['sentence'][indx], "not order"
-            #         if indx == 7:
-            #             assert "yellow" in data['embedding']['sentence'][indx] and 'fourth' in data['embedding']['sentence'][indx], "not order"
-                    
-            #         if indx == 8:
-            #             assert "blue" in data['embedding']['sentence'][indx] and 'first' in data['embedding']['sentence'][indx], "not order"
-            #         if indx == 9:
-            #             assert "blue" in data['embedding']['sentence'][indx] and 'second' in data['embedding']['sentence'][indx], "not order"
-            #         if indx == 10:
-            #             assert "blue" in data['embedding']['sentence'][indx] and 'third' in data['embedding']['sentence'][indx], "not order"
-            #         if indx == 11:
-            #             assert "blue" in data['embedding']['sentence'][indx] and 'fourth' in data['embedding']['sentence'][indx], "not order"
-                        
-            #         if indx == 12:
-            #             assert "red" in data['embedding']['sentence'][indx] and 'first' in data['embedding']['sentence'][indx], "not order"
-            #         if indx == 13:
-            #             assert "red" in data['embedding']['sentence'][indx] and 'second' in data['embedding']['sentence'][indx], "not order"
-            #         if indx == 14:
-            #             assert "red" in data['embedding']['sentence'][indx] and 'third' in data['embedding']['sentence'][indx], "not order"
-            #         if indx == 15:
-            #             assert "red" in data['embedding']['sentence'][indx] and 'fourth' in data['embedding']['sentence'][indx], "not order"
-                        
+
             
             
             loss, target = compute_cosine_similarity(output_embedding, gt_embedding, BATCH_SIZE, target)
@@ -346,7 +303,7 @@ if __name__ == '__main__':
             
         train_steps_this_epoch = _i
                 
-        # validation loop
+        ####### validation loop
         cond_module.eval()
         avg_val_loss = 0.
         
@@ -420,3 +377,48 @@ if __name__ == '__main__':
     # train_step = int(EPOCHS *
     #                 int(len(dataset)/BATCH_SIZE))
 
+
+
+            # for indx, sample in enumerate(video_input):
+            #     # i-th sample
+            #     for t in range(4):
+            #        if t == 3:
+            #         img_tensor = np.moveaxis(sample[t].detach().cpu().numpy()*255, 0, -1)
+            #         # print(data['embedding']['sentence'])
+            #         # cv2.imwrite(f"{indx}_frame_{t}.png", img_tensor)
+            #         if indx == 0:
+            #             assert "green" in data['embedding']['sentence'][indx] and 'first' in data['embedding']['sentence'][indx], "not order"
+            #         if indx == 1:
+            #             assert "green" in data['embedding']['sentence'][indx] and 'second' in data['embedding']['sentence'][indx], "not order"
+            #         if indx == 2:
+            #             assert "green" in data['embedding']['sentence'][indx] and 'third' in data['embedding']['sentence'][indx], "not order"
+            #         if indx == 3:
+            #             assert "green" in data['embedding']['sentence'][indx] and 'fourth' in data['embedding']['sentence'][indx], "not order"
+                    
+            #         if indx == 4:
+            #             assert "yellow" in data['embedding']['sentence'][indx] and 'first' in data['embedding']['sentence'][indx], "not order"
+            #         if indx == 5:
+            #             assert "yellow" in data['embedding']['sentence'][indx] and 'second' in data['embedding']['sentence'][indx], "not order"
+            #         if indx == 6:
+            #             assert "yellow" in data['embedding']['sentence'][indx] and 'third' in data['embedding']['sentence'][indx], "not order"
+            #         if indx == 7:
+            #             assert "yellow" in data['embedding']['sentence'][indx] and 'fourth' in data['embedding']['sentence'][indx], "not order"
+                    
+            #         if indx == 8:
+            #             assert "blue" in data['embedding']['sentence'][indx] and 'first' in data['embedding']['sentence'][indx], "not order"
+            #         if indx == 9:
+            #             assert "blue" in data['embedding']['sentence'][indx] and 'second' in data['embedding']['sentence'][indx], "not order"
+            #         if indx == 10:
+            #             assert "blue" in data['embedding']['sentence'][indx] and 'third' in data['embedding']['sentence'][indx], "not order"
+            #         if indx == 11:
+            #             assert "blue" in data['embedding']['sentence'][indx] and 'fourth' in data['embedding']['sentence'][indx], "not order"
+                        
+            #         if indx == 12:
+            #             assert "red" in data['embedding']['sentence'][indx] and 'first' in data['embedding']['sentence'][indx], "not order"
+            #         if indx == 13:
+            #             assert "red" in data['embedding']['sentence'][indx] and 'second' in data['embedding']['sentence'][indx], "not order"
+            #         if indx == 14:
+            #             assert "red" in data['embedding']['sentence'][indx] and 'third' in data['embedding']['sentence'][indx], "not order"
+            #         if indx == 15:
+            #             assert "red" in data['embedding']['sentence'][indx] and 'fourth' in data['embedding']['sentence'][indx], "not order"
+                        

@@ -494,7 +494,7 @@ def get_action(model, target_obj_dec, bb, predict_gt_bb, gt_classes, states, ima
                 temp_action_dict = out
                 temp_action_list = []
                 for k in temp_action_dict.keys():
-                    print(temp_action_dict[k].shape)
+                    # print(temp_action_dict[k].shape)
                     if temp_action_dict[k].shape[1] != 1:
                         temp_action = temp_action_dict[k].squeeze()
                     else:
@@ -1932,7 +1932,7 @@ def task_run_action(traj, obs, task_name, env, real, gpu_id, config, images, img
         else:
             image = np.array(obs['camera_front_image'][:, :, ::-1])
 
-        
+        # debug for steps
         # cv2.imwrite(
         #     f"step_test_prova_{time.time()}.png",  image)
         
