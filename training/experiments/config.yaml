@@ -301,8 +301,8 @@ rt1_video_cond:
   # action_order: Optional[List[str]] = None
   concat_target_obj_embedding: False
   ### cond_module paramams
-  height: 120
-  width: 160
+  height: 120 # not used
+  width: 160 # not used
   demo_T: 4
   model_name: "r2plus1d_18"
   pretrained: True
@@ -313,6 +313,7 @@ rt1_video_cond:
   demo_ff_dim: [128, 64, 32]
   demo_linear_dim: [512, 512, 512]
   conv_drop_dim: 3
+  cond_module_model_path: '/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module-Batch32/model_save-48.pt'
 
 rt1:
   _target_: multi_task_il.models.rt1.repo.pytorch_robotics_transformer.transformer_network.TransformerNetwork

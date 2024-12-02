@@ -33,8 +33,8 @@ SAVE_FREQ=-1
 LOG_FREQ=10
 VAL_FREQ=-1
 DEVICE=0    # cuda gpu selection
-DEBUG=true #false
-WANDB_LOG=false #true
+DEBUG=false #true
+WANDB_LOG=true #false
 ROLLOUT=false
 EPOCH=90
 LOADER_WORKERS=16
@@ -109,7 +109,7 @@ if [ "$TASK_NAME" == 'pick_place' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME=1Task-${TASK_str}-Panda_dem_sim_agent_ur5e_sim_2      #1Task-${TASK_str}-MOSAIC-Rollout
+    EXP_NAME=1Task-${TASK_str}-Panda_dem_sim_agent_ur5e_sim_cond_module_h100_w180      #1Task-${TASK_str}-MOSAIC-Rollout
     PROJECT_NAME=${EXP_NAME}
 fi
 

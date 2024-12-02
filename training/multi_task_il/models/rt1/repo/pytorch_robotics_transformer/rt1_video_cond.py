@@ -45,7 +45,9 @@ class RT1_video_cond(nn.Module):
             demo_H=7,
             demo_ff_dim=[128, 64, 32],
             demo_linear_dim=[512, 256, 128],
-            conv_drop_dim=3
+            conv_drop_dim=3,
+            
+            cond_module_model_path = None
         
         ) -> None:
         super().__init__()
@@ -68,25 +70,24 @@ class RT1_video_cond(nn.Module):
             img_width=img_width,
             concat_target_obj_embedding=concat_target_obj_embedding
         )
-        # self.cond_module = CondModule(
-        #     height=height,
-        #     width=width,
-        #     demo_T=demo_T,
-        #     model_name=model_name,
-        #     pretrained=pretrained,
-        #     cond_video=cond_video,
-        #     n_layers=n_layers,
-        #     demo_W=demo_W,
-        #     demo_H=demo_H,
-        #     demo_ff_dim=demo_ff_dim,
-        #     demo_linear_dim=demo_linear_dim,
-        #     conv_drop_dim= conv_drop_dim      
-        # ).eval() # in evaluation because already training and for memory consumption purposes
+        self.cond_module = CondModule(
+            height=height,
+            width=width,
+            demo_T=demo_T,
+            model_name=model_name,
+            pretrained=pretrained,
+            cond_video=cond_video,
+            n_layers=n_layers,
+            demo_W=demo_W,
+            demo_H=demo_H,
+            demo_ff_dim=demo_ff_dim,
+            demo_linear_dim=demo_linear_dim,
+            conv_drop_dim= conv_drop_dim      
+        ) # in evaluation because already training and for memory consumption purposes
         
         # load pretrained weights of cond_module
-        MODEL_PATH = '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/command_encoder/models/batch_size/32_batch_size/num_epochs/4_epochs/0.0001_lr/cond_module_11-05_00:03.pth'        
-        self.cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 512, 512], pretrained=True)
-        weights = torch.load(MODEL_PATH, weights_only=True)
+        # self.cond_module = CondModule(model_name='r2plus1d_18', demo_linear_dim=[512, 512, 512], pretrained=True)
+        weights = torch.load(cond_module_model_path, weights_only=True)
         self.cond_module.load_state_dict(weights)
         self.cond_module.eval()
         # used to store network_state
@@ -143,7 +144,6 @@ class RT1_video_cond(nn.Module):
                 img_debug = np.moveaxis(rt1_obs['image'][0].detach().cpu().numpy()*255, 0, -1)
                 cv2.imwrite(f"debug_rt1_obs.png", img_debug) #images are already rgb
             # cv2.imwrite(f"debug_rt1.png", img_tensor[:, :, ::-1]) #BGR -> RGB
-        
             
             if self.rt1_memory == None: # if this is the initial step
                 rt1_network_state = self.inference_first_state_sampler.batched_space_sampler(self.rt1._state_space, bsize)
