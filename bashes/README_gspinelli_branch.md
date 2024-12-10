@@ -26,3 +26,16 @@ run `bashes/test_RT1_video_cond.sh`
 * results are saved in `/user/frosa/multi_task_lfd/checkpoint_save_folder`
 * *to download videos from traj_--.pkl results*, run `/raid/home/frosa_Loc/Multi-Task-LFD-Framework/utils/analysis/create_video_from_test.sh`
 
+
+
+# finetuning
+
+## to generate embeddings from the commands of the finetuning dataset
+
+* run `bashes/generate_train_val_paths_finetuning.sh`
+
+## train cond module on the embeddings of the finetuning dataset
+
+* run
+
+## train RT-1 video-conditioned on the finetuning dataset

@@ -87,7 +87,7 @@ def main():
                     #TODO: dividire in train e split da qui dentro
                     #---------------------------------------------
                     print(f"\n\n\n [{root}] \nscanning files: {files}")
-                    files = [i for i in files if i.endswith(".pkl")]
+                    files = [i for i in files if i.endswith(".pkl") and i != 'task_embedding.pkl']
                     files = sorted(files)
                     if len(files) > 0:
                         if len(files) != 1:
@@ -116,20 +116,21 @@ def main():
                                     elif _idx in idxs_val:
                                         val_pkl_files_paths[dataset_name][task_name].append(f'{root}/{file}')
                         else: # if we have only 1 trajectory, use for train and val
-                            if len(root.split('/')) - root_depth == 3:
-                                dataset_name = root.split('/')[-3]
-                                task_name = root.split('/')[-2]
-                                subtask_name = root.split('/')[-1]
-                                
-                                for pkl_dict in pkl_files_paths:
-                                    pkl_dict[dataset_name][task_name][subtask_name].append(f'{root}/{file}')
-                                
-                            else:
-                                dataset_name = root.split('/')[-2] 
-                                task_name = root.split('/')[-1]
-                                
-                                for pkl_dict in pkl_files_paths:
-                                    pkl_dict[dataset_name][task_name].append(f'{root}/{file}')
+                            for _idx, file in enumerate(files):
+                                if len(root.split('/')) - root_depth == 3:
+                                    dataset_name = root.split('/')[-3]
+                                    task_name = root.split('/')[-2]
+                                    subtask_name = root.split('/')[-1]
+                                    
+                                    for pkl_dict in pkl_files_paths:
+                                        pkl_dict[dataset_name][task_name][subtask_name].append(f'{root}/{file}')
+                                    
+                                else:
+                                    dataset_name = root.split('/')[-2] 
+                                    task_name = root.split('/')[-1]
+                                    
+                                    for pkl_dict in pkl_files_paths:
+                                        pkl_dict[dataset_name][task_name].append(f'{root}/{file}')
 
         
     if args.write_all_pkl_path:
