@@ -2,7 +2,7 @@ import glob
 import os
 import json
 
-
+from multi_task_il.datasets import split_files
 
 
 def folders_in(path_to_parent):
@@ -26,6 +26,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset_folder', default='/user/frosa/multi_task_lfd/datasets')
     parser.add_argument("--debug", action='store_true', help="whether or not attach the debugger")
+    parser.add_argument("--write_all_pkl_path", action='store_true', help="whether or not write all pkl paths")
+    parser.add_argument("--write_train_pkl_path", action='store_true', help="whether or not write pkl for training file")
+    parser.add_argument("--write_val_pkl_path", action='store_true', help="whether or not write pkl validation file")
+    parser.add_argument("--split", default='0.9,0.1')
+    
     args = parser.parse_args()
     
     if args.debug:
@@ -34,9 +39,12 @@ def main():
         print("Waiting for debugger attach")
         debugpy.wait_for_client()
         
-        
     all_pkl_files_paths = {}
+    train_pkl_files_paths = {}
+    val_pkl_files_paths = {}
+    pkl_files_paths = [all_pkl_files_paths, train_pkl_files_paths, val_pkl_files_paths]
     root_depth = 0
+    train_val_split = [float(i) for i in args.split.split(',')]
     
     for root, dirs, files in os.walk(args.dataset_folder):
         
@@ -46,7 +54,8 @@ def main():
                 root_depth = len(root.split('/')) #5
                 for dir in dirs:
                     if 'converted' in dir:
-                        all_pkl_files_paths[dir] = {}
+                        for pkl_dict in pkl_files_paths:
+                            pkl_dict[dir] = {}
             else:
                 if len(dirs) != 0:
                     print(f"\n\n\n [{root}] \nscanning dirs: {dirs}")
@@ -55,37 +64,84 @@ def main():
                         dataset_name = root.split('/')[-1]
                         for task_name in dirs:
                             if not folders_in(f'{root}/{task_name}'):
-                                all_pkl_files_paths[dataset_name][task_name] = [] # list for pkls
+                                for pkl_dict in pkl_files_paths:
+                                    pkl_dict[dataset_name][task_name] = [] # list for pkls
                             else:
-                                all_pkl_files_paths[dataset_name][task_name] = {} # dict for other subtasks
+                                for pkl_dict in pkl_files_paths:
+                                    pkl_dict[dataset_name][task_name] = {} # dict for other subtasks
                     elif len(root.split('/')) - root_depth == 2:
                         dataset_name = root.split('/')[-2]
                         task_name = root.split('/')[-1]
                         for subtask_name in dirs:
                             if not folders_in(f'{root}/{subtask_name}'):
-                                all_pkl_files_paths[dataset_name][task_name][subtask_name] = []
+                                for pkl_dict in pkl_files_paths:
+                                    pkl_dict[dataset_name][task_name][subtask_name] = []
                             else:
-                                all_pkl_files_paths[dataset_name][task_name][subtask_name] = {} # it should not happens
+                                for pkl_dict in pkl_files_paths:
+                                    pkl_dict[dataset_name][task_name][subtask_name] = {} # it should not happens
                                 print(f"***** WARNING ******")
                         
                                 
                 if len(files) != 0:
+                    #---------------------------------------------
+                    #TODO: dividire in train e split da qui dentro
+                    #---------------------------------------------
                     print(f"\n\n\n [{root}] \nscanning files: {files}")
-                    for file in files:
-                        if '.pkl' in file:
+                    files = [i for i in files if i.endswith(".pkl")]
+                    files = sorted(files)
+                    if len(files) > 0:
+                        if len(files) != 1:
+                            idxs_train = split_files(len(files), train_val_split, 'train')
+                            idxs_val = split_files(len(files), train_val_split, 'val')
+                            for _idx, file in enumerate(files):
+                                # if '.pkl' in file:
+                                if len(root.split('/')) - root_depth == 3:
+                                    dataset_name = root.split('/')[-3]
+                                    task_name = root.split('/')[-2]
+                                    subtask_name = root.split('/')[-1]
+                                    all_pkl_files_paths[dataset_name][task_name][subtask_name].append(f'{root}/{file}')
+                                    
+                                    if _idx in idxs_train:
+                                        train_pkl_files_paths[dataset_name][task_name][subtask_name].append(f'{root}/{file}')
+                                    elif _idx in idxs_val:
+                                        val_pkl_files_paths[dataset_name][task_name][subtask_name].append(f'{root}/{file}')
+                                    
+                                else:
+                                    dataset_name = root.split('/')[-2] 
+                                    task_name = root.split('/')[-1]
+                                    all_pkl_files_paths[dataset_name][task_name].append(f'{root}/{file}')
+                            
+                                    if _idx in idxs_train:
+                                        train_pkl_files_paths[dataset_name][task_name].append(f'{root}/{file}')
+                                    elif _idx in idxs_val:
+                                        val_pkl_files_paths[dataset_name][task_name].append(f'{root}/{file}')
+                        else: # if we have only 1 trajectory, use for train and val
                             if len(root.split('/')) - root_depth == 3:
-                                dataset_name = root.split('/')[-3] 
+                                dataset_name = root.split('/')[-3]
                                 task_name = root.split('/')[-2]
                                 subtask_name = root.split('/')[-1]
-                                all_pkl_files_paths[dataset_name][task_name][subtask_name].append(f'{root}/{file}')
+                                
+                                for pkl_dict in pkl_files_paths:
+                                    pkl_dict[dataset_name][task_name][subtask_name].append(f'{root}/{file}')
+                                
                             else:
                                 dataset_name = root.split('/')[-2] 
                                 task_name = root.split('/')[-1]
-                                all_pkl_files_paths[dataset_name][task_name].append(f'{root}/{file}')
-                    
-            
-    with open("all_pkl_paths.json", "w") as outfile: 
-        json.dump(all_pkl_files_paths,outfile,indent=2)
+                                
+                                for pkl_dict in pkl_files_paths:
+                                    pkl_dict[dataset_name][task_name].append(f'{root}/{file}')
+
+        
+    if args.write_all_pkl_path:
+        with open("all_pkl_paths.json", "w") as outfile: 
+            json.dump(all_pkl_files_paths,outfile,indent=2)
+    if args.write_train_pkl_path:
+        with open("train_pkl_paths.json", "w") as outfile: 
+            json.dump(train_pkl_files_paths,outfile,indent=2)
+    if args.write_val_pkl_path:
+        with open("val_pkl_paths.json", "w") as outfile: 
+            json.dump(val_pkl_files_paths,outfile,indent=2)
+        
         
 
 

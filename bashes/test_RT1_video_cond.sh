@@ -35,9 +35,9 @@ if [ "$TASK_NAME" == 'pick_place' ]; then
     MODEL_PATH=${CKP_FOLDER}/${PROJECT_NAME}-Batch${BATCH}
     CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
     for MODEL in ${MODEL_PATH}; do
-        for S in 25656; do #81000 89100 16035; do #83382(th epoch) #86589(th epoch) #96210(30th epoch) #121866 (38 epoch) #150729 (47 epoch) #169971 (53 epoch) #227697 (71 epoch) #246939 (77 epoch) #288630 (90 epoch)
+        for S in 35277; do #81000 89100 16035; do #83382(th epoch) #86589(th epoch) #96210(30th epoch) #121866 (38 epoch) #150729 (47 epoch) #169971 (53 epoch) #227697 (71 epoch) #246939 (77 epoch) #288630 (90 epoch)
             for TASK in pick_place; do
-                for COUNT in 1; do # 1 2 3
+                for COUNT in 1 2 3; do # 1 2 3
                     if [ $COUNT -eq 1 ]; then
                         SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
                         # no wandb_log

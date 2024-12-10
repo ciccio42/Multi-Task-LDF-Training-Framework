@@ -1,0 +1,1370 @@
+{
+  "iamlab_cmu_pickup_insert_converted": {
+    "pick_green_block": [
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00006.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00023.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00037.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00052.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00101.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00126.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00181.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00193.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00195.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00286.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00395.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00450.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00487.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00504.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00525.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00527.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00529.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00539.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00544.pkl"
+    ],
+    "pick_pink_block": [
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00012.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00024.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00046.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00068.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00116.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00145.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00199.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00209.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00216.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00288.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00362.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00383.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00416.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00419.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00426.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00457.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00458.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00467.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00473.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00475.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00570.pkl"
+    ],
+    "insert_green_block": [
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00004.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00039.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00066.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00112.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00204.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00211.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00214.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00466.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00535.pkl"
+    ],
+    "pick_blue_block": [
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00009.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00036.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00078.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00110.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00179.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00188.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00189.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00435.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00472.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00500.pkl"
+    ],
+    "pick_yellow_block": [
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00111.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00142.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00158.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00177.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00332.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00376.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00574.pkl"
+    ]
+  },
+  "taco_play_converted": {
+    "rotate_yellow_block_left": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_yellow_block_left/taco_play_00174.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_yellow_block_left/taco_play_00418.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_yellow_block_left/taco_play_00709.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_yellow_block_left/taco_play_01340.pkl"
+    ],
+    "push_yellow_block_right": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_yellow_block_right/taco_play_00127.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_yellow_block_right/taco_play_00287.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_yellow_block_right/taco_play_00364.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_yellow_block_right/taco_play_00619.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_yellow_block_right/taco_play_02586.pkl"
+    ],
+    "open_drawer": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_00031.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_00086.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_00160.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_00295.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_00476.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_00488.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_00532.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_00539.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_00620.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_00649.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_00755.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_00827.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_00938.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_01124.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_01182.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_01342.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_01431.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_01459.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_01798.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_01831.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_01880.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_02106.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_02214.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_02385.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_02386.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_02582.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_02673.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_02899.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/open_drawer/taco_play_03004.pkl"
+    ],
+    "stack_pink_on_purple": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/stack_pink_on_purple/taco_play_00003.pkl"
+    ],
+    "turn_off_blue_led": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_blue_led/taco_play_00009.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_blue_led/taco_play_00198.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_blue_led/taco_play_00419.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_blue_led/taco_play_00608.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_blue_led/taco_play_00905.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_blue_led/taco_play_00980.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_blue_led/taco_play_00994.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_blue_led/taco_play_02887.pkl"
+    ],
+    "push_pink_block_in_drawer": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_pink_block_in_drawer/taco_play_00083.pkl"
+    ],
+    "rotate_pink_block_right": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_pink_block_right/taco_play_00187.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_pink_block_right/taco_play_00312.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_pink_block_right/taco_play_00823.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_pink_block_right/taco_play_01324.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_pink_block_right/taco_play_02458.pkl"
+    ],
+    "turn_off_green_led": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_green_led/taco_play_00140.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_green_led/taco_play_00426.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_green_led/taco_play_00576.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_green_led/taco_play_00736.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_green_led/taco_play_01760.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_green_led/taco_play_01889.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_green_led/taco_play_01942.pkl"
+    ],
+    "turn_off_red_led": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_red_led/taco_play_00117.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_red_led/taco_play_00203.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_red_led/taco_play_00266.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_red_led/taco_play_00510.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_red_led/taco_play_01689.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_off_red_led/taco_play_01918.pkl"
+    ],
+    "place_yellow_drawer": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_drawer/taco_play_00014.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_drawer/taco_play_00170.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_drawer/taco_play_00372.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_drawer/taco_play_00863.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_drawer/taco_play_01264.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_drawer/taco_play_01425.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_drawer/taco_play_01465.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_drawer/taco_play_02952.pkl"
+    ],
+    "place_purple_box": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_box/taco_play_00301.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_box/taco_play_00459.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_box/taco_play_00481.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_box/taco_play_00737.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_box/taco_play_00760.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_box/taco_play_01947.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_box/taco_play_02117.pkl"
+    ],
+    "lift_pink_block": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_pink_block/taco_play_00025.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_pink_block/taco_play_00206.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_pink_block/taco_play_00399.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_pink_block/taco_play_00494.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_pink_block/taco_play_00798.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_pink_block/taco_play_00977.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_pink_block/taco_play_01137.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_pink_block/taco_play_01225.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_pink_block/taco_play_01271.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_pink_block/taco_play_01300.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_pink_block/taco_play_01845.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_pink_block/taco_play_02634.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_pink_block/taco_play_02758.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_pink_block/taco_play_02879.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_pink_block/taco_play_02922.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_pink_block/taco_play_02932.pkl"
+    ],
+    "turn_on_green_led": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_green_led/taco_play_00248.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_green_led/taco_play_00423.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_green_led/taco_play_00575.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_green_led/taco_play_00695.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_green_led/taco_play_01366.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_green_led/taco_play_01395.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_green_led/taco_play_01442.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_green_led/taco_play_03109.pkl"
+    ],
+    "push_yellow_block_left": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_yellow_block_left/taco_play_00030.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_yellow_block_left/taco_play_00380.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_yellow_block_left/taco_play_00441.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_yellow_block_left/taco_play_00694.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_yellow_block_left/taco_play_01152.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_yellow_block_left/taco_play_01229.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_yellow_block_left/taco_play_01233.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_yellow_block_left/taco_play_02526.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_yellow_block_left/taco_play_03020.pkl"
+    ],
+    "move_slide_left": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/move_slide_left/taco_play_00061.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/move_slide_left/taco_play_00147.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/move_slide_left/taco_play_00191.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/move_slide_left/taco_play_00251.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/move_slide_left/taco_play_00489.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/move_slide_left/taco_play_00638.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/move_slide_left/taco_play_00903.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/move_slide_left/taco_play_00997.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/move_slide_left/taco_play_01050.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/move_slide_left/taco_play_01526.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/move_slide_left/taco_play_02112.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/move_slide_left/taco_play_02357.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/move_slide_left/taco_play_02599.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/move_slide_left/taco_play_02729.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/move_slide_left/taco_play_02968.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/move_slide_left/taco_play_03041.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/move_slide_left/taco_play_03133.pkl"
+    ],
+    "place_yellow_table": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_table/taco_play_00036.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_table/taco_play_00221.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_table/taco_play_00482.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_table/taco_play_00842.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_table/taco_play_01398.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_table/taco_play_01440.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_table/taco_play_01446.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_table/taco_play_02809.pkl"
+    ],
+    "unstack_pink_block": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/unstack_pink_block/taco_play_00034.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/unstack_pink_block/taco_play_00744.pkl"
+    ],
+    "place_pink_table": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_table/taco_play_00082.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_table/taco_play_00166.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_table/taco_play_00274.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_table/taco_play_00799.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_table/taco_play_00870.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_table/taco_play_01648.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_table/taco_play_01887.pkl"
+    ],
+    "lift_purple_block": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_purple_block/taco_play_00056.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_purple_block/taco_play_00177.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_purple_block/taco_play_00294.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_purple_block/taco_play_00401.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_purple_block/taco_play_00616.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_purple_block/taco_play_00849.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_purple_block/taco_play_00998.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_purple_block/taco_play_01084.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_purple_block/taco_play_01221.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_purple_block/taco_play_01346.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_purple_block/taco_play_01903.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_purple_block/taco_play_02437.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_purple_block/taco_play_02688.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_purple_block/taco_play_02848.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_purple_block/taco_play_02889.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_purple_block/taco_play_02897.pkl"
+    ],
+    "place_purple_drawer_top": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_drawer_top/taco_play_00063.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_drawer_top/taco_play_00228.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_drawer_top/taco_play_00487.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_drawer_top/taco_play_00663.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_drawer_top/taco_play_01087.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_drawer_top/taco_play_01123.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_drawer_top/taco_play_01139.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_drawer_top/taco_play_02945.pkl"
+    ],
+    "place_purple_left_cabinet": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_left_cabinet/taco_play_00253.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_left_cabinet/taco_play_00365.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_left_cabinet/taco_play_00528.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_left_cabinet/taco_play_00959.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_left_cabinet/taco_play_02379.pkl"
+    ],
+    "place_yellow_box": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_box/taco_play_00382.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_box/taco_play_00527.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_box/taco_play_00658.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_box/taco_play_01070.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_box/taco_play_02074.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_box/taco_play_02413.pkl"
+    ],
+    "place_yellow_right_cabinet": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_right_cabinet/taco_play_00192.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_right_cabinet/taco_play_00548.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_right_cabinet/taco_play_01262.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_right_cabinet/taco_play_02740.pkl"
+    ],
+    "rotate_purple_block_right": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_purple_block_right/taco_play_00232.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_purple_block_right/taco_play_00262.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_purple_block_right/taco_play_00518.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_purple_block_right/taco_play_00701.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_purple_block_right/taco_play_02010.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_purple_block_right/taco_play_02254.pkl"
+    ],
+    "place_pink_drawer_top": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_drawer_top/taco_play_00233.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_drawer_top/taco_play_00289.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_drawer_top/taco_play_00475.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_drawer_top/taco_play_00569.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_drawer_top/taco_play_01552.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_drawer_top/taco_play_01587.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_drawer_top/taco_play_01665.pkl"
+    ],
+    "unstack_yellow_block": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/unstack_yellow_block/taco_play_00302.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/unstack_yellow_block/taco_play_01505.pkl"
+    ],
+    "turn_on_red_led": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_red_led/taco_play_00070.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_red_led/taco_play_00397.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_red_led/taco_play_00613.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_red_led/taco_play_01511.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_red_led/taco_play_01543.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_red_led/taco_play_01912.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_red_led/taco_play_03023.pkl"
+    ],
+    "rotate_yellow_block_right": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_yellow_block_right/taco_play_00343.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_yellow_block_right/taco_play_00374.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_yellow_block_right/taco_play_00485.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_yellow_block_right/taco_play_00818.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_yellow_block_right/taco_play_01576.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_yellow_block_right/taco_play_01990.pkl"
+    ],
+    "stack_yellow_on_purple": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/stack_yellow_on_purple/taco_play_00371.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/stack_yellow_on_purple/taco_play_01362.pkl"
+    ],
+    "close_drawer": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_00065.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_00138.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_00207.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_00349.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_00592.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_00630.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_00733.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_00774.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_00807.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_00883.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_01252.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_01599.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_01745.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_01836.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_01858.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_01890.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_02155.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_02164.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_02179.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_02228.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_02263.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/close_drawer/taco_play_02702.pkl"
+    ],
+    "place_yellow_drawer_top": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_drawer_top/taco_play_00107.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_drawer_top/taco_play_00451.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_drawer_top/taco_play_00627.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_drawer_top/taco_play_00889.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_drawer_top/taco_play_01049.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_drawer_top/taco_play_01199.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_drawer_top/taco_play_01200.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_drawer_top/taco_play_02711.pkl"
+    ],
+    "rotate_purple_block_left": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_purple_block_left/taco_play_00445.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_purple_block_left/taco_play_00594.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_purple_block_left/taco_play_00699.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_purple_block_left/taco_play_01838.pkl"
+    ],
+    "place_purple_drawer": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_drawer/taco_play_00300.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_drawer/taco_play_00457.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_drawer/taco_play_00580.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_drawer/taco_play_00935.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_drawer/taco_play_02168.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_drawer/taco_play_02339.pkl"
+    ],
+    "place_purple_table": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_table/taco_play_00153.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_table/taco_play_00263.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_table/taco_play_00384.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_table/taco_play_01006.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_table/taco_play_01847.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_table/taco_play_02049.pkl"
+    ],
+    "push_purple_block_left": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_purple_block_left/taco_play_00240.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_purple_block_left/taco_play_00357.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_purple_block_left/taco_play_00452.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_purple_block_left/taco_play_00803.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_purple_block_left/taco_play_01714.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_purple_block_left/taco_play_01949.pkl"
+    ],
+    "place_pink_left_cabinet": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_left_cabinet/taco_play_00339.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_left_cabinet/taco_play_00387.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_left_cabinet/taco_play_01586.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_left_cabinet/taco_play_02768.pkl"
+    ],
+    "place_pink_right_cabinet": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_right_cabinet/taco_play_00118.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_right_cabinet/taco_play_00180.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_right_cabinet/taco_play_00675.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_right_cabinet/taco_play_01132.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_right_cabinet/taco_play_02321.pkl"
+    ],
+    "lift_yellow_block": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_yellow_block/taco_play_00079.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_yellow_block/taco_play_00162.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_yellow_block/taco_play_00307.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_yellow_block/taco_play_00443.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_yellow_block/taco_play_00783.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_yellow_block/taco_play_00844.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_yellow_block/taco_play_01067.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_yellow_block/taco_play_01105.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_yellow_block/taco_play_01173.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_yellow_block/taco_play_01687.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_yellow_block/taco_play_02142.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_yellow_block/taco_play_02382.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_yellow_block/taco_play_02489.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_yellow_block/taco_play_02594.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_yellow_block/taco_play_02773.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_yellow_block/taco_play_02815.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_yellow_block/taco_play_02867.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/lift_yellow_block/taco_play_02873.pkl"
+    ],
+    "turn_on_blue_led": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_blue_led/taco_play_00109.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_blue_led/taco_play_00284.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_blue_led/taco_play_00439.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_blue_led/taco_play_00910.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_blue_led/taco_play_01376.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_blue_led/taco_play_01537.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_blue_led/taco_play_01624.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/turn_on_blue_led/taco_play_03058.pkl"
+    ],
+    "rotate_pink_block_left": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_pink_block_left/taco_play_00554.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_pink_block_left/taco_play_00710.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_pink_block_left/taco_play_01805.pkl"
+    ],
+    "push_pink_block_left": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_pink_block_left/taco_play_00715.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_pink_block_left/taco_play_01107.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_pink_block_left/taco_play_01138.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_pink_block_left/taco_play_01979.pkl"
+    ],
+    "place_pink_box": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_box/taco_play_00282.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_box/taco_play_00313.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_box/taco_play_00589.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_box/taco_play_01174.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_box/taco_play_02481.pkl"
+    ],
+    "unstack_purple_block": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/unstack_purple_block/taco_play_00368.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/unstack_purple_block/taco_play_00529.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/unstack_purple_block/taco_play_00916.pkl"
+    ],
+    "stack_purple_on_pink": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/stack_purple_on_pink/taco_play_00234.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/stack_purple_on_pink/taco_play_00962.pkl"
+    ],
+    "place_pink_drawer": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_drawer/taco_play_00411.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_drawer/taco_play_00467.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_drawer/taco_play_00678.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_drawer/taco_play_01053.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_drawer/taco_play_02206.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_pink_drawer/taco_play_02425.pkl"
+    ],
+    "place_purple_right_cabinet": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_right_cabinet/taco_play_00625.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_right_cabinet/taco_play_00891.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_right_cabinet/taco_play_01400.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_purple_right_cabinet/taco_play_01535.pkl"
+    ],
+    "push_pink_block_right": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_pink_block_right/taco_play_00530.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_pink_block_right/taco_play_00607.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_pink_block_right/taco_play_01004.pkl"
+    ],
+    "place_yellow_left_cabinet": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_left_cabinet/taco_play_00512.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_left_cabinet/taco_play_00645.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_left_cabinet/taco_play_00821.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_left_cabinet/taco_play_01343.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_left_cabinet/taco_play_02318.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/place_yellow_left_cabinet/taco_play_02612.pkl"
+    ],
+    "stack_purple_on_yellow": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/stack_purple_on_yellow/taco_play_00581.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/stack_purple_on_yellow/taco_play_00691.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/stack_purple_on_yellow/taco_play_01016.pkl"
+    ],
+    "push_purple_block_right": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_purple_block_right/taco_play_00745.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_purple_block_right/taco_play_01017.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_purple_block_right/taco_play_01369.pkl"
+    ],
+    "stack_yellow_on_": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/stack_yellow_on_/taco_play_03201.pkl"
+    ],
+    "stack_pink_on_yellow": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/stack_pink_on_yellow/taco_play_00453.pkl"
+    ],
+    "push_yellow_block_in_drawer": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_yellow_block_in_drawer/taco_play_00729.pkl"
+    ],
+    "stack_yellow_on_pink": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/stack_yellow_on_pink/taco_play_00975.pkl",
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/stack_yellow_on_pink/taco_play_01471.pkl"
+    ],
+    "push_purple_block_in_drawer": [
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_purple_block_in_drawer/taco_play_01338.pkl"
+    ]
+  },
+  "droid_converted": {
+    "not_available": [
+      "/user/frosa/multi_task_lfd/datasets/droid_converted/not_available/droid_00001.pkl",
+      "/user/frosa/multi_task_lfd/datasets/droid_converted/not_available/droid_00009.pkl",
+      "/user/frosa/multi_task_lfd/datasets/droid_converted/not_available/droid_00016.pkl",
+      "/user/frosa/multi_task_lfd/datasets/droid_converted/not_available/droid_00035.pkl",
+      "/user/frosa/multi_task_lfd/datasets/droid_converted/not_available/droid_00063.pkl",
+      "/user/frosa/multi_task_lfd/datasets/droid_converted/not_available/droid_00065.pkl",
+      "/user/frosa/multi_task_lfd/datasets/droid_converted/not_available/droid_00066.pkl",
+      "/user/frosa/multi_task_lfd/datasets/droid_converted/not_available/droid_00144.pkl",
+      "/user/frosa/multi_task_lfd/datasets/droid_converted/not_available/droid_00155.pkl",
+      "/user/frosa/multi_task_lfd/datasets/droid_converted/not_available/droid_00156.pkl",
+      "/user/frosa/multi_task_lfd/datasets/droid_converted/not_available/droid_00159.pkl",
+      "/user/frosa/multi_task_lfd/datasets/droid_converted/not_available/droid_00192.pkl",
+      "/user/frosa/multi_task_lfd/datasets/droid_converted/not_available/droid_00236.pkl"
+    ],
+    "pick": {
+      "pick_the_bottle_on_the_table_and_put_it_in_the_lower_compartment_of_the_tray": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_the_bottle_on_the_table_and_put_it_in_the_lower_compartment_of_the_tray/droid_00258.pkl"
+      ],
+      "pick_up_the_purple_plush_toy_from_the_pot_and_put_it_in_the_sink": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_purple_plush_toy_from_the_pot_and_put_it_in_the_sink/droid_00258.pkl"
+      ],
+      "pick_up_the_pen_from_red_mug_cup_and_put_it_on_the_table.": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_pen_from_red_mug_cup_and_put_it_on_the_table./droid_00258.pkl"
+      ],
+      "pick_up_the_pen_and_put_it_in_the_cup": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_pen_and_put_it_in_the_cup/droid_00258.pkl"
+      ],
+      "pick_the_marker_and_put_it_in_the_pot": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_the_marker_and_put_it_in_the_pot/droid_00258.pkl"
+      ],
+      "pick_up_the_fries_and_put_them_in_the_orange_cup,_then_pour_them_into_a_pot": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_fries_and_put_them_in_the_orange_cup,_then_pour_them_into_a_pot/droid_00258.pkl"
+      ],
+      "pick_up_the_spoon,_scoop_some_contents_from_the_white_plate_and_put_it_in_the_white_bowl.": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_spoon,_scoop_some_contents_from_the_white_plate_and_put_it_in_the_white_bowl./droid_00258.pkl"
+      ],
+      "pick_up_the_dark_bowl_and_move_it_to_the_left._switch_off_the_coffee_maker.": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_dark_bowl_and_move_it_to_the_left._switch_off_the_coffee_maker./droid_00258.pkl"
+      ],
+      "pick_up_the_ropes_from_the_table_and_put_them_in_the_box": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_ropes_from_the_table_and_put_them_in_the_box/droid_00258.pkl"
+      ],
+      "pick_a_leaf_from_the_plant": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_a_leaf_from_the_plant/droid_00258.pkl"
+      ],
+      "pick_up_the_towel_from_the_hand_basin,_wipe_the_wall_with_it_and_put_the_towel_back_on_the_hand_basin.": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_towel_from_the_hand_basin,_wipe_the_wall_with_it_and_put_the_towel_back_on_the_hand_basin./droid_00258.pkl"
+      ],
+      "pick_up_the_purple_toy_from_the_bowl_and_put_it_on_the_table.": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_purple_toy_from_the_bowl_and_put_it_on_the_table./droid_00258.pkl"
+      ],
+      "pick_up_the_blue_cup_and_put_it_on_top_of_the_cabinet": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_blue_cup_and_put_it_on_top_of_the_cabinet/droid_00258.pkl"
+      ],
+      "pick_the_lid_and_put_it_on_the_pot": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_the_lid_and_put_it_on_the_pot/droid_00258.pkl"
+      ],
+      "pick_up_the_towel_and_clean_the_small_portion_of_the_table": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_towel_and_clean_the_small_portion_of_the_table/droid_00258.pkl"
+      ],
+      "pick_the_marker_and_put_it_in_the_bowl": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_the_marker_and_put_it_in_the_bowl/droid_00258.pkl"
+      ],
+      "pick_up_the_two_cans_on_the_right_and_put_them_inside_the_bin_one_by_one": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_two_cans_on_the_right_and_put_them_inside_the_bin_one_by_one/droid_00258.pkl"
+      ],
+      "pick_the_pen_and_put_it_in_the_cup": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_the_pen_and_put_it_in_the_cup/droid_00258.pkl"
+      ],
+      "pick_up_the_white_marker_and_put_it_in_the_green_cup": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_white_marker_and_put_it_in_the_green_cup/droid_00258.pkl"
+      ],
+      "pick_up_one_pair_of_tongs_from_the_table_and_put_them_in_the_glass_jar": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_one_pair_of_tongs_from_the_table_and_put_them_in_the_glass_jar/droid_00258.pkl"
+      ]
+    },
+    "push": {
+      "push_down_the_button_on_the_toaster.": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/push/push_down_the_button_on_the_toaster./droid_00258.pkl"
+      ],
+      "push_the_door_handle_down_and_open_the_door": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/push/push_the_door_handle_down_and_open_the_door/droid_00258.pkl"
+      ],
+      "push_down_the_right_toaster_lever": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/push/push_down_the_right_toaster_lever/droid_00258.pkl"
+      ],
+      "push_the_faucet_handle_on_the_right_forwards.": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/push/push_the_faucet_handle_on_the_right_forwards./droid_00258.pkl"
+      ],
+      "push_the_lever_of_the_bread_toaster_down": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/push/push_the_lever_of_the_bread_toaster_down/droid_00258.pkl"
+      ],
+      "push_a_button_on_the_board": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/push/push_a_button_on_the_board/droid_00258.pkl"
+      ]
+    },
+    "place": {
+      "place_the_lid_on_the_jug": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/place/place_the_lid_on_the_jug/droid_00258.pkl"
+      ],
+      "place_the_blue_building_block_inside_the_open_drawer_and_close_the_drawer": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/place/place_the_blue_building_block_inside_the_open_drawer_and_close_the_drawer/droid_00258.pkl"
+      ],
+      "place_the_coin_in_the_open_drawer.": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/place/place_the_coin_in_the_open_drawer./droid_00258.pkl"
+      ],
+      "place_the_object_on_the_shelf_from_the_counter": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/place/place_the_object_on_the_shelf_from_the_counter/droid_00258.pkl"
+      ]
+    },
+    "slide": {
+      "slide_the_lid_on_the_wooden_toy_box_to_the_right.": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/slide/slide_the_lid_on_the_wooden_toy_box_to_the_right./droid_00258.pkl"
+      ],
+      "slide_the_tap_to_the_center_of_the_sink_and_press_down_the__tap_handle": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/slide/slide_the_tap_to_the_center_of_the_sink_and_press_down_the__tap_handle/droid_00258.pkl"
+      ],
+      "slide_the_towel_to_the_right": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/slide/slide_the_towel_to_the_right/droid_00258.pkl"
+      ],
+      "slide_the_mug_to_the_left": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/slide/slide_the_mug_to_the_left/droid_00258.pkl"
+      ]
+    },
+    "move": {
+      "move_the_pillow": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_pillow/droid_00258.pkl"
+      ],
+      "move_the_towel_to_the_right": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_towel_to_the_right/droid_00258.pkl"
+      ],
+      "move_the_can_to_the_left": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_can_to_the_left/droid_00258.pkl"
+      ],
+      "move_the_right_cylindrical_block_towards_you": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_right_cylindrical_block_towards_you/droid_00258.pkl"
+      ],
+      "move_the_white_mug_cup_slightly_to_left.": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_white_mug_cup_slightly_to_left./droid_00258.pkl"
+      ],
+      "move_the_bowl_from_the_dish_rack_to_the_counter": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_bowl_from_the_dish_rack_to_the_counter/droid_00258.pkl"
+      ],
+      "move_the_bottle_to_the_left": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_bottle_to_the_left/droid_00258.pkl"
+      ],
+      "move_the_gray_doll_to_the_left": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_gray_doll_to_the_left/droid_00258.pkl"
+      ],
+      "move_the_green_towel_to_the_bottom_right_corner": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_green_towel_to_the_bottom_right_corner/droid_00258.pkl"
+      ],
+      "move_the_ball_to_the_right": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_ball_to_the_right/droid_00258.pkl"
+      ],
+      "move_the_spoon_forward": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_spoon_forward/droid_00258.pkl"
+      ],
+      "move_the_hanger_with_the_black_and_white_shirt_to_the_right": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_hanger_with_the_black_and_white_shirt_to_the_right/droid_00258.pkl"
+      ],
+      "move_the_black_pot_to_the_left_side_of_the_stove,_pick_up_the_jar_with_the_orange_lid_from_the_right_side_of_the_counter_and_place_it_in-between_the_two_pots_on_the_stove,_remove_the_wooden_spoon_from_the_black_pot_on_the_left_and_put_it_on_the_stove": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_black_pot_to_the_left_side_of_the_stove,_pick_up_the_jar_with_the_orange_lid_from_the_right_side_of_the_counter_and_place_it_in-between_the_two_pots_on_the_stove,_remove_the_wooden_spoon_from_the_black_pot_on_the_left_and_put_it_on_the_stove/droid_00258.pkl"
+      ],
+      "move_the_cup_closer_to_the_marker": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_cup_closer_to_the_marker/droid_00258.pkl"
+      ]
+    },
+    "remove": {
+      "remove_the_marker_from_the_mug": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_marker_from_the_mug/droid_00258.pkl"
+      ],
+      "remove_the_marker_the_blue_cup_and_place_it_on_the_apron": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_marker_the_blue_cup_and_place_it_on_the_apron/droid_00258.pkl"
+      ],
+      "remove_the_red_cup_from_the_dishwasher_and_put_it_in_the_black_lunchbox_in_the_sink": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_red_cup_from_the_dishwasher_and_put_it_in_the_black_lunchbox_in_the_sink/droid_00258.pkl"
+      ],
+      "remove_the_yellow_pen_from_the_white_cup": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_yellow_pen_from_the_white_cup/droid_00258.pkl"
+      ],
+      "remove_the_bowl_from_the_open_drawer_and_place_it_on_the_countertop": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_bowl_from_the_open_drawer_and_place_it_on_the_countertop/droid_00258.pkl"
+      ],
+      "remove_the_lid_from_the_pot.": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_lid_from_the_pot./droid_00258.pkl"
+      ],
+      "remove_the_trousers_from_the_bag,_move_the_bottle_to_the_machine_on_the_left,_and_then_close_the_washing_machine": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_trousers_from_the_bag,_move_the_bottle_to_the_machine_on_the_left,_and_then_close_the_washing_machine/droid_00258.pkl"
+      ],
+      "remove_all_the_contents_from_the_white_plastic_bag_one_at_at_time_and_put_them_on_the_table": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_all_the_contents_from_the_white_plastic_bag_one_at_at_time_and_put_them_on_the_table/droid_00258.pkl"
+      ],
+      "remove_the_lid_from_the_transparent_jar": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_lid_from_the_transparent_jar/droid_00258.pkl"
+      ],
+      "remove_the_clothing_from_the_left_armrest_of_the_black_chair_and_place_it_on_the_sofa": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_clothing_from_the_left_armrest_of_the_black_chair_and_place_it_on_the_sofa/droid_00258.pkl"
+      ],
+      "remove_the_lid_from_the_pot_and_place_it_on_the_table": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_lid_from_the_pot_and_place_it_on_the_table/droid_00258.pkl"
+      ],
+      "remove_the_screwdriver_from_the_tray_and_put_it_on_the_purple_placemat": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_screwdriver_from_the_tray_and_put_it_on_the_purple_placemat/droid_00258.pkl"
+      ],
+      "remove_one_tissue_from_the_box": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_one_tissue_from_the_box/droid_00258.pkl"
+      ],
+      "remove_the_glue_stick_from_the_yellow_mug_and_put_it_on_the_table": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_glue_stick_from_the_yellow_mug_and_put_it_on_the_table/droid_00258.pkl"
+      ],
+      "remove_the_spoon_from_the_box_and_put_it_on_the_table": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_spoon_from_the_box_and_put_it_on_the_table/droid_00258.pkl"
+      ],
+      "remove_one_bottle_from_the_tray_and_put_it_inside_the_clear_container_on_the_left": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_one_bottle_from_the_tray_and_put_it_inside_the_clear_container_on_the_left/droid_00258.pkl"
+      ]
+    },
+    "put": {
+      "put_the_marker_in_the_pot_on_the_table": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_marker_in_the_pot_on_the_table/droid_00258.pkl"
+      ],
+      "put_the_packet_on_the_bottom_shelf_above_the_sink.": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_packet_on_the_bottom_shelf_above_the_sink./droid_00258.pkl"
+      ],
+      "put_the_orange_thing_in_the_can": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_orange_thing_in_the_can/droid_00258.pkl"
+      ],
+      "put_the_marker_into_the_mug.": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_marker_into_the_mug./droid_00258.pkl"
+      ],
+      "put_the_yellow_cup_and_the_knife_in_the_bowl": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_yellow_cup_and_the_knife_in_the_bowl/droid_00258.pkl"
+      ],
+      "put_the_clear_plastic_bowl_on_the_coffee_maker": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_clear_plastic_bowl_on_the_coffee_maker/droid_00258.pkl"
+      ],
+      "put_the_black_shirt_on_the_couch": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_black_shirt_on_the_couch/droid_00258.pkl"
+      ],
+      "put_the_bottle_on_the_table": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_bottle_on_the_table/droid_00258.pkl"
+      ],
+      "put_the_white_cable_in_the_storage_box": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_white_cable_in_the_storage_box/droid_00258.pkl"
+      ],
+      "put_the_white_cloth_on_the_seat_of_the_chair": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_white_cloth_on_the_seat_of_the_chair/droid_00258.pkl"
+      ],
+      "put_the_marker_in_the_mug": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_marker_in_the_mug/droid_00088.pkl"
+      ],
+      "put_the_elastic_around_the_bottle_on_the_table": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_elastic_around_the_bottle_on_the_table/droid_00162.pkl"
+      ],
+      "put_the_coffee_capsule_in_the_coffee_maker": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_coffee_capsule_in_the_coffee_maker/droid_00162.pkl"
+      ],
+      "put_the_marker_in_the_cup": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_marker_in_the_cup/droid_00162.pkl"
+      ],
+      "put_the_marker_in_the_bowl": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_marker_in_the_bowl/droid_00110.pkl"
+      ],
+      "put_the_peace_of_paper_into_the_bag": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_peace_of_paper_into_the_bag/droid_00231.pkl"
+      ],
+      "put_the_blue_object_inside_the_drawer_and_close_it": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_blue_object_inside_the_drawer_and_close_it/droid_00231.pkl"
+      ],
+      "put_the_green_pen_inside_the_clear_cup": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_green_pen_inside_the_clear_cup/droid_00231.pkl"
+      ],
+      "put_the_rubber_band_on_the_cup": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_rubber_band_on_the_cup/droid_00231.pkl"
+      ],
+      "put_the_sock_on_the_windowsill": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_sock_on_the_windowsill/droid_00231.pkl"
+      ],
+      "put_the_ropes_in_the_box_one_at_a_time": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_ropes_in_the_box_one_at_a_time/droid_00231.pkl"
+      ],
+      "put_the_pen_in_the_mug": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_pen_in_the_mug/droid_00231.pkl"
+      ],
+      "put_the_cloth_on_the_black_rod": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_cloth_on_the_black_rod/droid_00231.pkl"
+      ],
+      "put_the_orange_marker_on_the_table": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_orange_marker_on_the_table/droid_00231.pkl"
+      ],
+      "put_the_marker_in_the_cloth_and_wrap_it": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_marker_in_the_cloth_and_wrap_it/droid_00231.pkl"
+      ],
+      "put_the_lid_over_the_spray_bottle": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_lid_over_the_spray_bottle/droid_00231.pkl"
+      ],
+      "put_the_purple_plushie_in_the_white_bowl": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_purple_plushie_in_the_white_bowl/droid_00231.pkl"
+      ],
+      "put_the_blue_block_inside_the_wooden_object_through_the_square_hole": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_blue_block_inside_the_wooden_object_through_the_square_hole/droid_00231.pkl"
+      ],
+      "put_the_blue_and_white_towel_in_the_open_cabinet": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_blue_and_white_towel_in_the_open_cabinet/droid_00231.pkl"
+      ],
+      "put_the_marker_on_the_counter": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_marker_on_the_counter/droid_00231.pkl"
+      ],
+      "put_one_of_the_straws_on_the_counter_inside_the_open_drawer": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_one_of_the_straws_on_the_counter_inside_the_open_drawer/droid_00231.pkl"
+      ],
+      "put_the_toothbrush_in_the_cup": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_toothbrush_in_the_cup/droid_00231.pkl"
+      ],
+      "put_the_pen_near_the_mouse": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_pen_near_the_mouse/droid_00231.pkl"
+      ],
+      "put_the_grey_object_inside_the_drawer_then_close_the_drawer.": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_grey_object_inside_the_drawer_then_close_the_drawer./droid_00231.pkl"
+      ],
+      "put_the_black_masking_tape_on_the_plate": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_black_masking_tape_on_the_plate/droid_00231.pkl"
+      ]
+    },
+    "open": {
+      "open_the_microwave_door": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_the_microwave_door/droid_00231.pkl"
+      ],
+      "open_the_airfryer": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_the_airfryer/droid_00231.pkl"
+      ],
+      "open_the_top_drawer_of_the_plastic_cabinet": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_the_top_drawer_of_the_plastic_cabinet/droid_00231.pkl"
+      ],
+      "open_the_lid_of_the_coffee_maker": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_the_lid_of_the_coffee_maker/droid_00231.pkl"
+      ],
+      "open_colourless_box": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_colourless_box/droid_00231.pkl"
+      ],
+      "open_the_tap": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_the_tap/droid_00231.pkl"
+      ],
+      "open_the_book": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_the_book/droid_00231.pkl"
+      ]
+    },
+    "take": {
+      "take_the_cloth_off_the_screen_and_put_it_on_the_table": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_cloth_off_the_screen_and_put_it_on_the_table/droid_00231.pkl"
+      ],
+      "take_the_blocks_in_the_bowl_and_put_them_on_the_table": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_blocks_in_the_bowl_and_put_them_on_the_table/droid_00231.pkl"
+      ],
+      "take_the_blue_marker_out_of_the_yellow_mug": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_blue_marker_out_of_the_yellow_mug/droid_00231.pkl"
+      ],
+      "take_the_lid_off_the_smallest_pot_and_put_it_on_the_table": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_lid_off_the_smallest_pot_and_put_it_on_the_table/droid_00231.pkl"
+      ],
+      "take_the_bottle_top_and_put_it_on_the_bottle": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_bottle_top_and_put_it_on_the_bottle/droid_00231.pkl"
+      ],
+      "take_the_lid_off_the_silver_pot_and_put_it_on_the_table": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_lid_off_the_silver_pot_and_put_it_on_the_table/droid_00231.pkl"
+      ],
+      "take_the_pen_out_of_the_bowl_and_put_it_on_the_table": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_pen_out_of_the_bowl_and_put_it_on_the_table/droid_00231.pkl"
+      ],
+      "take_the_white_cup_from_the_black_bin_and_put_it_on_the_table": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_white_cup_from_the_black_bin_and_put_it_on_the_table/droid_00231.pkl"
+      ],
+      "take_the_marker_out_of_the_mug_and_put_it_on_the_table": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_marker_out_of_the_mug_and_put_it_on_the_table/droid_00231.pkl"
+      ],
+      "take_the_pen_out_of_the_cup_and_put_it_on_the_counter": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_pen_out_of_the_cup_and_put_it_on_the_counter/droid_00231.pkl"
+      ]
+    },
+    "pour": {
+      "pour_the_contents_of_the_orange_cup_into_the_bowl": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pour/pour_the_contents_of_the_orange_cup_into_the_bowl/droid_00231.pkl"
+      ],
+      "pour_the_contents_of_the_left_bowl_into_the_right_bowl": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pour/pour_the_contents_of_the_left_bowl_into_the_right_bowl/droid_00231.pkl"
+      ]
+    },
+    "hang": {
+      "hang_the_white_cloth_on_the_black_stand": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/hang/hang_the_white_cloth_on_the_black_stand/droid_00231.pkl"
+      ]
+    },
+    "close": {
+      "close_the_top_left_drawer": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/close/close_the_top_left_drawer/droid_00231.pkl"
+      ]
+    },
+    "fold": {
+      "fold_the_blue_shirt": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/fold/fold_the_blue_shirt/droid_00231.pkl"
+      ],
+      "fold_the_towel_once_on_the_table": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/fold/fold_the_towel_once_on_the_table/droid_00231.pkl"
+      ],
+      "fold_the_towel_in_half": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/fold/fold_the_towel_in_half/droid_00231.pkl"
+      ],
+      "fold_the_dishcloth_four_times": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/fold/fold_the_dishcloth_four_times/droid_00231.pkl"
+      ]
+    },
+    "stack": {
+      "stack_the_pillows_at_the_edge_of_the_sofa.": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/stack/stack_the_pillows_at_the_edge_of_the_sofa./droid_00231.pkl"
+      ]
+    },
+    "press": {
+      "press_down_on_the_coffeemaker": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/press/press_down_on_the_coffeemaker/droid_00231.pkl"
+      ]
+    },
+    "switch": {
+      "switch_off_the_extension_cord": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/switch/switch_off_the_extension_cord/droid_00231.pkl"
+      ]
+    },
+    "twist": {
+      "twist_the_straw_to_the_side.": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/twist/twist_the_straw_to_the_side./droid_00231.pkl"
+      ]
+    },
+    "straighten": {
+      "straighten_out_the_towel": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/straighten/straighten_out_the_towel/droid_00231.pkl"
+      ]
+    },
+    "turn": {
+      "turn_on_the_toaster": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/turn/turn_on_the_toaster/droid_00231.pkl"
+      ]
+    },
+    "pull": {
+      "pull_the_pull_out_table_out_then_place_the_sponge_on_it": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pull/pull_the_pull_out_table_out_then_place_the_sponge_on_it/droid_00231.pkl"
+      ],
+      "pull_the_handle_of_the_tap_to_the_right": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pull/pull_the_handle_of_the_tap_to_the_right/droid_00231.pkl"
+      ]
+    },
+    "make": {
+      "make_a_knot_with_the_object_on_the_table": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/make/make_a_knot_with_the_object_on_the_table/droid_00231.pkl"
+      ]
+    },
+    "wipe": {
+      "wipe_the_table_with_the_yellow_towel": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/wipe/wipe_the_table_with_the_yellow_towel/droid_00231.pkl"
+      ]
+    },
+    "use": {
+      "use_the_towel_to_wipe_the_plate": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/use/use_the_towel_to_wipe_the_plate/droid_00231.pkl"
+      ],
+      "use_the_white_and_red_towel_to_wipe_the_table_top": [
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/use/use_the_white_and_red_towel_to_wipe_the_table_top/droid_00231.pkl"
+      ]
+    }
+  },
+  "asu_table_top_converted": {
+    "put_down_blue_can": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_blue_can/droid_00231.pkl"
+    ],
+    "pick_green_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_green_bottle/asu_table_top_converted_externally_to_rlds_00001.pkl"
+    ],
+    "put_down_white_carton": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_white_carton/asu_table_top_converted_externally_to_rlds_00049.pkl"
+    ],
+    "move_brown_object": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_brown_object/asu_table_top_converted_externally_to_rlds_00049.pkl"
+    ],
+    "place_down_brown_object": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_brown_object/asu_table_top_converted_externally_to_rlds_00004.pkl"
+    ],
+    "put_down_red_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_red_bottle/asu_table_top_converted_externally_to_rlds_00005.pkl"
+    ],
+    "place_down_blue_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_blue_bottle/asu_table_top_converted_externally_to_rlds_00006.pkl"
+    ],
+    "raise_white_carton": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/raise_white_carton/asu_table_top_converted_externally_to_rlds_00007.pkl"
+    ],
+    "raise_bread": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/raise_bread/asu_table_top_converted_externally_to_rlds_00008.pkl"
+    ],
+    "pick_up_brown_object": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_brown_object/asu_table_top_converted_externally_to_rlds_00009.pkl"
+    ],
+    "put_down_glass_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_glass_bottle/asu_table_top_converted_externally_to_rlds_00010.pkl"
+    ],
+    "pick_blue_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_blue_bottle/asu_table_top_converted_externally_to_rlds_00068.pkl"
+    ],
+    "pick_red_cube": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_red_cube/asu_table_top_converted_externally_to_rlds_00068.pkl"
+    ],
+    "move_white_carton": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_white_carton/asu_table_top_converted_externally_to_rlds_00068.pkl"
+    ],
+    "move_maroon_square": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_maroon_square/asu_table_top_converted_externally_to_rlds_00014.pkl"
+    ],
+    "move_green_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_green_bottle/asu_table_top_converted_externally_to_rlds_00015.pkl"
+    ],
+    "place_down_green_glass_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_green_glass_bottle/asu_table_top_converted_externally_to_rlds_00016.pkl"
+    ],
+    "hold_pepsi_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_pepsi_bottle/asu_table_top_converted_externally_to_rlds_00084.pkl"
+    ],
+    "move_green_glass_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_green_glass_bottle/asu_table_top_converted_externally_to_rlds_00084.pkl"
+    ],
+    "place_down_red_cube": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_red_cube/asu_table_top_converted_externally_to_rlds_00020.pkl"
+    ],
+    "hold_coke_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_coke_bottle/asu_table_top_converted_externally_to_rlds_00021.pkl"
+    ],
+    "pick_up_maroon_cube": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_maroon_cube/asu_table_top_converted_externally_to_rlds_00023.pkl"
+    ],
+    "push_cocacola_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_cocacola_bottle/asu_table_top_converted_externally_to_rlds_00052.pkl"
+    ],
+    "put_down_red_can": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_red_can/asu_table_top_converted_externally_to_rlds_00052.pkl"
+    ],
+    "push_maroon_square": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_maroon_square/asu_table_top_converted_externally_to_rlds_00052.pkl"
+    ],
+    "move_red_object": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_red_object/asu_table_top_converted_externally_to_rlds_00052.pkl"
+    ],
+    "put_down_white_box": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_white_box/asu_table_top_converted_externally_to_rlds_00052.pkl"
+    ],
+    "pick_cocacola_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_cocacola_bottle/asu_table_top_converted_externally_to_rlds_00052.pkl"
+    ],
+    "place_down_red_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_red_bottle/asu_table_top_converted_externally_to_rlds_00052.pkl"
+    ],
+    "place_down_red_square": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_red_square/asu_table_top_converted_externally_to_rlds_00033.pkl"
+    ],
+    "raise_maroon_square": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/raise_maroon_square/asu_table_top_converted_externally_to_rlds_00035.pkl"
+    ],
+    "hold_blue_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_blue_bottle/asu_table_top_converted_externally_to_rlds_00036.pkl"
+    ],
+    "place_down_white_box": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_white_box/asu_table_top_converted_externally_to_rlds_00038.pkl"
+    ],
+    "push_maroon_object": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_maroon_object/asu_table_top_converted_externally_to_rlds_00098.pkl"
+    ],
+    "push_white_carton": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_white_carton/asu_table_top_converted_externally_to_rlds_00098.pkl"
+    ],
+    "move_milk_box": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_milk_box/asu_table_top_converted_externally_to_rlds_00098.pkl"
+    ],
+    "hold_red_object": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_red_object/asu_table_top_converted_externally_to_rlds_00098.pkl"
+    ],
+    "place_down_milk_box": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_milk_box/asu_table_top_converted_externally_to_rlds_00098.pkl"
+    ],
+    "push_red_object": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_red_object/asu_table_top_converted_externally_to_rlds_00098.pkl"
+    ],
+    "raise_blue_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/raise_blue_bottle/asu_table_top_converted_externally_to_rlds_00098.pkl"
+    ],
+    "hold_red_square": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_red_square/asu_table_top_converted_externally_to_rlds_00098.pkl"
+    ],
+    "pick_cocacola_can": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_cocacola_can/asu_table_top_converted_externally_to_rlds_00098.pkl"
+    ],
+    "push_pepsi_can": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_pepsi_can/asu_table_top_converted_externally_to_rlds_00098.pkl"
+    ],
+    "push_milk_box": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_milk_box/asu_table_top_converted_externally_to_rlds_00098.pkl"
+    ],
+    "place_down_maroon_object": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_maroon_object/asu_table_top_converted_externally_to_rlds_00098.pkl"
+    ],
+    "move_white_box": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_white_box/asu_table_top_converted_externally_to_rlds_00098.pkl"
+    ],
+    "put_down_milk_box": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_milk_box/asu_table_top_converted_externally_to_rlds_00098.pkl"
+    ],
+    "pick_up_red_object": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_red_object/asu_table_top_converted_externally_to_rlds_00098.pkl"
+    ],
+    "pick_up_white_carton": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_white_carton/asu_table_top_converted_externally_to_rlds_00098.pkl"
+    ],
+    "put_down_bread": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_bread/asu_table_top_converted_externally_to_rlds_00062.pkl"
+    ],
+    "put_down_blue_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_blue_bottle/asu_table_top_converted_externally_to_rlds_00099.pkl"
+    ],
+    "pick_red_object": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_red_object/asu_table_top_converted_externally_to_rlds_00064.pkl"
+    ],
+    "pick_blue_can": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_blue_can/asu_table_top_converted_externally_to_rlds_00067.pkl"
+    ],
+    "move_pepsi_can": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_pepsi_can/asu_table_top_converted_externally_to_rlds_00067.pkl"
+    ],
+    "pick_up_milk_carton": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_milk_carton/asu_table_top_converted_externally_to_rlds_00067.pkl"
+    ],
+    "pick_up_bread": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_bread/asu_table_top_converted_externally_to_rlds_00073.pkl"
+    ],
+    "place_down_maroon_square": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_maroon_square/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "pick_white_box": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_white_box/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "push_coke_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_coke_bottle/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "push_milk_carton": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_milk_carton/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "hold_brown_object": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_brown_object/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "hold_white_box": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_white_box/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "pick_maroon_square": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_maroon_square/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "move_yellow_object": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_yellow_object/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "push_brown_object": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_brown_object/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "pick_up_red_can": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_red_can/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "put_down_maroon_object": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_maroon_object/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "push_green_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_green_bottle/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "raise_red_can": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/raise_red_can/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "pick_up_yellow_object": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_yellow_object/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "raise_pepsi_can": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/raise_pepsi_can/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "pick_coke_can": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_coke_can/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "pick_up_white_box": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_white_box/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "place_down_pepsi_can": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_pepsi_can/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "place_down_maroon_cube": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_maroon_cube/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "push_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_bottle/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "raise_coke_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/raise_coke_bottle/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "put_down_pepsi_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_pepsi_bottle/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "place_down_red_can": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_red_can/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "hold_green_glass_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_green_glass_bottle/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "move_bread": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_bread/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "place_down_glass_bottle": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_glass_bottle/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ],
+    "pick_bread": [
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_bread/asu_table_top_converted_externally_to_rlds_00097.pkl"
+    ]
+  },
+  "berkeley_autolab_ur5_converted": {
+    "sweep": [
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00003.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00019.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00033.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00077.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00141.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00163.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00206.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00229.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00251.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00256.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00350.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00448.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00487.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00508.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00524.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00526.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00567.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00571.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00575.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00601.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00607.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00698.pkl",
+      "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/sweep/berkeley_autolab_ur5_00789.pkl"
+    ],
+    "pick_place": {
+      "bottle": [
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00006.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00041.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00066.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00108.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00165.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00185.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00237.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00255.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00285.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00288.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00391.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00471.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00520.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00556.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00569.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00570.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00612.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00623.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00626.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00637.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00645.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00756.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/bottle/berkeley_autolab_ur5_00839.pkl"
+      ],
+      "cup": [
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00010.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00034.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00047.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00071.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00110.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00123.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00155.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00177.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00190.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00192.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00264.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00349.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00389.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00443.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00456.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00464.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00536.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00541.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00544.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00576.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00581.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00690.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/cup/berkeley_autolab_ur5_00793.pkl"
+      ],
+      "tiger": [
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00017.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00036.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00060.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00092.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00144.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00188.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00239.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00268.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00276.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00278.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00373.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00483.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00535.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00558.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00561.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00572.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00613.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00616.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00624.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00635.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00642.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00753.pkl",
+        "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00821.pkl"
+      ]
+    }
+  }
+}
