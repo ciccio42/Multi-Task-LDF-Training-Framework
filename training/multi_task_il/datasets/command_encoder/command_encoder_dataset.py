@@ -42,7 +42,6 @@ class TrajectoryCommandsDataset(Dataset):
         return _data
     
     
-    
 class CommandClassDefiner():
     
     def __init__(self,

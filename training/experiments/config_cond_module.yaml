@@ -109,7 +109,7 @@ dataset_cfg:
   data_augs: ${augs}
   use_embedding_centroids: True # use centroid embeddings as gt
   name: 'pick_place'
-  n_tasks: 16
+  n_tasks: 16 
   split: [0.90,0.10]
   demo_crop: [20, 25, 80, 75]
 
