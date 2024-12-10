@@ -1,0 +1,11 @@
+{
+  "commands": [
+    "pick up the blue cup and put it into the brown cup.",
+    "take the tiger out of the red bowl and put it in the grey bowl",
+    "put the ranch bottle into the pot",
+    "put the marker into the bowl"
+  ],
+  "env_type": [
+    "table_top"
+  ]
+}

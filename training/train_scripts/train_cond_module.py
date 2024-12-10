@@ -196,7 +196,7 @@ if __name__ == '__main__':
     USE_WANDB = True
     EARLY_STOP = 2
     
-    LR_SCHEDULER = True
+    LR_SCHEDULER = False
     ### two optimizers
     TWO_OPTIMIZERS = False
     EPOCH_CHANGE_OPTIMIZER = 29
@@ -290,9 +290,6 @@ if __name__ == '__main__':
                                 img_tensor = np.moveaxis(sample[t].detach().cpu().numpy()*255, 0, -1)
                                 print(data['embedding']['sentence'])
                                 cv2.imwrite(f"{indx}_frame_{t}.png", img_tensor)
-            
-
-            
             
             loss, target = compute_cosine_similarity(output_embedding, gt_embedding, BATCH_SIZE, target)
             loss.backward()

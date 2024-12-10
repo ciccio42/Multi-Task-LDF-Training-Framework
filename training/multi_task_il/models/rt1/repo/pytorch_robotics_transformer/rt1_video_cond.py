@@ -92,10 +92,29 @@ class RT1_video_cond(nn.Module):
         self.cond_module.eval()
         # used to store network_state
         # this is used for inference in order to remember the previous tokens up to _time_sequence_length steps
+        
+        model_parameters = filter(lambda p: p.requires_grad, self.cond_module.parameters())
+        params = sum([np.prod(p.size()) for p in model_parameters])
+        print(self.cond_module)
+        print('Total params in cond module before freezing:', params)
+
+        # freeze cond module
+        for p in self.cond_module.parameters():
+            p.requires_grad = False
+            
+        model_parameters = filter(lambda p: p.requires_grad, self.cond_module.parameters())
+        params = sum([np.prod(p.size()) for p in model_parameters])
+        print(self.cond_module)
+        print('Total params in cond module after freezing:', params)
 
         self.rt1_memory = None
         self.base_net_state_sampler = RT1_SpaceSampler() # random sampler class
         self.inference_first_state_sampler = FirstStep_RT1_SpaceSampler(self.base_net_state_sampler) # sampler for first state at inference
+        
+    def compute_bin_accuracy(self, actor_bin, gt_bin):
+        
+        # add accuracy
+        pass
         
     def forward(self,
                 images,
@@ -151,15 +170,19 @@ class RT1_video_cond(nn.Module):
                 rt1_network_state = tensor_from_cpu_to_cuda(rt1_network_state, next(self.cond_module.parameters()).device)
             else: # if at least one step has been executed
                 rt1_network_state = self.rt1_memory # retrieve the network state of the previous timestep
-                
-        out, rt1_network_state = self.rt1(rt1_obs, rt1_network_state)
+               
+        if actions is not None: # training-eval: compute also accuracy on action bins
+            out, rt1_network_state, bin_acc = self.rt1(rt1_obs, rt1_network_state)
+        else: # inference: don't compute accuracy
+            out, rt1_network_state = self.rt1(rt1_obs, rt1_network_state)
+            
         
         if actions is None: # inference
             # return out, self.rt1._aux_info['action_labels'], self.rt1._aux_info['action_predictions_logits']
             self.rt1_memory = rt1_network_state # save new network state
             return out, rt1_network_state
         else: # training
-            return out, self.rt1._aux_info['action_loss']
+            return out, self.rt1._aux_info['action_loss'], bin_acc
         
 if __name__ == '__main__':
     pass

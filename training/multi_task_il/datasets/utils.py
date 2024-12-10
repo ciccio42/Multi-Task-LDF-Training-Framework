@@ -183,7 +183,7 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                 root_dir, name, '{}_{}_{}'.format(date, demo_name, name))
         dataset_loader.subtask_to_idx[name] = defaultdict(list)
         dataset_loader.demo_subtask_to_idx[name] = defaultdict(list)
-        for _id in range(spec.get('n_tasks')):  # PER OGNI TASK
+        for _id in range(spec.get('n_tasks')):  # 16
 
             # take demo file from no-skipped tasks
             if not validation_on_skipped_task:
@@ -295,10 +295,10 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                         count += 1
             elif not dataset_loader._mix_demo_agent and dataset_loader._change_command_epoch:
                 print(f"Loading task {name} - sub-task {_id}")
-                for agent in tqdm(agent_files):   # FILE DELL'AGENTE
+                for agent in tqdm(agent_files):
                     # open file and check trajectory lenght
                     with open(agent, "rb") as f:
-                        agent_data = pkl.load(f)    # load del pickle
+                        agent_data = pkl.load(f)
                         trj_len = agent_data['len']
                     # for t in range(trj_len):
                     dataset_loader.all_agent_files[agent_file_cnt] = (
@@ -309,7 +309,7 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
                     count += trj_len
                     agent_file_cnt += 1
 
-                for demo_indx, demo in enumerate(demo_files):   # FILE DIMOSTRAZIONE
+                for demo_indx, demo in enumerate(demo_files):
                     dataset_loader.all_demo_files[demo_file_cnt] = (
                         name, _id, demo)
                     dataset_loader.demo_task_to_idx[name].append(

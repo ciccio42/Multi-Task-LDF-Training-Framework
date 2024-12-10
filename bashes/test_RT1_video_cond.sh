@@ -22,18 +22,20 @@ export HYDRA_FULL_ERROR=1
 
 echo $1
 TASK_NAME='pick_place' #"$1"
-NUM_WORKERS=1 #10
-GPU_ID=1 #0
+NUM_WORKERS=10
+GPU_ID=2 #0
 
 BASE_PATH=/raid/home/frosa_Loc/Multi-Task-LFD-Framework
-CKP_FOLDER=/raid/home/frosa_Loc/multi_task_lfd/checkpoint_save_folder
+CKP_FOLDER=/user/frosa/multi_task_lfd/checkpoint_save_folder
 if [ "$TASK_NAME" == 'pick_place' ]; then
-    PROJECT_NAME=1Task-pick_place-Panda_dem_sim_agent_ur5e_sim_2
+    # PROJECT_NAME=1Task-pick_place-Panda_dem_sim_agent_ur5e_sim_2
+    PROJECT_NAME=1Task-pick_place-Panda_dem_sim_agent_ur5e_sim_cond_module_h100_w180_good_condmodule #cond module step96
+    # PROJECT_NAME=1Task-pick_place-Panda_dem_sim_agent_ur5e_sim_cond_module_h100_w180_condmodule_lr1e-4_step24 #cond module step24
     BATCH=32 #32
     MODEL_PATH=${CKP_FOLDER}/${PROJECT_NAME}-Batch${BATCH}
     CONTROLLER_PATH=$BASE_PATH/repo/Multi-Task-LFD-Training-Framework/tasks/multi_task_robosuite_env/controllers/config/osc_pose.json
     for MODEL in ${MODEL_PATH}; do
-        for S in 25656; do #81000 89100 16035; do
+        for S in 272595 275802 279009 282216 285423 288630; do #81000 89100 16035; do #83382(th epoch) #86589(th epoch) #96210(30th epoch) #121866 (38 epoch) #150729 (47 epoch) #169971 (53 epoch) #227697 (71 epoch) #246939 (77 epoch) #288630 (90 epoch)
             for TASK in pick_place; do
                 for COUNT in 1 2 3; do
                     if [ $COUNT -eq 1 ]; then
@@ -56,7 +58,18 @@ if [ "$TASK_NAME" == 'pick_place' ]; then
                         # srun --output=${PROJECT_NAME}.txt --job-name=${PROJECT_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log --save_path ${SAVE_PATH} --save_files
                     else
                         SAVE_PATH=${MODEL_PATH}/results_${TASK}/run_${COUNT}
-                        srun --output=${PROJECT_NAME}.txt --job-name=${PROJECT_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log
+                        python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py \
+                        $MODEL \
+                        --env $TASK \
+                        --saved_step $S \
+                        --eval_each_task 10 \
+                        --num_workers ${NUM_WORKERS} \
+                        --project_name ${PROJECT_NAME} \
+                        --controller_path ${CONTROLLER_PATH} \
+                        --gpu_id ${GPU_ID} \
+                        --save_path ${SAVE_PATH} \
+                        --save_files
+                        # srun --output=${PROJECT_NAME}.txt --job-name=${PROJECT_NAME} python -u $BASE_PATH/repo/Multi-Task-LFD-Training-Framework/test/multi_task_test/test_any_task.py $MODEL --env $TASK --saved_step $S --eval_each_task 10 --num_workers ${NUM_WORKERS} --project_name ${PROJECT_NAME} --controller_path ${CONTROLLER_PATH} --gpu_id ${GPU_ID} --wandb_log
                     fi
                 done
             done

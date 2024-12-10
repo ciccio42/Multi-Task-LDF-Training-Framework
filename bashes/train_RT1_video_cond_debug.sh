@@ -28,16 +28,15 @@ SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 # SAVE_PATH=/raid/home/frosa_Loc/multi_task_lfd/checkpoint_save_folder
 POLICY='${rt1_video_cond}'
 TARGET='multi_task_il.models.mt_rep.VideoImitation'
-# COND_MODULE_PATH='/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module_no_lr_1e-4-Batch32/model_save-96.pt'
-COND_MODULE_PATH='/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module_lr_1e-4_good_split-Batch32/model_save-225.pt'
+COND_MODULE_PATH='/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module_no_lr_1e-4-Batch32/model_save-96.pt'
 
 SAVE_FREQ=-1
 LOG_FREQ=10
 VAL_FREQ=-1
 # DEVICE=0    # cuda gpu selection
-DEVICE=1   # cuda gpu selection
-DEBUG=false
-WANDB_LOG=true
+DEVICE=3   # cuda gpu selection
+DEBUG=true
+WANDB_LOG=false
 ROLLOUT=false
 EPOCH=90
 LOADER_WORKERS=16
@@ -60,6 +59,8 @@ CONCAT_STATE=true
 if [ "$TASK_NAME" == 'pick_place' ]; then
     echo "Pick-Place"
     ### Pick-Place ###
+    RESUME_PATH="1Task-pick_place-Panda_dem_sim_agent_ur5e_sim_cond_module_h100_w180_good_condmodule-Batch32"
+    RESUME_STEP="48105"
     RESUME=false
 
     TARGET_OBJ_DETECTOR_STEP=37476 #68526 #129762 #198900 #65250
@@ -111,7 +112,7 @@ if [ "$TASK_NAME" == 'pick_place' ]; then
     COSINE_ANNEALING=false
 
     TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
-    EXP_NAME="pick_place_panda_dem_ur5e_agent_cond_module_freezed" #1Task-pick_place-Panda_dem_sim_agent_ur5e_sim_cond_module_h100_w180_good_condmodule #1Task-pick_place-Panda_dem_sim_agent_ur5e_sim_cond_module_h100_w180_good_condmodule #1Task-${TASK_str}-Panda_dem_sim_agent_ur5e_sim_cond_module_h100_w180_condmodule_lr1e-4_step24   #1Task-${TASK_str}-MOSAIC-Rollout
+    EXP_NAME=provola #1Task-pick_place-Panda_dem_sim_agent_ur5e_sim_cond_module_h100_w180_good_condmodule #1Task-pick_place-Panda_dem_sim_agent_ur5e_sim_cond_module_h100_w180_good_condmodule #1Task-${TASK_str}-Panda_dem_sim_agent_ur5e_sim_cond_module_h100_w180_condmodule_lr1e-4_step24   #1Task-${TASK_str}-MOSAIC-Rollout
     PROJECT_NAME=${EXP_NAME}
 fi
 

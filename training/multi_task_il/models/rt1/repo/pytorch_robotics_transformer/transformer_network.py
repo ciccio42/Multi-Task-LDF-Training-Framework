@@ -306,7 +306,7 @@ class TransformerNetwork(nn.Module):
         outer_rank = self._get_outer_rank(observations)
         assert outer_rank in (1, 2), "outer rank should be 1 or 2"
 
-        b, t = self._get_batch_size_and_seq_len(network_state) #TODO: capire se action_tokens da cambiare
+        b, t = self._get_batch_size_and_seq_len(network_state)
         # network_state is used when inference.
         # b: batch size
         # t: time_sequence_length of this model
@@ -431,6 +431,28 @@ class TransformerNetwork(nn.Module):
                 'actor_loss_mask':
                     torch.ones((b), dtype=torch.float32)
             })
+            
+            # compute action bin accuracy (exact and within an interval)
+            # this is for computing accuracy
+            gt_act_tokens = action_tokens[:, -1, :]
+            
+            bin_accuracies = {}
+            for j in range(gt_act_tokens.shape[1]):
+                bin_accuracies[j] = []
+                        
+            for k in range(gt_act_tokens.shape[0]): # for every vector
+                for j in range(gt_act_tokens.shape[1]): # for every bin of the vector
+                    bin_accuracies[j].append(1 if gt_act_tokens[k][j] - predicted_tokens_for_output[k][j] == 0 else 0)
+                    
+                    #TODO: implement for interval
+                
+                if k == range(gt_act_tokens.shape[0])[-1]: # last step
+                    for j in range(gt_act_tokens.shape[1]): # for every bin of the vector
+                        bin_accuracies[j] = np.average(bin_accuracies[j])
+                        
+            output_actions = self._action_tokenizer.detokenize(predicted_tokens_for_output)
+
+            return output_actions, network_state, bin_accuracies
 
         # output_actions: Dict[str, np.ndarray]
         output_actions = self._action_tokenizer.detokenize(predicted_tokens_for_output)
@@ -438,7 +460,6 @@ class TransformerNetwork(nn.Module):
         # output_actions is the last actions.
         # network_stape is the past state that is used for next inference.
         return output_actions, network_state
-
 
 
     def _get_outer_rank(self, observations: Dict[str, torch.Tensor]) -> int:

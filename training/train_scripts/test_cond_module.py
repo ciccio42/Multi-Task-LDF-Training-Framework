@@ -40,7 +40,19 @@ DATA_AUGS = {
         }
 DEBUG = False
 DATASET = 'test' # use this for see how the model performs with train, val or test data
-MODEL_PATH = '/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module-Batch32/model_save-48.pt'
+# MODEL_PATH = '/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module-Batch32/model_save-48.pt'
+# MODEL_PATH = '/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module_v2-Batch32/model_save-24.pt'
+# MODEL_PATH = '/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module_exp_decay-Batch32/model_save-120.pt' #???????????
+# MODEL_PATH = '/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module_exp_decay-Batch32/model_save-24.pt' 
+# MODEL_PATH = '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/command_encoder/models/batch_size/32_batch_size/num_epochs/4_epochs/0.0001_lr/cond_module_11-05_00:03.pth'
+# MODEL_PATH = '/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module_no_lr_scheduler-Batch32/model_save-120.pt'
+# MODEL_PATH = '/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module_no_lr_1e-4-Batch32/model_save-96.pt' # preciso
+# MODEL_PATH = '/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module_no_lr_1e-4-Batch32/model_save-72.pt'
+# MODEL_PATH = '/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module_no_lr_1e-4-Batch32/model_save-48.pt'
+# MODEL_PATH = '/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module_no_lr_1e-4-Batch32/model_save-24.pt'
+# MODEL_PATH = '/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module_no_lr_1e-4-Batch32/model_save-120.pt'
+MODEL_PATH = '/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module_lr_1e-4_good_split-Batch32/model_save-225.pt'
+
 ROBOT = 'panda'
 
 ## loading model
@@ -107,7 +119,7 @@ for _idx, val in embedding_avg_subtask.items():
     else:
         embedding_avg_tensor = torch.cat((embedding_avg_tensor, embedding_avg_subtask[_idx].unsqueeze(0)), 0)
 
-print(cond_module)
+# print(cond_module)
 
 import time
 from IPython.display import display

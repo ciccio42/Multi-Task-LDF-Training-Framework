@@ -35,7 +35,7 @@ from torchmetrics.classification import Accuracy
 import gc
 from colorama import Fore, Back
 from multi_task_il.datasets.command_encoder.multi_task_command_encoder import CommandEncoderSampler, CosineLossCalculator
-
+import cv2
 
 torch.autograd.set_detect_anomaly(True)
 # for visualization
@@ -656,13 +656,18 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
             
             # TODO: image_cp
             # import cv2
-            # debug_image = False
+            # debug_image = True
             # if debug_image:
             #     for ep_idx, ep in enumerate(model_inputs['images']):
             #         for t, img in enumerate(ep):
-            #             cv2.imwrite(f'/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/{ep_idx}_{t}.png', (img*255).type(torch.IntTensor).permute(1,2,0).cpu().numpy())    
+            #             cv2.imwrite(f'{ep_idx}_{t}.png', (img*255).type(torch.IntTensor).permute(1,2,0).cpu().numpy())
             
-            out, ce_loss = model(  # 1550MB
+            # if debug_image:
+            #     for ep_idx, ep in enumerate(model_inputs['demo']):
+            #         for t, img in enumerate(ep):
+            #             cv2.imwrite(f'{ep_idx}_{t}.png', (img*255).type(torch.IntTensor).permute(1,2,0).cpu().numpy())  
+            
+            out, ce_loss, bin_acc = model(  # 1550MB
                 images=copy.deepcopy(model_inputs['images']), # sono obs_T step perché la traiettoria viene tagliata
                 states=copy.deepcopy(model_inputs['states']),
                 demo=copy.deepcopy(model_inputs['demo']),
@@ -670,12 +675,23 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
                 bsize=config['bsize']
             )
         elif "CondModule" in config.policy._target_:
+            
+            # debug_cond = False
+            # first_dem = model_inputs['demo_data'][0]
+            
+            # if debug_cond:
+            #     for t, obs in enumerate(first_dem): 
+            #         cv2.imwrite(f"cond_module_obs_{t}.png", np.moveaxis(obs.detach().cpu().numpy()*255, 0, -1))
+            
             out = model(model_inputs['demo_data'])
+            
+            
+            
         else:  # other baselines
             out = model(
-                images=model_inputs['images'],
-                context=model_inputs['demo'],
-                states=model_inputs['states'],
+                images=copy.deepcopy(model_inputs['images']),
+                context=copy.deepcopy(model_inputs['demo']),
+                states=copy.deepcopy(model_inputs['states']),
                 ret_dist=False)
 
         # forward & backward action pred
@@ -798,6 +814,9 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
             if "rt1" in config.policy._target_:
                 task_losses[task_name]['l_ce'] = ce_loss # loss is computed internally in rt1 implementation
                 task_losses[task_name]['loss_sum'] = task_losses['pick_place']['l_ce']
+                
+                return task_losses, bin_acc
+                
             elif "CondModule" in config.policy._target_:
                 loss = cosine_loss_calculator.compute_cosine_similarity(out, model_inputs['embedding'])
                 task_losses[task_name]['cosine_loss'] = loss
@@ -1186,8 +1205,12 @@ class Trainer:
                 torch.cuda.empty_cache()
 
                 # calculate loss here:
-                task_losses = loss_function(
-                    self.config, self.train_cfg, self._device, model, inputs)
+                if "rt1" in self.config.policy._target_:
+                    task_losses, bin_acc = loss_function(
+                        self.config, self.train_cfg, self._device, model, inputs)
+                else:
+                    task_losses = loss_function(
+                        self.config, self.train_cfg, self._device, model, inputs)
                 task_names = sorted(task_losses.keys())
                 if "grad_norm" not in self.config.get("loss", ""):
                     optimizer.zero_grad()
@@ -1319,14 +1342,24 @@ class Trainer:
                             val_task_losses = loss_function(
                                 self.config, self.train_cfg,  self._device, model, val_inputs)
                         else:
-                            with torch.no_grad():
-                                val_task_losses = loss_function(
-                                    self.config,
-                                    self.train_cfg,
-                                    self._device,
-                                    model,
-                                    val_inputs,
-                                    val=False)
+                            if "rt1" in self.config.policy._target_:
+                                with torch.no_grad():
+                                    val_task_losses, val_bin_acc = loss_function(
+                                        self.config,
+                                        self.train_cfg,
+                                        self._device,
+                                        model,
+                                        val_inputs,
+                                        val=False)
+                            else:
+                                with torch.no_grad():
+                                    val_task_losses = loss_function(
+                                        self.config,
+                                        self.train_cfg,
+                                        self._device,
+                                        model,
+                                        val_inputs,
+                                        val=False)
 
                         for task, losses in val_task_losses.items(): #TODO: check
                             for k, v in losses.items():
@@ -1337,6 +1370,10 @@ class Trainer:
                     for task, losses in all_val_losses.items():
                         avg_losses[task] = {
                             k: torch.mean(torch.stack(v)) for k, v in losses.items()}
+                        
+                    if "rt1" in self.config.policy._target_:
+                        # take average of accuracy
+                        pass                        
 
                     if self.config.wandb_log:
                         to_log['Validation Step'] = self._step
@@ -1361,7 +1398,10 @@ class Trainer:
                         if self.config.wandb_log:
                             # log learning-rate
                             to_log['Validation Step'] = self._step
-                            to_log['learning_rate'] = scheduler._schedule.optimizer.param_groups[0]['lr']
+                            try:
+                                to_log['learning_rate'] = scheduler._schedule.optimizer.param_groups[0]['lr']
+                            except AttributeError:
+                                pass
 
                     # check for early stopping
                     if self.train_cfg.early_stopping.patience != -1:
@@ -1558,6 +1598,9 @@ class Trainer:
         lr_schedule = dict()
         if cfg.lr_schedule == 'None':
             lr_schedule['type'] = None
+        elif cfg.lr_schedule == 'ExponentialDecay':
+            lr_schedule['type'] = cfg.lr_schedule
+            lr_schedule['rate'] = cfg.rate_exponential_decay
         else:
             lr_schedule['type'] = cfg.lr_schedule
         print(f"Lr-scheduler {cfg.lr_schedule}")

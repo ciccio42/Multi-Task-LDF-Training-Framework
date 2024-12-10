@@ -61,7 +61,7 @@ train_cfg:
 
 # early stopping configurator
 early_stopping_cfg:
-  patience: 10
+  patience: -1
   delta: 1e-3
 
 # tasks related
@@ -245,6 +245,8 @@ attn:
 # rt1_conditioner:
 #   _target_:
 
+cond_module_path: null
+
 rt1_video_cond:
   _target_: multi_task_il.models.rt1.repo.pytorch_robotics_transformer.rt1_video_cond.RT1_video_cond
   ### rt1 params
@@ -313,7 +315,14 @@ rt1_video_cond:
   demo_ff_dim: [128, 64, 32]
   demo_linear_dim: [512, 512, 512]
   conv_drop_dim: 3
-  cond_module_model_path: '/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module-Batch32/model_save-48.pt'
+  cond_module_model_path: ${cond_module_path}
+  #'/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module_no_lr_1e-4-Batch32/model_save-24.pt'
+  # cond_module_model_path: '/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module_v2-Batch32/model_save-24.pt'
+  # cond_module_model_path: '/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module-Batch32/model_save-72.pt'
+  # cond_module_model_path: '/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module-Batch32/model_save-72.pt'
+  # cond_module_model_path: '/user/frosa/multi_task_lfd/checkpoint_save_folder/1Task-pick_place-cond_module_v2-Batch32/model_save-120.pt'
+  # cond_module_model_path: '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/command_encoder/models/panda/32_batch_size/5_epochs/0.0001_lr/cond_module_12-03_12:29.pth'
+  # cond_module_model_path: '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/train_scripts/command_encoder/models/batch_size/32_batch_size/num_epochs/4_epochs/0.0001_lr/cond_module_11-05_00:03.pth'
 
 rt1:
   _target_: multi_task_il.models.rt1.repo.pytorch_robotics_transformer.transformer_network.TransformerNetwork

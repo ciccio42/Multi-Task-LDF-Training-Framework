@@ -26,7 +26,7 @@ from multi_task_il.utils import normalize_action, discretize_action
 from einops import rearrange
 from torchmetrics.classification import Accuracy
 
-from multi_task_il.models.vima.utils import *
+from multi_task_il.models.vima.utils import * 
 
 
 ENV_OBJECTS = {

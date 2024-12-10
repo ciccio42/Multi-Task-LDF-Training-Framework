@@ -7,11 +7,11 @@ import json
 PATH_TO_PT_MODEL = "models/model.pt"
 PATH_TO_TF_MODEL = "models/universal-sentence-encoder-multilingual-large-3"
 
-def get_model():
+def get_model(path_to_pt_model, path_to_tf_model):
     from multi_task_il.models.muse.tokenizer import get_tokenizer, tokenize
 
     print(f"get tokenizer...")
-    tokenizer = get_tokenizer(PATH_TO_TF_MODEL)
+    tokenizer = get_tokenizer(path_to_tf_model)
     tokenize = partial(tokenize, tokenizer=tokenizer)
 
     model_torch = MUSE(
@@ -21,7 +21,7 @@ def get_model():
         num_heads=8,
     )
     model_torch.load_state_dict(
-        torch.load(PATH_TO_PT_MODEL)
+        torch.load(path_to_pt_model)
     )
 
     return model_torch, tokenize

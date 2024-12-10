@@ -196,6 +196,7 @@ class CommandEncoderDataset(Dataset):
         self.aux_pose = aux_pose
         self.select_random_frames = True
         self.n_test_samples_per_subtask = n_test_samples_per_subtask
+        self.train_val_split = split
 
         # directory dimostrazioni ed embeddings
         demo_dir = join(
@@ -206,7 +207,7 @@ class CommandEncoderDataset(Dataset):
             )
         else: # se vogliamo caricare i centroidi per ogni sottotask come gt
             embedding_dir = join(
-                root_dir, name, '{}'.format('centroids_commands_embs')
+                root_dir, name, '{}'.format('new_centroids_commands_embs')
             )
                        
         count = 0
@@ -226,30 +227,46 @@ class CommandEncoderDataset(Dataset):
         for _id in range(n_tasks):
             
             task_id = 'task_{:02d}'.format(_id)
-            task_dir = expanduser(join(demo_dir,  task_id, '*.pkl')) # '/raid/home/frosa_Loc/opt_dataset/pick_place/ur5e_pick_place/task_00/*.pkl'
+            task_dir = expanduser(join(demo_dir, task_id, '*.pkl')) # '/raid/home/frosa_Loc/opt_dataset/pick_place/ur5e_pick_place/task_00/*.pkl'
             demo_files = sorted(glob.glob(task_dir))
             
             embedding_id = task_id
             embedding_task_dir = expanduser(join(embedding_dir, embedding_id, '*.pkl')) # '/raid/home/frosa_Loc/opt_dataset/pick_place/command_embs/task_00/*.pkl'
             embedding_files = sorted(glob.glob(embedding_task_dir))
         
-            subtask_size = n_train_and_val_samples_per_subtask
-            assert len(demo_files) >= subtask_size, "Doesn't have enough demonstration data "+str(len(demo_files))
-            assert len(embedding_files) >= subtask_size, "Doesn't have enough embedding data "+str(len(embedding_files))
-            if self.mode != 'test':
-                demo_files = demo_files[:subtask_size]
-                embedding_files = embedding_files[:subtask_size]
-            else: # in test mode we want to take other samples from train/val
-                end_file_idx = subtask_size + self.n_test_samples_per_subtask # where we want to stop with training examples
-                assert end_file_idx <= len(demo_files), 'you don\'t have enough demo data for test'
-                demo_files = demo_files[subtask_size:end_file_idx]
-                embedding_files = embedding_files[:self.n_test_samples_per_subtask]
+            # subtask_size = n_train_and_val_samples_per_subtask
+            # assert len(demo_files) >= subtask_size, "Doesn't have enough demonstration data "+str(len(demo_files))
+            # assert len(embedding_files) >= subtask_size, "Doesn't have enough embedding data "+str(len(embedding_files))
+            assert len(embedding_files) == 1, "You must have only one centroid: you have "+str(len(embedding_files)) + "centroids"
+            
+            idxs = split_files(len(demo_files), split, self.mode) # train_val/test split
+            demo_files = [demo_files[i] for i in idxs]
+     
+            # # shuffle first and then split train_val and test (60% and 40%)
+            # train_val_split = n_train_and_val_samples_per_subtask/len(demo_files)
+            # test_split = 1 - train_val_split
+            # split = [train_val_split, test_split]
+            
+            # if self.mode == 'val':
+            #     idxs = split_files(len(demo_files), split, 'train') # train_val/test split
+            # else: # train or test
+            #     idxs = split_files(len(demo_files), split, self.mode) # train_val/test split
+            # demo_files = [demo_files[i] for i in idxs] # file di train
+            # # embedding_files = [embedding_files[i] for i in idxs] # train embeddings (task0 e emb0 non necessariamente devono essere accoppiati)
                 
-            if self.mode != 'test':
-                idxs = split_files(len(demo_files), split, self.mode) # train/test split
-                demo_files = [demo_files[i] for i in idxs] # file di train
-                embedding_files = [embedding_files[i] for i in idxs] # train embeddings (task0 e emb0 non necessariamente devono essere accoppiati)
+            # if self.mode != 'test': # we have 60% of samples, here we do a [90%, 10%] split of this 60%.
+            #     train_val_idxs = split_files(len(demo_files), self.split, self.mode)
+            #     demo_files = [demo_files[i] for i in idxs]
+            #     # demo_files = demo_files[:subtask_size]
+            #     # embedding_files = embedding_files[:subtask_size]
+            # else: # in test mode we want to take other samples from train/val
+            #     end_file_idx = subtask_size + self.n_test_samples_per_subtask # where we want to stop with training examples
+            #     assert end_file_idx <= len(demo_files), 'you don\'t have enough demo data for test'
+            #     demo_files = demo_files[subtask_size:end_file_idx]
+            #     # embedding_files = embedding_files[:self.n_test_samples_per_subtask]
                 
+            # if self.mode != 'test':
+  
             self.demo_files[name][_id] = deepcopy(demo_files)   # pick_place -> 00/01/../15 -> paths
             self.embedding_files[name][_id] = deepcopy(embedding_files)
             
@@ -289,8 +306,8 @@ class CommandEncoderDataset(Dataset):
         
         print('Done loading Task {}, demo trajctores and embeddings pairs reach a count of: {}'.format(name, demo_file_cnt))
         
-        assert demo_file_cnt == embedding_file_cnt, f'demo videos and embeddings should have the same lenght! {demo_file_cnt, embedding_file_cnt}'
-        self.file_count = demo_file_cnt # in questo caso abbiamo solo video del dimostratore
+        # assert demo_file_cnt == embedding_file_cnt, f'demo videos and embeddings should have the same lenght! {demo_file_cnt, embedding_file_cnt}'
+        self.file_count = demo_file_cnt # we have only demonstration videos
         self.use_strong_augs = use_strong_augs
         self.data_augs = data_augs
         self.frame_aug = create_data_aug(self)
@@ -303,7 +320,8 @@ class CommandEncoderDataset(Dataset):
         #     pass
         # task_name, sub_task_id, demo_file, embedding = self.all_demo_files[index]
         task_name, sub_task_id, demo_file = self.all_demo_files[index]
-        _, _, embedding_file = self.all_embedding_files[index]
+        # _, _, embedding_file = self.all_embedding_files[index]
+        _, _, embedding_file = self.all_embedding_files[sub_task_id]
         
         start = time.time()
         demo_traj = load_traj(demo_file) # loading traiettoria

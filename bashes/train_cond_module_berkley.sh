@@ -27,37 +27,90 @@ EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 # SAVE_PATH=/raid/home/frosa_Loc/multi_task_lfd/checkpoint_save_folder
 POLICY='${cond_module}'
+TARGET='multi_task_il.models.mt_rep.VideoImitation'
 
 SAVE_FREQ=-1
 LOG_FREQ=10
 VAL_FREQ=-1
-DEVICE=0 # cuda gpu selection
-DEBUG=false
-WANDB_LOG=true
+DEVICE=1    # cuda gpu selection
+DEBUG=true
+WANDB_LOG=false
 ROLLOUT=false
 EPOCH=5
 LOADER_WORKERS=16
 CONFIG_PATH=../experiments
 CONFIG_NAME=config_cond_module.yaml
+CONCAT_IMG_EMB=true
+CONCAT_DEMO_EMB=true
+
+LOAD_TARGET_OBJ_DETECTOR=false
+CONCAT_BB=false
+
+CHANGE_COMMAND_EPOCH=true
+SPLIT_PICK_PLACE=false
+
+LOAD_CONTRASTIVE=true
+LOAD_INV=true
+
+CONCAT_STATE=true
 
 if [ "$TASK_NAME" == 'pick_place' ]; then
     echo "Pick-Place"
     ### Pick-Place ###
+    RESUME_PATH=""
+    RESUME_STEP=""
     RESUME=false
 
+    TARGET_OBJ_DETECTOR_STEP=37476 #68526 #129762 #198900 #65250
+    TARGET_OBJ_DETECTOR_PATH=${SAVE_PATH}/1Task-Pick-Place-KP-Batch112
+
     BSIZE=32 #32 #128 #64 #32
+    COMPUTE_OBJ_DISTRIBUTION=false
     # Policy 1: At each slot is assigned a RandomSampler
+    BALANCING_POLICY=0
     SET_SAME_N=2
 
-    OPTIMIZER='AdamW'
-    LR=0.0005 # not used
+    NORMALIZE_ACTION=true
 
-    HEIGHT=100 # not used
-    WIDTH=180 # not used
+    CONTRASTIVE_PRE=1.0
+    CONTRASTIVE_POS=1.0
+    MUL_INTM=0
+    BC_MUL=1.0
+    INV_MUL=1.0
+
+    FREEZE_TARGET_OBJ_DETECTOR=false
+    REMOVE_CLASS_LAYERS=false
+    CONCAT_TARGET_OBJ_EMBEDDING=false
+
+    ACTION_DIM=7
+    N_MIXTURES=3       #14 MT #7 2Task, Nut, button, stack #3 Pick-place #2 Nut-Assembly
+    OUT_DIM=128        #64 MT #64 2Task, Nut, button, stack #128 Pick-place
+    ATTN_FF=256        #256 MT #128 2Task, Nut, button, stack #256 Pick-place
+    COMPRESSOR_DIM=256 #256 MT #128 2Task, Nut, button, stack #256 Pick-place
+    HIDDEN_DIM=512     #256 MT #128 2Task, Nut, button, stack #512 Pick-place
+    CONCAT_DEMO_HEAD=false
+    CONCAT_DEMO_ACT=true
+    PRETRAINED=false
+    NULL_BB=false
+
+    EARLY_STOPPING_PATIECE=-1
+    OPTIMIZER='AdamW'
+    LR=0.0005
+    WEIGHT_DECAY=0.0
+    SCHEDULER=None
+
+    DROP_DIM=4      # 2    # 3
+    OUT_FEATURE=128 # 512 # 256
+    DIM_H=13        #14        # 7 (100 DROP_DIM 3)        #8         # 4         # 7
+    DIM_W=23        #14        # 12 (180 DROP_DIM 3)        #8         # 6         # 12
+    HEIGHT=100
+    WIDTH=180
+
+    COSINE_ANNEALING=false
 
     TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
-    # EXP_NAME=1Task-${TASK_str}-cond_module_no_lr_1e-4   #1Task-${TASK_str}-Panda_dem_sim_agent_ur5e_sim_2      #1Task-${TASK_str}-MOSAIC-Rollout
-    EXP_NAME=1Task-${TASK_str}-cond_module_lr_1e-4_good_split   #1Task-${TASK_str}-Panda_dem_sim_agent_ur5e_sim_2      #1Task-${TASK_str}-MOSAIC-Rollout
+    EXP_NAME=1Task-${TASK_str}-cond_module_no_lr_1e-4   #1Task-${TASK_str}-Panda_dem_sim_agent_ur5e_sim_2      #1Task-${TASK_str}-MOSAIC-Rollout
+    PROJECT_NAME=${EXP_NAME}
 fi
 
 # srun --output=training_${EXP_NAME}.txt --job-name=training_${EXP_NAME}
