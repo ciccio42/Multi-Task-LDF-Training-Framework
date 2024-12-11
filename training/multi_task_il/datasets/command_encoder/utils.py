@@ -534,8 +534,12 @@ def make_demo(dataset, traj, task_name):
                     int(i * per_bracket), int((i + 1) * per_bracket)))
             # frames.append(_make_frame(n))
             # convert from BGR to RGB and scale to 0-1 range
-            obs = copy.copy(
-                traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
+            try:
+                obs = copy.copy(
+                    traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
+            except KeyError:
+                obs = copy.copy(
+                    traj.get(n)['obs']['image'][:, :, ::-1]) 
             processed = dataset.frame_aug(
                 task_name,
                 obs,
@@ -564,7 +568,17 @@ def make_demo(dataset, traj, task_name):
                 obj_in_hand = 0
                 # get the first frame with obj_in_hand and the gripper is closed
                 for t in range(1, len(traj)):
-                    state = traj.get(t)['info']['status']
+                    try:
+                        state = traj.get(t)['info']['status']
+                    except KeyError:
+                        trj_t = traj.get(t)
+                        gripper_act = trj_t['action'][-1]
+                        if gripper_act == 1:
+                            obj_in_hand = t
+                            n = t
+                            break
+                        continue                   
+                        
                     trj_t = traj.get(t)
                     gripper_act = trj_t['action'][-1]
                     if state == 'obj_in_hand' and gripper_act == 1:
@@ -576,7 +590,12 @@ def make_demo(dataset, traj, task_name):
                 start_moving = 0
                 end_moving = 0
                 for t in range(obj_in_hand, len(traj)):
-                    state = traj.get(t)['info']['status']
+                    try:
+                        state = traj.get(t)['info']['status']
+                    except KeyError:
+                        trj_t = traj.get(t)
+                        n = int(len(traj)/2)
+                        break 
                     if state == 'moving' and start_moving == 0:
                         start_moving = t
                     elif state != 'moving' and start_moving != 0 and end_moving == 0:
@@ -585,8 +604,12 @@ def make_demo(dataset, traj, task_name):
                 n = start_moving + int((end_moving-start_moving)/2)
 
             # convert from BGR to RGB and scale to 0-1 range
-            obs = copy.copy(
-                traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
+            try:
+                obs = copy.copy(
+                    traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
+            except KeyError:
+                obs = copy.copy(
+                    traj.get(n)['obs']['image'][:, :, ::-1]) 
 
             processed = dataset.frame_aug(task_name,
                                           obs,

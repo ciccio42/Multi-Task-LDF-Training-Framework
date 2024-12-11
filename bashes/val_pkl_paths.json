@@ -1,82 +1,4 @@
 {
-  "iamlab_cmu_pickup_insert_converted": {
-    "pick_green_block": [
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00006.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00023.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00037.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00052.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00101.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00126.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00181.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00193.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00195.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00286.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00395.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00450.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00487.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00504.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00525.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00527.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00529.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00539.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00544.pkl"
-    ],
-    "pick_pink_block": [
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00012.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00024.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00046.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00068.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00116.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00145.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00199.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00209.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00216.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00288.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00362.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00383.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00416.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00419.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00426.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00457.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00458.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00467.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00473.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00475.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00570.pkl"
-    ],
-    "insert_green_block": [
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00004.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00039.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00066.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00112.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00204.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00211.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00214.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00466.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00535.pkl"
-    ],
-    "pick_blue_block": [
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00009.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00036.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00078.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00110.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00179.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00188.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00189.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00435.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00472.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00500.pkl"
-    ],
-    "pick_yellow_block": [
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00111.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00142.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00158.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00177.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00332.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00376.pkl",
-      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00574.pkl"
-    ]
-  },
   "taco_play_converted": {
     "rotate_yellow_block_left": [
       "/user/frosa/multi_task_lfd/datasets/taco_play_converted/rotate_yellow_block_left/taco_play_00174.pkl",
@@ -525,7 +447,7 @@
       "/user/frosa/multi_task_lfd/datasets/taco_play_converted/push_purple_block_right/taco_play_01369.pkl"
     ],
     "stack_yellow_on_": [
-      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/stack_yellow_on_/taco_play_03201.pkl"
+      "/user/frosa/multi_task_lfd/datasets/taco_play_converted/stack_yellow_on_/taco_play_00354.pkl"
     ],
     "stack_pink_on_yellow": [
       "/user/frosa/multi_task_lfd/datasets/taco_play_converted/stack_pink_on_yellow/taco_play_00453.pkl"
@@ -559,471 +481,471 @@
     ],
     "pick": {
       "pick_the_bottle_on_the_table_and_put_it_in_the_lower_compartment_of_the_tray": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_the_bottle_on_the_table_and_put_it_in_the_lower_compartment_of_the_tray/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_the_bottle_on_the_table_and_put_it_in_the_lower_compartment_of_the_tray/droid_00006.pkl"
       ],
       "pick_up_the_purple_plush_toy_from_the_pot_and_put_it_in_the_sink": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_purple_plush_toy_from_the_pot_and_put_it_in_the_sink/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_purple_plush_toy_from_the_pot_and_put_it_in_the_sink/droid_00030.pkl"
       ],
       "pick_up_the_pen_from_red_mug_cup_and_put_it_on_the_table.": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_pen_from_red_mug_cup_and_put_it_on_the_table./droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_pen_from_red_mug_cup_and_put_it_on_the_table./droid_00033.pkl"
       ],
       "pick_up_the_pen_and_put_it_in_the_cup": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_pen_and_put_it_in_the_cup/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_pen_and_put_it_in_the_cup/droid_00067.pkl"
       ],
       "pick_the_marker_and_put_it_in_the_pot": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_the_marker_and_put_it_in_the_pot/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_the_marker_and_put_it_in_the_pot/droid_00086.pkl"
       ],
       "pick_up_the_fries_and_put_them_in_the_orange_cup,_then_pour_them_into_a_pot": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_fries_and_put_them_in_the_orange_cup,_then_pour_them_into_a_pot/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_fries_and_put_them_in_the_orange_cup,_then_pour_them_into_a_pot/droid_00091.pkl"
       ],
       "pick_up_the_spoon,_scoop_some_contents_from_the_white_plate_and_put_it_in_the_white_bowl.": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_spoon,_scoop_some_contents_from_the_white_plate_and_put_it_in_the_white_bowl./droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_spoon,_scoop_some_contents_from_the_white_plate_and_put_it_in_the_white_bowl./droid_00106.pkl"
       ],
       "pick_up_the_dark_bowl_and_move_it_to_the_left._switch_off_the_coffee_maker.": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_dark_bowl_and_move_it_to_the_left._switch_off_the_coffee_maker./droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_dark_bowl_and_move_it_to_the_left._switch_off_the_coffee_maker./droid_00107.pkl"
       ],
       "pick_up_the_ropes_from_the_table_and_put_them_in_the_box": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_ropes_from_the_table_and_put_them_in_the_box/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_ropes_from_the_table_and_put_them_in_the_box/droid_00123.pkl"
       ],
       "pick_a_leaf_from_the_plant": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_a_leaf_from_the_plant/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_a_leaf_from_the_plant/droid_00131.pkl"
       ],
       "pick_up_the_towel_from_the_hand_basin,_wipe_the_wall_with_it_and_put_the_towel_back_on_the_hand_basin.": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_towel_from_the_hand_basin,_wipe_the_wall_with_it_and_put_the_towel_back_on_the_hand_basin./droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_towel_from_the_hand_basin,_wipe_the_wall_with_it_and_put_the_towel_back_on_the_hand_basin./droid_00143.pkl"
       ],
       "pick_up_the_purple_toy_from_the_bowl_and_put_it_on_the_table.": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_purple_toy_from_the_bowl_and_put_it_on_the_table./droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_purple_toy_from_the_bowl_and_put_it_on_the_table./droid_00147.pkl"
       ],
       "pick_up_the_blue_cup_and_put_it_on_top_of_the_cabinet": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_blue_cup_and_put_it_on_top_of_the_cabinet/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_blue_cup_and_put_it_on_top_of_the_cabinet/droid_00151.pkl"
       ],
       "pick_the_lid_and_put_it_on_the_pot": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_the_lid_and_put_it_on_the_pot/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_the_lid_and_put_it_on_the_pot/droid_00180.pkl"
       ],
       "pick_up_the_towel_and_clean_the_small_portion_of_the_table": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_towel_and_clean_the_small_portion_of_the_table/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_towel_and_clean_the_small_portion_of_the_table/droid_00188.pkl"
       ],
       "pick_the_marker_and_put_it_in_the_bowl": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_the_marker_and_put_it_in_the_bowl/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_the_marker_and_put_it_in_the_bowl/droid_00195.pkl"
       ],
       "pick_up_the_two_cans_on_the_right_and_put_them_inside_the_bin_one_by_one": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_two_cans_on_the_right_and_put_them_inside_the_bin_one_by_one/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_two_cans_on_the_right_and_put_them_inside_the_bin_one_by_one/droid_00215.pkl"
       ],
       "pick_the_pen_and_put_it_in_the_cup": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_the_pen_and_put_it_in_the_cup/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_the_pen_and_put_it_in_the_cup/droid_00230.pkl"
       ],
       "pick_up_the_white_marker_and_put_it_in_the_green_cup": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_white_marker_and_put_it_in_the_green_cup/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_the_white_marker_and_put_it_in_the_green_cup/droid_00244.pkl"
       ],
       "pick_up_one_pair_of_tongs_from_the_table_and_put_them_in_the_glass_jar": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_one_pair_of_tongs_from_the_table_and_put_them_in_the_glass_jar/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pick/pick_up_one_pair_of_tongs_from_the_table_and_put_them_in_the_glass_jar/droid_00253.pkl"
       ]
     },
     "push": {
       "push_down_the_button_on_the_toaster.": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/push/push_down_the_button_on_the_toaster./droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/push/push_down_the_button_on_the_toaster./droid_00007.pkl"
       ],
       "push_the_door_handle_down_and_open_the_door": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/push/push_the_door_handle_down_and_open_the_door/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/push/push_the_door_handle_down_and_open_the_door/droid_00040.pkl"
       ],
       "push_down_the_right_toaster_lever": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/push/push_down_the_right_toaster_lever/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/push/push_down_the_right_toaster_lever/droid_00079.pkl"
       ],
       "push_the_faucet_handle_on_the_right_forwards.": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/push/push_the_faucet_handle_on_the_right_forwards./droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/push/push_the_faucet_handle_on_the_right_forwards./droid_00092.pkl"
       ],
       "push_the_lever_of_the_bread_toaster_down": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/push/push_the_lever_of_the_bread_toaster_down/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/push/push_the_lever_of_the_bread_toaster_down/droid_00132.pkl"
       ],
       "push_a_button_on_the_board": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/push/push_a_button_on_the_board/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/push/push_a_button_on_the_board/droid_00165.pkl"
       ]
     },
     "place": {
       "place_the_lid_on_the_jug": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/place/place_the_lid_on_the_jug/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/place/place_the_lid_on_the_jug/droid_00008.pkl"
       ],
       "place_the_blue_building_block_inside_the_open_drawer_and_close_the_drawer": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/place/place_the_blue_building_block_inside_the_open_drawer_and_close_the_drawer/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/place/place_the_blue_building_block_inside_the_open_drawer_and_close_the_drawer/droid_00128.pkl"
       ],
       "place_the_coin_in_the_open_drawer.": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/place/place_the_coin_in_the_open_drawer./droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/place/place_the_coin_in_the_open_drawer./droid_00239.pkl"
       ],
       "place_the_object_on_the_shelf_from_the_counter": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/place/place_the_object_on_the_shelf_from_the_counter/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/place/place_the_object_on_the_shelf_from_the_counter/droid_00249.pkl"
       ]
     },
     "slide": {
       "slide_the_lid_on_the_wooden_toy_box_to_the_right.": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/slide/slide_the_lid_on_the_wooden_toy_box_to_the_right./droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/slide/slide_the_lid_on_the_wooden_toy_box_to_the_right./droid_00011.pkl"
       ],
       "slide_the_tap_to_the_center_of_the_sink_and_press_down_the__tap_handle": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/slide/slide_the_tap_to_the_center_of_the_sink_and_press_down_the__tap_handle/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/slide/slide_the_tap_to_the_center_of_the_sink_and_press_down_the__tap_handle/droid_00027.pkl"
       ],
       "slide_the_towel_to_the_right": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/slide/slide_the_towel_to_the_right/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/slide/slide_the_towel_to_the_right/droid_00057.pkl"
       ],
       "slide_the_mug_to_the_left": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/slide/slide_the_mug_to_the_left/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/slide/slide_the_mug_to_the_left/droid_00187.pkl"
       ]
     },
     "move": {
       "move_the_pillow": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_pillow/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_pillow/droid_00012.pkl"
       ],
       "move_the_towel_to_the_right": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_towel_to_the_right/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_towel_to_the_right/droid_00020.pkl"
       ],
       "move_the_can_to_the_left": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_can_to_the_left/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_can_to_the_left/droid_00031.pkl"
       ],
       "move_the_right_cylindrical_block_towards_you": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_right_cylindrical_block_towards_you/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_right_cylindrical_block_towards_you/droid_00055.pkl"
       ],
       "move_the_white_mug_cup_slightly_to_left.": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_white_mug_cup_slightly_to_left./droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_white_mug_cup_slightly_to_left./droid_00084.pkl"
       ],
       "move_the_bowl_from_the_dish_rack_to_the_counter": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_bowl_from_the_dish_rack_to_the_counter/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_bowl_from_the_dish_rack_to_the_counter/droid_00099.pkl"
       ],
       "move_the_bottle_to_the_left": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_bottle_to_the_left/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_bottle_to_the_left/droid_00118.pkl"
       ],
       "move_the_gray_doll_to_the_left": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_gray_doll_to_the_left/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_gray_doll_to_the_left/droid_00121.pkl"
       ],
       "move_the_green_towel_to_the_bottom_right_corner": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_green_towel_to_the_bottom_right_corner/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_green_towel_to_the_bottom_right_corner/droid_00135.pkl"
       ],
       "move_the_ball_to_the_right": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_ball_to_the_right/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_ball_to_the_right/droid_00161.pkl"
       ],
       "move_the_spoon_forward": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_spoon_forward/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_spoon_forward/droid_00209.pkl"
       ],
       "move_the_hanger_with_the_black_and_white_shirt_to_the_right": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_hanger_with_the_black_and_white_shirt_to_the_right/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_hanger_with_the_black_and_white_shirt_to_the_right/droid_00222.pkl"
       ],
       "move_the_black_pot_to_the_left_side_of_the_stove,_pick_up_the_jar_with_the_orange_lid_from_the_right_side_of_the_counter_and_place_it_in-between_the_two_pots_on_the_stove,_remove_the_wooden_spoon_from_the_black_pot_on_the_left_and_put_it_on_the_stove": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_black_pot_to_the_left_side_of_the_stove,_pick_up_the_jar_with_the_orange_lid_from_the_right_side_of_the_counter_and_place_it_in-between_the_two_pots_on_the_stove,_remove_the_wooden_spoon_from_the_black_pot_on_the_left_and_put_it_on_the_stove/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_black_pot_to_the_left_side_of_the_stove,_pick_up_the_jar_with_the_orange_lid_from_the_right_side_of_the_counter_and_place_it_in-between_the_two_pots_on_the_stove,_remove_the_wooden_spoon_from_the_black_pot_on_the_left_and_put_it_on_the_stove/droid_00232.pkl"
       ],
       "move_the_cup_closer_to_the_marker": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_cup_closer_to_the_marker/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/move/move_the_cup_closer_to_the_marker/droid_00259.pkl"
       ]
     },
     "remove": {
       "remove_the_marker_from_the_mug": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_marker_from_the_mug/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_marker_from_the_mug/droid_00015.pkl"
       ],
       "remove_the_marker_the_blue_cup_and_place_it_on_the_apron": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_marker_the_blue_cup_and_place_it_on_the_apron/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_marker_the_blue_cup_and_place_it_on_the_apron/droid_00044.pkl"
       ],
       "remove_the_red_cup_from_the_dishwasher_and_put_it_in_the_black_lunchbox_in_the_sink": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_red_cup_from_the_dishwasher_and_put_it_in_the_black_lunchbox_in_the_sink/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_red_cup_from_the_dishwasher_and_put_it_in_the_black_lunchbox_in_the_sink/droid_00080.pkl"
       ],
       "remove_the_yellow_pen_from_the_white_cup": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_yellow_pen_from_the_white_cup/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_yellow_pen_from_the_white_cup/droid_00104.pkl"
       ],
       "remove_the_bowl_from_the_open_drawer_and_place_it_on_the_countertop": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_bowl_from_the_open_drawer_and_place_it_on_the_countertop/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_bowl_from_the_open_drawer_and_place_it_on_the_countertop/droid_00105.pkl"
       ],
       "remove_the_lid_from_the_pot.": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_lid_from_the_pot./droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_lid_from_the_pot./droid_00113.pkl"
       ],
       "remove_the_trousers_from_the_bag,_move_the_bottle_to_the_machine_on_the_left,_and_then_close_the_washing_machine": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_trousers_from_the_bag,_move_the_bottle_to_the_machine_on_the_left,_and_then_close_the_washing_machine/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_trousers_from_the_bag,_move_the_bottle_to_the_machine_on_the_left,_and_then_close_the_washing_machine/droid_00114.pkl"
       ],
       "remove_all_the_contents_from_the_white_plastic_bag_one_at_at_time_and_put_them_on_the_table": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_all_the_contents_from_the_white_plastic_bag_one_at_at_time_and_put_them_on_the_table/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_all_the_contents_from_the_white_plastic_bag_one_at_at_time_and_put_them_on_the_table/droid_00146.pkl"
       ],
       "remove_the_lid_from_the_transparent_jar": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_lid_from_the_transparent_jar/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_lid_from_the_transparent_jar/droid_00168.pkl"
       ],
       "remove_the_clothing_from_the_left_armrest_of_the_black_chair_and_place_it_on_the_sofa": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_clothing_from_the_left_armrest_of_the_black_chair_and_place_it_on_the_sofa/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_clothing_from_the_left_armrest_of_the_black_chair_and_place_it_on_the_sofa/droid_00177.pkl"
       ],
       "remove_the_lid_from_the_pot_and_place_it_on_the_table": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_lid_from_the_pot_and_place_it_on_the_table/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_lid_from_the_pot_and_place_it_on_the_table/droid_00178.pkl"
       ],
       "remove_the_screwdriver_from_the_tray_and_put_it_on_the_purple_placemat": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_screwdriver_from_the_tray_and_put_it_on_the_purple_placemat/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_screwdriver_from_the_tray_and_put_it_on_the_purple_placemat/droid_00196.pkl"
       ],
       "remove_one_tissue_from_the_box": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_one_tissue_from_the_box/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_one_tissue_from_the_box/droid_00201.pkl"
       ],
       "remove_the_glue_stick_from_the_yellow_mug_and_put_it_on_the_table": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_glue_stick_from_the_yellow_mug_and_put_it_on_the_table/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_glue_stick_from_the_yellow_mug_and_put_it_on_the_table/droid_00207.pkl"
       ],
       "remove_the_spoon_from_the_box_and_put_it_on_the_table": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_spoon_from_the_box_and_put_it_on_the_table/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_the_spoon_from_the_box_and_put_it_on_the_table/droid_00213.pkl"
       ],
       "remove_one_bottle_from_the_tray_and_put_it_inside_the_clear_container_on_the_left": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_one_bottle_from_the_tray_and_put_it_inside_the_clear_container_on_the_left/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/remove/remove_one_bottle_from_the_tray_and_put_it_inside_the_clear_container_on_the_left/droid_00219.pkl"
       ]
     },
     "put": {
       "put_the_marker_in_the_pot_on_the_table": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_marker_in_the_pot_on_the_table/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_marker_in_the_pot_on_the_table/droid_00017.pkl"
       ],
       "put_the_packet_on_the_bottom_shelf_above_the_sink.": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_packet_on_the_bottom_shelf_above_the_sink./droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_packet_on_the_bottom_shelf_above_the_sink./droid_00022.pkl"
       ],
       "put_the_orange_thing_in_the_can": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_orange_thing_in_the_can/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_orange_thing_in_the_can/droid_00029.pkl"
       ],
       "put_the_marker_into_the_mug.": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_marker_into_the_mug./droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_marker_into_the_mug./droid_00037.pkl"
       ],
       "put_the_yellow_cup_and_the_knife_in_the_bowl": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_yellow_cup_and_the_knife_in_the_bowl/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_yellow_cup_and_the_knife_in_the_bowl/droid_00041.pkl"
       ],
       "put_the_clear_plastic_bowl_on_the_coffee_maker": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_clear_plastic_bowl_on_the_coffee_maker/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_clear_plastic_bowl_on_the_coffee_maker/droid_00045.pkl"
       ],
       "put_the_black_shirt_on_the_couch": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_black_shirt_on_the_couch/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_black_shirt_on_the_couch/droid_00056.pkl"
       ],
       "put_the_bottle_on_the_table": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_bottle_on_the_table/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_bottle_on_the_table/droid_00058.pkl"
       ],
       "put_the_white_cable_in_the_storage_box": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_white_cable_in_the_storage_box/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_white_cable_in_the_storage_box/droid_00073.pkl"
       ],
       "put_the_white_cloth_on_the_seat_of_the_chair": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_white_cloth_on_the_seat_of_the_chair/droid_00258.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_white_cloth_on_the_seat_of_the_chair/droid_00083.pkl"
       ],
       "put_the_marker_in_the_mug": [
         "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_marker_in_the_mug/droid_00088.pkl"
       ],
       "put_the_elastic_around_the_bottle_on_the_table": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_elastic_around_the_bottle_on_the_table/droid_00162.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_elastic_around_the_bottle_on_the_table/droid_00096.pkl"
       ],
       "put_the_coffee_capsule_in_the_coffee_maker": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_coffee_capsule_in_the_coffee_maker/droid_00162.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_coffee_capsule_in_the_coffee_maker/droid_00100.pkl"
       ],
       "put_the_marker_in_the_cup": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_marker_in_the_cup/droid_00162.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_marker_in_the_cup/droid_00103.pkl"
       ],
       "put_the_marker_in_the_bowl": [
         "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_marker_in_the_bowl/droid_00110.pkl"
       ],
       "put_the_peace_of_paper_into_the_bag": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_peace_of_paper_into_the_bag/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_peace_of_paper_into_the_bag/droid_00111.pkl"
       ],
       "put_the_blue_object_inside_the_drawer_and_close_it": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_blue_object_inside_the_drawer_and_close_it/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_blue_object_inside_the_drawer_and_close_it/droid_00122.pkl"
       ],
       "put_the_green_pen_inside_the_clear_cup": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_green_pen_inside_the_clear_cup/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_green_pen_inside_the_clear_cup/droid_00136.pkl"
       ],
       "put_the_rubber_band_on_the_cup": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_rubber_band_on_the_cup/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_rubber_band_on_the_cup/droid_00148.pkl"
       ],
       "put_the_sock_on_the_windowsill": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_sock_on_the_windowsill/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_sock_on_the_windowsill/droid_00149.pkl"
       ],
       "put_the_ropes_in_the_box_one_at_a_time": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_ropes_in_the_box_one_at_a_time/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_ropes_in_the_box_one_at_a_time/droid_00164.pkl"
       ],
       "put_the_pen_in_the_mug": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_pen_in_the_mug/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_pen_in_the_mug/droid_00174.pkl"
       ],
       "put_the_cloth_on_the_black_rod": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_cloth_on_the_black_rod/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_cloth_on_the_black_rod/droid_00183.pkl"
       ],
       "put_the_orange_marker_on_the_table": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_orange_marker_on_the_table/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_orange_marker_on_the_table/droid_00186.pkl"
       ],
       "put_the_marker_in_the_cloth_and_wrap_it": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_marker_in_the_cloth_and_wrap_it/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_marker_in_the_cloth_and_wrap_it/droid_00203.pkl"
       ],
       "put_the_lid_over_the_spray_bottle": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_lid_over_the_spray_bottle/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_lid_over_the_spray_bottle/droid_00205.pkl"
       ],
       "put_the_purple_plushie_in_the_white_bowl": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_purple_plushie_in_the_white_bowl/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_purple_plushie_in_the_white_bowl/droid_00210.pkl"
       ],
       "put_the_blue_block_inside_the_wooden_object_through_the_square_hole": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_blue_block_inside_the_wooden_object_through_the_square_hole/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_blue_block_inside_the_wooden_object_through_the_square_hole/droid_00217.pkl"
       ],
       "put_the_blue_and_white_towel_in_the_open_cabinet": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_blue_and_white_towel_in_the_open_cabinet/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_blue_and_white_towel_in_the_open_cabinet/droid_00218.pkl"
       ],
       "put_the_marker_on_the_counter": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_marker_on_the_counter/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_marker_on_the_counter/droid_00221.pkl"
       ],
       "put_one_of_the_straws_on_the_counter_inside_the_open_drawer": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_one_of_the_straws_on_the_counter_inside_the_open_drawer/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_one_of_the_straws_on_the_counter_inside_the_open_drawer/droid_00237.pkl"
       ],
       "put_the_toothbrush_in_the_cup": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_toothbrush_in_the_cup/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_toothbrush_in_the_cup/droid_00247.pkl"
       ],
       "put_the_pen_near_the_mouse": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_pen_near_the_mouse/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_pen_near_the_mouse/droid_00251.pkl"
       ],
       "put_the_grey_object_inside_the_drawer_then_close_the_drawer.": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_grey_object_inside_the_drawer_then_close_the_drawer./droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_grey_object_inside_the_drawer_then_close_the_drawer./droid_00252.pkl"
       ],
       "put_the_black_masking_tape_on_the_plate": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_black_masking_tape_on_the_plate/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/put/put_the_black_masking_tape_on_the_plate/droid_00254.pkl"
       ]
     },
     "open": {
       "open_the_microwave_door": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_the_microwave_door/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_the_microwave_door/droid_00019.pkl"
       ],
       "open_the_airfryer": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_the_airfryer/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_the_airfryer/droid_00032.pkl"
       ],
       "open_the_top_drawer_of_the_plastic_cabinet": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_the_top_drawer_of_the_plastic_cabinet/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_the_top_drawer_of_the_plastic_cabinet/droid_00054.pkl"
       ],
       "open_the_lid_of_the_coffee_maker": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_the_lid_of_the_coffee_maker/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_the_lid_of_the_coffee_maker/droid_00095.pkl"
       ],
       "open_colourless_box": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_colourless_box/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_colourless_box/droid_00097.pkl"
       ],
       "open_the_tap": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_the_tap/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_the_tap/droid_00189.pkl"
       ],
       "open_the_book": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_the_book/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/open/open_the_book/droid_00235.pkl"
       ]
     },
     "take": {
       "take_the_cloth_off_the_screen_and_put_it_on_the_table": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_cloth_off_the_screen_and_put_it_on_the_table/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_cloth_off_the_screen_and_put_it_on_the_table/droid_00028.pkl"
       ],
       "take_the_blocks_in_the_bowl_and_put_them_on_the_table": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_blocks_in_the_bowl_and_put_them_on_the_table/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_blocks_in_the_bowl_and_put_them_on_the_table/droid_00039.pkl"
       ],
       "take_the_blue_marker_out_of_the_yellow_mug": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_blue_marker_out_of_the_yellow_mug/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_blue_marker_out_of_the_yellow_mug/droid_00082.pkl"
       ],
       "take_the_lid_off_the_smallest_pot_and_put_it_on_the_table": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_lid_off_the_smallest_pot_and_put_it_on_the_table/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_lid_off_the_smallest_pot_and_put_it_on_the_table/droid_00090.pkl"
       ],
       "take_the_bottle_top_and_put_it_on_the_bottle": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_bottle_top_and_put_it_on_the_bottle/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_bottle_top_and_put_it_on_the_bottle/droid_00098.pkl"
       ],
       "take_the_lid_off_the_silver_pot_and_put_it_on_the_table": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_lid_off_the_silver_pot_and_put_it_on_the_table/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_lid_off_the_silver_pot_and_put_it_on_the_table/droid_00130.pkl"
       ],
       "take_the_pen_out_of_the_bowl_and_put_it_on_the_table": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_pen_out_of_the_bowl_and_put_it_on_the_table/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_pen_out_of_the_bowl_and_put_it_on_the_table/droid_00176.pkl"
       ],
       "take_the_white_cup_from_the_black_bin_and_put_it_on_the_table": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_white_cup_from_the_black_bin_and_put_it_on_the_table/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_white_cup_from_the_black_bin_and_put_it_on_the_table/droid_00179.pkl"
       ],
       "take_the_marker_out_of_the_mug_and_put_it_on_the_table": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_marker_out_of_the_mug_and_put_it_on_the_table/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_marker_out_of_the_mug_and_put_it_on_the_table/droid_00194.pkl"
       ],
       "take_the_pen_out_of_the_cup_and_put_it_on_the_counter": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_pen_out_of_the_cup_and_put_it_on_the_counter/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/take/take_the_pen_out_of_the_cup_and_put_it_on_the_counter/droid_00229.pkl"
       ]
     },
     "pour": {
       "pour_the_contents_of_the_orange_cup_into_the_bowl": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pour/pour_the_contents_of_the_orange_cup_into_the_bowl/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pour/pour_the_contents_of_the_orange_cup_into_the_bowl/droid_00034.pkl"
       ],
       "pour_the_contents_of_the_left_bowl_into_the_right_bowl": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pour/pour_the_contents_of_the_left_bowl_into_the_right_bowl/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pour/pour_the_contents_of_the_left_bowl_into_the_right_bowl/droid_00053.pkl"
       ]
     },
     "hang": {
       "hang_the_white_cloth_on_the_black_stand": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/hang/hang_the_white_cloth_on_the_black_stand/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/hang/hang_the_white_cloth_on_the_black_stand/droid_00043.pkl"
       ]
     },
     "close": {
       "close_the_top_left_drawer": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/close/close_the_top_left_drawer/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/close/close_the_top_left_drawer/droid_00047.pkl"
       ]
     },
     "fold": {
       "fold_the_blue_shirt": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/fold/fold_the_blue_shirt/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/fold/fold_the_blue_shirt/droid_00048.pkl"
       ],
       "fold_the_towel_once_on_the_table": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/fold/fold_the_towel_once_on_the_table/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/fold/fold_the_towel_once_on_the_table/droid_00199.pkl"
       ],
       "fold_the_towel_in_half": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/fold/fold_the_towel_in_half/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/fold/fold_the_towel_in_half/droid_00234.pkl"
       ],
       "fold_the_dishcloth_four_times": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/fold/fold_the_dishcloth_four_times/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/fold/fold_the_dishcloth_four_times/droid_00248.pkl"
       ]
     },
     "stack": {
       "stack_the_pillows_at_the_edge_of_the_sofa.": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/stack/stack_the_pillows_at_the_edge_of_the_sofa./droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/stack/stack_the_pillows_at_the_edge_of_the_sofa./droid_00049.pkl"
       ]
     },
     "press": {
       "press_down_on_the_coffeemaker": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/press/press_down_on_the_coffeemaker/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/press/press_down_on_the_coffeemaker/droid_00052.pkl"
       ]
     },
     "switch": {
       "switch_off_the_extension_cord": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/switch/switch_off_the_extension_cord/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/switch/switch_off_the_extension_cord/droid_00075.pkl"
       ]
     },
     "twist": {
       "twist_the_straw_to_the_side.": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/twist/twist_the_straw_to_the_side./droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/twist/twist_the_straw_to_the_side./droid_00089.pkl"
       ]
     },
     "straighten": {
       "straighten_out_the_towel": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/straighten/straighten_out_the_towel/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/straighten/straighten_out_the_towel/droid_00094.pkl"
       ]
     },
     "turn": {
       "turn_on_the_toaster": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/turn/turn_on_the_toaster/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/turn/turn_on_the_toaster/droid_00119.pkl"
       ]
     },
     "pull": {
       "pull_the_pull_out_table_out_then_place_the_sponge_on_it": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pull/pull_the_pull_out_table_out_then_place_the_sponge_on_it/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pull/pull_the_pull_out_table_out_then_place_the_sponge_on_it/droid_00163.pkl"
       ],
       "pull_the_handle_of_the_tap_to_the_right": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/pull/pull_the_handle_of_the_tap_to_the_right/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/pull/pull_the_handle_of_the_tap_to_the_right/droid_00175.pkl"
       ]
     },
     "make": {
       "make_a_knot_with_the_object_on_the_table": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/make/make_a_knot_with_the_object_on_the_table/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/make/make_a_knot_with_the_object_on_the_table/droid_00167.pkl"
       ]
     },
     "wipe": {
       "wipe_the_table_with_the_yellow_towel": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/wipe/wipe_the_table_with_the_yellow_towel/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/wipe/wipe_the_table_with_the_yellow_towel/droid_00172.pkl"
       ]
     },
     "use": {
       "use_the_towel_to_wipe_the_plate": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/use/use_the_towel_to_wipe_the_plate/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/use/use_the_towel_to_wipe_the_plate/droid_00208.pkl"
       ],
       "use_the_white_and_red_towel_to_wipe_the_table_top": [
-        "/user/frosa/multi_task_lfd/datasets/droid_converted/use/use_the_white_and_red_towel_to_wipe_the_table_top/droid_00231.pkl"
+        "/user/frosa/multi_task_lfd/datasets/droid_converted/use/use_the_white_and_red_towel_to_wipe_the_table_top/droid_00245.pkl"
       ]
     }
   },
   "asu_table_top_converted": {
     "put_down_blue_can": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_blue_can/droid_00231.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_blue_can/asu_table_top_converted_externally_to_rlds_00000.pkl"
     ],
     "pick_green_bottle": [
       "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_green_bottle/asu_table_top_converted_externally_to_rlds_00001.pkl"
     ],
     "put_down_white_carton": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_white_carton/asu_table_top_converted_externally_to_rlds_00049.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_white_carton/asu_table_top_converted_externally_to_rlds_00002.pkl"
     ],
     "move_brown_object": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_brown_object/asu_table_top_converted_externally_to_rlds_00049.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_brown_object/asu_table_top_converted_externally_to_rlds_00003.pkl"
     ],
     "place_down_brown_object": [
       "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_brown_object/asu_table_top_converted_externally_to_rlds_00004.pkl"
@@ -1047,13 +969,13 @@
       "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_glass_bottle/asu_table_top_converted_externally_to_rlds_00010.pkl"
     ],
     "pick_blue_bottle": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_blue_bottle/asu_table_top_converted_externally_to_rlds_00068.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_blue_bottle/asu_table_top_converted_externally_to_rlds_00011.pkl"
     ],
     "pick_red_cube": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_red_cube/asu_table_top_converted_externally_to_rlds_00068.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_red_cube/asu_table_top_converted_externally_to_rlds_00012.pkl"
     ],
     "move_white_carton": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_white_carton/asu_table_top_converted_externally_to_rlds_00068.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_white_carton/asu_table_top_converted_externally_to_rlds_00013.pkl"
     ],
     "move_maroon_square": [
       "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_maroon_square/asu_table_top_converted_externally_to_rlds_00014.pkl"
@@ -1065,10 +987,10 @@
       "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_green_glass_bottle/asu_table_top_converted_externally_to_rlds_00016.pkl"
     ],
     "hold_pepsi_bottle": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_pepsi_bottle/asu_table_top_converted_externally_to_rlds_00084.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_pepsi_bottle/asu_table_top_converted_externally_to_rlds_00018.pkl"
     ],
     "move_green_glass_bottle": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_green_glass_bottle/asu_table_top_converted_externally_to_rlds_00084.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_green_glass_bottle/asu_table_top_converted_externally_to_rlds_00019.pkl"
     ],
     "place_down_red_cube": [
       "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_red_cube/asu_table_top_converted_externally_to_rlds_00020.pkl"
@@ -1080,25 +1002,25 @@
       "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_maroon_cube/asu_table_top_converted_externally_to_rlds_00023.pkl"
     ],
     "push_cocacola_bottle": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_cocacola_bottle/asu_table_top_converted_externally_to_rlds_00052.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_cocacola_bottle/asu_table_top_converted_externally_to_rlds_00024.pkl"
     ],
     "put_down_red_can": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_red_can/asu_table_top_converted_externally_to_rlds_00052.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_red_can/asu_table_top_converted_externally_to_rlds_00025.pkl"
     ],
     "push_maroon_square": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_maroon_square/asu_table_top_converted_externally_to_rlds_00052.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_maroon_square/asu_table_top_converted_externally_to_rlds_00026.pkl"
     ],
     "move_red_object": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_red_object/asu_table_top_converted_externally_to_rlds_00052.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_red_object/asu_table_top_converted_externally_to_rlds_00027.pkl"
     ],
     "put_down_white_box": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_white_box/asu_table_top_converted_externally_to_rlds_00052.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_white_box/asu_table_top_converted_externally_to_rlds_00030.pkl"
     ],
     "pick_cocacola_bottle": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_cocacola_bottle/asu_table_top_converted_externally_to_rlds_00052.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_cocacola_bottle/asu_table_top_converted_externally_to_rlds_00031.pkl"
     ],
     "place_down_red_bottle": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_red_bottle/asu_table_top_converted_externally_to_rlds_00052.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_red_bottle/asu_table_top_converted_externally_to_rlds_00032.pkl"
     ],
     "place_down_red_square": [
       "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_red_square/asu_table_top_converted_externally_to_rlds_00033.pkl"
@@ -1113,154 +1035,154 @@
       "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_white_box/asu_table_top_converted_externally_to_rlds_00038.pkl"
     ],
     "push_maroon_object": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_maroon_object/asu_table_top_converted_externally_to_rlds_00098.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_maroon_object/asu_table_top_converted_externally_to_rlds_00039.pkl"
     ],
     "push_white_carton": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_white_carton/asu_table_top_converted_externally_to_rlds_00098.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_white_carton/asu_table_top_converted_externally_to_rlds_00040.pkl"
     ],
     "move_milk_box": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_milk_box/asu_table_top_converted_externally_to_rlds_00098.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_milk_box/asu_table_top_converted_externally_to_rlds_00041.pkl"
     ],
     "hold_red_object": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_red_object/asu_table_top_converted_externally_to_rlds_00098.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_red_object/asu_table_top_converted_externally_to_rlds_00042.pkl"
     ],
     "place_down_milk_box": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_milk_box/asu_table_top_converted_externally_to_rlds_00098.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_milk_box/asu_table_top_converted_externally_to_rlds_00044.pkl"
     ],
     "push_red_object": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_red_object/asu_table_top_converted_externally_to_rlds_00098.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_red_object/asu_table_top_converted_externally_to_rlds_00045.pkl"
     ],
     "raise_blue_bottle": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/raise_blue_bottle/asu_table_top_converted_externally_to_rlds_00098.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/raise_blue_bottle/asu_table_top_converted_externally_to_rlds_00046.pkl"
     ],
     "hold_red_square": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_red_square/asu_table_top_converted_externally_to_rlds_00098.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_red_square/asu_table_top_converted_externally_to_rlds_00050.pkl"
     ],
     "pick_cocacola_can": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_cocacola_can/asu_table_top_converted_externally_to_rlds_00098.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_cocacola_can/asu_table_top_converted_externally_to_rlds_00051.pkl"
     ],
     "push_pepsi_can": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_pepsi_can/asu_table_top_converted_externally_to_rlds_00098.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_pepsi_can/asu_table_top_converted_externally_to_rlds_00055.pkl"
     ],
     "push_milk_box": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_milk_box/asu_table_top_converted_externally_to_rlds_00098.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_milk_box/asu_table_top_converted_externally_to_rlds_00056.pkl"
     ],
     "place_down_maroon_object": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_maroon_object/asu_table_top_converted_externally_to_rlds_00098.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_maroon_object/asu_table_top_converted_externally_to_rlds_00057.pkl"
     ],
     "move_white_box": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_white_box/asu_table_top_converted_externally_to_rlds_00098.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_white_box/asu_table_top_converted_externally_to_rlds_00058.pkl"
     ],
     "put_down_milk_box": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_milk_box/asu_table_top_converted_externally_to_rlds_00098.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_milk_box/asu_table_top_converted_externally_to_rlds_00059.pkl"
     ],
     "pick_up_red_object": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_red_object/asu_table_top_converted_externally_to_rlds_00098.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_red_object/asu_table_top_converted_externally_to_rlds_00060.pkl"
     ],
     "pick_up_white_carton": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_white_carton/asu_table_top_converted_externally_to_rlds_00098.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_white_carton/asu_table_top_converted_externally_to_rlds_00061.pkl"
     ],
     "put_down_bread": [
       "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_bread/asu_table_top_converted_externally_to_rlds_00062.pkl"
     ],
     "put_down_blue_bottle": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_blue_bottle/asu_table_top_converted_externally_to_rlds_00099.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_blue_bottle/asu_table_top_converted_externally_to_rlds_00063.pkl"
     ],
     "pick_red_object": [
       "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_red_object/asu_table_top_converted_externally_to_rlds_00064.pkl"
     ],
     "pick_blue_can": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_blue_can/asu_table_top_converted_externally_to_rlds_00067.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_blue_can/asu_table_top_converted_externally_to_rlds_00069.pkl"
     ],
     "move_pepsi_can": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_pepsi_can/asu_table_top_converted_externally_to_rlds_00067.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_pepsi_can/asu_table_top_converted_externally_to_rlds_00071.pkl"
     ],
     "pick_up_milk_carton": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_milk_carton/asu_table_top_converted_externally_to_rlds_00067.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_milk_carton/asu_table_top_converted_externally_to_rlds_00072.pkl"
     ],
     "pick_up_bread": [
       "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_bread/asu_table_top_converted_externally_to_rlds_00073.pkl"
     ],
     "place_down_maroon_square": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_maroon_square/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_maroon_square/asu_table_top_converted_externally_to_rlds_00075.pkl"
     ],
     "pick_white_box": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_white_box/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_white_box/asu_table_top_converted_externally_to_rlds_00076.pkl"
     ],
     "push_coke_bottle": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_coke_bottle/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_coke_bottle/asu_table_top_converted_externally_to_rlds_00077.pkl"
     ],
     "push_milk_carton": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_milk_carton/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_milk_carton/asu_table_top_converted_externally_to_rlds_00078.pkl"
     ],
     "hold_brown_object": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_brown_object/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_brown_object/asu_table_top_converted_externally_to_rlds_00080.pkl"
     ],
     "hold_white_box": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_white_box/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_white_box/asu_table_top_converted_externally_to_rlds_00081.pkl"
     ],
     "pick_maroon_square": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_maroon_square/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_maroon_square/asu_table_top_converted_externally_to_rlds_00082.pkl"
     ],
     "move_yellow_object": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_yellow_object/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_yellow_object/asu_table_top_converted_externally_to_rlds_00085.pkl"
     ],
     "push_brown_object": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_brown_object/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_brown_object/asu_table_top_converted_externally_to_rlds_00086.pkl"
     ],
     "pick_up_red_can": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_red_can/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_red_can/asu_table_top_converted_externally_to_rlds_00087.pkl"
     ],
     "put_down_maroon_object": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_maroon_object/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_maroon_object/asu_table_top_converted_externally_to_rlds_00088.pkl"
     ],
     "push_green_bottle": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_green_bottle/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_green_bottle/asu_table_top_converted_externally_to_rlds_00089.pkl"
     ],
     "raise_red_can": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/raise_red_can/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/raise_red_can/asu_table_top_converted_externally_to_rlds_00090.pkl"
     ],
     "pick_up_yellow_object": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_yellow_object/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_yellow_object/asu_table_top_converted_externally_to_rlds_00091.pkl"
     ],
     "raise_pepsi_can": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/raise_pepsi_can/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/raise_pepsi_can/asu_table_top_converted_externally_to_rlds_00092.pkl"
     ],
     "pick_coke_can": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_coke_can/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_coke_can/asu_table_top_converted_externally_to_rlds_00093.pkl"
     ],
     "pick_up_white_box": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_white_box/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_up_white_box/asu_table_top_converted_externally_to_rlds_00094.pkl"
     ],
     "place_down_pepsi_can": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_pepsi_can/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_pepsi_can/asu_table_top_converted_externally_to_rlds_00095.pkl"
     ],
     "place_down_maroon_cube": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_maroon_cube/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_maroon_cube/asu_table_top_converted_externally_to_rlds_00096.pkl"
     ],
     "push_bottle": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_bottle/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/push_bottle/asu_table_top_converted_externally_to_rlds_00100.pkl"
     ],
     "raise_coke_bottle": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/raise_coke_bottle/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/raise_coke_bottle/asu_table_top_converted_externally_to_rlds_00101.pkl"
     ],
     "put_down_pepsi_bottle": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_pepsi_bottle/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/put_down_pepsi_bottle/asu_table_top_converted_externally_to_rlds_00102.pkl"
     ],
     "place_down_red_can": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_red_can/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_red_can/asu_table_top_converted_externally_to_rlds_00103.pkl"
     ],
     "hold_green_glass_bottle": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_green_glass_bottle/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/hold_green_glass_bottle/asu_table_top_converted_externally_to_rlds_00104.pkl"
     ],
     "move_bread": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_bread/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/move_bread/asu_table_top_converted_externally_to_rlds_00105.pkl"
     ],
     "place_down_glass_bottle": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_glass_bottle/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/place_down_glass_bottle/asu_table_top_converted_externally_to_rlds_00107.pkl"
     ],
     "pick_bread": [
-      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_bread/asu_table_top_converted_externally_to_rlds_00097.pkl"
+      "/user/frosa/multi_task_lfd/datasets/asu_table_top_converted/pick_bread/asu_table_top_converted_externally_to_rlds_00108.pkl"
     ]
   },
   "berkeley_autolab_ur5_converted": {
@@ -1366,5 +1288,83 @@
         "/user/frosa/multi_task_lfd/datasets/berkeley_autolab_ur5_converted/pick_place/tiger/berkeley_autolab_ur5_00821.pkl"
       ]
     }
+  },
+  "iamlab_cmu_pickup_insert_converted": {
+    "pick_green_block": [
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00006.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00023.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00037.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00052.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00101.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00126.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00181.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00193.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00195.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00286.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00395.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00450.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00487.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00504.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00525.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00527.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00529.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00539.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00544.pkl"
+    ],
+    "pick_pink_block": [
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00012.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00024.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00046.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00068.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00116.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00145.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00199.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00209.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00216.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00288.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00362.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00383.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00416.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00419.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00426.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00457.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00458.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00467.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00473.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00475.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_pink_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00570.pkl"
+    ],
+    "insert_green_block": [
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00004.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00039.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00066.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00112.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00204.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00211.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00214.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00466.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/insert_green_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00535.pkl"
+    ],
+    "pick_blue_block": [
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00009.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00036.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00078.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00110.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00179.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00188.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00189.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00435.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00472.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_blue_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00500.pkl"
+    ],
+    "pick_yellow_block": [
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00111.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00142.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00158.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00177.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00332.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00376.pkl",
+      "/user/frosa/multi_task_lfd/datasets/iamlab_cmu_pickup_insert_converted/pick_yellow_block/iamlab_cmu_pickup_insert_converted_externally_to_rlds_00574.pkl"
+    ]
   }
 }

@@ -13,7 +13,6 @@ PATH_TO_TF_MODEL="../training/multi_task_il/models/muse/models/universal-sentenc
 
 DEBUG=false
 
-
 # python -u ../training/multi_task_il/datasets/command_encoder/generate_train_val_paths_finetuning.py \
 #         --dataset_folder=${DATASET_FOLDER} \
 #         --write_train_pkl_path \
