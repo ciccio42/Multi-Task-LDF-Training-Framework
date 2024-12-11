@@ -194,7 +194,7 @@ class CommandEncoderDataset(Dataset):
         self.width, self.height = width, height
         self.aug_twice = aug_twice
         self.aux_pose = aux_pose
-        self.select_random_frames = True
+        self.select_random_frames = False #TODO
         self.n_test_samples_per_subtask = n_test_samples_per_subtask
         self.train_val_split = split
 
@@ -221,7 +221,6 @@ class CommandEncoderDataset(Dataset):
         self.embedding_subtask_to_idx['pick_place'] = {}
         
         # transformations
-        
         self.demo_crop[name] = demo_crop
         
         for _id in range(n_tasks):
