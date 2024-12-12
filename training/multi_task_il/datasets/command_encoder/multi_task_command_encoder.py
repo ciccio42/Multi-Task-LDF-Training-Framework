@@ -163,7 +163,8 @@ class CommandEncoderDataset(Dataset):
                  name='pick_place',
                  n_tasks=16,
                  split=[0.8,0.2],
-                 demo_crop=[20, 25, 80, 75]) -> None:   # ricorda di mettere DATA_AUGS
+                 demo_crop=[20, 25, 80, 75],
+                 select_random_frames=False) -> None:   # ricorda di mettere DATA_AUGS
         
         self.available_robots = ['ur5e' , 'panda']
         
@@ -194,7 +195,7 @@ class CommandEncoderDataset(Dataset):
         self.width, self.height = width, height
         self.aug_twice = aug_twice
         self.aux_pose = aux_pose
-        self.select_random_frames = False #TODO
+        self.select_random_frames = select_random_frames #TODO
         self.n_test_samples_per_subtask = n_test_samples_per_subtask
         self.train_val_split = split
 
@@ -353,7 +354,6 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     import os
     from datetime import datetime
-    
     
     dataset = CommandEncoderDataset(data_augs=DATA_AUGS)
     dataloader = DataLoader(dataset)

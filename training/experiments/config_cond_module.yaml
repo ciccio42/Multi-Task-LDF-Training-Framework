@@ -112,6 +112,7 @@ dataset_cfg:
   n_tasks: 16 
   split: [0.90,0.10]
   demo_crop: [20, 25, 80, 75]
+  select_random_frames: False
 
 augs:
   old_aug: false
