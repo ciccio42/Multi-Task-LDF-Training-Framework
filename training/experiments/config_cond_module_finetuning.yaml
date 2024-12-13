@@ -1,5 +1,5 @@
 debug: True
-EXPERT_DATA:    null 
+EXPEc_DATA:    null 
 save_path:      null
 wandb_log: False 
 project_name: null
@@ -23,8 +23,7 @@ bb_sequence: 1
 action_sequence: 1
 task_names: null
 rollout: False
-# dataset_target: 'multi_task_il.datasets.multi_task_datasets.MultiTaskPairedDataset'
-dataset_target: 'multi_task_il.datasets.command_encoder.multi_task_command_encoder.CommandEncoderDataset'
+dataset_target: 'multi_task_il.datasets.command_encoder.command_encoder_dataset.CommandEncoderFinetuningDataset'
 # loss multipliers
 # inv_mul:        0
 # bc_mul:         0
@@ -95,23 +94,17 @@ sampler_cfg:
       
 dataset_cfg:
   _target_: ${dataset_target}
-  root_dir: ${EXPERT_DATA}
   mode: 'train'
-  robot: 'panda'
-  n_train_and_val_samples_per_subtask: 60
-  n_test_samples_per_subtask: null
+  jsons_folder: '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes'
   demo_T: 4
   width: 180
   height: 100
   aug_twice: True
   aux_pose: True
-  use_strong_augs: True
+  use_strong_augs: target_update_freq
   data_augs: ${augs}
-  use_embedding_centroids: True # use centroid embeddings as gt
-  name: 'pick_place'
-  n_tasks: 16 
-  split: [0.90,0.10]
-  demo_crop: [20, 25, 80, 75]
+  black_list: ['taco_play_converted', 'droid_converted']
+  demo_crop: [0,0,0,0]
   select_random_frames: False
 
 augs:
@@ -122,14 +115,12 @@ augs:
   hue: [0.0, 0.0]
   p: 0.1 
   horizontal_flip_p: 0.1
-  
   brightness_strong: [0.875, 1.125]
   contrast_strong: [0.5, 1.5]
   saturation_strong: [0.5, 1.5]
   hue_strong: [-0.05, 0.05]
   p_strong: 0.5 
   horizontal_flip_p_strong: 0.5
-
   null_bb: True
 
 # model related

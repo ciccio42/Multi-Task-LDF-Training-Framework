@@ -35,6 +35,7 @@ from torchmetrics.classification import Accuracy
 import gc
 from colorama import Fore, Back
 from multi_task_il.datasets.command_encoder.multi_task_command_encoder import CommandEncoderSampler, CosineLossCalculator
+from multi_task_il.datasets.command_encoder.command_encoder_dataset import FinetuningCommandEncoderSampler
 import cv2
 
 torch.autograd.set_detect_anomaly(True)
@@ -83,6 +84,10 @@ def make_data_loaders(config, dataset_cfg):
         train_sampler = samplerClass(dataset,
                                      batch_size=config.train_cfg.batch_size,
                                      shuffle=config.sampler_cfg.shuffle)
+    elif dataset_cfg._target_.split(".")[-1] == 'CommandEncoderFinetuningDataset':
+        samplerClass = FinetuningCommandEncoderSampler
+        train_sampler = samplerClass(dataset,
+                                     shuffle=True)
     else:
         if not dataset_cfg.change_command_epoch:
             samplerClass = DIYBatchSampler
@@ -106,6 +111,19 @@ def make_data_loaders(config, dataset_cfg):
                 epoch_steps=int(len(dataset)/config.get('bsize'))
             )
 
+    # if samplerClass == FinetuningCommandEncoderSampler:
+    #     train_loader = DataLoader(
+    #         dataset,
+    #         batch_sampler=train_sampler,
+    #         num_workers=config.get('loader_workers', cpu_count()),
+    #         worker_init_fn=lambda w: np.random.seed(
+    #             np.random.randint(2 ** 29) + w),
+    #         pin_memory=True,
+    #         prefetch_factor=2,
+    #         persistent_workers=True
+    #     )
+   
+    # else:
     train_loader = DataLoader(
         dataset,
         batch_sampler=train_sampler,
@@ -119,7 +137,13 @@ def make_data_loaders(config, dataset_cfg):
     )
 
     val_loader = None
-    if dataset_cfg.split[1] > 0.0:
+    
+    try:
+        split_var = dataset_cfg.split[1]
+    except AttributeError:
+        split_var = 0.1
+        
+    if split_var > 0.0:
         dataset_cfg.mode = 'val'
         val_dataset = instantiate(dataset_cfg)
         # allow validation batch to have a different size
@@ -132,6 +156,10 @@ def make_data_loaders(config, dataset_cfg):
             val_sampler = samplerClass(val_dataset,
                                         batch_size=config.train_cfg.batch_size,
                                         shuffle=config.sampler_cfg.shuffle)
+        elif dataset_cfg._target_.split(".")[-1] == 'CommandEncoderFinetuningDataset':
+            samplerClass = FinetuningCommandEncoderSampler
+            val_sampler = samplerClass(val_dataset,
+                                        shuffle=True) 
         else:
             if not dataset_cfg.change_command_epoch:
                 samplerClass = DIYBatchSampler
@@ -155,6 +183,19 @@ def make_data_loaders(config, dataset_cfg):
                     epoch_steps=int(len(val_dataset)/config.get('bsize'))
                 )
 
+
+        # if samplerClass == FinetuningCommandEncoderSampler: 
+        #     val_loader = DataLoader(
+        #         val_dataset,
+        #         batch_sampler=val_sampler,
+        #         num_workers=config.get('loader_workers', cpu_count()),
+        #         worker_init_fn=lambda w: np.random.seed(
+        #             np.random.randint(2 ** 29) + w),
+        #         pin_memory=False,
+        #         prefetch_factor=2,
+        #         persistent_workers=True
+        #     )        
+        # else:
         val_loader = DataLoader(
             val_dataset,
             batch_sampler=val_sampler,
@@ -599,12 +640,19 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
 
             task_bsize = traj['actions'].shape[0]
         else: #CondModule
-            for key in inputs.keys():
-                if key == 'demo_data':
-                    model_inputs[key].append(inputs[key]['demo'].to(device))
-                if key == 'embedding':
-                    model_inputs[key].append(inputs[key]['centroid_embedding'].to(device))
-                
+            if task_name == 'finetuning': # if we're doing pretraining on the large dataset
+                for key in inputs.keys():
+                    if key == 'demo_data':
+                        model_inputs[key].append(inputs[key]['demo'].to(device))
+                    if key == 'embedding_data':
+                        model_inputs[key].append(inputs[key].to(device))
+            else:
+                for key in inputs.keys():
+                    if key == 'demo_data':
+                        model_inputs[key].append(inputs[key]['demo'].to(device))
+                    if key == 'embedding':
+                        model_inputs[key].append(inputs[key]['centroid_embedding'].to(device))
+                    
             task_bsize = inputs['demo_data']['demo'].shape[0]
             target = torch.ones(task_bsize).to(device)
             cosine_loss_calculator = CosineLossCalculator(task_bsize, target, device)
@@ -818,7 +866,11 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
                 return task_losses, bin_acc
                 
             elif "CondModule" in config.policy._target_:
-                loss = cosine_loss_calculator.compute_cosine_similarity(out, model_inputs['embedding'])
+                
+                if task_name == 'finetuning':
+                    loss = cosine_loss_calculator.compute_cosine_similarity(out, model_inputs['embedding_data'])
+                else:
+                    loss = cosine_loss_calculator.compute_cosine_similarity(out, model_inputs['embedding'])
                 task_losses[task_name]['cosine_loss'] = loss
                 task_losses[task_name]['loss_sum'] = task_losses[task_name]['cosine_loss'] 
     return task_losses
@@ -1214,8 +1266,11 @@ class Trainer:
                 task_names = sorted(task_losses.keys())
                 if "grad_norm" not in self.config.get("loss", ""):
                     optimizer.zero_grad()
-                    weighted_task_loss = sum(
-                        [l["loss_sum"] * task_loss_muls.get(name) for name, l in task_losses.items()])
+                    if 'finetuning' in task_names:
+                        weighted_task_loss = task_losses['finetuning']['loss_sum']
+                    else:
+                        weighted_task_loss = sum(
+                            [l["loss_sum"] * task_loss_muls.get(name) for name, l in task_losses.items()])
                     weighted_task_loss.backward()
                     optimizer.step()
                 else:
@@ -1364,6 +1419,8 @@ class Trainer:
                         for task, losses in val_task_losses.items(): #TODO: check
                             for k, v in losses.items():
                                 all_val_losses[task][k].append(v)
+                                
+                        # break
 
                     # take average across all batches in the val loader
                     avg_losses = dict()
@@ -1390,9 +1447,12 @@ class Trainer:
                         print(val_print)
 
                     # compute the sum of validation losses
-                    weighted_task_loss_val = sum(
-                        [l["loss_sum"] * task_loss_muls.get(name) for name, l in avg_losses.items()])
-                    if self.config.train_cfg.lr_schedule != 'None':
+                    if 'finetuning' in task_names:
+                        weighted_task_loss_val = avg_losses['finetuning']['loss_sum']
+                    else:
+                        weighted_task_loss_val = sum(
+                            [l["loss_sum"] * task_loss_muls.get(name) for name, l in avg_losses.items()])
+                    if self.config.train_cfg.lr_schedule != None: # era segnato come 'None'
                         # perform lr-scheduling step
                         scheduler.step(val_loss=weighted_task_loss_val)
                         if self.config.wandb_log:
@@ -1529,6 +1589,8 @@ class Trainer:
             if self._early_stopping.early_stop:
                 print("----Stop training for early-stopping----")
                 break
+            
+            #break
         # when all epochs are done, save model one last time
         self.save_checkpoint(model, optimizer, weights_fn, save_fn)
 
@@ -1709,7 +1771,6 @@ class Workspace(object):
 
     def run(self):
         loss_function = None
-        #TODO:non propriamente, la loss si trova nella forward di TransformerNetwork
         if  "CondModule" in self.config.policy._target_ or "rt1" in self.config.policy._target_ or "VideoImitation" in self.config.policy._target_ or "InverseImitation" in self.config.policy._target_ or "DAMLNetwork" in self.config.policy._target_ or "CondPolicy" in self.config.policy._target_:
             if "grad_norm" not in self.config.get("loss", ""):
                 loss_function = calculate_task_loss

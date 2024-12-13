@@ -14,9 +14,7 @@ run `train_cond_module.sh` *bash* script
 run `training/train_scripts/test_cond_module.py` *python* script
 
 ## train RT-1
-
 run `train_RT1_video_cond` *bash* script
-
 * for debug, run `train_RT1_video_cond_debug.sh`
 * for resume from a checkpoint, run `train_RT1_video_cond_resume.sh`
 * [TODO] for training on berkley, run `train_RT1_video_cond_resume.sh`
@@ -31,11 +29,14 @@ run `bashes/test_RT1_video_cond.sh`
 # finetuning
 
 ## to generate embeddings from the commands of the finetuning dataset
-
 * run `bashes/generate_train_val_paths_finetuning.sh`
 
 ## train cond module on the embeddings of the finetuning dataset
+* the dataset, batchsampler are defined in `Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/multi_task_il/datasets/command_encoder/command_encoder_dataset.py`
+* for training, run the bash script `train_cond_module_finetuning` in `bashes/` 
 
-* run
+## create (demo, traj) couples for rt1 training
+* run `bashes/generate_traj_demo_couples_from_json.sh`
 
 ## train RT-1 video-conditioned on the finetuning dataset
+* the dataset, batchsampler are defined in `training/multi_task_il/datasets/finetuning_paired_dataset.py`

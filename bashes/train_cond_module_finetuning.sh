@@ -23,7 +23,7 @@ echo $1
 # TASK_NAME="$1"
 TASK_NAME="pick_place"
 
-EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/ 
+# EXPERT_DATA=/raid/home/frosa_Loc/opt_dataset/ 
 SAVE_PATH=/user/frosa/multi_task_lfd/checkpoint_save_folder
 # SAVE_PATH=/raid/home/frosa_Loc/multi_task_lfd/checkpoint_save_folder
 POLICY='${cond_module}'
@@ -32,33 +32,29 @@ SAVE_FREQ=-1
 LOG_FREQ=10
 VAL_FREQ=-1
 DEVICE=3 # cuda gpu selection
-DEBUG=true
-WANDB_LOG=false
+DEBUG=false
+WANDB_LOG=true
 ROLLOUT=false
-EPOCH=5
+EPOCH=20
 LOADER_WORKERS=16
 CONFIG_PATH=../experiments
-CONFIG_NAME=config_cond_module.yaml
+CONFIG_NAME=config_cond_module_finetuning.yaml
 
-if [ "$TASK_NAME" == 'pick_place' ]; then
-    echo "Pick-Place"
-    ### Pick-Place ###
-    RESUME=false
+RESUME=false
 
-    BSIZE=32 #32 #128 #64 #32
-    # Policy 1: At each slot is assigned a RandomSampler
-    SET_SAME_N=2
+BSIZE=32 #32 #128 #64 #32
+# Policy 1: At each slot is assigned a RandomSampler
+# SET_SAME_N=2
 
-    OPTIMIZER='AdamW'
-    LR=0.0005 # not used
+OPTIMIZER='AdamW'
+LR=0.0005 # not used
 
-    HEIGHT=100 # not used
-    WIDTH=180 # not used
+HEIGHT=100 # not used
+WIDTH=180 # not used
 
-    TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
+TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
     # EXP_NAME=1Task-${TASK_str}-cond_module_no_lr_1e-4   #1Task-${TASK_str}-Panda_dem_sim_agent_ur5e_sim_2      #1Task-${TASK_str}-MOSAIC-Rollout
-    EXP_NAME=1Task-${TASK_str}-cond_module_lr_1e-4_good_split   #1Task-${TASK_str}-Panda_dem_sim_agent_ur5e_sim_2      #1Task-${TASK_str}-MOSAIC-Rollout
-fi
+EXP_NAME=prima_vera_prova_cond_module_lr_5e-4_finetuning_batch_size-96   #1Task-${TASK_str}-Panda_dem_sim_agent_ur5e_sim_2      #1Task-${TASK_str}-MOSAIC-Rollout
 
 # srun --output=training_${EXP_NAME}.txt --job-name=training_${EXP_NAME}
 python -u ../training/train_scripts/train_any.py \
@@ -66,7 +62,6 @@ python -u ../training/train_scripts/train_any.py \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \
     device=${DEVICE} \
-    set_same_n=${SET_SAME_N} \
     task_names=${TASK_str} \
     exp_name=${EXP_NAME} \
     save_freq=${SAVE_FREQ} \
@@ -81,7 +76,6 @@ python -u ../training/train_scripts/train_any.py \
     resume=${RESUME} \
     loader_workers=${LOADER_WORKERS} \
     save_path=${SAVE_PATH} \
-    EXPERT_DATA=${EXPERT_DATA} \
     optimizer=${OPTIMIZER} \
-    # width=${WIDTH} \
-    # height=${HEIGHT}
+    
+    

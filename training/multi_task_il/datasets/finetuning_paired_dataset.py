@@ -9,7 +9,7 @@ from multi_task_il.datasets.command_encoder.utils import *
 import random
 
 
-class CommandEncoderFinetuningDataset(Dataset):
+class FinetuningPairedDataset(Dataset):
     
     def __init__(self,
                  mode='train',
@@ -42,15 +42,11 @@ class CommandEncoderFinetuningDataset(Dataset):
         
         assert jsons_folder != '', 'you must specify a location for the json folder'
         if self.mode == 'train':
-            with open(f'{jsons_folder}/train_pkl_paths.json', 'r') as file:
+            with open(f'{jsons_folder}/train_pkl_paths_couples.json', 'r') as file:
                 self.pkl_paths_dict = json.load(file)
         elif self.mode == 'val':
-            with open(f'{jsons_folder}/val_pkl_paths.json', 'r') as file:
+            with open(f'{jsons_folder}/val_pkl_paths_couples.json', 'r') as file:
                 self.pkl_paths_dict = json.load(file)
-                
-        #load embedding json paths
-        with open(f'{jsons_folder}/embeddings_data.json', 'r') as file:
-            self.embeddings_paths_dict = json.load(file)
                 
         self.all_pkl_paths = defaultdict() # store all paths
         self.map_tasks_to_idxs = defaultdict()
@@ -85,28 +81,30 @@ class CommandEncoderFinetuningDataset(Dataset):
         #     json.dump(self.map_tasks_to_idxs,outfile,indent=2) 
         
     def __getitem__(self, index):
-        traj_path, task_name = self.all_pkl_paths[index]
+        couple_path, task_name = self.all_pkl_paths[index]
         
-        #this is in order to search for embedding
-        embedding_file = None
-        start = False
-        found_dataset = False
-        for i, name in enumerate(traj_path.split('/')):
-            if start:
-                if not found_dataset:
-                    temp = self.embeddings_paths_dict[name]
-                    found_dataset = True
-                else:
-                    if '.pkl' not in name:
-                        temp = temp[name]
-                    else: # we found the embedding file
-                        embedding_file = temp[0]
-                        break
+        # for convention, in the couple the first element is the demonstration, the second one is the trajectory
+        demo_path = couple_path[0]
+        traj_path = couple_path[1]
+        
+        # start = False
+        # found_dataset = False
+        # for i, name in enumerate(traj_path.split('/')):
+        #     if start:
+        #         if not found_dataset:
+        #             temp = self.embeddings_paths_dict[name]
+        #             found_dataset = True
+        #         else:
+        #             if '.pkl' not in name:
+        #                 temp = temp[name]
+        #             else: # we found the embedding file
+        #                 embedding_file = temp[0]
+        #                 break
                     
-            if name == 'datasets':
-                start = True                
+        #     if name == 'datasets':
+        #         start = True                
 
-        demo_traj = load_traj(traj_path) # loading traiettoria
+        demo_traj = load_traj(demo_path) # loading traiettoria
         demo_data = make_demo(self, demo_traj[0], task_name)  # solo video di 4 frame del task
         
         # for t,frame in enumerate(demo_data['demo']):
@@ -121,7 +119,7 @@ class CommandEncoderFinetuningDataset(Dataset):
         return self.all_file_count
     
     
-class FinetuningCommandEncoderSampler(BatchSampler):
+class FinetuningPairedDatasetSampler(BatchSampler):
     
     def __init__(self, dataset, shuffle=True):
         self.dataset = dataset
@@ -273,17 +271,17 @@ if __name__ == '__main__':
     from multi_task_il.datasets.command_encoder.cond_module import CondModule
     from torch.utils.data import DataLoader, BatchSampler, RandomSampler
     
-    finetuning_dataset = CommandEncoderFinetuningDataset(mode='train',
-                                                         jsons_folder='/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes',
+    finetuning_dataset = FinetuningPairedDataset(mode='train',
+                                                         jsons_folder='/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes/traj_couples',
                                                          black_list=BLACK_LIST,
                                                          data_augs=DATA_AUGS)
-    val_finetuning_dataset = CommandEncoderFinetuningDataset(mode='val',
-                                                            jsons_folder='/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes',
+    val_finetuning_dataset = FinetuningPairedDataset(mode='val',
+                                                            jsons_folder='/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes/traj_couples',
                                                             black_list=BLACK_LIST,
                                                             data_augs=DATA_AUGS)
         
-    command_encoder_batch_sampler = FinetuningCommandEncoderSampler(finetuning_dataset, shuffle=True)
-    val_command_encoder_batch_sampler = FinetuningCommandEncoderSampler(val_finetuning_dataset, shuffle=True)
+    command_encoder_batch_sampler = FinetuningPairedDatasetSampler(finetuning_dataset, shuffle=True)
+    val_command_encoder_batch_sampler = FinetuningPairedDatasetSampler(val_finetuning_dataset, shuffle=True)
     # sampler = RandomSampler(finetuning_dataset)
     # batch_sampler = BatchSampler(sampler, batch_size=32, drop_last=True)
     
