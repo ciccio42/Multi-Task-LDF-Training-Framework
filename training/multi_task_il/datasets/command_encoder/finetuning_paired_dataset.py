@@ -5,16 +5,17 @@ import glob
 import pickle as pkl
 import json
 from collections import defaultdict, OrderedDict
-from multi_task_il.datasets.command_encoder.utils import *
 import random
-
+from multi_task_il.datasets.command_encoder.utils import * ###########
 
 class FinetuningPairedDataset(Dataset):
     
     def __init__(self,
                  mode='train',
                  jsons_folder='',
+                 obs_T=7,
                  demo_T=4,
+                 action_T=1,
                  width=180,
                  height=100,
                  aug_twice=True,
@@ -23,14 +24,31 @@ class FinetuningPairedDataset(Dataset):
                  data_augs=None,
                  black_list=[], #datasets to exclude
                  demo_crop=[0, 0, 0, 0], #TODO,
-                 select_random_frames=False
+                 select_random_frames=False,
+                 convert_action = False, #TODO
+                 take_first_frame = False, #TODO
+                 non_sequential=False,
+                 split_pick_place = False,
+                 state_spec=('ee_aa', 'gripper_qpos'),
+                 load_eef_point=False,
+                 bbs_T = 1,
+                 perform_augs=True,
+                 perform_scale_resize=False,
+                 agent_name='ur5',
+                 pick_next=False,
+                 normalize_action = False
                  ):
         super().__init__()
         
         # processing video demo
+        self.task_crops = OrderedDict()
         self.demo_crop = OrderedDict()
+        self.agent_crop = OrderedDict()
         self.mode = mode
         self._demo_T = demo_T
+        self._obs_T = obs_T
+        self._bbs_T = bbs_T
+        self._action_T = action_T
         self.width, self.height = width, height
         self.aug_twice = aug_twice
         self.aux_pose = aux_pose
@@ -39,6 +57,21 @@ class FinetuningPairedDataset(Dataset):
         self.use_strong_augs = use_strong_augs
         self.data_augs = data_augs
         self.frame_aug = create_data_aug(self)
+        self._convert_action = convert_action
+        self._take_first_frame = take_first_frame
+        self.split_pick_place = split_pick_place
+        self.non_sequential = non_sequential
+        self._state_spec = state_spec
+        self._load_state_spec = True if state_spec is not None else False
+        self._load_eef_point = load_eef_point
+        self._perform_augs = perform_augs
+        self.perform_scale_resize=perform_scale_resize
+        self.agent_name = agent_name
+        self.pick_next = pick_next
+        self._normalize_action = normalize_action
+        
+        if non_sequential:
+            print("Warning! The agent observations are not sampled in neighboring timesteps, make sure inverse dynamics loss is NOT used in training \n ")
         
         assert jsons_folder != '', 'you must specify a location for the json folder'
         if self.mode == 'train':
@@ -86,37 +119,113 @@ class FinetuningPairedDataset(Dataset):
         # for convention, in the couple the first element is the demonstration, the second one is the trajectory
         demo_path = couple_path[0]
         traj_path = couple_path[1]
-        
-        # start = False
-        # found_dataset = False
-        # for i, name in enumerate(traj_path.split('/')):
-        #     if start:
-        #         if not found_dataset:
-        #             temp = self.embeddings_paths_dict[name]
-        #             found_dataset = True
-        #         else:
-        #             if '.pkl' not in name:
-        #                 temp = temp[name]
-        #             else: # we found the embedding file
-        #                 embedding_file = temp[0]
-        #                 break
-                    
-        #     if name == 'datasets':
-        #         start = True                
-
-        demo_traj = load_traj(demo_path) # loading traiettoria
+                 
+        sim_crop = False #TODO
+        sub_task_id = 0 #TODO
+        demo_traj, agent_traj = load_traj(demo_path), load_traj(traj_path) # loading traiettoria
         demo_data = make_demo(self, demo_traj[0], task_name)  # solo video di 4 frame del task
+        traj = self._make_traj(
+            agent_traj[0], # traj object
+            agent_traj[1], # command
+            task_name,
+            sub_task_id,
+            sim_crop,
+            self._convert_action)
         
         # for t,frame in enumerate(demo_data['demo']):
         #     img_debug = np.moveaxis(frame.detach().cpu().numpy()*255, 0, -1)
         #     cv2.imwrite(f"debug_demo_{t}.png", img_debug) #images are already rgb
-        
-        embedding_data = pkl.load(open(embedding_file, 'rb'))
     
-        return {'demo_data': demo_data, 'embedding_data': torch.from_numpy(embedding_data), 'task_name': 'finetuning'} # task_name key is for the collate_fn, loss grouping...
+        return {'demo_data': demo_data, 'traj': traj, 'task_name': 'finetuning'} # task_name key is for the collate_fn, loss grouping...
     
     def __len__(self):
         return self.all_file_count
+    
+    def _make_traj(self, traj, command, task_name, sub_task_id, sim_crop, convert_action):
+
+        ret_dict = {}
+
+        end = len(traj)
+        start = torch.randint(low=1, high=max(
+            1, end - self._obs_T + 1), size=(1,))
+
+        if self._take_first_frame:
+            first_frame = [torch.tensor(1)]
+            chosen_t = first_frame + [j + start for j in range(self._obs_T)]
+        else:
+            chosen_t = [j + start for j in range(self._obs_T)]
+
+        if self.non_sequential:
+            chosen_t = torch.randperm(end)
+            chosen_t = chosen_t[chosen_t != 0][:self._obs_T]
+
+        first_phase = None
+        if self.split_pick_place:
+            first_t = chosen_t[0].item()
+            last_t = chosen_t[-1].item()
+            if task_name == 'nut_assembly' or task_name == 'pick_place' or 'button' in task_name or 'stack_block' in task_name:
+                first_step_gripper_state = traj.get(first_t)['action'][-1]
+                first_phase = True if first_step_gripper_state == -1.0 or first_step_gripper_state == 0.0 else False
+                last_step_gripper_state = traj.get(last_t)['action'][-1]
+
+                # if first_step_gripper_state == 1.0 and last_step_gripper_state == -1.0:
+                #     print("Last with placing")
+                if (first_step_gripper_state != last_step_gripper_state) and not (first_step_gripper_state == 1.0 and (last_step_gripper_state == -1.0 or last_step_gripper_state == 0.0)):
+                    # change in task phase
+                    for indx, step in enumerate(range(first_t, last_t+1)):
+                        action_t = traj.get(step)['action'][-1]
+                        if first_step_gripper_state != action_t:
+                            step_change = step
+                            break
+                    for indx, step in enumerate(range(step_change+1-self._obs_T, step_change+1)):
+                        chosen_t[indx] = torch.tensor(step)
+
+
+        ############################## TODO
+        self._load_state_spec = False
+        images, images_cp, bb, obj_classes, action, states, points = create_sample(
+            dataset_loader=self,
+            traj=traj,
+            chosen_t=chosen_t,
+            task_name=task_name,
+            command=command,
+            load_action=True,
+            load_state=self._load_state_spec,
+            load_eef_point=self._load_eef_point,
+            agent_task_id=sub_task_id,
+            sim_crop=sim_crop,
+            convert_action=convert_action)
+
+        ret_dict['images'] = torch.stack(images)
+
+        if self.aug_twice:
+            ret_dict['images_cp'] = torch.stack(images_cp)
+
+        ret_dict['gt_bb'] = torch.stack(bb)
+        ret_dict['gt_classes'] = torch.stack(obj_classes)
+
+        ret_dict['states'] = []
+        ret_dict['states'] = np.array(states)
+
+        ret_dict['actions'] = []
+        ret_dict['actions'] = np.array(action)
+
+        ret_dict['points'] = []
+        ret_dict['points'] = np.array(points)
+
+        if self.split_pick_place:
+            ret_dict['first_phase'] = torch.tensor(first_phase)
+
+        if self.aux_pose:
+            grip_close = np.array(
+                [traj.get(i, False)['action'][-1] > 0 for i in range(1, len(traj))])
+            grip_t = np.argmax(grip_close)
+            drop_t = len(traj) - 1 - \
+                np.argmax(np.logical_not(grip_close)[::-1])
+            aux_pose = [traj.get(t, False)['obs']['ee_aa'][:3]
+                        for t in (grip_t, drop_t)]
+            ret_dict['aux_pose'] = np.concatenate(aux_pose).astype(np.float32)
+        return ret_dict
     
     
 class FinetuningPairedDatasetSampler(BatchSampler):
@@ -184,7 +293,7 @@ class FinetuningPairedDatasetSampler(BatchSampler):
         #         self.task_iterators[iter_idx] = iter(self.task_idx_samplers[iter_idx])
         #     batch.append(sample)
         
-        for i in range(self.max_len): # quante volte farlo? fino alla lunghezza del task più lungo
+        for i in range(self.max_len): # quante volte farlo? fino alla lunghezza del task con più traiettorie
             batch = []
             for dataset_str in self.task_iterators.keys(): # per come è ora si ferma appena ha letto tutti i task
                 for task_str in self.task_iterators[dataset_str].keys():
@@ -221,10 +330,10 @@ class FinetuningPairedDatasetSampler(BatchSampler):
             
             if self.shuffle:
                 random.shuffle(batch)
-                # print(f"batch: {batch}")
+                print(f"batch: {batch}")
                 yield batch
             else:   
-                # print(f"batch: {batch}")
+                print(f"batch: {batch}")
                 yield batch
         
     

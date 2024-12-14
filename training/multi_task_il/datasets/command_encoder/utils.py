@@ -1314,39 +1314,50 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
 
         if not getattr(dataset_loader, "real", False) or (getattr(dataset_loader, "real", False) and sim_crop):
             # cv2.imwrite("prova.png", step_t['obs']['camera_front_image'])
-            image = copy.copy(
-                step_t['obs']['camera_front_image'][:, :, ::-1])
+            try:
+                image = copy.copy(
+                    step_t['obs']['camera_front_image'][:, :, ::-1])
+            except KeyError:
+                image = copy.copy(
+                    step_t['obs']['image'][:, :, ::-1])
         else:
-            image = copy.copy(
-                step_t['obs']['camera_front_image'])
+            try:
+                image = copy.copy(
+                    step_t['obs']['camera_front_image'])
+            except KeyError:
+                image = copy.copy(
+                    step_t['obs']['image'])
 
         if DEBUG:
             cv2.imwrite("original_image.png", image)
 
         # Create GT BB
-        bb_time = time.time()
-        if getattr(dataset_loader, '_bbs_T', 1) == 1:
-            bb_frame, class_frame = create_gt_bb(dataset_loader=dataset_loader,
-                                                 traj=traj,
-                                                 step_t=step_t,
-                                                 task_name=task_name,
-                                                 distractor=distractor,
-                                                 command=command,
-                                                 subtask_id=subtask_id,
-                                                 agent_task_id=agent_task_id,
-                                                 take_place_loc=take_place_loc)
+        # bb_time = time.time()
+        # if getattr(dataset_loader, '_bbs_T', 1) == 1:
+        #     bb_frame, class_frame = create_gt_bb(dataset_loader=dataset_loader,
+        #                                          traj=traj,
+        #                                          step_t=step_t,
+        #                                          task_name=task_name,
+        #                                          distractor=distractor,
+        #                                          command=command,
+        #                                          subtask_id=subtask_id,
+        #                                          agent_task_id=agent_task_id,
+        #                                          take_place_loc=take_place_loc)
 
-            logger.debug(f"BB time {time.time()-bb_time}")
-        else:
-            bb_frame, class_frame = create_gt_bb_sequence(dataset_loader=dataset_loader,
-                                                          traj=traj,
-                                                          t=t,
-                                                          task_name=task_name,
-                                                          distractor=distractor,
-                                                          command=command,
-                                                          subtask_id=subtask_id,
-                                                          agent_task_id=agent_task_id)
-        # print(f"BB time: {end_bb-start_bb}")
+        #     logger.debug(f"BB time {time.time()-bb_time}")
+        # else:
+        #     bb_frame, class_frame = create_gt_bb_sequence(dataset_loader=dataset_loader,
+        #                                                   traj=traj,
+        #                                                   t=t,
+        #                                                   task_name=task_name,
+        #                                                   distractor=distractor,
+        #                                                   command=command,
+        #                                                   subtask_id=subtask_id,
+        #                                                   agent_task_id=agent_task_id)
+        # # print(f"BB time: {end_bb-start_bb}")
+
+        bb_frame = np.array([[0,0,0,0]])
+        class_frame = np.array([1])
 
         if dataset_loader._perform_augs:
             # Append bb, obj classes and images
