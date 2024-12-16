@@ -99,7 +99,7 @@ dataset_cfg:
   data_augs: ${augs}
   black_list: ['taco_play_converted', 'droid_converted']
   demo_crop: [0,0,0,0]
-  select_random_frames: False
+  select_random_frames: True #False
   convert_action: False #TODO
   take_first_frame: False #TODO
   non_sequential: False

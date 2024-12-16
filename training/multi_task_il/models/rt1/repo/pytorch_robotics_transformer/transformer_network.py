@@ -451,8 +451,12 @@ class TransformerNetwork(nn.Module):
                         bin_accuracies[j] = np.average(bin_accuracies[j])
                         
             output_actions = self._action_tokenizer.detokenize(predicted_tokens_for_output)
+            
+            bin_acc_str = {}
+            for k,v in bin_accuracies.items():
+                bin_acc_str[f'bin_{str(k)}'] = v
 
-            return output_actions, network_state, bin_accuracies
+            return output_actions, network_state, bin_acc_str
 
         # output_actions: Dict[str, np.ndarray]
         output_actions = self._action_tokenizer.detokenize(predicted_tokens_for_output)

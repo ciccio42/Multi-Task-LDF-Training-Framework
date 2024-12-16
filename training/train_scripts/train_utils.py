@@ -1389,6 +1389,7 @@ class Trainer:
                     if self.config.wandb_log:
                         tolog['Train Step'] = self._step
                         tolog['Epoch'] = e
+                        tolog['bin_acc'] = bin_acc
                         i = 0
                         for task_name, losses in task_losses.items():
                             if "grad_norm" in self.config.get("loss", ""):
@@ -1499,6 +1500,7 @@ class Trainer:
                     if self.config.wandb_log:
                         to_log['Validation Step'] = self._step
                         to_log['epoch'] = e
+                        to_log['bin_acc'] = val_bin_acc
                         for task_name, losses in avg_losses.items():
                             for loss_name, loss_val in losses.items():
                                 to_log[f'val/{loss_name}/{task_name}'] = loss_val
