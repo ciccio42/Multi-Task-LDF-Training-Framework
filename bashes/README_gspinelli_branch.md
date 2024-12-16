@@ -32,11 +32,32 @@ run `bashes/test_RT1_video_cond.sh`
 * run `bashes/generate_train_val_paths_finetuning.sh`
 
 ## train cond module on the embeddings of the finetuning dataset
-* the dataset, batchsampler are defined in `Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/multi_task_il/datasets/command_encoder/command_encoder_dataset.py`
+* dataset, batchsampler are defined in `Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/multi_task_il/datasets/command_encoder/command_encoder_dataset.py`
 * for training, run the bash script `train_cond_module_finetuning` in `bashes/` 
 
 ## create (demo, traj) couples for rt1 training
 * run `bashes/generate_traj_demo_couples_from_json.sh`
 
 ## train RT-1 video-conditioned on the finetuning dataset
-* the dataset, batchsampler are defined in `training/multi_task_il/datasets/finetuning_paired_dataset.py`
+* dataset, batchsampler are defined in `training/multi_task_il/datasets/finetuning_paired_dataset.py`
+* to launch training, run bash script `train_RT1_video_cond_finetuning.sh` in `bashes/`
+
+
+# testing cond-module
+
+
+# testing RT-1
+in order to test
+
+* open `test_RT1_video_cond.sh` bash script
+* select the root of your project with `PROJECT_NAME` var
+* select the step(s)
+* run with `nohup ./test_RT1_video_cond.sh > test_RT1_video_cond_module_freezed_output_epoch90.txt &`
+* get the results in the same folder where the checkpoints are stored
+
+# create video from test
+
+* navigate to `multi-task-lfd-framework` folder
+* select the project folder
+* execute `create_video_from_test.sh` script
+

@@ -33,7 +33,7 @@ class FinetuningPairedDataset(Dataset):
                  load_eef_point=False,
                  bbs_T = 1,
                  perform_augs=True,
-                 perform_scale_resize=False,
+                 perform_scale_resize=True,
                  agent_name='ur5',
                  pick_next=False,
                  normalize_action = False
@@ -92,6 +92,7 @@ class FinetuningPairedDataset(Dataset):
                     if type(self.pkl_paths_dict[dataset_name][task]) == list:
                         self.map_tasks_to_idxs[dataset_name][task] = []
                         self.demo_crop[task] = demo_crop  # same crop
+                        self.task_crops[task] = demo_crop
                         for t in self.pkl_paths_dict[dataset_name][task]: # for all task in the list
                             self.all_pkl_paths[all_file_count] = (t, task) #add to all_pkl_paths
                             self.map_tasks_to_idxs[dataset_name][task].append(all_file_count) #memorize mapping
@@ -102,6 +103,7 @@ class FinetuningPairedDataset(Dataset):
                         for subtask in self.pkl_paths_dict[dataset_name][task].keys():
                             self.map_tasks_to_idxs[dataset_name][task][subtask] = []
                             self.demo_crop[subtask] = demo_crop
+                            self.task_crops[subtask] = demo_crop
                             for t in self.pkl_paths_dict[dataset_name][task][subtask]:
                                 self.all_pkl_paths[all_file_count] = (t, subtask) #add to all_pkl_paths
                                 self.map_tasks_to_idxs[dataset_name][task][subtask].append(all_file_count) #memorize mapping
@@ -330,10 +332,10 @@ class FinetuningPairedDatasetSampler(BatchSampler):
             
             if self.shuffle:
                 random.shuffle(batch)
-                print(f"batch: {batch}")
+                # print(f"batch: {batch}")
                 yield batch
             else:   
-                print(f"batch: {batch}")
+                # print(f"batch: {batch}")
                 yield batch
         
     

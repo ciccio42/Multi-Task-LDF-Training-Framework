@@ -36,6 +36,7 @@ import gc
 from colorama import Fore, Back
 from multi_task_il.datasets.command_encoder.multi_task_command_encoder import CommandEncoderSampler, CosineLossCalculator
 from multi_task_il.datasets.command_encoder.command_encoder_dataset import FinetuningCommandEncoderSampler
+from multi_task_il.datasets.command_encoder.finetuning_paired_dataset import FinetuningPairedDatasetSampler
 import cv2
 
 torch.autograd.set_detect_anomaly(True)
@@ -86,6 +87,10 @@ def make_data_loaders(config, dataset_cfg):
                                      shuffle=config.sampler_cfg.shuffle)
     elif dataset_cfg._target_.split(".")[-1] == 'CommandEncoderFinetuningDataset':
         samplerClass = FinetuningCommandEncoderSampler
+        train_sampler = samplerClass(dataset,
+                                     shuffle=True)
+    elif dataset_cfg._target_.split(".")[-1] == 'FinetuningPairedDataset':
+        samplerClass = FinetuningPairedDatasetSampler
         train_sampler = samplerClass(dataset,
                                      shuffle=True)
     else:
@@ -160,6 +165,10 @@ def make_data_loaders(config, dataset_cfg):
             samplerClass = FinetuningCommandEncoderSampler
             val_sampler = samplerClass(val_dataset,
                                         shuffle=True) 
+        elif dataset_cfg._target_.split(".")[-1] == 'FinetuningPairedDataset':
+            samplerClass = FinetuningPairedDatasetSampler
+            val_sampler = samplerClass(val_dataset,
+                                        shuffle=True)
         else:
             if not dataset_cfg.change_command_epoch:
                 samplerClass = DIYBatchSampler
@@ -613,7 +622,7 @@ def loss_function_vima(config, train_cfg, device, model, task_inputs, mode='trai
     return task_losses
 
 
-def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False):
+def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False, optimizer=None):
     """Assumes inputs are collated by task names already, organize things properly before feeding into the model s.t.
         for each batch input, the model does only one forward pass."""
 
@@ -713,15 +722,49 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
             # if debug_image:
             #     for ep_idx, ep in enumerate(model_inputs['demo']):
             #         for t, img in enumerate(ep):
-            #             cv2.imwrite(f'{ep_idx}_{t}.png', (img*255).type(torch.IntTensor).permute(1,2,0).cpu().numpy())  
+            #             cv2.imwrite(f'{ep_idx}_{t}.png', (img*255).type(torch.IntTensor).permute(1,2,0).cpu().numpy())
             
-            out, ce_loss, bin_acc = model(  # 1550MB
-                images=copy.deepcopy(model_inputs['images']), # sono obs_T step perché la traiettoria viene tagliata
-                states=copy.deepcopy(model_inputs['states']),
-                demo=copy.deepcopy(model_inputs['demo']),
-                actions=copy.deepcopy(model_inputs['actions']),
-                bsize=config['bsize']
-            )
+            if 'finetuning_paired_dataset' in config.dataset_cfg._target_: # if we're doing pretraining on large dataset
+                batch_size = model_inputs['demo'].shape[0] # the full size of the batch
+                mini_batch_size = config.bsize
+                import math
+                steps_minibatch = math.ceil(batch_size / mini_batch_size)
+                ce_loss_avg_per_minibatch = [] # array for storing the loss for each minibatch
+                for step in range(steps_minibatch):
+                    if step == (steps_minibatch - 1): # last step
+                        out, ce_loss, bin_acc = model(
+                            images=copy.deepcopy(model_inputs['images'][step*mini_batch_size:]), # sono obs_T step perché la traiettoria viene tagliata
+                            states=copy.deepcopy(model_inputs['states'][step*mini_batch_size:]),
+                            demo=copy.deepcopy(model_inputs['demo'][step*mini_batch_size:]),
+                            actions=copy.deepcopy(model_inputs['actions'][step*mini_batch_size:]),
+                            bsize=model_inputs['images'][step*mini_batch_size:].shape[0]
+                        )
+                        
+                        if not val:
+                            ce_loss.backward()
+                        ce_loss_avg_per_minibatch.append(ce_loss)
+                        
+                    else:
+                        out, ce_loss, bin_acc = model(
+                            images=copy.deepcopy(model_inputs['images'][step*mini_batch_size:(step+1)*mini_batch_size]), # sono obs_T step perché la traiettoria viene tagliata
+                            states=copy.deepcopy(model_inputs['states'][step*mini_batch_size:(step+1)*mini_batch_size]),
+                            demo=copy.deepcopy(model_inputs['demo'][step*mini_batch_size:(step+1)*mini_batch_size]),
+                            actions=copy.deepcopy(model_inputs['actions'][step*mini_batch_size:(step+1)*mini_batch_size]),
+                            bsize=mini_batch_size
+                        )
+                        
+                        if not val:
+                            ce_loss.backward()
+                        ce_loss_avg_per_minibatch.append(ce_loss)
+                
+            else: 
+                out, ce_loss, bin_acc = model(  # 1550MB
+                    images=copy.deepcopy(model_inputs['images']), # sono obs_T step perché la traiettoria viene tagliata
+                    states=copy.deepcopy(model_inputs['states']),
+                    demo=copy.deepcopy(model_inputs['demo']),
+                    actions=copy.deepcopy(model_inputs['actions']),
+                    bsize=config.bsize
+                )
         elif "CondModule" in config.policy._target_:
             
             # debug_cond = False
@@ -731,10 +774,7 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
             #     for t, obs in enumerate(first_dem): 
             #         cv2.imwrite(f"cond_module_obs_{t}.png", np.moveaxis(obs.detach().cpu().numpy()*255, 0, -1))
             
-            out = model(model_inputs['demo_data'])
-            
-            
-            
+            out = model(model_inputs['demo_data'])     
         else:  # other baselines
             out = model(
                 images=copy.deepcopy(model_inputs['images']),
@@ -860,11 +900,16 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
                         task_losses[task_name][loss_name] = torch.mean(loss_val[idxs])
         else: # rt1 losses
             if "rt1" in config.policy._target_:
-                task_losses[task_name]['l_ce'] = ce_loss # loss is computed internally in rt1 implementation
-                task_losses[task_name]['loss_sum'] = task_losses['pick_place']['l_ce']
                 
-                return task_losses, bin_acc
-                
+                if 'finetuning_paired_dataset' in config.dataset_cfg._target_: # if we're doing pretraining on large dataset
+                    task_losses[task_name]['l_ce'] = torch.mean(torch.stack(ce_loss_avg_per_minibatch)) # the loss of the entire batch is the mean of the losses of each minibatch
+                    task_losses[task_name]['loss_sum'] = task_losses[task_name]['l_ce']
+                else:
+                    task_losses[task_name]['l_ce'] = ce_loss # loss is computed internally in rt1 implementation
+                    task_losses[task_name]['loss_sum'] = task_losses['pick_place']['l_ce']
+                    
+                    return task_losses, bin_acc
+                    
             elif "CondModule" in config.policy._target_:
                 
                 if task_name == 'finetuning':
@@ -1258,21 +1303,31 @@ class Trainer:
 
                 # calculate loss here:
                 if "rt1" in self.config.policy._target_:
-                    task_losses, bin_acc = loss_function(
-                        self.config, self.train_cfg, self._device, model, inputs)
+                    
+                    if 'finetuning_paired_dataset' in self.config.dataset_cfg._target_:
+                        task_losses = loss_function(
+                            self.config, self.train_cfg, self._device, model, inputs)
+                    else:
+                        task_losses, bin_acc = loss_function(
+                            self.config, self.train_cfg, self._device, model, inputs)
                 else:
                     task_losses = loss_function(
                         self.config, self.train_cfg, self._device, model, inputs)
+                    
                 task_names = sorted(task_losses.keys())
                 if "grad_norm" not in self.config.get("loss", ""):
-                    optimizer.zero_grad()
-                    if 'finetuning' in task_names:
-                        weighted_task_loss = task_losses['finetuning']['loss_sum']
+                    if not 'finetuning_paired_dataset' in self.config.dataset_cfg._target_:
+                        optimizer.zero_grad()
+                        if 'finetuning' in task_names:
+                            weighted_task_loss = task_losses['finetuning']['loss_sum']
+                        else:
+                            weighted_task_loss = sum(
+                                [l["loss_sum"] * task_loss_muls.get(name) for name, l in task_losses.items()])
+                        weighted_task_loss.backward()
+                        optimizer.step()
                     else:
-                        weighted_task_loss = sum(
-                            [l["loss_sum"] * task_loss_muls.get(name) for name, l in task_losses.items()])
-                    weighted_task_loss.backward()
-                    optimizer.step()
+                        optimizer.step()
+                        optimizer.zero_grad()
                 else:
                     task_loss = torch.stack([l["loss_sum"]
                                             for name, l in task_losses.items()])
@@ -1399,13 +1454,22 @@ class Trainer:
                         else:
                             if "rt1" in self.config.policy._target_:
                                 with torch.no_grad():
-                                    val_task_losses, val_bin_acc = loss_function(
-                                        self.config,
-                                        self.train_cfg,
-                                        self._device,
-                                        model,
-                                        val_inputs,
-                                        val=False)
+                                    if 'finetuning_paired_dataset' in self.config.dataset_cfg._target_:
+                                        val_task_losses = loss_function(
+                                            self.config,
+                                            self.train_cfg,
+                                            self._device,
+                                            model,
+                                            val_inputs,
+                                            val=True)
+                                    else:
+                                        val_task_losses, val_bin_acc = loss_function(
+                                            self.config,
+                                            self.train_cfg,
+                                            self._device,
+                                            model,
+                                            val_inputs,
+                                            val=False)
                             else:
                                 with torch.no_grad():
                                     val_task_losses = loss_function(
