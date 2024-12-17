@@ -28,7 +28,7 @@ run `bashes/test_RT1_video_cond.sh`
 
 # finetuning
 
-## to generate embeddings from the commands of the finetuning dataset
+## to generate paths to generate embeddings from the commands of the finetuning dataset
 * run `bashes/generate_train_val_paths_finetuning.sh`
 
 ## train cond module on the embeddings of the finetuning dataset
