@@ -64,7 +64,8 @@ class CommandEncoderFinetuningDataset(Dataset):
                         self.map_tasks_to_idxs[dataset_name][task] = []
                         self.demo_crop[task] = demo_crop  # same crop
                         for t in self.pkl_paths_dict[dataset_name][task]: # for all task in the list
-                            self.all_pkl_paths[all_file_count] = (t, task) #add to all_pkl_paths
+                            embedding = self.embeddings_paths_dict[dataset_name][task][0]
+                            self.all_pkl_paths[all_file_count] = (t, task, embedding) #add to all_pkl_paths
                             self.map_tasks_to_idxs[dataset_name][task].append(all_file_count) #memorize mapping
                             all_file_count+=1
                         
@@ -74,7 +75,8 @@ class CommandEncoderFinetuningDataset(Dataset):
                             self.map_tasks_to_idxs[dataset_name][task][subtask] = []
                             self.demo_crop[subtask] = demo_crop
                             for t in self.pkl_paths_dict[dataset_name][task][subtask]:
-                                self.all_pkl_paths[all_file_count] = (t, subtask) #add to all_pkl_paths
+                                embedding = self.embeddings_paths_dict[dataset_name][task][subtask][0]
+                                self.all_pkl_paths[all_file_count] = (t, subtask, embedding) #add to all_pkl_paths
                                 self.map_tasks_to_idxs[dataset_name][task][subtask].append(all_file_count) #memorize mapping
                                 all_file_count+=1
             
@@ -85,35 +87,36 @@ class CommandEncoderFinetuningDataset(Dataset):
         #     json.dump(self.map_tasks_to_idxs,outfile,indent=2) 
         
     def __getitem__(self, index):
-        traj_path, task_name = self.all_pkl_paths[index]
+        traj_path, task_name, embedding_path = self.all_pkl_paths[index]
+        # print(f'{traj_path}\n{task_name}')
         
-        #this is in order to search for embedding
-        embedding_file = None
-        start = False
-        found_dataset = False
-        for i, name in enumerate(traj_path.split('/')):
-            if start:
-                if not found_dataset:
-                    temp = self.embeddings_paths_dict[name]
-                    found_dataset = True
-                else:
-                    if '.pkl' not in name:
-                        temp = temp[name]
-                    else: # we found the embedding file
-                        embedding_file = temp[0]
-                        break
+        # #this is in order to search for embedding
+        # embedding_file = None
+        # start = False
+        # found_dataset = False
+        # for i, name in enumerate(traj_path.split('/')):
+        #     if start:
+        #         if not found_dataset:
+        #             temp = self.embeddings_paths_dict[name]
+        #             found_dataset = True
+        #         else:
+        #             if '.pkl' not in name:
+        #                 temp = temp[name]
+        #             else: # we found the embedding file
+        #                 embedding_file = temp[0]
+        #                 break
                     
-            if name == 'datasets':
-                start = True                
+        #     if name == 'datasets':
+        #         start = True                
 
         demo_traj = load_traj(traj_path) # loading traiettoria
-        demo_data = make_demo(self, demo_traj[0], task_name)  # solo video di 4 frame del task
+        demo_data = make_demo(self, demo_traj[0], task_name)  #TODO: augs
         
         # for t,frame in enumerate(demo_data['demo']):
         #     img_debug = np.moveaxis(frame.detach().cpu().numpy()*255, 0, -1)
         #     cv2.imwrite(f"debug_demo_{t}.png", img_debug) #images are already rgb
         
-        embedding_data = pkl.load(open(embedding_file, 'rb'))
+        embedding_data = pkl.load(open(embedding_path, 'rb'))
     
         return {'demo_data': demo_data, 'embedding_data': torch.from_numpy(embedding_data), 'task_name': 'finetuning'} # task_name key is for the collate_fn, loss grouping...
     

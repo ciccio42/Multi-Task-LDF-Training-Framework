@@ -11,6 +11,7 @@ def create_emb_and_save_pickle(traj_path, model_torch, tokenize):
     with open(traj_path, "rb") as f:
         traj_data = pickle.load(f)
     command = traj_data['command']
+    print(f"command: {command}")
     command_emb = model_torch(tokenize(command)).detach().numpy()
     save_path_command_emb = '/'.join(traj_path.split('/')[:-1])+'/task_embedding.pkl'
     pickle.dump(command_emb, open(save_path_command_emb, 'wb'))
