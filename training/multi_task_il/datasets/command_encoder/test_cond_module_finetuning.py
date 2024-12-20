@@ -9,7 +9,11 @@ import numpy as np
 import cv2
 import os
 from copy import deepcopy
-
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE
+import time
+import seaborn as sns
 
 DATA_AUGS = {
             "old_aug": False,
@@ -56,70 +60,87 @@ def create_val_loader(tasks_spec, black_list, data_augs):
 def list_of_strings(arg):
     return arg.split(',')
 
-def make_centroids(embedding_subtasks_tensor, all_sentences):
-    centroids_subtasks = {}
-    for _task in embedding_subtasks_tensor.keys():
-        centroids_subtasks[_task] = {}
-        for _sub_task in embedding_subtasks_tensor[_task].keys():
-            _n_subtask_istances = len(embedding_subtasks_tensor[_task][_sub_task].keys())
-            for _index in range(_n_subtask_istances):
-                if _index == 0:
-                    _subtask_tensor = embedding_subtasks_tensor[_task][_sub_task][_index]['embedding']
-                    _sentence = embedding_subtasks_tensor[_task][_sub_task][_index]['sentence']
-                else:
-                    _subtask_tensor = torch.cat((_subtask_tensor, embedding_subtasks_tensor[_task][_sub_task][_index]['embedding']))
+def make_centroids(embedding_dict):
+    centroids_per_task = {}
+    for task in embedding_dict.keys():
+        for idx in range(len(embedding_dict[task])):
+            if idx == 0:
+                subtask_tensor = torch.from_numpy(embedding_dict[task][idx]).unsqueeze(0)
+            else:
+                subtask_tensor = torch.cat((subtask_tensor, torch.from_numpy(embedding_dict[task][idx]).unsqueeze(0)))
             
-            _subtask_tensor = torch.mean(_subtask_tensor, 0)
-            centroids_subtasks[_task][_sub_task] = {'sentence' : _sentence, 'centroid_embedding' : deepcopy(_subtask_tensor)}
+        subtask_tensor = torch.mean(subtask_tensor, 0).numpy()
+        centroids_per_task[task] = deepcopy(subtask_tensor)
+            
+    return centroids_per_task
 
-
-def create_embedding_plot(embeddings_tensor, sentences, centroids):
+def create_embedding_plot(embedding_dict, centroids_per_task):
     # create the dataframe
-    embeddings_tensor = embeddings_tensor.detach()
 
-    for _idx, _subtask in enumerate(centroids_subtasks['pick_place'].keys()):
-        emb_centr = centroids_subtasks['pick_place'][_subtask]['centroid_embedding'].unsqueeze(0)
-        embeddings_tensor = torch.cat((embeddings_tensor, emb_centr), 0)
-        if _idx == 0:
-            emb_centroids = emb_centr
-        else:
-            emb_centroids = torch.cat((emb_centroids, emb_centr), 0)
+    # for _idx, _subtask in enumerate(centroids_subtasks['pick_place'].keys()):
+    #     emb_centr = centroids_subtasks['pick_place'][_subtask]['centroid_embedding'].unsqueeze(0)
+    #     embeddings_tensor = torch.cat((embeddings_tensor, emb_centr), 0)
+    #     if _idx == 0:
+    #         emb_centroids = emb_centr
+    #     else:
+    #         emb_centroids = torch.cat((emb_centroids, emb_centr), 0)
 
+    # y = list(embedding_dict.keys())
+    # y_centr = list(centroids_per_task.keys())
+    
+    #----------df embeddings
     y = []
-    for i in range(16):
-        y += ([str(i)] * 30)
-    
-    y_centr = []
-    for i in range(16):
-        y_centr += ([str(i)])
+    for k_idx, k in enumerate(embedding_dict.keys()):
+        arrays_list = embedding_dict[k]
+        for el_idx, el in enumerate(arrays_list):
+            if k_idx == 0 and el_idx == 0:
+                embeddings_tensor = torch.from_numpy(el).unsqueeze(0)
+            else:
+                embeddings_tensor = torch.cat((embeddings_tensor, torch.from_numpy(el).unsqueeze(0)))
+            y.append(k)            
 
-    embedding_numpy = embeddings_tensor.numpy()
+    embeddings_numpy = embeddings_tensor.numpy()
     feat_cols = [ 'e'+str(i) for i in range(embeddings_tensor.shape[1]) ]
-    df = pd.DataFrame(embedding_numpy[:-16],columns=feat_cols)
+    df = pd.DataFrame(embeddings_numpy,columns=feat_cols)
     df['y'] = y # label numerica
-    df['label'] = df['y'].apply(lambda i: str(i)) # label di tipo stringa
+    # df['label'] = df['y'].apply(lambda i: str(i)) # label di tipo stringa
     
-    df_centr = pd.DataFrame(embedding_numpy[-16:],columns=feat_cols)
-    df_centr['y'] = y_centr # label numerica
-    df_centr['label'] = df_centr['y'].apply(lambda i: str(i)) # label di tipo stringa
+    #----------df centroids
+    y_centr = []
+    for k_idx, k in enumerate(centroids_per_task.keys()):
+        centroid = centroids_per_task[k]
+        if k_idx == 0:
+            centroids_tensor = centroid.unsqueeze(0)
+        else:
+            centroids_tensor = torch.cat((centroids_tensor, centroid.unsqueeze(0)))
+        y_centr.append(k)            
 
-    # create TSNE object
+    centroids_numpy = centroids_tensor.numpy()
+    df_centr = pd.DataFrame(centroids_numpy,columns=feat_cols)
+    df_centr['y'] = y_centr # label numerica
+    # df_centr['label'] = df_centr['y'].apply(lambda i: str(i)) # label di tipo stringa
+
+    #----------create TSNE object
+    num_classes = len(list(centroids_per_task.keys()))
+    all_tensor = torch.cat((embeddings_tensor, centroids_tensor), 0)
     time_start = time.time()
-    tsne = TSNE(n_components=2, verbose=1, perplexity=40, n_iter=300) # vedere se cambiare parametri
-    tsne_results = tsne.fit_transform(embeddings_tensor)
+    tsne = TSNE(n_components=2, verbose=1, perplexity=30, n_iter=300) # vedere se cambiare parametri
+    tsne_results = tsne.fit_transform(all_tensor)
     print('t-SNE done! Time elapsed: {} seconds'.format(time.time()-time_start))
 
-    # add columns to df
-    df['tsne-2d-one'] = tsne_results[:-16,0]
-    df['tsne-2d-two'] = tsne_results[:-16,1]
+    #----------add columns to df
+    df['tsne-2d-one'] = tsne_results[:-num_classes,0]
+    df['tsne-2d-two'] = tsne_results[:-num_classes,1]
     
-    df_centr['tsne-2d-one'] = tsne_results[-16:,0]
-    df_centr['tsne-2d-two'] = tsne_results[-16:,1]
+    df_centr['tsne-2d-one'] = tsne_results[-num_classes:,0]
+    df_centr['tsne-2d-two'] = tsne_results[-num_classes:,1]
 
+
+    #----------plotting
     import colorcet as cc
-    palette = sns.color_palette(cc.glasbey, n_colors=32)
+    palette = sns.color_palette(cc.glasbey, n_colors=num_classes)
 
-    plt.figure(figsize=(16,10))
+    plt.figure(figsize=(32,20))
     ax = sns.scatterplot(
         x="tsne-2d-one", y="tsne-2d-two",
         hue="y", # per ora non la uso visto che ogni campione è a se
@@ -144,10 +165,10 @@ def create_embedding_plot(embeddings_tensor, sentences, centroids):
     ts = datetime.now().strftime("%m-%d_%H:%M")
     ## save clusters plot
     try:
-        plt.savefig(f"centroid_figures/embeddings_clusters_{ts}.png")
+        plt.savefig(f"finetuning_centroid_figures/embeddings_clusters_{ts}.png")
     except Exception:
-        os.mkdir("centroid_figures/")
-        plt.savefig(f"centroid_figures/embeddings_clusters_{ts}.png")
+        os.mkdir("finetuning_centroid_figures/")
+        plt.savefig(f"finetuning_centroid_figures/embeddings_clusters_{ts}.png")
             
 
 
@@ -166,7 +187,6 @@ if __name__ == '__main__':
         debugpy.listen(('0.0.0.0', 5678))
         print("Waiting for debugger attach")
         debugpy.wait_for_client()
-        
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu' 
 
@@ -241,26 +261,47 @@ if __name__ == '__main__':
         batch_output = cond_module(demos)
         if batch_idx == 0:
             # all_output = batch_output
-            # all_sentences = batch_sentences            
+            # all_sentences = batch_sentences 
+            
+            # Pick up pink block.
+            # Pick up pink flower.
+                      
             for sentence_idx, sentence in enumerate(batch_sentences):
                 embedding_dict[sentence] = [] # create the list to store embeddings
                 embedding_dict[sentence].append(batch_output[sentence_idx].detach().cpu().numpy())
+                
+                if sentence == 'Pick up pink block.' or sentence == 'Pick up pink flower.':
+                    print(f'sentence: {sentence}')
+                    pink_sentence = sentence
         else:
             # all_output = torch.cat((all_output, batch_output), 0)
             # all_sentences.extend(batch_sentences)
             for sentence_idx, sentence in enumerate(batch_sentences):
+                
+                if sentence == 'Pick up pink block.' or sentence == 'Pick up pink flower.':
+                    sentence = pink_sentence
+                
                 embedding_dict[sentence].append(batch_output[sentence_idx].detach().cpu().numpy())
+                
+                
             
-        with open('test_sentences.txt', 'w') as f:
-            for line in batch_sentences:
-                f.write(f"{line}\n")
-            f.write(f"\n\n***")
+        # with open('test_sentences.txt', 'a') as f:
+        #     for line in batch_sentences:
+        #         f.write(f"{line}\n")
+        #     f.write(f"\n\n***")
         
         
-        # print(inputs['sentence'])    
+        # print(inputs['sentence'])
     
     print('end')
-    # centroids = make_centroids(all_output, all_sentences)
-    # create_embedding_plot(all_output, all_sentences, centroids)
+    
+    
+    print('blabla')
+    centroids_per_task = make_centroids(embedding_dict)
+    print('blabla')
+    print('blabla')
+    print('blabla')
+    
+    create_embedding_plot(embedding_dict, centroids_per_task)
     
     

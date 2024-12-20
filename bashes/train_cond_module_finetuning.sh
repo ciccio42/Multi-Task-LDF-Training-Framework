@@ -31,11 +31,11 @@ POLICY='${cond_module}'
 SAVE_FREQ=-1
 LOG_FREQ=10
 VAL_FREQ=-1
-DEVICE=3 # cuda gpu selection
-DEBUG=false
-WANDB_LOG=true
+DEVICE=1 # cuda gpu selection
+DEBUG=true
+WANDB_LOG=false
 ROLLOUT=false
-EPOCH=20
+EPOCH=10
 LOADER_WORKERS=16
 CONFIG_PATH=../experiments
 CONFIG_NAME=config_cond_module_finetuning.yaml
@@ -54,7 +54,7 @@ WIDTH=180 # not used
 
 TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
     # EXP_NAME=1Task-${TASK_str}-cond_module_no_lr_1e-4   #1Task-${TASK_str}-Panda_dem_sim_agent_ur5e_sim_2      #1Task-${TASK_str}-MOSAIC-Rollout
-EXP_NAME=prima_vera_prova_cond_module_lr_5e-4_finetuning_batch_size-96   #1Task-${TASK_str}-Panda_dem_sim_agent_ur5e_sim_2      #1Task-${TASK_str}-MOSAIC-Rollout
+EXP_NAME=test_2_pretraining_5_datasets_no_droid_4_augmentations_10_epoch   #1Task-${TASK_str}-Panda_dem_sim_agent_ur5e_sim_2      #1Task-${TASK_str}-MOSAIC-Rollout
 
 # srun --output=training_${EXP_NAME}.txt --job-name=training_${EXP_NAME}
 python -u ../training/train_scripts/train_any.py \
