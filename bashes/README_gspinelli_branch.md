@@ -45,8 +45,7 @@ run `bashes/test_RT1_video_cond.sh`
 * to launch training, run bash script `train_RT1_video_cond_finetuning.sh` in `bashes/`
 
 # testing cond-module via T-SNE plot
-* run bash script 
-
+* run bash script `test_cond_module_finetuning` -> plots of the embedding (and centroids) are saved in `bashes/finetuning_centroid_figures` folder
 
 # testing RT-1
 in order to test
