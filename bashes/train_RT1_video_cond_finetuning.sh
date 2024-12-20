@@ -58,7 +58,7 @@ LOAD_INV=true
 CONCAT_STATE=true
 
 RESUME=false
-BSIZE=32 #32 #128 #64 #32
+BSIZE=32 #this is the size of the minibatch
 # Policy 1: At each slot is assigned a RandomSampler
 SET_SAME_N=2
 
@@ -75,7 +75,7 @@ HEIGHT=100
 WIDTH=180
 
 TASK_str="pick_place" #[pick_place,nut_assembly,stack_block,button]
-EXP_NAME="pick_place_panda_dem_ur5e_agent_cond_module_freezed" #1Task-pick_place-Panda_dem_sim_agent_ur5e_sim_cond_module_h100_w180_good_condmodule #1Task-pick_place-Panda_dem_sim_agent_ur5e_sim_cond_module_h100_w180_good_condmodule #1Task-${TASK_str}-Panda_dem_sim_agent_ur5e_sim_cond_module_h100_w180_condmodule_lr1e-4_step24   #1Task-${TASK_str}-MOSAIC-Rollout
+EXP_NAME="prova_RT1_finetuning" #1Task-pick_place-Panda_dem_sim_agent_ur5e_sim_cond_module_h100_w180_good_condmodule #1Task-pick_place-Panda_dem_sim_agent_ur5e_sim_cond_module_h100_w180_good_condmodule #1Task-${TASK_str}-Panda_dem_sim_agent_ur5e_sim_cond_module_h100_w180_condmodule_lr1e-4_step24   #1Task-${TASK_str}-MOSAIC-Rollout
 PROJECT_NAME=${EXP_NAME}
 
 

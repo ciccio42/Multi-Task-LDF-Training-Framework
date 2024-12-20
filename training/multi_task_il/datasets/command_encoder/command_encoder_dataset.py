@@ -12,6 +12,7 @@ import random
 class CommandEncoderFinetuningDataset(Dataset):
     
     def __init__(self,
+                 tasks_spec,
                  mode='train',
                  jsons_folder='',
                  demo_T=4,
@@ -19,7 +20,7 @@ class CommandEncoderFinetuningDataset(Dataset):
                  height=100,
                  aug_twice=True,
                  aux_pose=True,
-                 use_strong_augs=True,
+                 use_strong_augs=False,
                  data_augs=None,
                  black_list=[], #datasets to exclude
                  demo_crop=[0, 0, 0, 0], #TODO,
@@ -29,6 +30,7 @@ class CommandEncoderFinetuningDataset(Dataset):
         
         # processing video demo
         self.demo_crop = OrderedDict()
+        self.task_crops = OrderedDict()
         self.mode = mode
         self._demo_T = demo_T
         self.width, self.height = width, height
@@ -56,11 +58,14 @@ class CommandEncoderFinetuningDataset(Dataset):
         self.map_tasks_to_idxs = defaultdict()
         
         all_file_count = 0
+        max_len = 0
         for dataset_name in self.pkl_paths_dict.keys():
             if dataset_name not in self.black_list:
                 self.map_tasks_to_idxs[dataset_name] = defaultdict()
                 for task in self.pkl_paths_dict[dataset_name].keys():
                     if type(self.pkl_paths_dict[dataset_name][task]) == list:
+                        task_len = len(self.pkl_paths_dict[dataset_name][task])
+                        max_len = task_len if task_len > max_len else max_len
                         self.map_tasks_to_idxs[dataset_name][task] = []
                         self.demo_crop[task] = demo_crop  # same crop
                         for t in self.pkl_paths_dict[dataset_name][task]: # for all task in the list
@@ -74,6 +79,8 @@ class CommandEncoderFinetuningDataset(Dataset):
                         for subtask in self.pkl_paths_dict[dataset_name][task].keys():
                             self.map_tasks_to_idxs[dataset_name][task][subtask] = []
                             self.demo_crop[subtask] = demo_crop
+                            task_len = len(self.pkl_paths_dict[dataset_name][task][subtask])
+                            max_len = task_len if task_len > max_len else max_len
                             for t in self.pkl_paths_dict[dataset_name][task][subtask]:
                                 embedding = self.embeddings_paths_dict[dataset_name][task][subtask][0]
                                 self.all_pkl_paths[all_file_count] = (t, subtask, embedding) #add to all_pkl_paths
@@ -81,34 +88,27 @@ class CommandEncoderFinetuningDataset(Dataset):
                                 all_file_count+=1
             
         self.all_file_count = all_file_count
+        self.max_len = max_len
         print(f'[{self.mode.capitalize()}] total file count: {all_file_count}')
+        print(f'[{self.mode.capitalize()}] number of dataset steps: {max_len}')
+        
+        #TODO: task crop for panda pick_place
+        for spec in tasks_spec:
+            name, date = spec.get('name', None), spec.get('date', None)
+            if spec.get('crop', None) is not None:
+                for subtask in  spec.get('task_ids'):
+                    self.task_crops[f'task_{subtask:02.0f}'] = spec.get(
+                        'crop', [0, 0, 0, 0])
+        
+        
+        # f'{a:02.0f}'
         
         # with open("map_tasks_to_idxs.json", "w") as outfile: 
         #     json.dump(self.map_tasks_to_idxs,outfile,indent=2) 
         
     def __getitem__(self, index):
         traj_path, task_name, embedding_path = self.all_pkl_paths[index]
-        # print(f'{traj_path}\n{task_name}')
-        
-        # #this is in order to search for embedding
-        # embedding_file = None
-        # start = False
-        # found_dataset = False
-        # for i, name in enumerate(traj_path.split('/')):
-        #     if start:
-        #         if not found_dataset:
-        #             temp = self.embeddings_paths_dict[name]
-        #             found_dataset = True
-        #         else:
-        #             if '.pkl' not in name:
-        #                 temp = temp[name]
-        #             else: # we found the embedding file
-        #                 embedding_file = temp[0]
-        #                 break
-                    
-        #     if name == 'datasets':
-        #         start = True                
-
+         
         demo_traj = load_traj(traj_path) # loading traiettoria
         demo_data = make_demo(self, demo_traj[0], task_name)  #TODO: augs
         
@@ -121,7 +121,7 @@ class CommandEncoderFinetuningDataset(Dataset):
         return {'demo_data': demo_data, 'embedding_data': torch.from_numpy(embedding_data), 'task_name': 'finetuning'} # task_name key is for the collate_fn, loss grouping...
     
     def __len__(self):
-        return self.all_file_count
+        return self.max_len
     
     
 class FinetuningCommandEncoderSampler(BatchSampler):

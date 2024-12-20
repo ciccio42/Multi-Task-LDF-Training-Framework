@@ -538,12 +538,12 @@ def make_demo(dataset, traj, task_name):
                 obs = copy.copy(
                     traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
             except KeyError:
-                obs = copy.copy(
+                obs = copy.copy( 
                     traj.get(n)['obs']['image'][:, :, ::-1]) 
             processed = dataset.frame_aug(
                 task_name,
                 obs,
-                perform_aug=False,
+                perform_aug=True, ################
                 frame_number=i,
                 perform_scale_resize=True)
             frames.append(processed)
@@ -749,7 +749,7 @@ def create_data_aug(dataset_loader=object):
                 contrast=list(dataset_loader.data_augs.get(
                     "contrast", [0.5, 1.5])),
                 saturation=list(dataset_loader.data_augs.get(
-                    "contrast", [0.5, 1.5])),
+                    "saturation", [0.5, 1.5])),
                 hue=list(dataset_loader.data_augs.get("hue", [-0.05, 0.05])),
             )
         ])
@@ -814,12 +814,16 @@ def create_data_aug(dataset_loader=object):
                 crop_params[1], img_width - left - crop_params[3]
 
             obs = dataset_loader.toTensor(obs)
+
+            cv2.imwrite(f"debug_crop_2/{task_name}_before_crop_{frame_number}.png", np.moveaxis(
+                obs.numpy()*255, 0, -1))
+            
             # ---- Resized crop ----#
             obs = resized_crop(obs, top=top, left=left, height=box_h,
                                width=box_w, size=(dataset_loader.height, dataset_loader.width))
-            if DEBUG:
-                cv2.imwrite(f"prova_resized_{frame_number}.png", np.moveaxis(
-                    obs.numpy()*255, 0, -1))
+            # if DEBUG:
+            #     cv2.imwrite(f"debug_crop/{task_name}_prova_resized_{frame_number}.png", np.moveaxis(
+            #         obs.numpy()*255, 0, -1))
             if bb is not None and class_frame is not None:
                 bb = adjust_bb(dataset_loader=dataset_loader,
                                bb=bb,
@@ -885,6 +889,9 @@ def create_data_aug(dataset_loader=object):
                 if agent:
                     cv2.imwrite("weak_augmented.png", np.moveaxis(
                         augmented.numpy()*255, 0, -1))
+            if DEBUG:
+                cv2.imwrite(f"debug_crop_2/{task_name}_prova_resized_augmented_{frame_number}.png", np.moveaxis(
+                    augmented.numpy()*255, 0, -1))
         assert augmented.shape == obs.shape
 
         if bb is not None:

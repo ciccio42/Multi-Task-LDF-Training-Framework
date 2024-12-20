@@ -25,10 +25,9 @@ run `bashes/test_RT1_video_cond.sh`
 * *to download videos from traj_--.pkl results*, run `/raid/home/frosa_Loc/Multi-Task-LFD-Framework/utils/analysis/create_video_from_test.sh`
 
 
-
 # finetuning
 
-## to generate paths to generate embeddings from the commands of the finetuning dataset
+## to generate paths and embeddings from the commands of the finetuning dataset
 * run `bashes/generate_train_val_paths_finetuning.sh`
 
 ## train cond module on the embeddings of the finetuning dataset
@@ -38,12 +37,15 @@ run `bashes/test_RT1_video_cond.sh`
 ## create (demo, traj) couples for rt1 training
 * run `bashes/generate_traj_demo_couples_from_json.sh`
 
+## convert absolute action to delta actions (for real dataset and ur5e pick_place_dataset)
+* run TODO
+
 ## train RT-1 video-conditioned on the finetuning dataset
 * dataset, batchsampler are defined in `training/multi_task_il/datasets/finetuning_paired_dataset.py`
 * to launch training, run bash script `train_RT1_video_cond_finetuning.sh` in `bashes/`
 
-
-# testing cond-module
+# testing cond-module via T-SNE plot
+* run bash script 
 
 
 # testing RT-1

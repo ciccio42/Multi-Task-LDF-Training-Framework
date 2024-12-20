@@ -112,6 +112,21 @@ class FinetuningPairedDataset(Dataset):
         self.all_file_count = all_file_count
         print(f'[{self.mode.capitalize()}] total file count: {all_file_count}')
         
+        # # save the longest idxs lenght
+        # self.max_len = 0
+        # for dataset_str in self.map_tasks_to_idxs.keys():
+        #     for task_str in self.map_tasks_to_idxs[dataset_str].keys():
+        #         if type(self.map_tasks_to_idxs[dataset_str][task_str]) == list: # if we found idxs
+        #             idx_len = len(self.map_tasks_to_idxs[dataset_str][task_str])
+        #             self.max_len = idx_len if idx_len > self.max_len else self.max_len
+        #         else:
+        #             for subtask_str in self.map_tasks_to_idxs[dataset_str][task_str].keys():
+        #                 if type(self.map_tasks_to_idxs[dataset_str][task_str][subtask_str]) == list: # if we found idxs
+        #                     idx_len = len(self.map_tasks_to_idxs[dataset_str][task_str][subtask_str])
+        #                     self.max_len = idx_len if idx_len > self.max_len else self.max_len
+        #                 else:
+        #                     raise NotImplementedError
+        
         # with open("map_tasks_to_idxs.json", "w") as outfile: 
         #     json.dump(self.map_tasks_to_idxs,outfile,indent=2) 
         
@@ -237,8 +252,8 @@ class FinetuningPairedDatasetSampler(BatchSampler):
         # self.batch_size = batch_size # no, ci fermiamo quando abbiamo campionato un indice per ogni task
         self.shuffle = shuffle
         
-        self.max_len = 0
         # save the longest idxs lenght
+        self.max_len = 0
         for dataset_str in self.dataset.map_tasks_to_idxs.keys():
             for task_str in self.dataset.map_tasks_to_idxs[dataset_str].keys():
                 if type(self.dataset.map_tasks_to_idxs[dataset_str][task_str]) == list: # if we found idxs
@@ -340,7 +355,7 @@ class FinetuningPairedDatasetSampler(BatchSampler):
         
     
     def __len__(self):
-        return len(self.dataset)
+        return len(self.max_len)
 
 class ResultsDisplayer():
     

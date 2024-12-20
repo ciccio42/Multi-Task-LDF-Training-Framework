@@ -94,6 +94,7 @@ sampler_cfg:
       
 dataset_cfg:
   _target_: ${dataset_target}
+  tasks_spec: ${tasks}
   mode: 'train'
   jsons_folder: '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes'
   demo_T: 4
@@ -101,20 +102,20 @@ dataset_cfg:
   height: 100
   aug_twice: True
   aux_pose: True
-  use_strong_augs: target_update_freq
+  use_strong_augs: False
   data_augs: ${augs}
-  black_list: ['taco_play_converted', 'droid_converted']
+  black_list: ['droid_converted', 'droid_converted_old']
   demo_crop: [0,0,0,0]
-  select_random_frames: False
+  select_random_frames: True
 
 augs:
   old_aug: false
-  brightness: [0.9, 1.1]
-  contrast: [0.9, 1.1]
-  saturation: [0.9, 1.1]
-  hue: [0.0, 0.0]
-  p: 0.1 
-  horizontal_flip_p: 0.1
+  brightness: [0.875, 1.125]
+  contrast: [0.5, 1.5]
+  saturation: [0.5, 1.5]
+  hue: [-0.05, 0.05]
+  p: 0.5
+  horizontal_flip_p: 0.5
   brightness_strong: [0.875, 1.125]
   contrast_strong: [0.5, 1.5]
   saturation_strong: [0.5, 1.5]
