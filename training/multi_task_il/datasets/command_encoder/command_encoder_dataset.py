@@ -24,7 +24,7 @@ class CommandEncoderFinetuningDataset(Dataset):
                  data_augs=None,
                  black_list=[], #datasets to exclude
                  demo_crop=[0, 0, 0, 0], #TODO,
-                 select_random_frames=False
+                 select_random_frames=True
                  ):
         super().__init__()
         
@@ -118,7 +118,7 @@ class CommandEncoderFinetuningDataset(Dataset):
         
         embedding_data = pkl.load(open(embedding_path, 'rb'))
     
-        return {'demo_data': demo_data, 'embedding_data': torch.from_numpy(embedding_data), 'task_name': 'finetuning'} # task_name key is for the collate_fn, loss grouping...
+        return {'demo_data': demo_data, 'embedding_data': torch.from_numpy(embedding_data), 'task_name': 'finetuning', 'sentence': demo_traj[1]} # task_name key is for the collate_fn, loss grouping...
     
     def __len__(self):
         return self.max_len
