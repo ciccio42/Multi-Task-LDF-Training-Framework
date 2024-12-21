@@ -973,7 +973,7 @@ class Trainer:
             #     print(k, dict(self.config.get(k)))
             #     print('-'*20)
             wandb_config = {k: self.config.get(k) for k in config_keys}
-            wandb.login(key='1d9590e10967b8af6602ddae665dbcc77f88fbd5')
+            wandb.login(key='227ed2fded06f63748a7a29dae55acdda7d131ff', relogin=True)
             print(f"Exp name: {self.config.exp_name}")
             self.config.project_name = self.config.exp_name.split('-Batch')[0]
             run = wandb.init(project=self.config.project_name,
@@ -995,11 +995,11 @@ class Trainer:
         # wrap model in DataParallel if needed and transfer to correct device
         print('\n-------------------\nTraining stage\nFound {} GPU devices \n'.format(self.device_count))
 
-        # if self.device_count > 1 and not isinstance(model, nn.DataParallel):
-        #     print("Training stage \n Device list: {}".format(self._device_list))
-        #     model = nn.DataParallel(model, device_ids=self._device_list).cuda()
-        # else:
-        model = model.to(self._device)
+        if self.device_count > 1 and not isinstance(model, nn.DataParallel):
+            print("Training stage \n Device list: {}".format(self._device_list))
+            model = nn.DataParallel(model, device_ids=self._device_list).cuda()
+        else:
+            model = model.to(self._device)
 
         # save model
         # save the model's state dictionary to a file

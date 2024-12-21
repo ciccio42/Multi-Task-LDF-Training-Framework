@@ -8,7 +8,7 @@
 # export MUJOCO_PY_MUJOCO_PATH="/home/rsofnc000/.mujoco/mujoco210"
 # export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/rsofnc000/.mujoco/mujoco210/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-# export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=3
 
 export HYDRA_FULL_ERROR=1
 echo $1
@@ -25,18 +25,18 @@ DEVICE=0
 DEBUG=false
 WANDB_LOG=true
 
-EXP_NAME=Real-Pick-Place-MOSAIC-CTOD_State_finetuned_No_val_0_1_4_5_8_9_2_second_it_dagger
+EXP_NAME=Real-Pick-Place-MOSAIC-CTOD-No-State-Finetune
 PROJECT_NAME=${EXP_NAME}
 TASK_str=pick_place #[pick_place,nut_assembly]
 
-RESUME_PATH=1Task-pick_place-MOSAIC-CTOD-State-true-ZERO_BB_AFTER_PICK_Convertion_true-Batch32
+RESUME_PATH=1Task-pick_place-MOSAIC-CTOD-State-false-ZERO_BB_AFTER_PICK_Convertion_true-Batch32
 RESUME_STEP=288630
 RESUME=false
 FINETUNE=true
 
 LOAD_TARGET_OBJ_DETECTOR=true
-TARGET_OBJ_DETECTOR_STEP=28272
-TARGET_OBJ_DETECTOR_PATH=/home/rsofnc000/checkpoint_save_folder/Real-1Task-pick_place-CTOD_0_1_4_5_8_9-Batch42
+TARGET_OBJ_DETECTOR_STEP=38880
+TARGET_OBJ_DETECTOR_PATH=/home/rsofnc000/checkpoint_save_folder/Real-1Task-pick_place-CTOD-Finetune-Batch112
 CONCAT_BB=true
 
 AGENT_NAME=real_new_ur5e
@@ -65,7 +65,7 @@ INV_MUL=0.0
 FREEZE_TARGET_OBJ_DETECTOR=false
 REMOVE_CLASS_LAYERS=false
 CONCAT_TARGET_OBJ_EMBEDDING=false
-CONCAT_STATE=true
+CONCAT_STATE=false
 
 ACTION_DIM=7
 N_MIXTURES=3       #7 MT #3 Pick-place
@@ -93,8 +93,8 @@ WIDTH=180
 
 COSINE_ANNEALING=false
 
-#
-srun --output=train_${EXP_NAME}.txt --job-name=${EXP_NAME} python ../training/train_scripts/train_any.py \
+# srun --output=train_${EXP_NAME}.txt --job-name=${EXP_NAME}
+python ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \

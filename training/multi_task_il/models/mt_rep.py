@@ -840,7 +840,7 @@ class VideoImitation(nn.Module):
                                                       height_scale_factor=scale_factor[1],
                                                       mode='a2p')[0][target_indx_flags][target_max_score_indx]
                     else:
-                        print("No bb target for some frames")
+                        # print("No bb target for some frames")
                         # Get index for target object
                         predicted_bb = torch.zeros(
                             4).to(device=images.get_device())

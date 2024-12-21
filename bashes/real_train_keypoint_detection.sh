@@ -13,7 +13,7 @@
 #SBATCH --gres=gpu:1   # Request 1 GPU
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=16
 
 export HYDRA_FULL_ERROR=1
 EXPERT_DATA=/home/rsofnc000/dataset/opt_dataset
@@ -22,7 +22,7 @@ POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_keypoint_dataset.MultiTaskPairedKeypointDetectionDataset
 TASKS_CONFIG=7_tasks_real
 AGENT_NAME=real_new_ur5e
-export CUDA_VISIBLE_DEVICES=2
+# export CUDA_VISIBLE_DEVICES=1
 echo $1
 TASK_NAME="$1"
 
@@ -32,7 +32,7 @@ VAL_FREQ=-1
 PRINT_FREQ=20
 DEVICE=0
 DEBUG=false
-WANDB_LOG=true
+WANDB_LOG=false
 
 EPOCH=90 # start from 16
 BSIZE=80 #16 #32
@@ -40,7 +40,7 @@ BSIZE=80 #16 #32
 COMPUTE_OBJ_DISTRIBUTION=false
 CONFIG_PATH=../experiments/
 CONFIG_NAME=config_cond_target_obj_detector_real.yaml
-LOADER_WORKERS=32
+LOADER_WORKERS=8
 BALANCING_POLICY=0
 OBS_T=7
 
@@ -94,13 +94,13 @@ elif [ "$TASK_NAME" == 'stack_block' ]; then
 elif [ "$TASK_NAME" == 'pick_place' ]; then
     echo "Pick-Place"
     TASK_str="pick_place"
-    EXP_NAME=Real-1Task-${TASK_str}-KP_0_1_4_5_8_9_second
+    EXP_NAME=Real-1Task-${TASK_str}-KP-Finetune
     PROJECT_NAME=${EXP_NAME}
     SET_SAME_N=7
     RESUME_PATH=/home/rsofnc000/checkpoint_save_folder/1Task-Pick-Place-KP-Batch112
     RESUME_STEP=37476
     RESUME=false
-    FINETUNE=false
+    FINETUNE=true
 elif [ "$TASK_NAME" == 'multi' ]; then
     echo "Multi Task"
     TASK_str=["pick_place","nut_assembly","stack_block","press_button_close_after_reaching"]
@@ -112,7 +112,7 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     RESUME=false
 fi
 
-srun --output=training_${EXP_NAME}.txt --job-name=training_${EXP_NAME} python -u ../training/train_scripts/train_any.py \
+sbatch --output=training_${EXP_NAME}.txt --job-name=training_${EXP_NAME} python -u ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \
