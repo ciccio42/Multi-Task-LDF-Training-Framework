@@ -28,14 +28,14 @@ class EarlyStopping:
         self.path = path
         self.trace_func = trace_func
         
-    def __call__(self, val_loss, model, step, optimizer):
+    def __call__(self, val_loss, model, epoch, optimizer, rank):
 
         score = -val_loss
 
         # early stopping called for the first time
         if self.best_score is None:
             self.best_score = score
-            self.save_checkpoint(val_loss, model, step, optimizer)
+            self.save_checkpoint(val_loss, model, epoch, optimizer)
         # the score is lower than the previous one
         elif score < self.best_score + self.delta:
             self.counter += 1
@@ -45,14 +45,16 @@ class EarlyStopping:
         # the score is higher than the previous one
         else:
             self.best_score = score
-            self.save_checkpoint(val_loss, model, step, optimizer)
             self.counter = 0
+            if rank == 0:
+                self.save_checkpoint(val_loss, model, epoch, optimizer)
+            
 
-    def save_checkpoint(self, val_loss, model, step, optimizer):
+    def save_checkpoint(self, val_loss, model, epoch, optimizer):
         '''Saves model when validation loss decrease.'''
         if self.verbose:
             self.trace_func(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
-        torch.save(model.state_dict(), os.path.join(self.path, f"model_save-{step}.pt"))
-        torch.save(optimizer.state_dict(), os.path.join(self.path, "model_save-optim-{}.pt".format(step)))
-        print(f'Model checkpoint saved at step {step}')
+        torch.save(model.state_dict(), os.path.join(self.path, f"model_save-{epoch}.pt"))
+        torch.save(optimizer.state_dict(), os.path.join(self.path, "model_save-optim-{}.pt".format(epoch)))
+        print(f'Model checkpoint saved at epoch {epoch}')
         self.val_loss_min = val_loss

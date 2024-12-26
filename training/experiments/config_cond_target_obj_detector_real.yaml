@@ -18,6 +18,9 @@ exp_name:       -1
 epochs:         10
 bsize:          30
 vsize:          ${bsize} # optionally, set to a different batchsize for validation loader
+node_id: 0
+num_gpus: 2
+num_nodes: 1
 optimizer:      null #Adam # RMSProp
 task_names: null
 dataset_target: 'multi_task_il.datasets.multi_task_datasets.MultiTaskPairedDataset'
@@ -54,7 +57,7 @@ train_cfg:
   target_update_freq:   5  # used for soft parameter update
   early_stopping: ${early_stopping_cfg}
   weight_decay:  0.05
-  lr_schedule: 'ReduceLROnPlateau' # ExponentialDecay
+  lr_schedule: 'ReduceLROnPlateau' # ExponentialDecay # CosineAnnealingWarmupRestarts # CosineAnnealingLR 
 
 # early stopping configurator
 early_stopping_cfg:
@@ -129,6 +132,8 @@ dataset_cfg:
   change_command_epoch: False
   load_eef_point: False
   mix_sim_real: False
+  num_gpus: ${num_gpus}
+  num_nodes: ${num_nodes}
 
 augs:
   old_aug: false

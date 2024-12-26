@@ -2,7 +2,10 @@ import random
 from train_utils import *
 import torch
 import hydra
+import os
 
+os.environ['MASTER_ADDR'] = 'localhost' 
+os.environ['MASTER_PORT'] = '9957' 
 torch.autograd.set_detect_anomaly(True)
 # from torch.utils.tensorboard import SummaryWriter
 # writer = SummaryWriter()
@@ -24,7 +27,6 @@ def seed_everything(seed=42):
     config_path="../experiments",
     config_name="config.yaml")
 def main(cfg):
-
     if cfg.debug:
         import debugpy
         debugpy.listen(('0.0.0.0', 5678))

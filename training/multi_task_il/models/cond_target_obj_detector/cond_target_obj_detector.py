@@ -747,11 +747,11 @@ class CondTargetObjectDetector(nn.Module):
         self.activations = None
         self.gradients = None
 
-    def forward(self, inputs: dict, inference: bool = False):
-        cond_video = inputs['demo']
-        agent_obs = inputs['images']
-        gt_bb = inputs['gt_bb']
-        gt_classes = inputs['gt_classes']
+    def forward(self, inputs: list, inference: bool = False):
+        cond_video = inputs[0] # B, T_demo, C, H, W
+        agent_obs = inputs[1] # B, T_frame, C, H, W
+        gt_bb = inputs[2]
+        gt_classes = inputs[3]
 
         cond_emb = self._cond_backbone(cond_video)
         # print(f"Cond embedding shape: {cond_emb.shape}")

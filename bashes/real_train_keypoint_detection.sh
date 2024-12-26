@@ -1,38 +1,35 @@
 #!/bin/bash
 
-# export MUJOCO_PY_MUJOCO_PATH=/user/frosa/.mujoco/mujoco210
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/.mujoco/mujoco210/bin
-# # export MUJOCO_PY_MUJOCO_PATH="/home/frosa_Loc/.mujoco/mujoco210"
-# # export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/frosa_Loc/.mujoco/mujoco210/bin
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/user/frosa/miniconda3/envs/multi_task_lfd/lib
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-# export CUDA_VISIBLE_DEVICES=0
-# export HYDRA_FULL_ERROR=1
-
+#SBATCH --exclude=tnode[01-17]
 #SBATCH --partition=gpuq
-#SBATCH --gres=gpu:1   # Request 1 GPU
+#SBATCH --gres=gpu:1
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=16
+#SBATCH --exclusive
+#SBATCH --export=ALL
 
+export MUJOCO_PY_MUJOCO_PATH=/home/rsofnc000/.mujoco/mujoco210
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/rsofnc000/.mujoco/mujoco210/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
 export HYDRA_FULL_ERROR=1
+
 EXPERT_DATA=/home/rsofnc000/dataset/opt_dataset
 SAVE_PATH=/home/rsofnc000/checkpoint_save_folder
 POLICY='${cond_target_obj_detector}'
 DATASET_TARGET=multi_task_il.datasets.multi_task_keypoint_dataset.MultiTaskPairedKeypointDetectionDataset
 TASKS_CONFIG=7_tasks_real
 AGENT_NAME=real_new_ur5e
-# export CUDA_VISIBLE_DEVICES=1
 echo $1
 TASK_NAME="$1"
 
 SAVE_FREQ=-1
-LOG_FREQ=20
+LOG_FREQ=10
 VAL_FREQ=-1
-PRINT_FREQ=20
-DEVICE=0
+PRINT_FREQ=$LOG_FREQ
+DEVICE=-1
 DEBUG=false
-WANDB_LOG=false
+WANDB_LOG=true
 
 EPOCH=90 # start from 16
 BSIZE=80 #16 #32
@@ -96,7 +93,7 @@ elif [ "$TASK_NAME" == 'pick_place' ]; then
     TASK_str="pick_place"
     EXP_NAME=Real-1Task-${TASK_str}-KP-Finetune
     PROJECT_NAME=${EXP_NAME}
-    SET_SAME_N=7
+    SET_SAME_N=2
     RESUME_PATH=/home/rsofnc000/checkpoint_save_folder/1Task-Pick-Place-KP-Batch112
     RESUME_STEP=37476
     RESUME=false
@@ -112,7 +109,8 @@ elif [ "$TASK_NAME" == 'multi' ]; then
     RESUME=false
 fi
 
-sbatch --output=training_${EXP_NAME}.txt --job-name=training_${EXP_NAME} python -u ../training/train_scripts/train_any.py \
+#srun --output=training_${EXP_NAME}.txt --job-name=training_${EXP_NAME}
+python -u ../training/train_scripts/train_any.py \
     --config-path ${CONFIG_PATH} \
     --config-name ${CONFIG_NAME} \
     policy=${POLICY} \

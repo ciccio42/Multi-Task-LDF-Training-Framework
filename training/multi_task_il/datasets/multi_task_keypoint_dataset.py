@@ -14,6 +14,7 @@ import copy
 
 from multi_task_il.utils import normalize_action
 from multi_task_il.datasets.utils import *
+from multi_task_il.datasets.data_aug import DataAugmentation
 # import robosuite.utils.transform_utils as T
 from multiprocessing import Pool, cpu_count
 import functools
@@ -144,7 +145,16 @@ class MultiTaskPairedKeypointDetectionDataset(Dataset):
 
         self.use_strong_augs = use_strong_augs
         self.data_augs = data_augs
-        self.frame_aug = create_data_aug(self)
+        self.frame_aug = DataAugmentation(data_augs=data_augs,
+                                          mode=mode,
+                                          height=height,
+                                          width=width,
+                                          use_strong_augs=use_strong_augs,
+                                          task_crops=self.task_crops,
+                                          agent_sim_crop=self.agent_sim_crop,
+                                          demo_crop=self.demo_crop,
+                                          agent_crop=self.agent_crop,)
+        
 
     def __len__(self):
         """NOTE: we should count total possible demo-agent pairs, not just single-file counts
