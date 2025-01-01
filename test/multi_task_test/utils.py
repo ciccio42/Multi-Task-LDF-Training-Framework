@@ -1129,7 +1129,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                                        oracle=False,
                                        bb_queue=bb_queue)
                 else:
-                    prediction = model(model_input,
+                    prediction = model(inputs = [model_input['demo'], model_input['images'], model_input['gt_bb'], model_input['gt_classes']],
                                        inference=True)
 
             if controller is not None and not policy:
@@ -1246,7 +1246,7 @@ def object_detection_inference(model, env, context, gpu_id, variation_id, img_fo
                 model_input['gt_classes'] = torch.from_numpy(
                     gt_t[None][None]).to(device=gpu_id)
 
-                prediction = model(model_input,
+                prediction = model(inputs = [model_input['demo'], model_input['images'], model_input['gt_bb'], model_input['gt_classes']],
                                    inference=True)
 
                 compute_bb_prediction(prediction=prediction,

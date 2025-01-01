@@ -62,13 +62,14 @@ def check_train_val_overlap(train_dataset, val_dataset):
 def worker_init_fn(worker_id):
     np.random.seed(np.random.randint(2 ** 29) + worker_id)
 
-def make_model(config):
+def make_model(config, local_rank):
    
     resume = config.get('resume', False)
     finetune = config.get('finetune', False)
     
     
     model = hydra.utils.instantiate(config.policy)
+    model = model.to(torch.device("cuda:" + str(local_rank)))
     try:
         config.use_daml = 'DAMLNetwork' in config.policy._target_
         if config.use_daml:
@@ -90,14 +91,13 @@ def make_model(config):
         print('Finetuning model: load model from ...%s' %
                 rpath)
         state_dict = torch.load(
-            rpath, map_location=torch.device('cpu'))
+            rpath, map_location=torch.device("cuda:" + str(local_rank)))
         if finetune:
             state_dict_keys = list(state_dict.keys())
             for key in state_dict_keys:
                 if '_object_detector' in key or '_cond_backbone' in key or '_agent_backbone' in key:
                     state_dict.pop(key)
-        model.load_state_dict(state_dict,
-                                            strict=False)
+        model.load_state_dict(state_dict,strict=False)
         optimizer_state_dict = None
         if resume:
             try:
@@ -105,7 +105,7 @@ def make_model(config):
                 optimizer_state_dict = join(
                     config.save_path, config.resume_path, f"model_save-optim.pt")
                 optimizer_state_dict = torch.load(
-                    optimizer_state_dict, map_location=torch.device('cpu'))
+                    optimizer_state_dict, map_location=torch.device("cuda:" + str(local_rank)))
             except:
                 print("Exception during loading optimizer state dict")
                 optimizer_state_dict = None
@@ -480,6 +480,7 @@ class Trainer:
              
         validate = False
         tolog = dict()
+        model = model.eval()
         
         if "CondTargetObjectDetector" in self.config.policy._target_:
             if not self.config.get("use_daml", False) and val_loader is not None:
@@ -491,7 +492,7 @@ class Trainer:
         if validate:
             print("Validation")
             rollout = self.config.get("rollout", False)
-            model = model.eval()
+           
             
             if not rollout:
                 
@@ -550,6 +551,7 @@ class Trainer:
                                 tolog[f'val/{loss_name}/{task_name}'] = loss_val
                                 tolog[f'val/{task_name}/{loss_name}'] = loss_val
                         tolog['learning_rate'] = scheduler._schedule.optimizer.param_groups[0]['lr']
+                        wandb.log(tolog)
                                     
                 return weighted_task_loss_val
             
@@ -669,7 +671,7 @@ class Trainer:
 
     def train(self, weights_fn=None, save_fn=None, optim_weights=None, num_replicas: int = 1, global_rank: int = 0, local_rank: int = 0):
 
-        model, optimizer_state_dict = make_model(self.config)
+        model, optimizer_state_dict = make_model(self.config, local_rank)
         
         optim_weights = optim_weights if optim_weights is not None else model.parameters()
         optimizer, lr_scheduler = make_optimizer_schedule(self.config.train_cfg.optimizer,
@@ -714,14 +716,22 @@ class Trainer:
         # initialize constants:
         # compute epochs
         if self.config.resume:
-            epochs = self.config.epochs - \
-                int(self.config.resume_step/len(train_loader))
-            print(f"\n---- Remaining epochs {epochs} ----\n")
-            self._step = int(self.config.resume_step)
+            # epochs = self.config.epochs - \
+            #     int(self.config.resume_step/len(train_loader))
+            # print(f"\n---- Remaining epochs {epochs} ----\n")
+            # self._step = int(self.config.resume_step)
+            # print(f"\n----Starting step {self._step} ----\n")
+            
+            # remaining epochs
+            epochs = self.config.epochs
+            self._step = len(train_loader) * (self.config.resume_step +1)
+            print(f"\n---- Remaining epochs {self.config.epochs - (self.config.resume_step+1)} ----\n")
             print(f"\n----Starting step {self._step} ----\n")
+            
         else:
             epochs = self.train_cfg.get('epochs', 1)
             self._step = 0
+            self.config.resume_step = 0
 
         vlm_alpha = self.train_cfg.get('vlm_alpha', 0.6)
         log_freq = self.train_cfg.get('log_freq', 1000)
@@ -756,8 +766,6 @@ class Trainer:
             print(
                 f"Training for {epochs} epochs train dataloader has length {len(train_loader)}")
 
-        model = model.train()
-
         best_tp = 0
         best_avg_success = 0.0
         # # take the parameters of action modules
@@ -775,7 +783,12 @@ class Trainer:
         raw_stats = dict()
         dist.barrier()
         
-        for e in range(epochs):
+        
+        # save model
+        if global_rank == 0:
+            self.save_checkpoint(model, optimizer, weights_fn, save_fn)
+        
+        for e in range(self.config.resume_step+1, epochs):
             self._epoch = e
             frac = e / epochs
             print(f"Training frac {frac}")
@@ -825,7 +838,7 @@ class Trainer:
             if self.train_cfg.early_stopping.patience != -1:
                 self._early_stopping(val_metric, 
                                      model, 
-                                     epochs, 
+                                     self._epoch, 
                                      optimizer,
                                      rank=global_rank)
             dist.barrier()
@@ -842,23 +855,20 @@ class Trainer:
 
     def save_checkpoint(self, model, optimizer, weights_fn=None, save_fn=None, save_name=None):
         
-        if save_fn is not None:
-            save_fn(self._save_fname, self._epoch)
+
+        model_to_save = model.module if isinstance(model, torch.nn.parallel.DistributedDataParallel) else model
+
+        if save_name is not None:
+            torch.save(model_to_save.state_dict(),
+                    self._save_fname +'-{}-{}.pt'.format(save_name,self._epoch))
         else:
-            save_module = model
-            if weights_fn is not None:
-                save_module = weights_fn()
-            elif isinstance(model, nn.DataParallel):
-                save_module = model.module
-            if save_name is not None:
-                torch.save(save_module.state_dict(),
-                        self._save_fname +'-{}-{}.pt'.format(save_name,self._epoch))
-            else:
-                torch.save(save_module.state_dict(),
-                        self._save_fname + '-{}.pt'.format(self._epoch))
+            torch.save(model_to_save.state_dict(),
+                    self._save_fname + '-{}.pt'.format(self._epoch))
+            
         if self.config.get('save_optim', False):
             torch.save(optimizer.state_dict(), self._save_fname +
                        '-optim.pt')
+        
         print(f'Model checkpoint saved at epoch {self._epoch}')
         return
 
