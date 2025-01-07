@@ -45,6 +45,7 @@ if __name__ == '__main__':
         data = json.load(file)
         
     couples_dataset = {}
+    # for finetuning datasets
     for dataset_str in data.keys():
         couples_dataset[dataset_str] = {}
         for task_str in data[dataset_str].keys():
@@ -65,12 +66,20 @@ if __name__ == '__main__':
                                 couples_dataset[dataset_str][task_str][subtask_str].append((s_1, s_2))
                     else:
                         raise NotImplementedError
+                    
+    # for real and sim ur5e, couple with panda demonstration
+    
+    
     
     # import os
     # os.mkdir('traj_couples/')
     orig_json_name = args.trajectory_json_file_path.split('/')[-1].split('.')[0]
     with open(f"traj_couples/{orig_json_name}_couples.json", "w") as outfile: 
         json.dump(couples_dataset,outfile,indent=2)
+        
+        
+    ### TODO: CONTARE LE COPPIE    
+    
     
     
 

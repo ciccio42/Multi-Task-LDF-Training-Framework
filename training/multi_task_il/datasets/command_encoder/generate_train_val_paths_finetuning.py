@@ -86,7 +86,7 @@ def main():
                                         pkl_dict[dataset_name][task_name][subtask_name] = []
                                 else:
                                     for pkl_dict in pkl_files_paths:
-                                        pkl_dict[dataset_name][task_name][subtask_name] = {} # it should not happens
+                                        pkl_dict[dataset_name][task_name][subtask_name] = {} # it should not happen
                                     print(f"***** WARNING ******")
                             
                                     
