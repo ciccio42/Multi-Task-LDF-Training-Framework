@@ -65,3 +65,11 @@ in order to test
 # dataset conversion
 ## to convert original real and sim dataset to delta actions
 `bashes/convert_real_sim_delta.sh`
+
+
+
+
+### how the couples have been generated
+
+image
+
