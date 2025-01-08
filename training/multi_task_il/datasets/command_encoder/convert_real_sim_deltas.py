@@ -47,19 +47,21 @@ def convert_to_delta(traj_data, is_sim=True):
         
         # check for angles for which value is > pi
         for angle_idx, delta_angle in enumerate(delta_t[3:6]):
-            if delta_angle > math.pi:
+            if delta_angle > math.pi or delta_angle < -math.pi:
                 ang_t_minus_1 = action_t_minus_1[angle_idx+3]
                 ang_t = action_t[angle_idx+3]
                 
                 if ang_t > 0.0 and ang_t_minus_1 < 0.0:
                     ang_t_minus_1 = 2*math.pi - abs(ang_t_minus_1)
                 elif ang_t < 0.0 and ang_t_minus_1 > 0.0:
-                    ang_t = 2*math.pi - ang_t
+                    ang_t = 2*math.pi - abs(ang_t)
                 else:
                     print(f'[WARNING] unexpected situation when computing angle:\nang_t:{ang_t}, ang_t_minus_1:{ang_t_minus_1}')
                     
                 delta_angle = ang_t - ang_t_minus_1
                 delta_t[angle_idx+3] = delta_angle
+                
+                
                     
         action_t_minus_1 = action_t # save before overwrite it
         change_action(traj_data['traj'], t, delta_t)
