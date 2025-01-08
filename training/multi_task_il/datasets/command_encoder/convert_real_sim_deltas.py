@@ -8,26 +8,61 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from tqdm import tqdm
 from multi_task_il.datasets.utils import trasform_from_world_to_bl
+import math
 
 '''
 This script converts real and sim ur5e dataset in deltas
 '''
 
-def convert_to_delta(traj_data):
-    for t in range(traj_data['len']):
-        step_t = traj_data['traj'].get(t)
-        action_t = step_t['action']
-        try:
-            step_t1 = traj_data['traj'].get(t+1)
-            action_t1 = step_t1['action']                            
-        except AssertionError: # it happens at the last t
-            step_t1 = traj_data['traj'].get(t)
-            action_t1 = step_t1['action']
-
+def convert_to_delta(traj_data, is_sim=True):
+    for t in range(traj_data['len']): 
+        if t == 0 and is_sim == True: # first step for the sim dataset
+            ee_aa = traj_data['traj'].get(t)['obs']['ee_aa']
+            gripper = np.array([traj_data['traj'].get(t)['action'][-1]])
+            ee_aa = np.concatenate([ee_aa, gripper])
+            action_t = apply_transf_ur5e_sim(ee_aa)[:-1]
+            # action_t = np.concatenate([action_t, gripper])
+            # action_t_minus_1 = traj_data['traj'].get(t)['action']
+            action_t_minus_1 = np.concatenate([action_t, gripper]) #obs
+            action_t = traj_data['traj'].get(t)['action']
+            
+        elif t == 0 and is_sim == False:
+            eef_pos = traj_data['traj'].get(t)['obs']['eef_pos']
+            eef_rpy = mat2euler(quat2mat(traj_data['traj'].get(t)['obs']['eef_quat']))
+            gripper = np.array([traj_data['traj'].get(t)['action'][-1]])
+            action_t_minus_1 = np.concatenate([eef_pos, eef_rpy, gripper])
+            action_t = traj_data['traj'].get(t)['action']
+            
+        elif t == (traj_data['len']-1): # last step
+            action_t = traj_data['traj'].get(t)['action']
+            action_t_minus_1 = action_t
+            
+        else:
+            action_t = traj_data['traj'].get(t)['action']
+            # action_t_minus_1 is the one saved at the previous step
+            
         delta_t = np.array([0.0] * 7)
-        delta_t[:-1] = action_t1[:-1] - action_t[:-1]
+        delta_t[:-1] = action_t[:-1] - action_t_minus_1[:-1]
         delta_t[-1] = action_t[-1] # gripper
         
+        # check for angles for which value is > pi
+        for angle_idx, delta_angle in enumerate(delta_t[3:6]):
+            if delta_angle > math.pi:
+                ang_t_minus_1 = action_t_minus_1[angle_idx+3]
+                ang_t = action_t[angle_idx+3]
+                
+                if ang_t > 0.0:
+                    ang_t = math.pi - ang_t
+                    ang_t_minus_1 = math.pi + ang_t_minus_1
+                else:
+                    ang_t = math.pi + ang_t
+                    ang_t_minus_1 = math.pi - ang_t_minus_1
+                    
+                    
+                delta_angle = ang_t + ang_t_minus_1
+                delta_t[angle_idx+3] = delta_angle
+                    
+        action_t_minus_1 = action_t # save before overwrite it
         change_action(traj_data['traj'], t, delta_t)
         
 def convert_quat_RPY(traj_data):
@@ -43,6 +78,15 @@ def convert_quat_RPY(traj_data):
         action_t = np.concatenate([pos_t, step_t_rpy, gripper_t])
         
         change_action(traj_data['traj'], t, action_t)
+        
+def apply_transf_ur5e_sim(action_t):
+    action_t_conv = trasform_from_world_to_bl(action_t)
+    # from axisangle to rpy
+    axis_angle_rot = action_t_conv[3:6]
+    euler_rot = mat2euler(quat2mat(axisangle2quat(axis_angle_rot)))
+    action_t_conv[3:6] = euler_rot
+    action_t_conv[-1] = 1.0 if action_t_conv[-1] == 0.0 else 0.0
+    return action_t_conv
 
 def change_action(trajectory, t, new_action):
     obs_t, reward_t, done_t, info_t, action_t = trajectory._data[t]
@@ -128,6 +172,7 @@ if __name__ == '__main__':
     # quat -> RPY -> deltas
     
     # save this for plotting
+    
     # saved_orig_traj = False
     # saved_conv_traj = False
     # saved_conv_delta_traj = False    
@@ -135,11 +180,11 @@ if __name__ == '__main__':
     # conv_traj = None
     # conv_delta_traj = None
     
-    # for task_dir in os.listdir(real_ur5_dataset_path):
+    # for task_dir in sorted(os.listdir(real_ur5_dataset_path)):
     #     if 'task_' in task_dir:
     #         root_dir = real_ur5_dataset_path + '/' + task_dir
     #         for root, dirs, files in os.walk(root_dir):
-    #             for f in tqdm(files, desc=f'converting {task_dir}'):
+    #             for f in tqdm(sorted(files), desc=f'converting {task_dir}'):
                     
     #                 # create the new trajectory object
     #                 # sub_traj = Trajectory()
@@ -162,7 +207,7 @@ if __name__ == '__main__':
     #                     saved_conv_traj = True
                         
     #                 ## convert to deltas
-    #                 convert_to_delta(traj_data)
+    #                 convert_to_delta(traj_data, is_sim=False)
                         
     #                 if not saved_conv_delta_traj:
     #                     conv_delta_traj = deepcopy(traj_data)
@@ -171,30 +216,30 @@ if __name__ == '__main__':
                         
     #                 exit()
                           
-                    # # save the converted trajectory
+    #                 # save the converted trajectory
+    #                 traj_pkl_save_path = root_save_real_ur5_conv_dataset_path + '/' + task_dir + '/' + traj_path.split('/')[-1]
                     
-                    # traj_pkl_save_path = root_save_real_ur5_conv_dataset_path + '/' + task_dir + '/' + traj_path.split('/')[-1]
-                    
-                    # try:
-                    #     pickle.dump({
-                    #         'traj': traj_data['traj'],
-                    #         'len': len(traj_data['traj']),
-                    #         'env_type': traj_data['env_type'],
-                    #         'task_id': traj_data['task_id']}, open(traj_pkl_save_path, 'wb'))
-                    # except Exception:
-                    #     task_path_dir = root_save_real_ur5_conv_dataset_path + '/' + task_dir 
-                    #     if not os.path.exists(task_path_dir):
-                    #         os.mkdir(task_path_dir)
-                    #     pickle.dump({
-                    #         'traj': traj_data['traj'],
-                    #         'len': len(traj_data['traj']),
-                    #         'env_type': traj_data['env_type'],
-                    #         'task_id': traj_data['task_id']}, open(traj_pkl_save_path, 'wb'))
+    #                 try:
+    #                     pickle.dump({
+    #                         'traj': traj_data['traj'],
+    #                         'len': len(traj_data['traj']),
+    #                         'env_type': traj_data['env_type'],
+    #                         'task_id': traj_data['task_id']}, open(traj_pkl_save_path, 'wb'))
+    #                 except Exception:
+    #                     task_path_dir = root_save_real_ur5_conv_dataset_path + '/' + task_dir 
+    #                     if not os.path.exists(task_path_dir):
+    #                         os.mkdir(task_path_dir)
+    #                     pickle.dump({
+    #                         'traj': traj_data['traj'],
+    #                         'len': len(traj_data['traj']),
+    #                         'env_type': traj_data['env_type'],
+    #                         'task_id': traj_data['task_id']}, open(traj_pkl_save_path, 'wb'))
           
           
     ##----------- CONVERT SIM DATASET
     
     # save this for plotting
+    
     saved_orig_traj = False
     saved_conv_traj = False
     saved_conv_delta_traj = False    
@@ -212,7 +257,7 @@ if __name__ == '__main__':
                     with open(traj_path, "rb") as f:
                         traj_data = pickle.load(f)
                                                 
-                    # shift
+                    ####------ shift
                     for t in range(traj_data['len']):
                         
                         try:
@@ -230,15 +275,11 @@ if __name__ == '__main__':
                         plot_action(orig_traj['traj'], 'original traj sim', 'delta_script_original_traj_sim')
                         saved_orig_traj = True
                         
-                        
+                    ####----conversion
                     for t in range(traj_data['len']):
                         action_t = traj_data['traj'].get(t)['action']
-                        action_t_conv = trasform_from_world_to_bl(action_t)
-                        # from axisangle to rpy
-                        axis_angle_rot = action_t_conv[3:6]
-                        euler_rot = mat2euler(quat2mat(axisangle2quat(axis_angle_rot)))
-                        action_t_conv[3:6] = euler_rot
-                        action_t_conv[-1] = 1.0 if action_t_conv[-1] == 0.0 else 0.0
+                        
+                        action_t_conv = apply_transf_ur5e_sim(action_t)
                         
                         change_action(traj_data['traj'], t, action_t_conv)
                         
@@ -247,7 +288,7 @@ if __name__ == '__main__':
                         plot_action(conv_traj['traj'], 'conv traj sim', 'delta_script_conv_traj_sim')
                         saved_conv_traj = True     
                         
-                    ## convert to deltas
+                    ####----- convert to deltas
                     convert_to_delta(traj_data)
                         
                     if not saved_conv_delta_traj:
@@ -255,7 +296,7 @@ if __name__ == '__main__':
                         plot_action(conv_delta_traj['traj'], 'conv traj delta sim', 'delta_script_conv_traj_delta_sim')
                         saved_conv_delta_traj = True
                         
-                    # exit()
+                    exit()
                     
                     # save the converted trajectory
                     traj_pkl_save_path = root_save_sim_ur5_conv_dataset_path + '/' + task_dir + '/' + traj_path.split('/')[-1]
