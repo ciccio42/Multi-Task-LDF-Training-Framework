@@ -78,7 +78,49 @@ class Rescaler():
     def rescale_value(self,value):
         value_scaled = (value - self.min_old) / (self.max_old - self.min_old) # [0,1]
         return value_scaled * (self.max_new - self.min_new) + self.min_new
+    
+    
+class SimTokenizer():
+    
+    def __init__(self, min, max, vocabsize):
+        self.min = min
+        self.max = max
+        self.vocabsize = vocabsize
 
+    def tokenize(self, value):
+        
+        norm_value = (value - self.min) / (self.max - self.min)
+        # discretize
+        return int(norm_value * (self.vocabsize - 1))
+        
+        
+def plot_scaling(old_actions, new_actions, dataset_str, min_old, max_old, min_new, max_new, last_rt1=False):
+    fig = plt.figure()
+    plt.plot(old_actions, '--o', label='old_actions', markersize=1)
+    plt.plot(new_actions, '--o', label='new_actions', markersize=1)
+    plt.legend(['old_actions', 'new_actions'])
+    
+    plt.axhline(y = 0, color = 'b', linestyle = ':') 
+    
+    plt.title(f'scaling from [{min_old:.2f},{max_old:.2f}] to [{min_new:.2f},{max_new:.2f}]')
+    
+    if not last_rt1:
+        if not os.path.exists('test_scalings'):
+            os.mkdir('test_scalings')
+        plt.savefig(f'test_scalings/scaling_old_actions_{dataset_str}.png')
+    else:
+        if not os.path.exists('test_scalings_toRT1'):
+            os.mkdir('test_scalings_toRT1')
+        plt.savefig(f'test_scalings_toRT1/scaling_old_actions_{dataset_str}.png')
+    
+def plot_hist(tokens_actions, bucket_size, dataset_str, min_new, max_new, action_el_str, ax):
+    
+    N, bins, patches = ax.hist(tokens_actions,bins=[i for i in range(bucket_size)], label='freq of bin')    
+    # plt.title(f'{dataset_str}: frequency of bins in [{min_new:.2f},{max_new:.2f}]')
+    ax.set_ylabel(f'number of bin')
+    ax.set_xlabel(f'bins for {action_el_str}')
+    ax.legend(['freq of bin'])
+    
 
 if __name__ == '__main__':
     
@@ -120,6 +162,8 @@ if __name__ == '__main__':
     
     ## scalare rispetto al min_min e max_max
     
+    ACTIONS_ELS = ['dx', 'dy', 'dz']
+    
     all_pkl_paths_path = '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes/all_pkl_paths.json'
     with open(all_pkl_paths_path, 'r') as file:
         all_pkl_dict = json.load(file)
@@ -149,94 +193,79 @@ if __name__ == '__main__':
                 'droid_converted',
                 'panda_pick_place']
 
-    # min_new = min_min[0]
-    # max_new = max_max[0]
-    min_new = -0.09
-    max_new = 0.09
-    # mu_new = (x_range_min + x_range_max)/2
-    # sigma_new = x_range_max - x_range_min
-    
-    # print(f"rescaling to new parameters: mu_new {mu_new}, sigma_new: {sigma_new}")s
+    MIN_RT1 = -1
+    MAX_RT1 = 1
     
     for dataset_str in min_max_dict.keys():
         if dataset_str not in BLACK_LIST:
-            # sigma_old = min_max_dict[dataset_str]['max'][0] - min_max_dict[dataset_str]['min'][0]
-            # mu_old = (min_max_dict[dataset_str]['max'][0] + min_max_dict[dataset_str]['min'][0]) / 2
-            # print(f"{dataset_str}: mu_old {mu_old}, sigma_old: {sigma_old}")
             
-            min_old = min_max_dict[dataset_str]['min'][0]
-            max_old = min_max_dict[dataset_str]['max'][0]
+            fig = plt.figure()
+            fig.set_figheight(4)
+            fig.set_figwidth(10) 
+            fig.suptitle(f'{dataset_str}')
             
-            # all_pkl_dict[dataset_str]
+            #grid specifications
+            gs0 = gridspec.GridSpec(1,3, figure=fig)
             
-            dataset_iterator = DatasetIterator(all_pkl_dict[dataset_str])
-            # rescaler = Rescaler(, sigma_old, mu_new, sigma_new)
-            rescaler = Rescaler(min_old, max_old, min_new, max_new)
+            ax00 = fig.add_subplot(gs0[0,0])
+            ax01 = fig.add_subplot(gs0[0,1])
+            ax02 = fig.add_subplot(gs0[0,2])
             
-            for traj_dict in tqdm(dataset_iterator, desc=f'{dataset_str}', total=(len(dataset_iterator))):
-                # print(traj_dict)
-                traj = traj_dict['traj_el']['traj']
-                old_actions = []
-                new_actions = []
-                for step_t in traj:
-                    action_t = step_t['action']
-                    
-                    # mean normalization
-                    x_scaled = rescaler.rescale_value(action_t[0])
-                    print(f'{action_t[0]} -> {x_scaled}')
-                    old_actions.append(action_t[0])
-                    new_actions.append(x_scaled)
-                    
-                fig = plt.figure()
-                plt.plot(old_actions, '--o', label='old_actions', markersize=1)
-                plt.plot(new_actions, '--o', label='new_actions', markersize=1)
-                plt.legend(['old_actions', 'new_actions'])
+            hist_dataset_axes = [ax00, ax01, ax02]
+            
+            for act_id, action_el_str in enumerate(ACTIONS_ELS): # plot each coord
                 
-                plt.axhline(y = 0, color = 'b', linestyle = ':') 
+                # sigma_old = min_max_dict[dataset_str]['max'][0] - min_max_dict[dataset_str]['min'][0]
+                # mu_old = (min_max_dict[dataset_str]['max'][0] + min_max_dict[dataset_str]['min'][0]) / 2
+                # print(f"{dataset_str}: mu_old {mu_old}, sigma_old: {sigma_old}")
                 
-                plt.title(f'scaling from [{min_old:.2f},{max_old:.2f}] to [{min_new:.2f},{max_new:.2f}]')
-                if not os.path.exists('test_scalings'):
-                    os.mkdir('test_scalings')
+                min_old = min_max_dict[dataset_str]['min'][act_id]
+                max_old = min_max_dict[dataset_str]['max'][act_id]
                 
-                plt.savefig(f'test_scalings/scaling_old_actions_{dataset_str}.png')
-                    
-                    
-                break  # to plot only 1 traj for each dataset (outer loop)
+                min_new = min_min[act_id]
+                max_new = max_max[act_id]
                 
+                # all_pkl_dict[dataset_str]
+                
+                dataset_iterator = DatasetIterator(all_pkl_dict[dataset_str])
+                # rescaler = Rescaler(, sigma_old, mu_new, sigma_new)
+                rescaler = Rescaler(min_old, max_old, min_new, max_new)
+                rescaler_to_RT1 = Rescaler(min_new, max_new, MIN_RT1, MAX_RT1)
+                BUCKET_SIZE = 256
+                tokenizer = SimTokenizer(min_new, max_new, BUCKET_SIZE)
+                
+                tokens_actions_per_dataset = []
+                for traj_dict in tqdm(dataset_iterator, desc=f'{dataset_str}, action_el: {ACTIONS_ELS[act_id]}', total=(len(dataset_iterator))):
+                    # print(traj_dict)
+                    traj = traj_dict['traj_el']['traj']
+                    old_actions = []
+                    new_actions = []
+                    new_actions_rt1_scale = []
+                    # for every step in trajectory
+                    for step_t in traj:
+                        action_t = step_t['action']
+                        
+                        # mean normalization
+                        act_value = rescaler.rescale_value(action_t[act_id]) # scale to min_min max_max scale
+                        act_value_rt1 = rescaler_to_RT1.rescale_value(act_value) # scale to -1 1 from min_min max_max
+                        act_value_token = tokenizer.tokenize(act_value_rt1) # tokenize
+                        # print(f'{action_t[act_id]} -> {act_value} -> {act_value_token}')
+                        old_actions.append(action_t[act_id])
+                        new_actions.append(act_value)
+                        new_actions_rt1_scale.append(act_value_rt1)
+                        tokens_actions_per_dataset.append(act_value_token)
                     
                     
+                    # plot_scaling(old_actions, new_actions, dataset_str, min_old, max_old, min_new, max_new) # to plot values across the old and new dataset range
+                    # plot_scaling(new_actions, new_actions_rt1_scale, dataset_str, min_new, max_new, MIN_RT1, MAX_RT1, last_rt1=True) # to plot values from new dat range to RT1 input tokenization range
                     
+                    # break  # to plot only 1 traj for each dataset (outer loop)
                     
+                plot_hist(tokens_actions_per_dataset, BUCKET_SIZE, dataset_str, MIN_RT1, MAX_RT1, action_el_str, hist_dataset_axes[act_id])
             
-        
-        
-        
-        
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-        
-    
-    
-    
-    
-    
-    
-    
-    ## istogramma per ogni valore del vettore azione
-    
-    
-    
-    
-    
-    
-    
-    
+            if not os.path.exists('test_hists_dx_dy_dz'):
+                    os.mkdir('test_hists_dx_dy_dz')
+            plt.savefig(f'test_hists_dx_dy_dz/bin_freq_{dataset_str}.png')
+            
+            # exit() # to plot all traj for first dataset     
     
