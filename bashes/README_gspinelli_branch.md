@@ -25,20 +25,20 @@ run `bashes/test_RT1_video_cond.sh`
 <!-- Cond Module -->
 ## to: 1) generate paths and 2) embeddings from the commands of the finetuning dataset
 * run `bashes/generate_train_val_paths_finetuning.sh`
-## train cond module on the embeddings of the finetuning dataset
+## [train] cond module on the embeddings of the finetuning dataset
 * dataset, batchsampler are defined in `Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/training/multi_task_il/datasets/command_encoder/command_encoder_dataset.py`
 * for training, run the bash script `train_cond_module_finetuning` in `bashes/` 
-# testing cond-module via T-SNE plot
+# [testing] cond-module via T-SNE plot
 * run bash script `test_cond_module_finetuning` -> plots of the embedding (and centroids) are saved in `bashes/finetuning_centroid_figures` folder
 
 <!-- RT1 -->
 ## create (demo, traj) couples for rt1 training
 * run `bashes/generate_traj_demo_couples_from_json.sh`
-## train RT-1 video-conditioned on the finetuning dataset
+## [train] RT-1 video-conditioned on the finetuning dataset
 * dataset, batchsampler are defined in `training/multi_task_il/datasets/finetuning_paired_dataset.py`
 * to launch training, run bash script `train_RT1_video_cond_finetuning.sh` in `bashes/`
 
-# testing RT-1
+# [testing] RT-1
 in order to test
 * open `test_RT1_video_cond.sh` bash script
 * select the root of your project with `PROJECT_NAME` var
@@ -62,14 +62,20 @@ in order to test
 ## visualize action (no video) for all the datasets
 `visualize_actions_static.py`
 
-# dataset conversion
+# datasets
 ## to convert original real and sim dataset to delta actions
 `bashes/convert_real_sim_delta.sh`
-
-
-
+## to find min and max for the actions components for every dataset
+`bashes/find_min_max_actions.sh`
+## to plot histogram for bin distribution given an interval
+`bashes/plot_bin_histogram.sh`
 
 ### how the couples have been generated
-
+explain
 image
+
+## heatmap
+heatmap
+
+## come sono fatti batch sampler
 

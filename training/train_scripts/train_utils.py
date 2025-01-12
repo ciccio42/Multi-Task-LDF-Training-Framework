@@ -904,6 +904,7 @@ def calculate_task_loss(config, train_cfg, device, model, task_inputs, val=False
                 if 'finetuning_paired_dataset' in config.dataset_cfg._target_: # if we're doing pretraining on large dataset
                     task_losses[task_name]['l_ce'] = torch.mean(torch.stack(ce_loss_avg_per_minibatch)) # the loss of the entire batch is the mean of the losses of each minibatch
                     task_losses[task_name]['loss_sum'] = task_losses[task_name]['l_ce']
+                    return task_losses, bin_acc
                 else:
                     task_losses[task_name]['l_ce'] = ce_loss # loss is computed internally in rt1 implementation
                     task_losses[task_name]['loss_sum'] = task_losses['pick_place']['l_ce']
@@ -1154,7 +1155,7 @@ class Trainer:
             #     print(k, dict(self.config.get(k)))
             #     print('-'*20)
             wandb_config = {k: self.config.get(k) for k in config_keys}
-            wandb.login(key='1d9590e10967b8af6602ddae665dbcc77f88fbd5')
+            wandb.login(key='5f88790e20504ceec6cfa31a400ef37ed5255bea')
             print(f"Exp name: {self.config.exp_name}")
             self.config.project_name = self.config.exp_name.split('-Batch')[0]
             run = wandb.init(project=self.config.project_name,
@@ -1284,8 +1285,39 @@ class Trainer:
             print(f"Training frac {frac}")
             # with tqdm(self._train_loader, unit="batch") as tepoch:
             
+            # batch_count = 0
             #### ---- Train loop ----####
             for inputs in tqdm(self._train_loader):
+                
+                # for k in range(inputs['finetuning']['demo_data']['demo'].shape[0]):
+                #     for i in range(4):
+                #         image = inputs['finetuning']['demo_data']['demo'][k][i]
+                #         cv2.imwrite(f"example_batch_{batch_count}_cond_module/{k}_{i}.png", np.moveaxis(
+                #             image.numpy()*255, 0, -1))
+                
+                # batch_count+=1
+                
+                # images = inputs['finetuning']['traj']['images']
+                # image = inputs['finetuning']['traj']['images'][0][0]
+                # cv2.imwrite(f"prova_traj.png", np.moveaxis(
+                #                 image.numpy()*255, 0, -1))
+                
+                ### debug batch (demo, traj)
+                # num_samples = inputs['finetuning']['traj']['images'].shape[0]
+                # traj_steps = inputs['finetuning']['traj']['images'].shape[1]
+                # demo_steps = inputs['finetuning']['demo_data']['demo'].shape[1]
+                # for k in range(num_samples):
+                #     for t in range(demo_steps):
+                #         image = inputs['finetuning']['demo_data']['demo'][k][t]
+                #         cv2.imwrite(f"test_batch_rt1/demo_{k}_{t}.png", np.moveaxis(
+                #                         image.numpy()*255, 0, -1))                        
+                    
+                #     for t in range(traj_steps):
+                #         image = inputs['finetuning']['traj']['images'][k][t]
+                #         cv2.imwrite(f"test_batch_rt1/traj_{k}_{t}.png", np.moveaxis(
+                #                         image.numpy()*255, 0, -1))
+                
+                
                 tolog = {}
                 # Save stats
                 if save_freq != 0 and self._step % save_freq == 0 and e != 0:  # stats
@@ -1305,7 +1337,7 @@ class Trainer:
                 if "rt1" in self.config.policy._target_:
                     
                     if 'finetuning_paired_dataset' in self.config.dataset_cfg._target_:
-                        task_losses = loss_function(
+                        task_losses, bin_acc = loss_function(
                             self.config, self.train_cfg, self._device, model, inputs)
                     else:
                         task_losses, bin_acc = loss_function(
@@ -1389,7 +1421,8 @@ class Trainer:
                     if self.config.wandb_log:
                         tolog['Train Step'] = self._step
                         tolog['Epoch'] = e
-                        tolog['bin_acc'] = bin_acc
+                        if "rt1" in self.config.policy._target_:
+                            tolog['bin_acc'] = bin_acc
                         i = 0
                         for task_name, losses in task_losses.items():
                             if "grad_norm" in self.config.get("loss", ""):
@@ -1456,7 +1489,7 @@ class Trainer:
                             if "rt1" in self.config.policy._target_:
                                 with torch.no_grad():
                                     if 'finetuning_paired_dataset' in self.config.dataset_cfg._target_:
-                                        val_task_losses = loss_function(
+                                        val_task_losses, val_bin_acc = loss_function(
                                             self.config,
                                             self.train_cfg,
                                             self._device,
@@ -1500,7 +1533,8 @@ class Trainer:
                     if self.config.wandb_log:
                         to_log['Validation Step'] = self._step
                         to_log['epoch'] = e
-                        to_log['bin_acc'] = val_bin_acc
+                        if "rt1" in self.config.policy._target_:
+                            to_log['bin_acc'] = val_bin_acc
                         for task_name, losses in avg_losses.items():
                             for loss_name, loss_val in losses.items():
                                 to_log[f'val/{loss_name}/{task_name}'] = loss_val

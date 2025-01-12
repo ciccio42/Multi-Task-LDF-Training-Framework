@@ -100,7 +100,7 @@ def plot_action(traj, title, save_name):
     
     fig = plt.figure()
     fig.set_figheight(8.5)
-    fig.set_figwidth(8.5) 
+    fig.set_figwidth(10.5) 
     fig.suptitle(title)
     
     #grid specifications
@@ -151,7 +151,6 @@ if __name__ == '__main__':
     real_ur5_dataset_path = '/raid/home/frosa_Loc/opt_dataset/pick_place/real_new_ur5e_pick_place'
     sim_ur5_dataset_path = '/user/frosa/multi_task_lfd/ur_multitask_dataset/opt_dataset/pick_place/ur5e_pick_place'
     
-    
     root_save_real_ur5_conv_dataset_path = '/user/frosa/multi_task_lfd/datasets/real_new_ur5e_pick_place_converted'
     root_save_sim_ur5_conv_dataset_path = '/user/frosa/multi_task_lfd/datasets/sim_new_ur5e_pick_place_converted'
     
@@ -164,7 +163,6 @@ if __name__ == '__main__':
     
     # with open('/user/frosa/multi_task_lfd/ur_multitask_dataset/opt_dataset/pick_place/ur5e_pick_place/task_13/traj034.pkl', "rb") as f:
     #     a = pickle.load(f)
-    
 
     
     ##----------- CONVERT REAL DATASET

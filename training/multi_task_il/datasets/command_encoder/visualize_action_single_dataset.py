@@ -30,8 +30,11 @@ if __name__ == '__main__':
     print(f'analyzing dataset {dataset_index}')
     
     finetuning_datasets_path = '/user/frosa/multi_task_lfd/datasets'
-    real_ur5_dataset_path = '/raid/home/frosa_Loc/opt_dataset/pick_place/real_new_ur5e_pick_place'
-    sim_ur5_dataset_path = '/user/frosa/multi_task_lfd/ur_multitask_dataset/opt_dataset/pick_place/ur5e_pick_place'
+    # real_ur5_dataset_path = '/raid/home/frosa_Loc/opt_dataset/pick_place/real_new_ur5e_pick_place'
+    # sim_ur5_dataset_path = '/user/frosa/multi_task_lfd/ur_multitask_dataset/opt_dataset/pick_place/ur5e_pick_place'
+    
+    real_ur5_dataset_path = '/user/frosa/multi_task_lfd/datasets/real_new_ur5e_pick_place_converted'
+    sim_ur5_dataset_path = '/user/frosa/multi_task_lfd/datasets/sim_new_ur5e_pick_place_converted'
     ur5_uni_paths = [real_ur5_dataset_path, sim_ur5_dataset_path]
     
     
@@ -53,7 +56,7 @@ if __name__ == '__main__':
                     break
     
     for folder_path in ur5_uni_paths:
-        traj_path = f'{folder_path}/task_14/traj032.pkl'
+        traj_path = f'{folder_path}/task_00/traj000.pkl'
         traj_paths.append(traj_path)
         
     # open trajectories

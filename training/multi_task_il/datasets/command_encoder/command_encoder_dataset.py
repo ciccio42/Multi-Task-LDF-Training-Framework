@@ -13,6 +13,7 @@ class CommandEncoderFinetuningDataset(Dataset):
     
     def __init__(self,
                  tasks_spec,
+                 dataset_samples_spec,
                  mode='train',
                  jsons_folder='',
                  demo_T=4,
@@ -23,14 +24,14 @@ class CommandEncoderFinetuningDataset(Dataset):
                  use_strong_augs=False,
                  data_augs=None,
                  black_list=[], #datasets to exclude
-                 demo_crop=[0, 0, 0, 0], #TODO,
                  select_random_frames=True
                  ):
         super().__init__()
         
         # processing video demo
-        self.demo_crop = OrderedDict()
+        # self.demo_crop = OrderedDict()
         self.task_crops = OrderedDict()
+        self.dataset_samples_spec = dataset_samples_spec
         self.mode = mode
         self._demo_T = demo_T
         self.width, self.height = width, height
@@ -67,10 +68,9 @@ class CommandEncoderFinetuningDataset(Dataset):
                         task_len = len(self.pkl_paths_dict[dataset_name][task])
                         max_len = task_len if task_len > max_len else max_len
                         self.map_tasks_to_idxs[dataset_name][task] = []
-                        self.demo_crop[task] = demo_crop  # same crop
                         for t in self.pkl_paths_dict[dataset_name][task]: # for all task in the list
                             embedding = self.embeddings_paths_dict[dataset_name][task][0]
-                            self.all_pkl_paths[all_file_count] = (t, task, embedding) #add to all_pkl_paths
+                            self.all_pkl_paths[all_file_count] = (t, task, embedding, dataset_name) #add to all_pkl_paths
                             self.map_tasks_to_idxs[dataset_name][task].append(all_file_count) #memorize mapping
                             all_file_count+=1
                         
@@ -78,12 +78,11 @@ class CommandEncoderFinetuningDataset(Dataset):
                         self.map_tasks_to_idxs[dataset_name][task] = defaultdict()
                         for subtask in self.pkl_paths_dict[dataset_name][task].keys():
                             self.map_tasks_to_idxs[dataset_name][task][subtask] = []
-                            self.demo_crop[subtask] = demo_crop
                             task_len = len(self.pkl_paths_dict[dataset_name][task][subtask])
                             max_len = task_len if task_len > max_len else max_len
                             for t in self.pkl_paths_dict[dataset_name][task][subtask]:
                                 embedding = self.embeddings_paths_dict[dataset_name][task][subtask][0]
-                                self.all_pkl_paths[all_file_count] = (t, subtask, embedding) #add to all_pkl_paths
+                                self.all_pkl_paths[all_file_count] = (t, subtask, embedding, dataset_name) #add to all_pkl_paths
                                 self.map_tasks_to_idxs[dataset_name][task][subtask].append(all_file_count) #memorize mapping
                                 all_file_count+=1
             
@@ -92,13 +91,18 @@ class CommandEncoderFinetuningDataset(Dataset):
         print(f'[{self.mode.capitalize()}] total file count: {all_file_count}')
         print(f'[{self.mode.capitalize()}] number of dataset steps: {max_len}')
         
-        #TODO: task crop for panda pick_place
-        for spec in tasks_spec:
-            name, date = spec.get('name', None), spec.get('date', None)
+        for spec in self.dataset_samples_spec:
+            spec = self.dataset_samples_spec[spec]
+            name = spec.get('name', None)
             if spec.get('crop', None) is not None:
-                for subtask in  spec.get('task_ids'):
-                    self.task_crops[f'task_{subtask:02.0f}'] = spec.get(
-                        'crop', [0, 0, 0, 0])
+                self.task_crops[name] = spec.get('crop', [0,0,0,0])
+
+        # for spec in tasks_spec:
+        #     name, date = spec.get('name', None), spec.get('date', None)
+        #     if spec.get('crop', None) is not None:
+        #         for subtask in  spec.get('task_ids'):
+        #             self.task_crops[f'task_{subtask:02.0f}'] = spec.get(
+        #                 'crop', [0, 0, 0, 0])
         
         
         # f'{a:02.0f}'
@@ -107,14 +111,14 @@ class CommandEncoderFinetuningDataset(Dataset):
         #     json.dump(self.map_tasks_to_idxs,outfile,indent=2) 
         
     def __getitem__(self, index):
-        traj_path, task_name, embedding_path = self.all_pkl_paths[index]
+        traj_path, task_name, embedding_path, dataset_name = self.all_pkl_paths[index]
          
         demo_traj = load_traj(traj_path) # loading traiettoria
-        demo_data = make_demo(self, demo_traj[0], task_name)  #TODO: augs
+        demo_data = make_demo_finetuning(self, demo_traj[0], dataset_name)  #TODO: augs
         
         # for t,frame in enumerate(demo_data['demo']):
         #     img_debug = np.moveaxis(frame.detach().cpu().numpy()*255, 0, -1)
-        #     cv2.imwrite(f"debug_demo_{t}.png", img_debug) #images are already rgb
+        #     cv2.imwrite(f"video_cond_debug_demo_{t}.png", img_debug)
         
         embedding_data = pkl.load(open(embedding_path, 'rb'))
     

@@ -32,9 +32,54 @@ DATA_AUGS = {
             "null_bb": False,
         }
 
+dataset_samples_spec = {
+    "asu_table_top_converted": {
+        "name": "asu_table_top_converted",
+        "crop": [0, 35, 0, 0],
+        "image_channel_format": "RGB",
+    },
+    "berkeley_autolab_ur5_converted": {
+        "name": "berkeley_autolab_ur5_converted",
+        "crop": [0, 0, 0, 0],
+        "image_channel_format": "RGB",
+    },
+    "iamlab_cmu_pickup_insert_converted": {
+        "name": "iamlab_cmu_pickup_insert_converted",
+        "crop": [0, 0, 0, 0],
+        "image_channel_format": "RGB",
+    },
+    "taco_play_converted": {
+        "name": "taco_play_converted",
+        "crop": [0, 0, 0, 0],
+        "image_channel_format": "RGB",
+    },
+    "droid_converted": {
+        "name": "droid_converted",
+        "crop": [0, 0, 0, 0],
+        "image_channel_format": "RGB",
+    },
+    "sim_new_ur5e_pick_place_converted": {
+        "name": "sim_new_ur5e_pick_place_converted",
+        "crop": [20, 25, 80, 75],
+        "image_channel_format": "RGB",
+    },
+    "real_new_ur5e_pick_place_converted": {
+        "name": "real_new_ur5e_pick_place_converted",
+        "n_tasks": 16,
+        "crop": [20, 25, 80, 75],
+        "image_channel_format": "BGR",
+    },
+    "panda_pick_place": {
+        "name": "panda_pick_place",
+        "crop": [20, 25, 80, 75],
+        "image_channel_format": "RGB",
+    },
+}
+
 def create_val_loader(tasks_spec, black_list, data_augs):
     val_dataset = CommandEncoderFinetuningDataset(mode='val',
                                                 tasks_spec=tasks_spec,
+                                                dataset_samples_spec=dataset_samples_spec,
                                                 jsons_folder='/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes',
                                                 black_list=black_list,
                                                 data_augs=DATA_AUGS)
@@ -69,7 +114,7 @@ def make_centroids(embedding_dict):
             else:
                 subtask_tensor = torch.cat((subtask_tensor, torch.from_numpy(embedding_dict[task][idx]).unsqueeze(0)))
             
-        subtask_tensor = torch.mean(subtask_tensor, 0).numpy()
+        subtask_tensor = torch.mean(subtask_tensor, 0)
         centroids_per_task[task] = deepcopy(subtask_tensor)
             
     return centroids_per_task
@@ -140,13 +185,13 @@ def create_embedding_plot(embedding_dict, centroids_per_task):
     import colorcet as cc
     palette = sns.color_palette(cc.glasbey, n_colors=num_classes)
 
-    plt.figure(figsize=(32,20))
+    plt.figure(figsize=(15,20))
     ax = sns.scatterplot(
         x="tsne-2d-one", y="tsne-2d-two",
         hue="y", # per ora non la uso visto che ogni campione è a se
         palette=palette,
         data=df,
-        legend='full',
+        legend=False,
         # alpha=0.3
     )
     
@@ -182,7 +227,7 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    if args.debug:
+    if args.debug == 'True' or args.debug == 'true':
         import debugpy
         debugpy.listen(('0.0.0.0', 5678))
         print("Waiting for debugger attach")
@@ -277,7 +322,6 @@ if __name__ == '__main__':
             # all_output = torch.cat((all_output, batch_output), 0)
             # all_sentences.extend(batch_sentences)
             for sentence_idx, sentence in enumerate(batch_sentences):
-                
                 if sentence == 'Pick up pink block.' or sentence == 'Pick up pink flower.':
                     sentence = pink_sentence
                 

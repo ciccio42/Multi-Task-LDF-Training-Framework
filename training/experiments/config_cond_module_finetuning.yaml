@@ -75,6 +75,7 @@ limit_num_traj: -1
 limit_num_demo: -1
 defaults:
   - tasks_cfgs:  7_tasks
+  - finetuning_cfgs: dataset_parameters.yaml
 
 # dataset/loader/samplers
 loader_workers:   20
@@ -87,7 +88,6 @@ samplers:
 val_skip:             True # whether to let the samplers skip some **sub**tasks
 train_skip:           True
 
-
 sampler_cfg:
   # _target_: ${sampler_target}
   shuffle: True
@@ -95,6 +95,7 @@ sampler_cfg:
 dataset_cfg:
   _target_: ${dataset_target}
   tasks_spec: ${tasks}
+  dataset_samples_spec: ${finetuning_cfgs}
   mode: 'train'
   jsons_folder: '/raid/home/frosa_Loc/Multi-Task-LFD-Framework/repo/Multi-Task-LFD-Training-Framework/bashes'
   demo_T: 4
@@ -104,8 +105,7 @@ dataset_cfg:
   aux_pose: True
   use_strong_augs: False
   data_augs: ${augs}
-  black_list: ['droid_converted', 'droid_converted_old']
-  demo_crop: [0,0,0,0]
+  black_list: ['droid_converted', 'droid_converted_old', 'real_new_ur5e_pick_place_converted', 'sim_new_ur5e_pick_place_converted']
   select_random_frames: True
 
 augs:
@@ -127,23 +127,10 @@ augs:
 # model related
 policy: ???  # set to any set of configs via command line, e.g. policy='${tosil}'
 
-##### TODO
-# 1° addestramento:
-#   A) dim: panda sim  -- ur5 sim -> Tasso medio di successo (correlazione tra tasso medio e MSE)
-#   B) test su istanze mai viste
-# 2° addestramento:
-#   A) dim: panda sim -- ur5 reale FROM SCRATCH
-# 3° addestramento:
-#   A) dim: panda sim -- ur5 reale FINETUNING dal checkpoint punto 1°
-
-#--- Policy ---
-# shape: [3, ${dataset_cfg.height}, ${dataset_cfg.width}]
-
-
 cond_module:
   _target_: multi_task_il.datasets.command_encoder.cond_module.CondModule
-  height: 120
-  width: 160
+  height: 120 # not used
+  width: 160 # not used
   demo_T: 4
   model_name: 'r2plus1d_18'
   pretrained: True

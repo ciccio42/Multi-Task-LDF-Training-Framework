@@ -182,8 +182,8 @@ class TransformerNetwork(nn.Module):
                 #                               shape=rotation_delta_conf['shape'],
                 #                               dtype=eval(rotation_delta_conf['dtype']))),
                 # When normalization range is [-1.0, 1.0]
-                ('rotation_delta', spaces.Box(low=rotation_delta_conf['low'],
-                                            high=rotation_delta_conf['high'],
+                ('rotation_delta', spaces.Box(low=eval(rotation_delta_conf['low']),
+                                            high=eval(rotation_delta_conf['high']),
                                             shape=rotation_delta_conf['shape'],
                                             dtype=eval(rotation_delta_conf['dtype']))),
                 ('gripper_closedness_action', spaces.Box(low= gripper_closedness_conf['low'],
@@ -205,8 +205,8 @@ class TransformerNetwork(nn.Module):
                 #                               shape=rotation_delta_conf['shape'],
                 #                               dtype=eval(rotation_delta_conf['dtype']))),
                 # When normalization range is [-1.0, 1.0]
-                ('rotation_delta', spaces.Box(low=rotation_delta_conf['low'],
-                                            high=rotation_delta_conf['high'],
+                ('rotation_delta', spaces.Box(low=eval(rotation_delta_conf['low']),
+                                            high=eval(rotation_delta_conf['high']),
                                             shape=rotation_delta_conf['shape'],
                                             dtype=eval(rotation_delta_conf['dtype']))),
                 ('gripper_closedness_action', spaces.Box(low= gripper_closedness_conf['low'],
@@ -551,7 +551,7 @@ class TransformerNetwork(nn.Module):
         # # [print(f"{i}") for i in print_mask]
         # plt.imshow(print_mask)
         # plt.title('RT1 default attention mask')
-        # plt.savefig('default_attention_mask')
+        # plt.savefig('default_attention_mask_2.png')
 
         return (context_image_tokens, action_tokens, attention_mask)
 

@@ -47,7 +47,7 @@ R_g_sim_to_g_robot = np.array([[0, -1, 0],
                               [0, 0, 1]])
 
 
-DEBUG = True
+DEBUG = False
 
 
 def _compress_obs(obs):
@@ -513,6 +513,134 @@ def create_train_val_dict(dataset_loader=object, agent_name: str = "ur5e", demo_
 
     return count
 
+def make_demo_finetuning(dataset, traj, task_name):
+    """
+    Do a near-uniform sampling of the demonstration trajectory
+    """
+    if dataset.select_random_frames:
+        def clip(x): return int(max(1, min(x, len(traj) - 1)))
+        per_bracket = max(len(traj) / dataset._demo_T, 1)
+        frames = []
+        cp_frames = []
+        for i in range(dataset._demo_T):
+            # fix to using uniform + 'sample_side' now
+            if i == dataset._demo_T - 1:
+                n = len(traj) - 1
+            elif i == 0:
+                n = 1
+            else:
+                n = clip(np.random.randint(
+                    int(i * per_bracket), int((i + 1) * per_bracket)))
+            # frames.append(_make_frame(n))
+            # convert from BGR to RGB and scale to 0-1 range
+            if dataset.dataset_samples_spec[task_name]['image_channel_format'] == 'BGR':
+                try:
+                    obs = copy.copy(
+                        traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
+                except KeyError:
+                    obs = copy.copy( 
+                        traj.get(n)['obs']['image'][:, :, ::-1])
+            elif dataset.dataset_samples_spec[task_name]['image_channel_format'] == 'RGB': # in this else the image is already rgb, we don't need to convert
+                try:
+                    obs = copy.copy(
+                        traj.get(n)['obs']['camera_front_image'])
+                except KeyError:
+                    obs = copy.copy( 
+                        traj.get(n)['obs']['image'])
+            else:
+                raise AttributeError
+            processed = dataset.frame_aug(
+                task_name,
+                obs,
+                perform_aug=True,
+                frame_number=i,
+                perform_scale_resize=True)
+            frames.append(processed)
+            if dataset.aug_twice:
+                cp_frames.append(dataset.frame_aug(
+                    task_name,
+                    obs,
+                    True,
+                    perform_aug=False,
+                    perform_scale_resize=True))
+    else:
+        frames = []
+        cp_frames = []
+        for i in range(dataset._demo_T):
+            # get first frame
+            if i == 0:
+                n = 1
+            # get the last frame
+            elif i == dataset._demo_T - 1:
+                n = len(traj) - 1
+            elif i == 1:
+                obj_in_hand = 0
+                # get the first frame with obj_in_hand and the gripper is closed
+                for t in range(1, len(traj)):
+                    try:
+                        state = traj.get(t)['info']['status']
+                    except KeyError:
+                        trj_t = traj.get(t)
+                        gripper_act = trj_t['action'][-1]
+                        if gripper_act == 1:
+                            obj_in_hand = t
+                            n = t
+                            break
+                        continue                   
+                        
+                    trj_t = traj.get(t)
+                    gripper_act = trj_t['action'][-1]
+                    if state == 'obj_in_hand' and gripper_act == 1:
+                        obj_in_hand = t
+                        n = t
+                        break
+            elif i == 2:
+                # get the middle moving frame
+                start_moving = 0
+                end_moving = 0
+                for t in range(obj_in_hand, len(traj)):
+                    try:
+                        state = traj.get(t)['info']['status']
+                    except KeyError:
+                        trj_t = traj.get(t)
+                        n = int(len(traj)/2)
+                        break 
+                    if state == 'moving' and start_moving == 0:
+                        start_moving = t
+                    elif state != 'moving' and start_moving != 0 and end_moving == 0:
+                        end_moving = t
+                        break
+                n = start_moving + int((end_moving-start_moving)/2)
+
+            # convert from BGR to RGB and scale to 0-1 range
+            try:
+                obs = copy.copy(
+                    traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
+            except KeyError:
+                obs = copy.copy(
+                    traj.get(n)['obs']['image'][:, :, ::-1]) 
+
+            processed = dataset.frame_aug(task_name,
+                                          obs,
+                                          perform_aug=False,
+                                          perform_scale_resize=True,
+                                          agent=False)
+            frames.append(processed)
+            if dataset.aug_twice:
+                cp_frames.append(dataset.frame_aug(
+                    task_name,
+                    obs,
+                    True,
+                    perform_aug=False,
+                    perform_scale_resize=True))
+
+    ret_dict = dict()
+    ret_dict['demo'] = torch.stack(frames)
+    if dataset.aug_twice:
+        ret_dict['demo_cp'] = torch.stack(cp_frames)
+    return ret_dict
+
+
 
 def make_demo(dataset, traj, task_name):
     """
@@ -534,12 +662,20 @@ def make_demo(dataset, traj, task_name):
                     int(i * per_bracket), int((i + 1) * per_bracket)))
             # frames.append(_make_frame(n))
             # convert from BGR to RGB and scale to 0-1 range
-            try:
-                obs = copy.copy(
-                    traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
-            except KeyError:
-                obs = copy.copy( 
-                    traj.get(n)['obs']['image'][:, :, ::-1]) 
+            if task_name != 'real_new_ur5e_pick_place_converted':
+                try:
+                    obs = copy.copy(
+                        traj.get(n)['obs']['camera_front_image'][:, :, ::-1])
+                except KeyError:
+                    obs = copy.copy( 
+                        traj.get(n)['obs']['image'][:, :, ::-1])
+            else: # in this else the image is already rgb, we don't need to convert
+                try:
+                    obs = copy.copy(
+                        traj.get(n)['obs']['camera_front_image'])
+                except KeyError:
+                    obs = copy.copy( 
+                        traj.get(n)['obs']['image'])
             processed = dataset.frame_aug(
                 task_name,
                 obs,
@@ -815,15 +951,16 @@ def create_data_aug(dataset_loader=object):
 
             obs = dataset_loader.toTensor(obs)
 
-            cv2.imwrite(f"debug_crop_2/{task_name}_before_crop_{frame_number}.png", np.moveaxis(
-                obs.numpy()*255, 0, -1))
+            # cv2.imwrite(f"debug_crop_2/{task_name}_before_crop_{frame_number}.png", np.moveaxis(
+            #     obs.numpy()*255, 0, -1))
             
             # ---- Resized crop ----#
             obs = resized_crop(obs, top=top, left=left, height=box_h,
                                width=box_w, size=(dataset_loader.height, dataset_loader.width))
             # if DEBUG:
-            #     cv2.imwrite(f"debug_crop/{task_name}_prova_resized_{frame_number}.png", np.moveaxis(
+            #     cv2.imwrite(f"debug_crop_2/{task_name}_prova_resized_{frame_number}.png", np.moveaxis(
             #         obs.numpy()*255, 0, -1))
+                
             if bb is not None and class_frame is not None:
                 bb = adjust_bb(dataset_loader=dataset_loader,
                                bb=bb,
@@ -1319,7 +1456,7 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
         t = t.item()
         step_t = traj.get(t)
 
-        if not getattr(dataset_loader, "real", False) or (getattr(dataset_loader, "real", False) and sim_crop):
+        if dataset_loader.dataset_samples_spec[task_name]['image_channel_format'] == 'BGR':
             # cv2.imwrite("prova.png", step_t['obs']['camera_front_image'])
             try:
                 image = copy.copy(
@@ -1327,13 +1464,15 @@ def create_sample(dataset_loader, traj, chosen_t, task_name, command, load_actio
             except KeyError:
                 image = copy.copy(
                     step_t['obs']['image'][:, :, ::-1])
-        else:
+        elif dataset_loader.dataset_samples_spec[task_name]['image_channel_format'] == 'RGB':
             try:
                 image = copy.copy(
                     step_t['obs']['camera_front_image'])
             except KeyError:
                 image = copy.copy(
                     step_t['obs']['image'])
+        else:
+            raise AttributeError
 
         if DEBUG:
             cv2.imwrite("original_image.png", image)

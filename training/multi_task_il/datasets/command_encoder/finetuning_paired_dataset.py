@@ -7,10 +7,12 @@ import json
 from collections import defaultdict, OrderedDict
 import random
 from multi_task_il.datasets.command_encoder.utils import * ###########
+from tqdm import tqdm
 
 class FinetuningPairedDataset(Dataset):
     
     def __init__(self,
+                 dataset_samples_spec,
                  mode='train',
                  jsons_folder='',
                  obs_T=7,
@@ -23,7 +25,6 @@ class FinetuningPairedDataset(Dataset):
                  use_strong_augs=True,
                  data_augs=None,
                  black_list=[], #datasets to exclude
-                 demo_crop=[0, 0, 0, 0], #TODO,
                  select_random_frames=False,
                  convert_action = False, #TODO
                  take_first_frame = False, #TODO
@@ -44,6 +45,7 @@ class FinetuningPairedDataset(Dataset):
         self.task_crops = OrderedDict()
         self.demo_crop = OrderedDict()
         self.agent_crop = OrderedDict()
+        self.dataset_samples_spec = dataset_samples_spec
         self.mode = mode
         self._demo_T = demo_T
         self._obs_T = obs_T
@@ -88,13 +90,11 @@ class FinetuningPairedDataset(Dataset):
         for dataset_name in self.pkl_paths_dict.keys():
             if dataset_name not in self.black_list:
                 self.map_tasks_to_idxs[dataset_name] = defaultdict()
-                for task in self.pkl_paths_dict[dataset_name].keys():
+                for task in tqdm(self.pkl_paths_dict[dataset_name].keys(), desc=f'loading {dataset_name}'):
                     if type(self.pkl_paths_dict[dataset_name][task]) == list:
                         self.map_tasks_to_idxs[dataset_name][task] = []
-                        self.demo_crop[task] = demo_crop  # same crop
-                        self.task_crops[task] = demo_crop
                         for t in self.pkl_paths_dict[dataset_name][task]: # for all task in the list
-                            self.all_pkl_paths[all_file_count] = (t, task) #add to all_pkl_paths
+                            self.all_pkl_paths[all_file_count] = (t, task, dataset_name) #add to all_pkl_paths
                             self.map_tasks_to_idxs[dataset_name][task].append(all_file_count) #memorize mapping
                             all_file_count+=1
                         
@@ -102,15 +102,19 @@ class FinetuningPairedDataset(Dataset):
                         self.map_tasks_to_idxs[dataset_name][task] = defaultdict()
                         for subtask in self.pkl_paths_dict[dataset_name][task].keys():
                             self.map_tasks_to_idxs[dataset_name][task][subtask] = []
-                            self.demo_crop[subtask] = demo_crop
-                            self.task_crops[subtask] = demo_crop
                             for t in self.pkl_paths_dict[dataset_name][task][subtask]:
-                                self.all_pkl_paths[all_file_count] = (t, subtask) #add to all_pkl_paths
+                                self.all_pkl_paths[all_file_count] = (t, subtask, dataset_name) #add to all_pkl_paths
                                 self.map_tasks_to_idxs[dataset_name][task][subtask].append(all_file_count) #memorize mapping
                                 all_file_count+=1
             
         self.all_file_count = all_file_count
         print(f'[{self.mode.capitalize()}] total file count: {all_file_count}')
+        
+        for spec in self.dataset_samples_spec:
+            spec = self.dataset_samples_spec[spec]
+            name = spec.get('name', None)
+            if spec.get('crop', None) is not None:
+                self.task_crops[name] = spec.get('crop', [0,0,0,0])
         
         # # save the longest idxs lenght
         # self.max_len = 0
@@ -128,30 +132,45 @@ class FinetuningPairedDataset(Dataset):
         #                     raise NotImplementedError
         
         # with open("map_tasks_to_idxs.json", "w") as outfile: 
-        #     json.dump(self.map_tasks_to_idxs,outfile,indent=2) 
+        #     json.dump(self.map_tasks_to_idxs,outfile,indent=2)
+        
+        
+        # if spec.get('crop', None) is not None:
+        #     dataset_loader.task_crops[name] = spec.get(
+        #         'crop', [0, 0, 0, 0])
         
     def __getitem__(self, index):
-        couple_path, task_name = self.all_pkl_paths[index]
+        couple_path, task_name, traj_dataset_name = self.all_pkl_paths[index]
+        
+        # dataset_name non va bene sia per il dimostratore che per l'agente, anche se ci va bene visto
+        # che i parametri di crop sono uguali per entrambi
         
         # for convention, in the couple the first element is the demonstration, the second one is the trajectory
         demo_path = couple_path[0]
         traj_path = couple_path[1]
-                 
-        sim_crop = False #TODO
-        sub_task_id = 0 #TODO
+        
+        if traj_dataset_name == 'real_new_ur5e_pick_place_converted' or 'sim_new_ur5e_pick_place_converted':
+            demo_dataset_name = 'panda_pick_place' # the demos in this came from this dataset
+        else:
+            demo_dataset_name = traj_dataset_name
+        
         demo_traj, agent_traj = load_traj(demo_path), load_traj(traj_path) # loading traiettoria
-        demo_data = make_demo(self, demo_traj[0], task_name)  # solo video di 4 frame del task
+        demo_data = make_demo_finetuning(self, demo_traj[0], demo_dataset_name)  #TODO: controllare task_name per il crop # solo video di 4 frame del task
         traj = self._make_traj(
             agent_traj[0], # traj object
             agent_traj[1], # command
-            task_name,
-            sub_task_id,
-            sim_crop,
+            traj_dataset_name,
+            0,
+            False,
             self._convert_action)
         
         # for t,frame in enumerate(demo_data['demo']):
         #     img_debug = np.moveaxis(frame.detach().cpu().numpy()*255, 0, -1)
-        #     cv2.imwrite(f"debug_demo_{t}.png", img_debug) #images are already rgb
+        #     cv2.imwrite(f"w_debug_demo_{t}.png", img_debug)
+        
+        # for t,frame in enumerate(traj['images']):
+        #     img_debug = np.moveaxis(frame.detach().cpu().numpy()*255, 0, -1)
+        #     cv2.imwrite(f"w_debug_traj_{t}.png", img_debug)
     
         return {'demo_data': demo_data, 'traj': traj, 'task_name': 'finetuning'} # task_name key is for the collate_fn, loss grouping...
     
@@ -175,28 +194,6 @@ class FinetuningPairedDataset(Dataset):
         if self.non_sequential:
             chosen_t = torch.randperm(end)
             chosen_t = chosen_t[chosen_t != 0][:self._obs_T]
-
-        first_phase = None
-        if self.split_pick_place:
-            first_t = chosen_t[0].item()
-            last_t = chosen_t[-1].item()
-            if task_name == 'nut_assembly' or task_name == 'pick_place' or 'button' in task_name or 'stack_block' in task_name:
-                first_step_gripper_state = traj.get(first_t)['action'][-1]
-                first_phase = True if first_step_gripper_state == -1.0 or first_step_gripper_state == 0.0 else False
-                last_step_gripper_state = traj.get(last_t)['action'][-1]
-
-                # if first_step_gripper_state == 1.0 and last_step_gripper_state == -1.0:
-                #     print("Last with placing")
-                if (first_step_gripper_state != last_step_gripper_state) and not (first_step_gripper_state == 1.0 and (last_step_gripper_state == -1.0 or last_step_gripper_state == 0.0)):
-                    # change in task phase
-                    for indx, step in enumerate(range(first_t, last_t+1)):
-                        action_t = traj.get(step)['action'][-1]
-                        if first_step_gripper_state != action_t:
-                            step_change = step
-                            break
-                    for indx, step in enumerate(range(step_change+1-self._obs_T, step_change+1)):
-                        chosen_t[indx] = torch.tensor(step)
-
 
         ############################## TODO
         self._load_state_spec = False
@@ -229,9 +226,6 @@ class FinetuningPairedDataset(Dataset):
 
         ret_dict['points'] = []
         ret_dict['points'] = np.array(points)
-
-        if self.split_pick_place:
-            ret_dict['first_phase'] = torch.tensor(first_phase)
 
         if self.aux_pose:
             grip_close = np.array(
@@ -267,7 +261,7 @@ class FinetuningPairedDatasetSampler(BatchSampler):
                         else:
                             raise NotImplementedError
                         
-        print(f"[{self.dataset.mode.capitalize()}] max_len: {self.max_len}")
+        print(f"[{self.dataset.mode.capitalize()}][Sampler] max_len: {self.max_len}")
         
         # sampler per ogni task (random sampler)
         self.task_idx_samplers = {} # store all samplers here
@@ -355,7 +349,7 @@ class FinetuningPairedDatasetSampler(BatchSampler):
         
     
     def __len__(self):
-        return len(self.max_len)
+        return self.max_len
 
 class ResultsDisplayer():
     
