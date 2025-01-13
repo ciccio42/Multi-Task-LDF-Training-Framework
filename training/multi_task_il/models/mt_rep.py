@@ -460,6 +460,7 @@ class VideoImitation(nn.Module):
     def __init__(
         self,
         latent_dim,
+        model_char=None,
         load_target_obj_detector=False,
         target_obj_detector_step=0,
         target_obj_detector_path=None,
@@ -489,6 +490,7 @@ class VideoImitation(nn.Module):
         simclr_config=dict(),
     ):
         super().__init__()
+        self._model_char = model_char
         self._remove_class_layers = remove_class_layers
         self._concat_bb = concat_bb
         self._bb_sequence = bb_sequence
@@ -617,20 +619,31 @@ class VideoImitation(nn.Module):
         # summary(self)
 
     def load_target_obj_detector(self, target_obj_detector_path=None, target_obj_detector_step=-1, gpu_id=0):
-        conf_file = OmegaConf.load(os.path.join(
-            target_obj_detector_path, "config.yaml"))
+        if self._model_char is None:
+            conf_file = OmegaConf.load(os.path.join(
+                target_obj_detector_path, "config.yaml"))
+        else:
+            conf_file = OmegaConf.load(os.path.join(
+                target_obj_detector_path, f"config_{self._model_char}.yaml"))
+
         self._object_detector = hydra.utils.instantiate(
             conf_file.policy)
-        weights = torch.load(os.path.join(
-            target_obj_detector_path,
-            f"model_save-{target_obj_detector_step}.pt"),
-            map_location=torch.device(gpu_id))
+        if self._model_char is None:
+            weights = torch.load(os.path.join(
+                target_obj_detector_path,
+                f"model_save-{target_obj_detector_step}.pt"),
+                map_location=torch.device(gpu_id))
+        else:
+            weights = torch.load(os.path.join(
+                target_obj_detector_path,
+                f"model_save_{self._model_char}-{target_obj_detector_step}.pt"),
+                map_location=torch.device(gpu_id))
         self._object_detector.load_state_dict(weights)
         # self._object_detector.to("cuda:0")
         self._object_detector.eval()
 
-        # for p in self._object_detector.parameters():
-        #     p.requires_grad = False
+        for p in self._object_detector.parameters():
+            p.requires_grad = False
 
     def _load_model(self, model_path=None, step=0, conf_file=None, remove_class_layers=True, freeze=True):
         if model_path:
@@ -789,6 +802,7 @@ class VideoImitation(nn.Module):
         target_obj_embedding=None,
         compute_activation_map=False,
         t=-1,
+        concat_bb_forward=True,
         **kwargs
     ):
         start_time = time.time()
@@ -839,7 +853,11 @@ class VideoImitation(nn.Module):
                         # Get index for target object
                         predicted_bb = torch.zeros(
                             4).to(device=images.get_device())
-
+                    
+                    if not concat_bb_forward:
+                        predicted_bb = torch.zeros(
+                            4).to(device=images.get_device())
+                    
                     # get place bb
                     if torch.sum((place_indx_flags == True).int()) != 0 and "KP" in self._target_obj_detector_path:
                         # 2. Get the confidence scores for the target predictions and the the max
